@@ -33,6 +33,13 @@ This file contains the common rules for all specialist agents to ensure consiste
 - **Assets**: All game assets (Sprites, Maps) must be optimized for mobile loading.
 - **State Management**: Use lightweight state management (Zustand or Redux Toolkit) to handle player stats and inventory.
 
+## 🛡️ Elite Configuration & Security
+
+- **Environment-First**: Sensitive settings (DB Connection, API Keys, Secrets) MUST be stored in `.env` files. NEVER hardcode or commit them to source control.
+- **Typed Options**: Use `IOptions<T>` and `IOptionsSnapshot<T>` in the Core layer to access settings in a type-safe manner.
+- **Example Template**: Always maintain a `.env.example` file with placeholders for all required environment variables.
+- **Payment Abstraction**: All payment portal logic MUST be hidden behind an `IPaymentProvider` interface to facilitate easy provider switching (e.g., Momo to VNPay).
+
 ## ⚔️ Game Dev Integrity
 
 - **Binary Protocol**: Always verify Packet CMD IDs against the `game-mechanics` skill.

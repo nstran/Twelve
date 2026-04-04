@@ -11,11 +11,12 @@ Mục tiêu: Dựng "xương sống" server và giúp Client J2ME load được 
 | STT | Công việc | Chi tiết kỹ thuật | Trạng thái |
 | :--- | :--- | :--- | :--- |
 | 1.1 | **Hệ thống Agent & Rule** | Chuẩn hóa `.agent`, Skills & Agents | [🟢 Xong] |
-| 1.2 | **Cấu trúc Solution .NET 9** | Twelve.sln (Core, App, Infra, Server) | [🟡 Đang làm] |
-| 1.3 | **Bộ giải mã TlvCodec** | Đọc/Ghi binary Big-Endian (J2ME) | [🔴 Chờ] |
-| 1.4 | **Auth Handshake (Cmd 1/2)** | Đăng ký & Đăng nhập mồi (Stub Data) | [🔴 Chờ] |
-| 1.5 | **Map Loader (Cmd 11/5)** | Giao thức load gạch (Tiles) Hoa Lư | [🔴 Chờ] |
-| 1.6 | **Khởi tạo React Native** | Expo project + Skia integration | [🔴 Chờ] |
+| 1.2 | **Cấu trúc Solution .NET 9** | Twelve.sln (Core, App, Infra, Server) | [🟢 Xong] |
+| 1.3 | **Bộ giải mã TlvCodec** | Đọc/Ghi binary Big-Endian (J2ME) | [🟢 Xong] |
+| 1.4 | **Auth Handshake (Cmd 1/2)** | Đăng ký & Đăng nhập mồi (Stub Data) | [🟢 Xong] |
+| 1.5 | **Map Loader (Cmd 11/13/29)** | Giao thức load gạch (Tiles) Hoa Lư | [🟢 Xong] |
+| 1.6 | **WebSocket Bridge (Game)** | Cổng kết nối hiện đại cho Mobile | [🟢 Xong] |
+| 1.7 | **Skia Map Renderer** | Hiển thị 10x8 Tiles Hoa Lư (Grid) | [🟢 Xong] |
 
 ---
 

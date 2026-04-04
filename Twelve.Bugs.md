@@ -7,7 +7,6 @@
 ---
 
 ## 🛠️ Lỗi Đã Fix (Resolved Bugs)
-- **#003**: Loại bỏ ABP/Angular rules - Done.
 - **#004**: Đã đổi tên dự án từ L12SQ sang **Twelve** toàn cục.
 
 ---
