@@ -1,0 +1,74 @@
+# .gitignore for Loạn 12 Sứ Quân Online Project
+# Stack: C# (.NET), React Native, PostgreSQL
+
+# === .NET / C# ===
+bin/
+obj/
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# === React Native / Node.js ===
+node_modules/
+dist/
+build/
+.expo/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# === Android (React Native) ===
+android/app/debug/
+android/app/release/
+android/app/build/
+*.keystore
+!debug.keystore
+
+# === iOS (React Native) ===
+ios/build/
+ios/Pods/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+DerivedData/
+*.hmap
+*.ipa
+*.xcuserstate
+
+# === Database & OS ===
+.DS_Store
+Thumbs.db
+*.db
+*.sqlite
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.tmp
+/tmp/
+
+# === Project specific ===
+raw/
+!raw/images/
+!raw/videos/
+decompiled/
+L12SQ/
+# Tránh commit các file raw quá lớn hoặc file java cũ nếu không cần thiết
