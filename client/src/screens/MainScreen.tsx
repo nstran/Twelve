@@ -1,118 +1,95 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { SocketClient, Actor } from '../network/SocketClient';
 import { MapRenderer } from '../engine/MapRenderer';
-import { socketClient } from '../network/SocketClient';
-import { PacketRequest } from '../network/BinaryProtocol';
-import { Buffer } from 'buffer';
 
 export const MainScreen: React.FC = () => {
-  const [mapData, setMapData] = useState<number[]>([]);
-  const [status, setStatus] = useState('Connecting...');
+  const [mapData, setMapData] = useState<any>(null);
+  const [actors, setActors] = useState<Actor[]>([]);
+  const [client, setClient] = useState<SocketClient | null>(null);
 
   useEffect(() => {
-    // Determine server URL (localhost for sim, IP for real device)
-    const serverUrl = Platform.OS === 'android' ? 'ws://10.0.2.2:5000/game' : 'ws://localhost:5000/game';
+    const wsClient = new SocketClient(
+      (data) => setMapData(data),
+      (newActors) => setActors(prev => {
+        const merged = [...prev];
+        newActors.forEach(actor => {
+          const idx = merged.findIndex(a => a.id === actor.id);
+          if (idx >= 0) merged[idx] = actor;
+          else merged.push(actor);
+        });
+        return merged;
+      })
+    );
     
-    socketClient.connect(serverUrl);
-
-    // Listen for Map Info (CMD 11)
-    socketClient.on(11, (request: PacketRequest) => {
-      setStatus('Map Received');
-      const logicLayer = request.tags.get(61); // Tag 61 is Logic Layer
-      if (logicLayer) {
-        setMapData(Array.from(new Uint8Array(logicLayer)));
-      }
-    });
-
-    // Listen for Auth Ack (CMD 1)
-    socketClient.on(1, () => {
-      setStatus('Authenticated');
-      // After login, request Hoa Lu map
-      socketClient.requestMap('Hoa Lu');
-    });
-
-    return () => {
-       // Should cleanup socket if needed
-    };
+    wsClient.connect('ws://localhost:2026');
+    setClient(wsClient);
   }, []);
 
+  const handleMapPress = (x: number, y: number) => {
+    if (client) {
+      client.move(x, y);
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>TWELVE / SỨ QUÂN</Text>
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>STATUS: {status.toUpperCase()}</Text>
-        </View>
+    <View style={styles.container}>
+      <Text style={styles.title}>Twelve - Lộ Diện Sứ Quân</Text>
+      {mapData ? (
+        <MapRenderer 
+          width={mapData.width || 10} 
+          height={mapData.height || 10} 
+          tileSize={mapData.tileSize || 32} 
+          data={new Array(100).fill(32)} // Dummy grass tiles
+          actors={actors}
+          onMapPress={handleMapPress}
+        />
+      ) : (
+        <Text style={styles.loading}>Hào khí vạn năm - Đang kết nối...</Text>
+      )}
+      
+      <View style={styles.stats}>
+        <Text style={styles.statText}>Nhân vật: {actors.length}</Text>
+        {actors.map(a => (
+          <Text key={a.id} style={styles.statText}> - {a.label} ({a.x}, {a.y})</Text>
+        ))}
+        <Text style={[styles.statText, { marginTop: 10, color: '#ffd700' }]}>
+          * Chạm lên bản đồ để di binh!
+        </Text>
       </View>
-
-      <View style={styles.renderArea}>
-        {mapData.length > 0 ? (
-          <MapRenderer 
-            width={10} 
-            height={8} 
-            tileSize={32} 
-            data={mapData} 
-          />
-        ) : (
-          <Text style={styles.logText}>Waiting for Map Data...</Text>
-        )}
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.logText}>Server: {status}</Text>
-      </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#050505',
-    padding: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    backgroundColor: '#0a0a0a',
     alignItems: 'center',
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderColor: '#333',
-    paddingBottom: 10,
+    justifyContent: 'center',
   },
   title: {
-    color: '#fff',
-    fontSize: 18,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    color: '#ffd700',
+    fontSize: 24,
     fontWeight: 'bold',
-    letterSpacing: 2,
+    marginBottom: 20,
+    textTransform: 'uppercase',
   },
-  statusBadge: {
-    backgroundColor: '#1a1a1a',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: '#2e7d32',
+  loading: {
+    color: '#888',
+    fontStyle: 'italic',
   },
-  statusText: {
-    color: '#2e7d32',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  renderArea: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footer: {
+  stats: {
     marginTop: 20,
-    borderTopWidth: 1,
+    padding: 15,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    width: '90%',
+    borderWidth: 1,
     borderColor: '#333',
-    paddingTop: 10,
   },
-  logText: {
-    color: '#666',
-    fontSize: 10,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  statText: {
+    color: '#ccc',
+    fontSize: 14,
   },
 });

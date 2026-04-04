@@ -1,137 +1,83 @@
-using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Twelve.Core;
 using Twelve.Core.Tlv;
-using Twelve.Core.Maps;
+using Twelve.Core.Interfaces;
+using Twelve.Core.GameLogic;
 
 namespace Twelve.Application.Handlers
 {
     public class MapHandler : IPacketHandler
     {
+        private readonly IPlayerRepository _playerRepository;
+
+        public MapHandler(IPlayerRepository playerRepository)
+        {
+            _playerRepository = playerRepository;
+        }
+
         public async Task HandleAsync(GameSession session, PacketRequest request)
         {
-            if (request.Command == 11)
+            if (request.Command == 11) // Map Info 
             {
-                string mapName = request.GetStringTag(20) ?? "Hoa Lu";
-                int roomId = 1; // Default to 1 for now
+                var mapPayload = BuildMapPayload();
+                await session.SendPacketAsync(TlvCodec.BuildPacket(11, mapPayload));
 
-                System.Console.WriteLine($"[MapHandler] Request Map Info: {mapName}");
-
-                if (mapName == "M99")
-                {
-                    await SendWorldMapHotspots(session);
-                }
-                else
-                {
-                    await SendMapInfo(session, mapName, roomId);
-                }
+                var actorPayload = BuildSceneActors(session.Username ?? "Player");
+                await session.SendPacketAsync(TlvCodec.BuildPacket(43, actorPayload));
             }
-            else if (request.Command == 13)
+            else if (request.Command == 29) // Map Join
             {
-                // CMD 13 = Select Map
-                string targetMap = request.GetStringTag(20) ?? "Hoa Lu";
-                int roomId = 1; // From tag 21 if present
-
-                System.Console.WriteLine($"[MapHandler] Selection Request: {targetMap}");
-
-                // Send Cmd 13 Ack
-                var payload = new List<byte>();
-                payload.AddRange(TlvCodec.MakeTag(20, targetMap));
-                payload.AddRange(TlvCodec.MakeTag(21, roomId));
-                payload.AddRange(TlvCodec.MakeTag(22, (byte)0)); // Type 0
-
-                byte[] packet = TlvCodec.BuildPacket(13, payload.ToArray(), 3);
-                await session.SendPacketAsync(packet);
-
-                System.Console.WriteLine($"[MapHandler] Sent CMD 13 Ack for {targetMap}");
-            }
-            else if (request.Command == 29)
-            {
-                // CMD 29 = Map Join Request
-                string username = session.Username ?? "Guest";
-                string mapName = request.GetStringTag(20) ?? "Hoa Lu";
-                int roomId = 1;
-
-                System.Console.WriteLine($"[MapHandler] Join Request: {username} -> {mapName}");
-
-                // Send Cmd 29 Ack
-                var payload = new List<byte>();
-                payload.AddRange(TlvCodec.MakeTag(9, username));
-                payload.AddRange(TlvCodec.MakeTag(20, mapName));
-                payload.AddRange(TlvCodec.MakeTag(21, roomId));
-
-                byte[] packet = TlvCodec.BuildPacket(29, payload.ToArray(), 3);
-                await session.SendPacketAsync(packet);
-
-                System.Console.WriteLine($"[MapHandler] Sent CMD 29 Ack for {username}");
+                await session.SendPacketAsync(TlvCodec.BuildPacket(29, request.RawPayload));
             }
         }
 
-        private async Task SendWorldMapHotspots(GameSession session)
+        private byte[] BuildMapPayload()
         {
-            var payload = new List<byte>();
-            payload.AddRange(TlvCodec.MakeTag(12, (byte)0)); 
-            payload.AddRange(TlvCodec.MakeTag(20, "M99"));
+            var tags = new List<byte>();
+            tags.AddRange(TlvCodec.MakeTag(20, "Hoa Lu"));
+            tags.AddRange(TlvCodec.MakeTag(56, MapLogic.Width));
+            tags.AddRange(TlvCodec.MakeTag(57, MapLogic.Height));
+            tags.AddRange(TlvCodec.MakeTag(58, MapLogic.TileSize));
+            tags.AddRange(TlvCodec.MakeTag(59, MapLogic.TileSize));
             
-            // Append entry for Hoa Lu on World Map
-            payload.AddRange(TlvCodec.MakeTag(21, 0)); // ID 0
-            payload.AddRange(TlvCodec.MakeTag(26, "Hoa Lu"));
-            payload.AddRange(TlvCodec.MakeTag(22, (byte)0)); // MarkerType 0
-            payload.AddRange(TlvCodec.MakeTag(102, 120)); // CenterX
-            payload.AddRange(TlvCodec.MakeTag(103, 220)); // CenterY
-            payload.AddRange(TlvCodec.MakeTag(104, 64)); // Width
-            payload.AddRange(TlvCodec.MakeTag(105, 40)); // Height
-            payload.AddRange(TlvCodec.MakeTag(101, (byte)1)); // Enabled 1
-            payload.AddRange(TlvCodec.MakeTag(4, 0)); // IconId 0
-
-            byte[] packet = TlvCodec.BuildPacket(11, payload.ToArray(), 9); 
-            await session.SendPacketAsync(packet);
+            // Build Logic Layer (0-4 are wall, 5-7 are ground)
+            byte[] logic = new byte[MapLogic.Width * MapLogic.Height];
+            for (int y = 0; y < MapLogic.Height; y++)
+            {
+                for (int x = 0; x < MapLogic.Width; x++)
+                {
+                    if (y >= 5 && y <= 7) logic[y * MapLogic.Width + x] = 32; // Walkable
+                    else logic[y * MapLogic.Width + x] = 0; // Wall
+                }
+            }
+            tags.AddRange(TlvCodec.MakeTag(55, logic)); // Ground Layer
+            tags.AddRange(TlvCodec.MakeTag(61, logic)); // Trigger/Logic Layer
+            
+            return tags.ToArray();
         }
 
-        private async Task SendMapInfo(GameSession session, string mapName, int roomId)
+        private byte[] BuildSceneActors(string username)
         {
-            if (!MapDataStore.Maps.TryGetValue(mapName, out var rooms) || rooms.Count < roomId)
-            {
-                System.Console.WriteLine($"[MapHandler] Error: Map {mapName} or Room {roomId} not found.");
-                return;
-            }
+            var tags = new List<byte>();
+            tags.AddRange(TlvCodec.MakeTag(20, "Hoa Lu"));
+            tags.AddRange(TlvCodec.MakeTag(40, (byte)2)); // 2 Actors: Player + Boss
 
-            var room = rooms[roomId - 1];
-            int size = room.Width * room.Height;
-            byte[] emptyLayer = new byte[size];
+            // 1. Player
+            tags.AddRange(TlvCodec.MakeTag(9, username));
+            tags.AddRange(TlvCodec.MakeTag(26, username));
+            tags.AddRange(TlvCodec.MakeTag(27, 100)); // Warrior
+            tags.AddRange(TlvCodec.MakeTag(102, 120)); // X
+            tags.AddRange(TlvCodec.MakeTag(103, 160)); // Y (Row 5 starting)
 
-            var payload = new List<byte>();
-            payload.AddRange(TlvCodec.MakeTag(12, (byte)1)); // Type: Room Info
-            payload.AddRange(TlvCodec.MakeTag(20, mapName));
-            payload.AddRange(TlvCodec.MakeTag(26, room.Label));
-            payload.AddRange(TlvCodec.MakeTag(41, 5120)); // Flags
-            payload.AddRange(TlvCodec.MakeTag(56, room.Width));
-            payload.AddRange(TlvCodec.MakeTag(57, room.Height));
-            payload.AddRange(TlvCodec.MakeTag(58, room.TileSize));
-            payload.AddRange(TlvCodec.MakeTag(59, room.TileSize));
-            payload.AddRange(TlvCodec.MakeTag(55, emptyLayer)); // Ground
-            payload.AddRange(TlvCodec.MakeTag(54, emptyLayer)); // Decoration
-            payload.AddRange(TlvCodec.MakeTag(61, room.LogicLayer)); // Logic
-            payload.AddRange(TlvCodec.MakeTag(60, room.TilesetId));
-            payload.AddRange(TlvCodec.MakeTag(63, room.BackgroundId));
-            payload.AddRange(TlvCodec.MakeTag(29, 0)); // Overlay
-
-            // Entry data
-            payload.AddRange(TlvCodec.MakeTag(21, room.Id));
-            payload.AddRange(TlvCodec.MakeTag(26, room.Label));
-            payload.AddRange(TlvCodec.MakeTag(22, (byte)1)); // MarkerType 1
-            payload.AddRange(TlvCodec.MakeTag(102, room.CenterX));
-            payload.AddRange(TlvCodec.MakeTag(103, room.CenterY));
-            payload.AddRange(TlvCodec.MakeTag(104, room.EntryWidth));
-            payload.AddRange(TlvCodec.MakeTag(105, room.EntryHeight));
-            payload.AddRange(TlvCodec.MakeTag(101, (byte)1)); // Enabled 1
-            payload.AddRange(TlvCodec.MakeTag(4, 0)); // IconId 0
+            // 2. [NEW] Boss Monster: "Manh Ho"
+            tags.AddRange(TlvCodec.MakeTag(9, "BOSS_001"));
+            tags.AddRange(TlvCodec.MakeTag(26, "Manh Ho"));
+            tags.AddRange(TlvCodec.MakeTag(27, 200)); // Monster Kind
+            tags.AddRange(TlvCodec.MakeTag(102, 280)); // X
+            tags.AddRange(TlvCodec.MakeTag(103, 192)); // Y (Row 6)
             
-            payload.AddRange(TlvCodec.MakeTag(6, 0)); // Padding
-            payload.AddRange(TlvCodec.MakeTag(6, 0)); // Padding
-
-            byte[] packet = TlvCodec.BuildPacket(11, payload.ToArray(), 25); 
-            await session.SendPacketAsync(packet);
+            return tags.ToArray();
         }
     }
 }
