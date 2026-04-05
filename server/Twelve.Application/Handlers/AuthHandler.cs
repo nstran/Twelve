@@ -188,8 +188,8 @@ namespace Twelve.Application.Handlers
             // ── Kiểm tra Nhân vật (Player) ──────────────────────────────────
             var player = await _playerRepository.GetByUsernameAsync(username);
             
-            // Nếu không có nhân vật HOẶC nhân vật chưa được khởi tạo đầy đủ (chưa có Hệ/Mặt/Tóc)
-            bool isNewChar = (player == null) || (player.Element == 0 && player.Face == 0);
+            // Nếu không có nhân vật HOẶC nhân vật chưa được khởi tạo đầy đủ (Element/FaceStyle là null)
+            bool isNewChar = (player == null) || (player.Element == null);
 
             if (isNewChar)
             {

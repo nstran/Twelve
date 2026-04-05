@@ -42,9 +42,12 @@ namespace Twelve.Application.Handlers
 
             // ── Kiểm tra xem nhân vật đã tồn tại chưa ────────────────────────
             var existing = await _playerRepository.GetByUsernameAsync(session.Username);
-            if (existing != null)
+            bool isNewRecord = (existing == null);
+
+            // Nếu đã có nhân vật VÀ nhân vật đã được khởi tạo đầy đủ (Element != null) thì báo lỗi
+            if (existing != null && existing.Element != null)
             {
-                _logger.LogWarning("[CreateChar] Player already exists for '{Username}'", session.Username);
+                _logger.LogWarning("[CreateChar] Player already exists and is fully initialized for '{Username}'", session.Username);
                 await session.SendPacketAsync(TlvCodec.BuildSingleTagPacket(
                     CommandCode.CreateCharacterResponse, 
                     TagCode.Message, 
@@ -63,32 +66,35 @@ namespace Twelve.Application.Handlers
             _logger.LogInformation("[CreateChar] Choices: Element={E}, Face={F}, Hair={H}, Color={C}, Skin={S}",
                 element, faceStyle, hairStyle, hairColor, skinColor);
 
-            // ── Khởi tạo nhân vật mới trong Database ──────────────────────────
-            var newPlayer = new Player
-            {
-                Username    = session.Username,
-                Level       = 1,
-                Gold        = 500,  // Tặng chút vàng khởi nghiệp
-                Exp         = 0,
-                CurrentMap  = "M1", // Bản đồ tân thủ
-                CurrentRoom = 1,
-                Hp          = 100,
-                MaxHp       = 100,
-                Mp          = 50,
-                MaxMp       = 50,
-                
-                // Lưu diện mạo
-                Element     = element,
-                FaceStyle   = faceStyle,
-                HairStyle   = hairStyle,
-                HairColor   = hairColor,
-                SkinColor   = skinColor,
-            };
+            // ── Khởi tạo hoặc Cập nhật nhân vật trong Database ──────────────────────────
+            var player = isNewRecord ? new Player { Username = session.Username } : existing!;
+            
+            player.Level       = 1;
+            player.Gold        = 500;  // Tặng chút vàng khởi nghiệp
+            player.Exp         = 0;
+            player.CurrentMap  = "M1"; // Bản đồ tân thủ
+            player.CurrentRoom = 1;
+            player.Hp          = 100;
+            player.MaxHp       = 100;
+            player.Mp          = 50;
+            player.MaxMp       = 50;
+            
+            // Lưu diện mạo
+            player.Element     = element;
+            player.FaceStyle   = faceStyle;
+            player.HairStyle   = hairStyle;
+            player.HairColor   = hairColor;
+            player.SkinColor   = skinColor;
 
             try
             {
-                await _playerRepository.CreateAsync(newPlayer);
-                _logger.LogInformation("[CreateChar] ✓ Success: Player created for '{Username}'", session.Username);
+                if (isNewRecord)
+                    await _playerRepository.CreateAsync(player);
+                else
+                    await _playerRepository.UpdateAsync(player);
+
+                _logger.LogInformation("[CreateChar] ✓ Success: Player {Mode} for '{Username}'", 
+                    isNewRecord ? "Created" : "Updated", session.Username);
 
                 // CMD_CREATE_CHAR_RESPONSE: Trả về thành công
                 await session.SendPacketAsync(TlvCodec.BuildSingleTagPacket(
