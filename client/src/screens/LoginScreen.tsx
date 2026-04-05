@@ -22,6 +22,7 @@ const ASSET_ICON_OK     = require('../../assets/ui/icons/icon_ok.png');
 const ASSET_ICON_CANCEL = require('../../assets/ui/icons/icon_cancel.png');
 const ASSET_ORNATE      = require('../../assets/ui/frames/cornerskb.png');
 const ASSET_BASE_FRAME  = require('../../assets/ui/frames/1.png');
+const ASSET_RED_SUN     = require('../../assets/ui/icons/icon_sharpest_1.png');
 
 const MENU_ITEMS = [
   { label: 'Đăng nhập', id: 200 },
@@ -180,9 +181,7 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
             </View>
           )}
 
-          {/* ══════════════════════════════════════════════
-              POPUP MENU (Double Border Modernized)
-          ══════════════════════════════════════════════ */}
+          {/* POPUP MENU */}
           {menuVisible && (
             <>
               <TouchableOpacity
@@ -191,7 +190,6 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
                 onPress={() => setMenuVisible(false)}
               />
               <View style={styles.menuBox}>
-                {/* 2nd Inner Border Layer */}
                 <View style={styles.menuInnerBox}>
                   {MENU_ITEMS.map((item, idx) => {
                     const isSelected = idx === selectedIndex;
@@ -235,13 +233,14 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
             </>
           )}
 
+          {/* ── Softkey Bar updated call ── */}
           <SoftkeyBar
             width={width}
             onLeftPress={handleLeftSoftkey}
             onCenterPress={handleCenterKey}
             onRightPress={handleRightSoftkey}
             menuVisible={menuVisible}
-            leftIcon={menuVisible ? ASSET_ICON_OK : undefined}
+            leftIcon={menuVisible ? ASSET_ICON_OK : ASSET_RED_SUN}
             rightIcon={menuVisible ? ASSET_ICON_CANCEL : undefined}
           />
 

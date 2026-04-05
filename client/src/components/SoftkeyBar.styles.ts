@@ -1,77 +1,95 @@
 import { StyleSheet, Platform } from 'react-native';
 
-const BAR_HEIGHT = 26; 
-const ORNATE_CLIP_W = 20; 
-
 export const styles = StyleSheet.create({
   container: {
-    height: BAR_HEIGHT,
+    height: 26,
+    flexDirection: 'row',
+    backgroundColor: '#0055cc', 
+    overflow: 'hidden',
     position: 'absolute',
     bottom: 0,
-    zIndex: 1000,
-  },
-  baseFrameLayer: {
-    ...StyleSheet.absoluteFillObject,
-    left: -10,
-  },
-  fullBaseImage: {
-    height: '100%',
-  },
-  overlayRow: {
-    flexDirection: 'row',
-    height: '100%',
-  },
-  ornateClip: {
-    width: ORNATE_CLIP_W,
-    height: '100%',
-    overflow: 'hidden',
-  },
-  ornateImage: {
-    width: 44, 
-    height: '100%',
+    left: 0,
+    zIndex: 100, 
   },
   
-  // Content Layer
+  // ─── LAYER 1: BASE IMAGE (SILK) ───
+  baseFrameLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+  },
+  fullBaseImage: {
+    height: 26,
+    marginLeft: -10,
+  },
+
+  // ─── LAYER 2: CONTENT (CENTER) ───
   content: {
     ...StyleSheet.absoluteFillObject,
     flexDirection: 'row',
     alignItems: 'center',
+    zIndex: 2,
+    justifyContent: 'center',
   },
   centerContent: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingLeft: 60, // Exactly as in your current file
+    justifyContent: 'center',
+    // Removed the problematic padding to keep it centered
   },
-  leftPlaceholder: { width: 50 },
-  rightPlaceholder: { width: 50 },
+  timeText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
+    textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+  },
 
-  // Top Layer
+  // ─── LAYER 3: TOPMOST INTERACTION / LABELS ───
   topmostLayer: {
     ...StyleSheet.absoluteFillObject,
     flexDirection: 'row',
+    zIndex: 4,
   },
   softkeyArea: {
-    width: 50, 
-    height: '100%',
+    flex: 1,
+    height: 26,
     justifyContent: 'center',
-    alignItems: 'flex-start',
-    paddingLeft: 0, 
-  },
-  sharpIconTop: {
-    width: 25, // Exactly as in your current file
-    height: 25,
-    marginLeft: 6, 
   },
   
-  timeText: {
-    color: '#ffffff', // Your latest manual revert color
-    fontSize: 18,     // Your latest manual revert size
+  sharpIconTop: {
+    width: 25,
+    height: 25,
+    marginLeft: 6,
+  },
+
+  softkeyLabelText: {
+    color: '#ffffff',
+    fontSize: 13,
     fontWeight: 'bold',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    textShadowColor: '#000',
+    paddingLeft: 10, 
+    textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 1,
+    textShadowRadius: 2,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+  },
+
+  // ─── LAYER 4: ORNATE DECORATION ───
+  overlayRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    height: 26,
+    zIndex: 99,
+  },
+  ornateClip: {
+    width: 28, 
+    height: 26,
+    overflow: 'hidden',
+  },
+  ornateImage: {
+    width: 60,
+    height: 26,
   },
 });
