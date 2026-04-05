@@ -1,70 +1,141 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  ImageBackground, 
+import {
+  View,
+  Text,
+  Image,
+  TextInput,
+  TouchableOpacity,
+  ImageBackground,
   Alert,
   ActivityIndicator,
-  useWindowDimensions
+  BackHandler,
+  useWindowDimensions,
 } from 'react-native';
+
+// ─── Game assets từ JAR gốc (.mg → PNG) ─────────────────────────────────────
+const ASSET_ICON        = require('../../assets/original/icon.png');        // skull icon 30×32
+const ASSET_ARROW_OPEN  = require('../../assets/original/arrowfocus2.png'); // magenta  — menu đang mở
+const ASSET_ARROW_CLOSE = require('../../assets/original/arrowfocus1.png'); // teal     — menu đang đóng
 import { SocketClient } from '../network/SocketClient';
 import { getStyles } from './LoginScreen.styles';
 
-export const LoginScreen = ({ onLoginSuccess }: { onLoginSuccess: () => void }) => {
+// ─── Menu items (nz.java: Đăng nhập=200, Đăng ký=201, Thoát=205) ───────────
+const MENU_ITEMS = [
+  { label: 'Đăng nhập', id: 200 },
+  { label: 'Đăng ký',   id: 201 },
+  { label: 'Thoát',     id: 205 },
+];
+
+interface Props {
+  onLoginSuccess: () => void;
+  onRegister: () => void;
+}
+
+export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
   const { width, height } = useWindowDimensions();
+  const styles = useMemo(() => getStyles(width, height), [width, height]);
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [autoLogin, setAutoLogin] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Tính toán lại styles mỗi khi kích thước màn hình thay đổi (Xoay, Resize)
-  const styles = useMemo(() => getStyles(width, height), [width, height]);
   const client = SocketClient.getInstance();
 
+  // ── Auth event listeners ─────────────────────────────────────────────────
   useEffect(() => {
-    client.on('authSuccess', () => {
+    const onAuthSuccess = () => {
       setLoading(false);
       onLoginSuccess();
-    });
-
-    client.on('authFailed', (msg) => {
+    };
+    const onAuthFailed = (msg: string) => {
       setLoading(false);
       Alert.alert('Thất bại', msg || 'Sai tài khoản hoặc mật khẩu');
-    });
-
+    };
+    client.on('authSuccess', onAuthSuccess);
+    client.on('authFailed', onAuthFailed);
     return () => {
-      client.removeAllListeners('authSuccess');
-      client.removeAllListeners('authFailed');
+      client.off('authSuccess', onAuthSuccess);
+      client.off('authFailed', onAuthFailed);
     };
   }, []);
 
-  const handleAction = () => {
+  // ── Android hardware back: close menu first ─────────────────────────────
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (menuVisible) {
+        setMenuVisible(false);
+        return true;
+      }
+      return false;
+    });
+    return () => handler.remove();
+  }, [menuVisible]);
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+  const handleLogin = () => {
     if (!username || !password) {
       Alert.alert('Chú ý', 'Vui lòng nhập đầy đủ thông tin');
       return;
     }
+    setMenuVisible(false);
     setLoading(true);
     client.login(username, password);
+  };
+
+  const handleMenuSelect = (id: number) => {
+    setMenuVisible(false);
+    switch (id) {
+      case 200: handleLogin(); break;
+      case 201: onRegister(); break;
+      case 205: BackHandler.exitApp(); break;
+    }
+  };
+
+  const openMenu = () => {
+    setSelectedIndex(0);
+    setMenuVisible(true);
+  };
+
+  // Left softkey: confirm selection when menu open, else open menu
+  const handleLeftSoftkey = () => {
+    if (menuVisible) {
+      handleMenuSelect(MENU_ITEMS[selectedIndex].id);
+    } else {
+      openMenu();
+    }
+  };
+
+  // Center arrow: toggle menu
+  const handleCenterKey = () => {
+    if (menuVisible) setMenuVisible(false);
+    else openMenu();
+  };
+
+  // Right softkey: close menu if open, else exit
+  const handleRightSoftkey = () => {
+    if (menuVisible) setMenuVisible(false);
+    else BackHandler.exitApp();
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.fullBg} />
 
-      <ImageBackground 
-        source={require('../../assets/original/login.png')} 
+      <ImageBackground
+        source={require('../../assets/original/login.png')}
         style={styles.imageBg}
         resizeMode="contain"
       >
         <View style={styles.contentOverlay}>
-          
-          {/* Input Tài khoản - Sweet Spot v2.3 */}
+
+          {/* ── Nick Ola input ── */}
           <View style={[styles.inputBox, { top: '60.3%', left: '39.8%' }]}>
-            <TextInput 
-              style={styles.transparentInput} 
+            <TextInput
+              style={styles.transparentInput}
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
@@ -74,10 +145,10 @@ export const LoginScreen = ({ onLoginSuccess }: { onLoginSuccess: () => void }) 
             />
           </View>
 
-          {/* Input Mật khẩu - Sweet Spot v2.3 */}
+          {/* ── Mật khẩu input ── */}
           <View style={[styles.inputBox, { top: '66.3%', left: '39.8%' }]}>
-            <TextInput 
-              style={styles.transparentInput} 
+            <TextInput
+              style={styles.transparentInput}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -87,32 +158,113 @@ export const LoginScreen = ({ onLoginSuccess }: { onLoginSuccess: () => void }) 
             />
           </View>
 
-          {/* Checkbox: Nhớ mật khẩu */}
-          <TouchableOpacity 
-            style={[styles.checkboxArea, { top: '70.8%', left: '39.5%' }]} 
-            onPress={() => setRememberMe(!rememberMe)}
+          {/* ── Checkbox: Nhớ mật khẩu ── */}
+          <TouchableOpacity
+            style={[styles.checkboxArea, { top: '70.8%', left: '39.5%' }]}
+            onPress={() => setRememberMe(v => !v)}
             activeOpacity={0.5}
           >
             {rememberMe && <Text style={styles.tickText}>✓</Text>}
           </TouchableOpacity>
 
-          {/* Checkbox: Đăng nhập tự động */}
-          <TouchableOpacity 
-            style={[styles.checkboxArea, { top: '76.1%', left: '39.5%' }]} 
-            onPress={() => setAutoLogin(!autoLogin)}
+          {/* ── Checkbox: Đăng nhập tự động ── */}
+          <TouchableOpacity
+            style={[styles.checkboxArea, { top: '76.1%', left: '39.5%' }]}
+            onPress={() => setAutoLogin(v => !v)}
             activeOpacity={0.5}
           >
             {autoLogin && <Text style={styles.tickText}>✓</Text>}
           </TouchableOpacity>
 
-          {/* Phantom Tham Chiến Button */}
-          <TouchableOpacity 
-            style={styles.phantomButton} 
-            onPress={handleAction}
-            activeOpacity={0.6}
-          >
-            {loading && <ActivityIndicator color="#000" />}
-          </TouchableOpacity>
+          {/* ── Loading overlay when authenticating ── */}
+          {loading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator color="#ffd700" />
+            </View>
+          )}
+
+          {/* ══════════════════════════════════════════════
+              POPUP MENU (bv.java style)
+              Positioned just above the bottom softkey bar.
+              Items: Đăng nhập [highlighted], Đăng ký, Thoát
+          ══════════════════════════════════════════════ */}
+          {menuVisible && (
+            <>
+              {/* Invisible backdrop: tap outside → close menu */}
+              <TouchableOpacity
+                style={styles.menuBackdrop}
+                activeOpacity={1}
+                onPress={() => setMenuVisible(false)}
+              />
+              {/* Menu dialog box */}
+              <View style={styles.menuBox}>
+                {MENU_ITEMS.map((item, idx) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.menuItem,
+                      idx === selectedIndex && styles.menuItemSelected,
+                    ]}
+                    onPressIn={() => setSelectedIndex(idx)}
+                    onPress={() => handleMenuSelect(item.id)}
+                    activeOpacity={0.9}
+                  >
+                    <Text
+                      style={[
+                        styles.menuItemText,
+                        idx === selectedIndex && styles.menuItemTextSelected,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
+          {/* ══════════════════════════════════════════════
+              BOTTOM SOFTKEY BAR (be.java / bv.java)
+              s[0]=left "Chọn"  |  s[1]=center icon  |  s[2]=right "Thoát"
+              Màu #030D66 từ z.class (J2ME chrome navy blue)
+          ══════════════════════════════════════════════ */}
+          <View style={styles.bottomBar}>
+            {/* s[0] – Left softkey */}
+            <TouchableOpacity
+              style={styles.softkey}
+              onPress={handleLeftSoftkey}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.softkeyText}>Chọn</Text>
+            </TouchableOpacity>
+
+            {/* s[1] – Center: game icon + arrowfocus indicator */}
+            <TouchableOpacity
+              style={styles.softkeyCenter}
+              onPress={handleCenterKey}
+              activeOpacity={0.7}
+            >
+              <View style={styles.centerIconRow}>
+                {/* Game skull icon */}
+                <Image source={ASSET_ICON} style={styles.gameIcon} resizeMode="contain" />
+                {/* arrowfocus1 (teal=đóng) / arrowfocus2 (magenta=mở) */}
+                <Image
+                  source={menuVisible ? ASSET_ARROW_OPEN : ASSET_ARROW_CLOSE}
+                  style={styles.arrowIcon}
+                  resizeMode="contain"
+                />
+              </View>
+            </TouchableOpacity>
+
+            {/* s[2] – Right softkey */}
+            <TouchableOpacity
+              style={styles.softkey}
+              onPress={handleRightSoftkey}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.softkeyText}>Thoát</Text>
+            </TouchableOpacity>
+          </View>
 
         </View>
       </ImageBackground>

@@ -1,39 +1,70 @@
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, View, Text } from 'react-native';
-import { LoginScreen } from './src/screens/LoginScreen';
-import { MainScreen } from './src/screens/MainScreen';
-import { SocketClient } from './src/network/SocketClient';
+import { LoginScreen }    from './src/screens/LoginScreen';
+import { RegisterScreen } from './src/screens/RegisterScreen';
+import { MainScreen }     from './src/screens/MainScreen';
+import { SocketClient }   from './src/network/SocketClient';
+
+// ── Screen states (mirrors J2ME screen stack) ────────────────────────────────
+type Screen = 'login' | 'register' | 'main';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [screen, setScreen]       = useState<Screen>('login');
   const [isConnected, setIsConnected] = useState(false);
+
   const client = SocketClient.getInstance();
 
   useEffect(() => {
-    // Connect to server (Replace with your actual IP if testing on physical device)
+    // Replace 'localhost' with your machine's LAN IP when testing on a real device
     client.connect('ws://localhost:5102/game');
 
-    client.on('connected', () => setIsConnected(true));
-    client.on('disconnected', () => setIsConnected(false));
+    const onConnected    = () => setIsConnected(true);
+    const onDisconnected = () => setIsConnected(false);
+    client.on('connected',    onConnected);
+    client.on('disconnected', onDisconnected);
 
     return () => {
-      client.removeAllListeners('connected');
-      client.removeAllListeners('disconnected');
+      client.off('connected',    onConnected);
+      client.off('disconnected', onDisconnected);
     };
   }, []);
+
+  const renderScreen = () => {
+    if (!isConnected) {
+      return (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>ĐANG KẾT NỐI CHIẾN TRƯỜNG...</Text>
+        </View>
+      );
+    }
+
+    switch (screen) {
+      case 'main':
+        return <MainScreen />;
+
+      case 'register':
+        return (
+          <RegisterScreen
+            onBack={() => setScreen('login')}
+            onRegisterSuccess={() => setScreen('login')}
+          />
+        );
+
+      case 'login':
+      default:
+        return (
+          <LoginScreen
+            onLoginSuccess={() => setScreen('main')}
+            onRegister={() => setScreen('register')}
+          />
+        );
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-      {!isConnected ? (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>DANG KET NOI CHIEN TRUONG...</Text>
-        </View>
-      ) : isLoggedIn ? (
-        <MainScreen />
-      ) : (
-        <LoginScreen onLoginSuccess={() => setIsLoggedIn(true)} />
-      )}
+      {renderScreen()}
     </SafeAreaView>
   );
 }
@@ -50,7 +81,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   loadingText: {
-    color: '#FFD700', // GOLD
+    color: '#FFD700',
     fontSize: 18,
     fontWeight: 'bold',
     letterSpacing: 2,
