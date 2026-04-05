@@ -5,15 +5,23 @@ import {
   TextInput,
   TouchableOpacity,
   ImageBackground,
+  Image,
   Alert,
   ActivityIndicator,
   BackHandler,
   useWindowDimensions,
+  StyleSheet,
 } from 'react-native';
 
 import { SocketClient } from '../network/SocketClient';
 import { getStyles } from './LoginScreen.styles';
 import { SoftkeyBar } from '../components/SoftkeyBar';
+
+// ─── Menu Assets ──────────────────────────────────────────────────────────
+const ASSET_ICON_OK     = require('../../assets/ui/icons/icon_ok.png');
+const ASSET_ICON_CANCEL = require('../../assets/ui/icons/icon_cancel.png');
+const ASSET_ORNATE      = require('../../assets/ui/frames/cornerskb.png');
+const ASSET_BASE_FRAME  = require('../../assets/ui/frames/1.png');
 
 const MENU_ITEMS = [
   { label: 'Đăng nhập', id: 200 },
@@ -121,7 +129,7 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
       >
         <View style={styles.contentOverlay}>
 
-          {/* ── Nick Ola input ── */}
+          {/* ──────── Inputs ──────── */}
           <View style={styles.inputBoxNick}>
             <TextInput
               style={styles.transparentInput}
@@ -131,12 +139,11 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
               underlineColorAndroid="transparent"
               spellCheck={false}
               autoCorrect={false}
-              autoFocus={true} // Tự động tập trung vào Nick
-              selectionColor="red" // Con trỏ chuột nhấp nháy màu đỏ
+              autoFocus={true}
+              selectionColor="red"
             />
           </View>
 
-          {/* ── Mật khẩu input ── */}
           <View style={styles.inputBoxPass}>
             <TextInput
               style={styles.transparentInput}
@@ -146,11 +153,11 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
               underlineColorAndroid="transparent"
               spellCheck={false}
               autoCorrect={false}
-              selectionColor="red" // Con trỏ chuột màu đỏ
+              selectionColor="red"
             />
           </View>
 
-          {/* ── Checkbox: Nhớ mật khẩu ── */}
+          {/* ──────── Checkboxes ──────── */}
           <TouchableOpacity
             style={styles.checkboxArea1}
             onPress={() => setRememberMe(v => !v)}
@@ -159,7 +166,6 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
             {rememberMe && <Text style={styles.tickText}>✓</Text>}
           </TouchableOpacity>
 
-          {/* ── Checkbox: Đăng nhập tự động ── */}
           <TouchableOpacity
             style={styles.checkboxArea2}
             onPress={() => setAutoLogin(v => !v)}
@@ -174,6 +180,9 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
             </View>
           )}
 
+          {/* ══════════════════════════════════════════════
+              POPUP MENU (Double Border Modernized)
+          ══════════════════════════════════════════════ */}
           {menuVisible && (
             <>
               <TouchableOpacity
@@ -182,27 +191,46 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
                 onPress={() => setMenuVisible(false)}
               />
               <View style={styles.menuBox}>
-                {MENU_ITEMS.map((item, idx) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[
-                      styles.menuItem,
-                      idx === selectedIndex && styles.menuItemSelected,
-                    ]}
-                    onPressIn={() => setSelectedIndex(idx)}
-                    onPress={() => handleMenuSelect(item.id)}
-                    activeOpacity={0.9}
-                  >
-                    <Text
-                      style={[
-                        styles.menuItemText,
-                        idx === selectedIndex && styles.menuItemTextSelected,
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                {/* 2nd Inner Border Layer */}
+                <View style={styles.menuInnerBox}>
+                  {MENU_ITEMS.map((item, idx) => {
+                    const isSelected = idx === selectedIndex;
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={styles.menuItem}
+                        onPressIn={() => setSelectedIndex(idx)}
+                        onPress={() => handleMenuSelect(item.id)}
+                        activeOpacity={1}
+                      >
+                        {isSelected && (
+                           <View style={styles.menuItemSelectedBg}>
+                              <Image 
+                                 source={ASSET_BASE_FRAME} 
+                                 style={styles.menuSelectedBaseImage} 
+                                 resizeMode="stretch" 
+                              />
+                              <View style={[styles.menuOrnateClip, { left: 0 }]}>
+                                 <Image source={ASSET_ORNATE} style={styles.menuOrnateImage} resizeMode="stretch" />
+                              </View>
+                              <View style={[styles.menuOrnateClip, { right: 0, transform: [{ scaleX: -1 }] }]}>
+                                 <Image source={ASSET_ORNATE} style={styles.menuOrnateImage} resizeMode="stretch" />
+                              </View>
+                           </View>
+                        )}
+                        
+                        <Text
+                          style={[
+                            styles.menuItemText,
+                            isSelected && styles.menuItemTextSelected,
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
             </>
           )}
@@ -213,6 +241,8 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
             onCenterPress={handleCenterKey}
             onRightPress={handleRightSoftkey}
             menuVisible={menuVisible}
+            leftIcon={menuVisible ? ASSET_ICON_OK : undefined}
+            rightIcon={menuVisible ? ASSET_ICON_CANCEL : undefined}
           />
 
         </View>

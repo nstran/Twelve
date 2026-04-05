@@ -2,8 +2,7 @@ import { StyleSheet, Platform } from 'react-native';
 
 export const getScreenSize = (width: number, height: number) => Math.min(width, height);
 
-// ── be.a = 28 px trong thiết kế mới (Skia) ───────────────────────────────────
-const BOTTOM_BAR_H = 26; // Match softkey bar height
+const BOTTOM_BAR_H = 26; 
 
 export const getStyles = (width: number, height: number) => {
   const SCREEN_SIZE = getScreenSize(width, height);
@@ -32,7 +31,7 @@ export const getStyles = (width: number, height: number) => {
       height: '100%',
     },
 
-    // ── Inputs (phantom overlay trên login.png) ──────────────
+    // ── Inputs ────────────────────────────────────────────────────────────
     inputBoxNick: {
       position: 'absolute',
       width: '36.5%',
@@ -60,7 +59,6 @@ export const getStyles = (width: number, height: number) => {
       paddingTop: 0,
       borderWidth: 0,
       outlineStyle: 'none',
-      caretColor: 'transparent',
       fontFamily: Platform.OS === 'ios' ? 'Hoefler Text' : 'serif',
     } as any,
 
@@ -101,50 +99,84 @@ export const getStyles = (width: number, height: number) => {
       zIndex: 5,
     },
 
-    // Popup Menu J2ME
+    // ══════════════════════════════════════════════════════════════════════
+    //  POPUP MENU ORNATE (Double Border Dialog)
+    // ══════════════════════════════════════════════════════════════════════
     menuBackdrop: {
       ...StyleSheet.absoluteFillObject,
       zIndex: 10,
     },
+
+    // Khung viền ngoài
     menuBox: {
       position: 'absolute',
-      bottom: BOTTOM_BAR_H,
-      left: 0,
-      minWidth: '30%',
-      maxWidth: '50%',
-      backgroundColor: '#eee8c8',
+      bottom: BOTTOM_BAR_H, 
+      minWidth: '35%', 
+      backgroundColor: '#ffffff',
       borderWidth: 1,
-      borderColor: '#555555',
-      overflow: 'hidden',
+      borderColor: '#2255bb',
+      padding: 2, // Khe hở giữa 2 border
       zIndex: 11,
-      elevation: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 1, height: 2 },
-      shadowOpacity: 0.5,
-      shadowRadius: 2,
     },
+
+    // Khung viền trong
+    menuInnerBox: {
+      borderWidth: 1,
+      borderColor: '#2255bb',
+      borderRadius: 5, // Bo góc cho khung trong
+      paddingVertical: 4,
+      overflow: 'hidden',
+    },
+
     menuItem: {
-      height: 20,
-      paddingHorizontal: 14,
+      height: 28,
       justifyContent: 'center',
+      position: 'relative',
+      marginVertical: 1,
     },
-    menuItemSelected: {
-      backgroundColor: '#2255bb',
+    
+    menuItemSelectedBg: {
+      ...StyleSheet.absoluteFillObject,
+      marginHorizontal: 3, 
+      borderRadius: 4,
+      backgroundColor: '#4488ff', 
+      overflow: 'hidden',
     },
+
+    menuSelectedBaseImage: {
+      ...StyleSheet.absoluteFillObject,
+      width: '120%', 
+      left: -8,      
+      height: '100%',
+    },
+
+    menuOrnateClip: {
+      position: 'absolute',
+      width: 12, 
+      height: '100%',
+      top: 0,
+      overflow: 'hidden',
+      zIndex: 3, 
+    },
+    menuOrnateImage: {
+      width: 32, 
+      height: '100%',
+    },
+
     menuItemText: {
       color: '#000000',
-      fontSize: 11,
-      fontFamily: Platform.OS === 'android' ? 'sans-serif' : 'System',
+      fontSize: 13,
+      fontWeight: 'bold',
+      textAlign: 'left',
+      paddingLeft: 15,
+      fontFamily: Platform.OS === 'android' ? 'sans-serif-medium' : 'System',
+      zIndex: 4, 
     },
     menuItemTextSelected: {
       color: '#ffffff',
-      fontWeight: 'bold',
-    },
-
-    arrowText: {
-      color: '#ffffff',
-      fontSize: 10,
-      lineHeight: 12,
+      textShadowColor: 'rgba(0,0,0,0.5)',
+      textShadowOffset: { width: 1, height: 1 },
+      textShadowRadius: 1,
     },
   });
 };

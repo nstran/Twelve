@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
+  ImageSourcePropType,
 } from 'react-native';
 import { styles } from './SoftkeyBar.styles';
 
@@ -18,6 +19,9 @@ interface SoftkeyBarProps {
   onCenterPress?: () => void;
   menuVisible?: boolean;
   width: number;
+  // New flexible icon props
+  leftIcon?: ImageSourcePropType;
+  rightIcon?: ImageSourcePropType;
 }
 
 export const SoftkeyBar: React.FC<SoftkeyBarProps> = ({
@@ -25,6 +29,8 @@ export const SoftkeyBar: React.FC<SoftkeyBarProps> = ({
   onRightPress,
   onCenterPress,
   width,
+  leftIcon,
+  rightIcon,
 }) => {
   const [time, setTime] = useState('00:00');
 
@@ -69,17 +75,27 @@ export const SoftkeyBar: React.FC<SoftkeyBarProps> = ({
         </View>
       </View>
 
-      {/* ─── LAYER 4: TOPMOST ICON ─── */}
+      {/* ─── LAYER 4: TOPMOST ICON (DYNAMIC) ─── */}
       <View style={styles.topmostLayer}>
         <TouchableOpacity style={styles.softkeyArea} onPress={onLeftPress} activeOpacity={0.6}>
            <Image 
-             source={ASSET_SHARP_ICON} 
+             source={leftIcon || ASSET_SHARP_ICON} 
              style={styles.sharpIconTop} 
              resizeMode="contain" 
            />
         </TouchableOpacity>
+        
         <View style={{ flex: 1 }} />
-        <TouchableOpacity style={styles.softkeyArea} onPress={onRightPress} activeOpacity={0.6} />
+        
+        <TouchableOpacity style={styles.softkeyArea} onPress={onRightPress} activeOpacity={0.6}>
+           {rightIcon && (
+             <Image 
+               source={rightIcon} 
+               style={[styles.sharpIconTop, { marginLeft: 0, marginRight: 6, alignSelf: 'flex-end' }]} 
+               resizeMode="contain" 
+             />
+           )}
+        </TouchableOpacity>
       </View>
     </View>
   );
