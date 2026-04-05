@@ -3,7 +3,7 @@ import { StyleSheet, Platform } from 'react-native';
 export const getScreenSize = (width: number, height: number) => Math.min(width, height);
 
 // ── be.a = 28 px trong thiết kế mới (Skia) ───────────────────────────────────
-const BOTTOM_BAR_H = 28;
+const BOTTOM_BAR_H = 26; // Match softkey bar height
 
 export const getStyles = (width: number, height: number) => {
   const SCREEN_SIZE = getScreenSize(width, height);
@@ -32,13 +32,24 @@ export const getStyles = (width: number, height: number) => {
       height: '100%',
     },
 
-    // ── Inputs (phantom overlay trên login.png) ───────────────────────────
-    inputBox: {
+    // ── Inputs (phantom overlay trên login.png) ──────────────
+    inputBoxNick: {
       position: 'absolute',
       width: '36.5%',
       height: '2.4%',
       justifyContent: 'center',
+      top: '60.3%',
+      left: '39.8%',
     },
+    inputBoxPass: {
+      position: 'absolute',
+      width: '36.5%',
+      height: '2.4%',
+      justifyContent: 'center',
+      top: '66.3%',
+      left: '39.8%',
+    },
+
     transparentInput: {
       width: '100%',
       height: '100%',
@@ -54,13 +65,25 @@ export const getStyles = (width: number, height: number) => {
     } as any,
 
     // ── Checkboxes ────────────────────────────────────────────────────────
-    checkboxArea: {
+    checkboxArea1: {
       position: 'absolute',
       width: '3.5%',
       height: '3.5%',
       backgroundColor: 'transparent',
       justifyContent: 'center',
       alignItems: 'center',
+      top: '70.8%',
+      left: '39.5%',
+    },
+    checkboxArea2: {
+      position: 'absolute',
+      width: '3.5%',
+      height: '3.5%',
+      backgroundColor: 'transparent',
+      justifyContent: 'center',
+      alignItems: 'center',
+      top: '76.1%',
+      left: '39.5%',
     },
     tickText: {
       color: '#2a1a05',
@@ -78,26 +101,20 @@ export const getStyles = (width: number, height: number) => {
       zIndex: 5,
     },
 
-    // ══════════════════════════════════════════════════════════════════════
-    //  POPUP MENU  (bv.java)
-    //  — Góc dưới trái, nhỏ gọn, màu y hệt J2ME
-    //  — bg: cream nhạt  |  selected: blue J2ME  |  text: đen thuần
-    // ══════════════════════════════════════════════════════════════════════
+    // Popup Menu J2ME
     menuBackdrop: {
       ...StyleSheet.absoluteFillObject,
       zIndex: 10,
     },
-
     menuBox: {
       position: 'absolute',
-      bottom: BOTTOM_BAR_H,       // ngay trên thanh softkey
-      left: 0,                    // sát mép trái (bv.java: x bắt đầu từ 0)
-      // width tự fit content — dùng minWidth
+      bottom: BOTTOM_BAR_H,
+      left: 0,
       minWidth: '30%',
       maxWidth: '50%',
-      backgroundColor: '#eee8c8', // kem nhạt J2ME (gần trắng kem)
+      backgroundColor: '#eee8c8',
       borderWidth: 1,
-      borderColor: '#555555',     // border tối như J2ME canvas
+      borderColor: '#555555',
       overflow: 'hidden',
       zIndex: 11,
       elevation: 8,
@@ -106,23 +123,21 @@ export const getStyles = (width: number, height: number) => {
       shadowOpacity: 0.5,
       shadowRadius: 2,
     },
-
-    // mỗi row = j=20 trong bv.java, padding trái = 14 (n4+14)
     menuItem: {
       height: 20,
       paddingHorizontal: 14,
       justifyContent: 'center',
     },
     menuItemSelected: {
-      backgroundColor: '#2255bb', // blue J2ME (ak.c().c selection color)
+      backgroundColor: '#2255bb',
     },
     menuItemText: {
-      color: '#000000',           // đen thuần — ca.d font trong J2ME
+      color: '#000000',
       fontSize: 11,
       fontFamily: Platform.OS === 'android' ? 'sans-serif' : 'System',
     },
     menuItemTextSelected: {
-      color: '#ffffff',           // trắng — ca.c font trong J2ME
+      color: '#ffffff',
       fontWeight: 'bold',
     },
 

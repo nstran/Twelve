@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
-  Image,
   TextInput,
   TouchableOpacity,
   ImageBackground,
@@ -12,15 +11,10 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-// ─── Game assets từ dự án (đã quy hoạch) ─────────────────────────────────────
-const ASSET_ICON        = require('../../assets/ui/icons/icon.png');        // skull icon 30×32
-const ASSET_ARROW_OPEN  = require('../../assets/ui/icons/arrowfocus2.png'); // magenta  — menu đang mở
-const ASSET_ARROW_CLOSE = require('../../assets/ui/icons/arrowfocus1.png'); // teal     — menu đang đóng
 import { SocketClient } from '../network/SocketClient';
 import { getStyles } from './LoginScreen.styles';
 import { SoftkeyBar } from '../components/SoftkeyBar';
 
-// ─── Menu items (nz.java: Đăng nhập=200, Đăng ký=201, Thoát=205) ───────────
 const MENU_ITEMS = [
   { label: 'Đăng nhập', id: 200 },
   { label: 'Đăng ký',   id: 201 },
@@ -46,7 +40,6 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
 
   const client = SocketClient.getInstance();
 
-  // ── Auth event listeners ─────────────────────────────────────────────────
   useEffect(() => {
     const onAuthSuccess = () => {
       setLoading(false);
@@ -64,7 +57,6 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
     };
   }, []);
 
-  // ── Android hardware back: close menu first ─────────────────────────────
   useEffect(() => {
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
       if (menuVisible) {
@@ -76,7 +68,6 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
     return () => handler.remove();
   }, [menuVisible]);
 
-  // ── Actions ───────────────────────────────────────────────────────────────
   const handleLogin = () => {
     if (!username || !password) {
       Alert.alert('Chú ý', 'Vui lòng nhập đầy đủ thông tin');
@@ -101,7 +92,6 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
     setMenuVisible(true);
   };
 
-  // Left softkey: confirm selection when menu open, else open menu
   const handleLeftSoftkey = () => {
     if (menuVisible) {
       handleMenuSelect(MENU_ITEMS[selectedIndex].id);
@@ -110,13 +100,11 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
     }
   };
 
-  // Center arrow: toggle menu
   const handleCenterKey = () => {
     if (menuVisible) setMenuVisible(false);
     else openMenu();
   };
 
-  // Right softkey: close menu if open, else exit
   const handleRightSoftkey = () => {
     if (menuVisible) setMenuVisible(false);
     else BackHandler.exitApp();
@@ -134,7 +122,7 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
         <View style={styles.contentOverlay}>
 
           {/* ── Nick Ola input ── */}
-          <View style={[styles.inputBox, { top: '60.3%', left: '39.8%' }]}>
+          <View style={styles.inputBoxNick}>
             <TextInput
               style={styles.transparentInput}
               value={username}
@@ -143,11 +131,13 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
               underlineColorAndroid="transparent"
               spellCheck={false}
               autoCorrect={false}
+              autoFocus={true} // Tự động tập trung vào Nick
+              selectionColor="red" // Con trỏ chuột nhấp nháy màu đỏ
             />
           </View>
 
           {/* ── Mật khẩu input ── */}
-          <View style={[styles.inputBox, { top: '66.3%', left: '39.8%' }]}>
+          <View style={styles.inputBoxPass}>
             <TextInput
               style={styles.transparentInput}
               value={password}
@@ -156,12 +146,13 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
               underlineColorAndroid="transparent"
               spellCheck={false}
               autoCorrect={false}
+              selectionColor="red" // Con trỏ chuột màu đỏ
             />
           </View>
 
           {/* ── Checkbox: Nhớ mật khẩu ── */}
           <TouchableOpacity
-            style={[styles.checkboxArea, { top: '70.8%', left: '39.5%' }]}
+            style={styles.checkboxArea1}
             onPress={() => setRememberMe(v => !v)}
             activeOpacity={0.5}
           >
@@ -170,34 +161,26 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
 
           {/* ── Checkbox: Đăng nhập tự động ── */}
           <TouchableOpacity
-            style={[styles.checkboxArea, { top: '76.1%', left: '39.5%' }]}
+            style={styles.checkboxArea2}
             onPress={() => setAutoLogin(v => !v)}
             activeOpacity={0.5}
           >
             {autoLogin && <Text style={styles.tickText}>✓</Text>}
           </TouchableOpacity>
 
-          {/* ── Loading overlay when authenticating ── */}
           {loading && (
             <View style={styles.loadingOverlay}>
-              <ActivityIndicator color="#ffd700" />
+              <ActivityIndicator color="#ffd700" size="large" />
             </View>
           )}
 
-          {/* ══════════════════════════════════════════════
-              POPUP MENU (bv.java style)
-              Positioned just above the bottom softkey bar.
-              Items: Đăng nhập [highlighted], Đăng ký, Thoát
-          ══════════════════════════════════════════════ */}
           {menuVisible && (
             <>
-              {/* Invisible backdrop: tap outside → close menu */}
               <TouchableOpacity
                 style={styles.menuBackdrop}
                 activeOpacity={1}
                 onPress={() => setMenuVisible(false)}
               />
-              {/* Menu dialog box */}
               <View style={styles.menuBox}>
                 {MENU_ITEMS.map((item, idx) => (
                   <TouchableOpacity
@@ -224,14 +207,8 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
             </>
           )}
 
-          {/* ══════════════════════════════════════════════
-              BOTTOM SOFTKEY BAR (Skia Modernized)
-              Replaces the old flat blue bar with ornate assets.
-          ══════════════════════════════════════════════ */}
           <SoftkeyBar
             width={width}
-            leftLabel={menuVisible ? "Chọn" : "Menu"}
-            rightLabel="Thoát"
             onLeftPress={handleLeftSoftkey}
             onCenterPress={handleCenterKey}
             onRightPress={handleRightSoftkey}
