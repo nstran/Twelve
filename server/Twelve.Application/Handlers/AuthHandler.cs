@@ -148,38 +148,61 @@ namespace Twelve.Application.Handlers
     // ═══════════════════════════════════════════════════════════════════════════
     public class AuthHandler : IPacketHandler
     {
-        private readonly IAccountRepository _accountRepository;
-        private readonly IPasswordHasher    _passwordHasher;
-        private readonly IPlayerRepository  _playerRepository;
+        private readonly IAccountRepository   _accountRepository;
+        private readonly IPasswordHasher      _passwordHasher;
+        private readonly IPlayerRepository    _playerRepository;
+        private readonly ILogger<AuthHandler> _logger;
 
         public AuthHandler(
-            IAccountRepository accountRepository,
-            IPasswordHasher    passwordHasher,
-            IPlayerRepository  playerRepository)
+            IAccountRepository   accountRepository,
+            IPasswordHasher      passwordHasher,
+            IPlayerRepository    playerRepository,
+            ILogger<AuthHandler> logger)
         {
             _accountRepository = accountRepository;
             _passwordHasher    = passwordHasher;
             _playerRepository  = playerRepository;
+            _logger            = logger;
         }
 
         public async Task HandleAsync(GameSession session, PacketRequest request)
         {
-            string username = request.GetStringTag(9)  ?? "";
-            string password = request.GetStringTag(10) ?? "";
+            string username = (request.GetStringTag(9)  ?? "").Trim();
+            string password =  request.GetStringTag(10) ?? "";
 
-            var account = await _accountRepository.GetByUsernameAsync(username);
-            if (account == null || !_passwordHasher.VerifyPassword(password, account.PasswordHash, account.Salt))
+            _logger.LogInformation("[Login] ── HandleAsync fired, username='{Username}'", username);
+
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                var error = TlvCodec.MakeTag(1, "Dang nhap that bai.");
-                await session.SendPacketAsync(TlvCodec.BuildPacket(0, error, subCount: 1));
+                _logger.LogWarning("[Login] FAIL: username hoặc password rỗng");
+                var err = TlvCodec.MakeTag(1, "Vui long nhap day du thong tin.");
+                await session.SendPacketAsync(TlvCodec.BuildPacket(0, err, subCount: 1));
                 return;
             }
 
+            var account = await _accountRepository.GetByUsernameAsync(username);
+            if (account == null)
+            {
+                _logger.LogWarning("[Login] FAIL: không tìm thấy tài khoản '{Username}'", username);
+                var err = TlvCodec.MakeTag(1, "Tài khoản không tồn tại.");
+                await session.SendPacketAsync(TlvCodec.BuildPacket(0, err, subCount: 1));
+                return;
+            }
+
+            if (!_passwordHasher.VerifyPassword(password, account.PasswordHash, account.Salt))
+            {
+                _logger.LogWarning("[Login] FAIL: sai mật khẩu cho '{Username}'", username);
+                var err = TlvCodec.MakeTag(1, "Sai mật khẩu.");
+                await session.SendPacketAsync(TlvCodec.BuildPacket(0, err, subCount: 1));
+                return;
+            }
+
+            // ── Đăng nhập thành công ──────────────────────────────────────────
             session.Username        = username;
             session.IsAuthenticated = true;
             await _accountRepository.UpdateLastLoginAsync(account.Id);
 
-            // CMD 4 — Login success (empty payload)
+            _logger.LogInformation("[Login] ✓ '{Username}' đăng nhập thành công → CMD 4", username);
             await session.SendPacketAsync(TlvCodec.BuildEmptyPacket(4));
         }
     }
