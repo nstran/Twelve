@@ -15,6 +15,7 @@ import {
 import { SocketClient } from '../network/SocketClient';
 import { getStyles } from './RegisterScreen.styles';
 import { SoftkeyBar } from '../components/SoftkeyBar';
+import { CalendarPicker } from '../components/CalendarPicker';
 
 // ── Assets ────────────────────────────────────────────────────────────────
 const ASSET_ICON_OK     = require('../../assets/ui/icons/icon_ok.png');
@@ -43,6 +44,7 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
   const [captcha,  setCaptcha]    = useState('');
   const [focusedField, setFocusedField] = useState<string | null>('username');
   const [loading,  setLoading]    = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const client = SocketClient.getInstance();
 
@@ -67,11 +69,15 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
 
   useEffect(() => {
     const h = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (showCalendar) {
+        setShowCalendar(false);
+        return true;
+      }
       onBack();
       return true;
     });
     return () => h.remove();
-  }, []);
+  }, [showCalendar]);
 
   const handleRegister = () => {
     if (!username.trim()) return Alert.alert('Chú ý', 'Vui lòng nhập tên đăng nhập');
@@ -93,6 +99,23 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
     isCentered = false
   ) => {
     const isFocused = focusedField === name;
+    
+    // Special handling for DOB to open Calendar instead of keyboard
+    if (name === 'dob') {
+        return (
+            <TouchableOpacity 
+                activeOpacity={1}
+                style={[styles.inputBox, isFocused ? styles.inputActive : styles.inputInactive]}
+                onPress={() => {
+                    setFocusedField('dob');
+                    setShowCalendar(true);
+                }}
+            >
+                <Text style={[styles.textInput, styles.dobText, { lineHeight: 30 }]}>{val}</Text>
+            </TouchableOpacity>
+        );
+    }
+
     return (
       <View style={[
         styles.inputBox, 
@@ -138,7 +161,7 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
         {renderInput('fullName', fullName, setFullName)}
 
         <Text style={styles.label}>Ngày sinh</Text>
-        {renderInput('dob', dob, setDob, { placeholder: 'DD - MM - YYYY' }, true)}
+        {renderInput('dob', dob, setDob)}
 
         <Text style={styles.label}>Số điện thoại:</Text>
         {renderInput('phone', phone, setPhone, { keyboardType: 'phone-pad' })}
@@ -172,7 +195,17 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
         </View>
       )}
 
-      {/* ── SoftkeyBar Flexible (Labels for Register, Time always on) ── */}
+      {/* ── Calendar Selection Modal ──────────────────────────── */}
+      <CalendarPicker
+        visible={showCalendar}
+        initialDate={dob}
+        onSelect={(newDate) => {
+            setDob(newDate);
+            setShowCalendar(false);
+        }}
+        onClose={() => setShowCalendar(false)}
+      />
+
       <SoftkeyBar
         width={width}
         onLeftPress={handleRegister}
