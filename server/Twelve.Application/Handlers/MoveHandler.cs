@@ -25,7 +25,7 @@ namespace Twelve.Application.Handlers
                 // 1. Update In-Session state (In-memory)
                 System.Console.WriteLine($"[MoveHandler] User {session.Username} moving to ({targetX}, {targetY})");
 
-                // 2. Persist to PostgreSQL (SHIHEN)
+                // 2. Persist to PostgreSQL (Twelve)
                 var player = await _playerRepository.GetByUsernameAsync(session.Username ?? "");
                 if (player != null)
                 {

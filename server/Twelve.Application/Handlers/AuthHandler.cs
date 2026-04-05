@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Twelve.Core;
 using Twelve.Core.Tlv;
@@ -6,50 +7,89 @@ using Twelve.Core.Interfaces;
 
 namespace Twelve.Application.Handlers
 {
+    public class RegisterHandler : IPacketHandler
+    {
+        private readonly IAccountRepository _accountRepository;
+        private readonly IPasswordHasher _passwordHasher;
+
+        public RegisterHandler(IAccountRepository accountRepository, IPasswordHasher passwordHasher)
+        {
+            _accountRepository = accountRepository;
+            _passwordHasher = passwordHasher;
+        }
+
+        public async Task HandleAsync(GameSession session, PacketRequest request)
+        {
+            string username = request.GetStringTag(9) ?? "";
+            string password = request.GetStringTag(10) ?? "";
+
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            {
+                await SendError(session, "Thieu thong tin dang ky.");
+                return;
+            }
+
+            var existing = await _accountRepository.GetByUsernameAsync(username);
+            if (existing != null)
+            {
+                await SendError(session, "Ten tai khoan da ton tai.");
+                return;
+            }
+
+            string hash = _passwordHasher.HashPassword(password, out string salt);
+            var account = new Account
+            {
+                Username = username,
+                PasswordHash = hash,
+                Salt = salt
+            };
+
+            await _accountRepository.CreateAsync(account);
+            
+            // Send CMD 131 Response (Success message)
+            var response = TlvCodec.MakeTag(1, "Dang ky thanh cong!");
+            await session.SendPacketAsync(TlvCodec.BuildPacket(131, response));
+        }
+
+        private async Task SendError(GameSession session, string message)
+        {
+            var response = TlvCodec.MakeTag(1, message);
+            await session.SendPacketAsync(TlvCodec.BuildPacket(131, response));
+        }
+    }
+
     public class AuthHandler : IPacketHandler
     {
+        private readonly IAccountRepository _accountRepository;
+        private readonly IPasswordHasher _passwordHasher;
         private readonly IPlayerRepository _playerRepository;
 
-        public AuthHandler(IPlayerRepository playerRepository)
+        public AuthHandler(IAccountRepository accountRepository, IPasswordHasher passwordHasher, IPlayerRepository playerRepository)
         {
+            _accountRepository = accountRepository;
+            _passwordHasher = passwordHasher;
             _playerRepository = playerRepository;
         }
 
         public async Task HandleAsync(GameSession session, PacketRequest request)
         {
-            if (request.Command == 4) // Login Request
+            string username = request.GetStringTag(9) ?? "";
+            string password = request.GetStringTag(10) ?? "";
+
+            var account = await _accountRepository.GetByUsernameAsync(username);
+            if (account == null || !_passwordHasher.VerifyPassword(password, account.PasswordHash, account.Salt))
             {
-                string username = request.GetStringTag(9) ?? "Guest";
-                
-                // Try to load player from DB
-                var player = await _playerRepository.GetByUsernameAsync(username);
-                
-                if (player == null)
-                {
-                    // Create new player if not exists (Auto-registration)
-                    player = new Player { Username = username };
-                    player.Id = await _playerRepository.CreateAsync(player);
-                    System.Console.WriteLine($"[AuthHandler] Created new player: {username}");
-                }
-                else
-                {
-                    System.Console.WriteLine($"[AuthHandler] Player logged in: {username} (Level {player.Level})");
-                }
-
-                session.Username = username;
-                session.IsAuthenticated = true;
-
-                // Respond with CMD 1 (Empty Success)
-                byte[] cmd1 = TlvCodec.BuildPacket(1, System.Array.Empty<byte>());
-                await session.SendPacketAsync(cmd1);
-
-                // Respond with CMD 2 (Host Info)
-                var payload = new System.Collections.Generic.List<byte>();
-                payload.AddRange(TlvCodec.MakeTag(2, "127.0.0.1"));
-                payload.AddRange(TlvCodec.MakeTag(3, "2026"));
-                byte[] cmd2 = TlvCodec.BuildPacket(2, payload.ToArray(), 2);
-                await session.SendPacketAsync(cmd2);
+                var error = TlvCodec.MakeTag(1, "Dang nhap that bai.");
+                await session.SendPacketAsync(TlvCodec.BuildPacket(0, error));
+                return;
             }
+
+            session.Username = username;
+            session.IsAuthenticated = true;
+            await _accountRepository.UpdateLastLoginAsync(account.Id);
+
+            // Send Success (CMD 4 Empty)
+            await session.SendPacketAsync(TlvCodec.BuildPacket(4, new byte[0]));
         }
     }
 }

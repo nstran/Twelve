@@ -14,6 +14,7 @@
 
 ## 🛠️ Verification
 
+- **Stick to JAR**: Use `loan-12-su-quan.jar` and `d:\Twelve\decompiled\` as the absolute source of truth for all logic, packets, and assets.
 - Build: `dotnet build`.
 - Skills Check: Use `game-mechanics` skill for all battle/map logic.
 - Specialist Audit: Every feature must be verified by the relevant agent.

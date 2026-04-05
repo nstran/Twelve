@@ -10,7 +10,9 @@ namespace Twelve.Infrastructure
         public static IServiceCollection AddTwelveInfrastructure(this IServiceCollection services)
         {
             services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
-            services.AddScoped<IPlayerRepository, PlayerRepository>();
+            services.AddSingleton<IPlayerRepository, PlayerRepository>();
+            services.AddSingleton<IAccountRepository, AccountRepository>();
+            services.AddSingleton<IPasswordHasher, PasswordHasher>();
             
             return services;
         }

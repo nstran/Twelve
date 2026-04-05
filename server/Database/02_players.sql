@@ -1,5 +1,5 @@
 -- Khởi tạo Database cho Project Twelve (Loạn 12 Sứ Quân)
--- DB Name: SHIHEN
+-- DB Name: Twelve
 
 -- Xóa bảng cũ nếu tồn tại (Cẩn trọng!)
 -- DROP TABLE IF EXISTS Players;
