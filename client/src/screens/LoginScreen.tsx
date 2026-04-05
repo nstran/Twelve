@@ -12,12 +12,13 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-// ─── Game assets từ JAR gốc (.mg → PNG) ─────────────────────────────────────
-const ASSET_ICON        = require('../../assets/original/icon.png');        // skull icon 30×32
-const ASSET_ARROW_OPEN  = require('../../assets/original/arrowfocus2.png'); // magenta  — menu đang mở
-const ASSET_ARROW_CLOSE = require('../../assets/original/arrowfocus1.png'); // teal     — menu đang đóng
+// ─── Game assets từ dự án (đã quy hoạch) ─────────────────────────────────────
+const ASSET_ICON        = require('../../assets/ui/icons/icon.png');        // skull icon 30×32
+const ASSET_ARROW_OPEN  = require('../../assets/ui/icons/arrowfocus2.png'); // magenta  — menu đang mở
+const ASSET_ARROW_CLOSE = require('../../assets/ui/icons/arrowfocus1.png'); // teal     — menu đang đóng
 import { SocketClient } from '../network/SocketClient';
 import { getStyles } from './LoginScreen.styles';
+import { SoftkeyBar } from '../components/SoftkeyBar';
 
 // ─── Menu items (nz.java: Đăng nhập=200, Đăng ký=201, Thoát=205) ───────────
 const MENU_ITEMS = [
@@ -126,7 +127,7 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
       <View style={styles.fullBg} />
 
       <ImageBackground
-        source={require('../../assets/original/login.png')}
+        source={require('../../assets/ui/backgrounds/login.png')}
         style={styles.imageBg}
         resizeMode="contain"
       >
@@ -224,47 +225,18 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
           )}
 
           {/* ══════════════════════════════════════════════
-              BOTTOM SOFTKEY BAR (be.java / bv.java)
-              s[0]=left "Chọn"  |  s[1]=center icon  |  s[2]=right "Thoát"
-              Màu #030D66 từ z.class (J2ME chrome navy blue)
+              BOTTOM SOFTKEY BAR (Skia Modernized)
+              Replaces the old flat blue bar with ornate assets.
           ══════════════════════════════════════════════ */}
-          <View style={styles.bottomBar}>
-            {/* s[0] – Left softkey */}
-            <TouchableOpacity
-              style={styles.softkey}
-              onPress={handleLeftSoftkey}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.softkeyText}>Chọn</Text>
-            </TouchableOpacity>
-
-            {/* s[1] – Center: game icon + arrowfocus indicator */}
-            <TouchableOpacity
-              style={styles.softkeyCenter}
-              onPress={handleCenterKey}
-              activeOpacity={0.7}
-            >
-              <View style={styles.centerIconRow}>
-                {/* Game skull icon */}
-                <Image source={ASSET_ICON} style={styles.gameIcon} resizeMode="contain" />
-                {/* arrowfocus1 (teal=đóng) / arrowfocus2 (magenta=mở) */}
-                <Image
-                  source={menuVisible ? ASSET_ARROW_OPEN : ASSET_ARROW_CLOSE}
-                  style={styles.arrowIcon}
-                  resizeMode="contain"
-                />
-              </View>
-            </TouchableOpacity>
-
-            {/* s[2] – Right softkey */}
-            <TouchableOpacity
-              style={styles.softkey}
-              onPress={handleRightSoftkey}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.softkeyText}>Thoát</Text>
-            </TouchableOpacity>
-          </View>
+          <SoftkeyBar
+            width={width}
+            leftLabel={menuVisible ? "Chọn" : "Menu"}
+            rightLabel="Thoát"
+            onLeftPress={handleLeftSoftkey}
+            onCenterPress={handleCenterKey}
+            onRightPress={handleRightSoftkey}
+            menuVisible={menuVisible}
+          />
 
         </View>
       </ImageBackground>

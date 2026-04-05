@@ -2,8 +2,8 @@ import { StyleSheet, Platform } from 'react-native';
 
 export const getScreenSize = (width: number, height: number) => Math.min(width, height);
 
-// ── be.a = 17 px trong J2ME ──────────────────────────────────────────────────
-const BOTTOM_BAR_H = 17;
+// ── be.a = 28 px trong thiết kế mới (Skia) ───────────────────────────────────
+const BOTTOM_BAR_H = 28;
 
 export const getStyles = (width: number, height: number) => {
   const SCREEN_SIZE = getScreenSize(width, height);
@@ -126,61 +126,6 @@ export const getStyles = (width: number, height: number) => {
       fontWeight: 'bold',
     },
 
-    // ══════════════════════════════════════════════════════════════════════
-    //  BOTTOM SOFTKEY BAR  (be.java: height=17, bg #030D66 từ z.class)
-    //  s[0]="Chọn"  |  s[1]="▲"  |  s[2]="Thoát"
-    // ══════════════════════════════════════════════════════════════════════
-    bottomBar: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: BOTTOM_BAR_H,
-      backgroundColor: '#030D66', // z.class constant — navy blue J2ME chrome
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 4,
-      zIndex: 20,
-    },
-
-    softkey: {
-      paddingHorizontal: 6,
-      height: '100%',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    softkeyText: {
-      color: '#ffffff',           // trắng — softkey text J2ME
-      fontSize: 9,
-      fontFamily: Platform.OS === 'android' ? 'sans-serif' : 'System',
-    },
-
-    softkeyCenter: {
-      flex: 1,
-      height: '100%',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-
-    // Center icon row: game skull + arrowfocus indicator
-    centerIconRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 2,
-    },
-    // Game skull icon (icon.png 30×32 → scale down to fit bar h=17)
-    gameIcon: {
-      width: 11,
-      height: 12,
-    },
-    // arrowfocus1/2 (10×7 → fit bar)
-    arrowIcon: {
-      width: 8,
-      height: 6,
-    },
-
-    // kept for fallback (unused when images load)
     arrowText: {
       color: '#ffffff',
       fontSize: 10,
