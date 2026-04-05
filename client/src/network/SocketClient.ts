@@ -33,11 +33,26 @@ export class SocketClient extends EventEmitter {
   }
 
   connect(url: string) {
+    // Đóng socket cũ nếu còn mở, tránh leak
+    if (this.socket) {
+      console.log('[SocketClient] Closing old socket before reconnecting...');
+      // Gỡ handler cũ để tránh emit 'disconnected' khi chủ động đóng
+      this.socket.onclose = null;
+      this.socket.onerror = null;
+      this.socket.onmessage = null;
+      this.socket.onopen = null;
+      if (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING) {
+        this.socket.close();
+      }
+      this.socket = null;
+    }
+
+    console.log('[SocketClient] Opening WebSocket →', url);
     this.socket = new WebSocket(url);
     this.socket.binaryType = 'arraybuffer';
 
     this.socket.onopen = () => {
-      console.log('[SocketClient] Connected to battlefield');
+      console.log('[SocketClient] Connected ✓');
       this.emit('connected');
     };
 
@@ -46,8 +61,9 @@ export class SocketClient extends EventEmitter {
       this.handlePacket(data);
     };
 
-    this.socket.onclose = () => {
-      console.log('[SocketClient] Disconnected from battlefield');
+    this.socket.onclose = (ev) => {
+      console.log('[SocketClient] Disconnected (code=%d reason=%s)', ev.code, ev.reason || '—');
+      this.socket = null;
       this.emit('disconnected');
     };
 
@@ -59,27 +75,37 @@ export class SocketClient extends EventEmitter {
 
   private handlePacket(data: Uint8Array) {
     // Minimum packet = 7-byte header: SubCount(2) + PayloadLength(4) + Command(1)
-    if (data.length < 7) return;
+    if (data.length < 7) {
+      console.warn('[SocketClient] ← Received too-short packet:', data.length, 'bytes');
+      return;
+    }
 
     const payloadLength = (data[2] << 24) | (data[3] << 16) | (data[4] << 8) | data[5];
     const cmd = data[6];
     const payload = data.slice(7, 7 + payloadLength);
+
+    console.log(`[SocketClient] ← Received CMD ${cmd}, payloadLength=${payloadLength}`);
 
     switch (cmd) {
       case 4: // Login Success
         this.emit('authSuccess');
         break;
 
-      case 0: // Auth Failed / Error
+      case 0: // Server Error — phát cả authFailed lẫn registerFailed để màn hình nào cũng nhận được
         const errorMsg = this.parseStringTag(payload, 1);
-        this.emit('authFailed', errorMsg);
+        console.log('[SocketClient] ← CMD 0 server error:', JSON.stringify(errorMsg));
+        this.emit('authFailed',     errorMsg);
+        this.emit('registerFailed', errorMsg); // RegisterScreen cũng lắng nghe
         break;
 
       case 131: // Register Response
         const regMsg = this.parseStringTag(payload, 1);
+        console.log('[SocketClient] ← CMD 131 Register response msg:', JSON.stringify(regMsg));
         if (regMsg.includes('thanh cong')) {
+          console.log('[SocketClient] → emit registerSuccess');
           this.emit('registerSuccess', regMsg);
         } else {
+          console.log('[SocketClient] → emit registerFailed');
           this.emit('registerFailed', regMsg);
         }
         break;
@@ -110,9 +136,50 @@ export class SocketClient extends EventEmitter {
     this.socket?.send(packet);
   }
 
-  register(username: string, password: string) {
-    const packet = this.buildAuthPacket(1, username, password); // CMD 1 = Register
-    this.socket?.send(packet);
+  // ─── CMD 1: Đăng ký tài khoản ───────────────────────────────────────────
+  // Tags: 9=username, 10=password, 11=fullName, 12=dob, 13=phone, 14=gender(byte)
+  register(
+    username: string,
+    password: string,
+    fullName: string,
+    dob: string,        // DD-MM-YYYY
+    phone: string,
+    gender: 0 | 1,     // 0=Nam, 1=Nữ
+  ) {
+    console.log('[SocketClient] register() called, socket state:', this.socket ? this.socket.readyState : 'NULL');
+
+    if (!this.socket) {
+      console.error('[SocketClient] register() FAILED: socket is NULL');
+      return;
+    }
+    if (this.socket.readyState !== WebSocket.OPEN) {
+      console.error('[SocketClient] register() FAILED: socket.readyState =', this.socket.readyState, '(expected', WebSocket.OPEN, '= OPEN)');
+      return;
+    }
+
+    const tags: number[] = [
+      ...this.makeStringTag(9,  username),
+      ...this.makeStringTag(10, password),
+      ...this.makeStringTag(11, fullName),
+      ...this.makeStringTag(12, dob),
+      ...this.makeStringTag(13, phone),
+      ...this.makeByteTag(14, gender),
+    ];
+    const payload = new Uint8Array(tags);
+
+    // 7-byte header: SubCount(2) + PayloadLength(4) + CMD(1)
+    const packet = new Uint8Array(7 + payload.length);
+    packet[0] = 0; packet[1] = 6;                       // SubCount = 6 tags
+    packet[2] = (payload.length >> 24) & 0xFF;
+    packet[3] = (payload.length >> 16) & 0xFF;
+    packet[4] = (payload.length >> 8)  & 0xFF;
+    packet[5] =  payload.length        & 0xFF;
+    packet[6] = 1;                                       // CMD 1 = Register
+    packet.set(payload, 7);
+
+    console.log('[SocketClient] → Sending CMD 1 Register, packet size:', packet.length, 'bytes');
+    this.socket.send(packet);
+    console.log('[SocketClient] → send() completed');
   }
 
   joinMap() {
@@ -184,6 +251,10 @@ export class SocketClient extends EventEmitter {
       (value >> 8) & 0xFF,
       value & 0xFF,
     ];
+  }
+
+  private makeByteTag(id: number, value: number): number[] {
+    return [id, 0, 0, 0, 1, value & 0xFF]; // length = 1 byte
   }
 
   // ─── Tag Parsers ──────────────────────────────────────────────────────────

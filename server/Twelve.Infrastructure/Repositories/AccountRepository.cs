@@ -27,8 +27,10 @@ namespace Twelve.Infrastructure.Repositories
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
-                INSERT INTO Accounts (Username, PasswordHash, Salt, CreatedAt)
-                VALUES (@Username, @PasswordHash, @Salt, @CreatedAt)
+                INSERT INTO Accounts
+                    (Username, PasswordHash, Salt, FullName, DateOfBirth, Phone, Gender, CreatedAt)
+                VALUES
+                    (@Username, @PasswordHash, @Salt, @FullName, @DateOfBirth, @Phone, @Gender, @CreatedAt)
                 RETURNING Id";
             return await connection.ExecuteScalarAsync<int>(sql, account);
         }
@@ -47,7 +49,7 @@ namespace Twelve.Infrastructure.Repositories
         {
             byte[] saltBytes = RandomNumberGenerator.GetBytes(16);
             salt = Convert.ToBase64String(saltBytes);
-            
+
             using var rfc = new Rfc2898DeriveBytes(password, saltBytes, 10000, HashAlgorithmName.SHA256);
             return Convert.ToBase64String(rfc.GetBytes(32));
         }

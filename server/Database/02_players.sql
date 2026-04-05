@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS Players (
     Exp BIGINT NOT NULL DEFAULT 0,
     
     -- Vị trí nhân vật
-    CurrentMap VARCHAR(50) NOT NULL DEFAULT 'M99',
-    CurrentRoom INT NOT NULL DEFAULT 1,
+    CurrentMap VARCHAR(50) NULL,
+    CurrentRoom INT NULL,
     
     -- Chỉ số chiến đấu
     Hp INT NOT NULL DEFAULT 100,
@@ -28,8 +28,3 @@ CREATE TABLE IF NOT EXISTS Players (
 
 -- Index để tìm kiếm nhanh theo Username
 CREATE INDEX IF NOT EXISTS idx_players_username ON Players(Username);
-
--- Chèn dữ liệu mẫu nếu cần
-INSERT INTO Players (Username, Level, Gold, Exp)
-VALUES ('Admin', 99, 1000000, 0)
-ON CONFLICT (Username) DO NOTHING;

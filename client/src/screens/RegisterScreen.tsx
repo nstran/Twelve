@@ -4,9 +4,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
   ScrollView,
-  Alert,
   BackHandler,
   ActivityIndicator,
   useWindowDimensions,
@@ -16,12 +14,6 @@ import { SocketClient } from '../network/SocketClient';
 import { getStyles } from './RegisterScreen.styles';
 import { SoftkeyBar } from '../components/SoftkeyBar';
 import { CalendarPicker } from '../components/CalendarPicker';
-
-// ── Assets ────────────────────────────────────────────────────────────────
-const ASSET_ICON_OK     = require('../../assets/ui/icons/icon_ok.png');
-const ASSET_ICON_CANCEL = require('../../assets/ui/icons/icon_cancel.png');
-
-const CAPTCHA_CODE = '1234'; 
 
 type Gender = 'Nam' | 'Nữ';
 
@@ -41,38 +33,50 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
   const [dob,      setDob]        = useState(getTodayString());
   const [phone,    setPhone]      = useState('');
   const [gender,   setGender]     = useState<Gender>('Nam');
-  const [captcha,  setCaptcha]    = useState('');
   const [focusedField, setFocusedField] = useState<string | null>('username');
   const [loading,  setLoading]    = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
 
+  // ── Thay Alert bằng banner hiển thị trực tiếp ────────────────────────────
+  const [errorMsg,   setErrorMsg]   = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const showError   = (msg: string) => { setErrorMsg(msg); setSuccessMsg(''); };
+  const showSuccess = (msg: string) => { setSuccessMsg(msg); setErrorMsg(''); };
+  const clearMsg    = () => { setErrorMsg(''); setSuccessMsg(''); };
+
   const client = SocketClient.getInstance();
 
   useEffect(() => {
+    console.log('[Register] Mounting: subscribing to registerSuccess/registerFailed events');
+
     const onSuccess = (msg: string) => {
+      console.log('[Register] ← SERVER: registerSuccess', msg);
       setLoading(false);
-      Alert.alert('Thành công', msg || 'Đăng ký thành công!', [
-        { text: 'Đăng nhập ngay', onPress: onRegisterSuccess },
-      ]);
+      showSuccess('Đăng ký thành công! Đang chuyển sang đăng nhập...');
+      // Tự động chuyển sang màn đăng nhập sau 1.5 giây
+      setTimeout(() => onRegisterSuccess(), 1500);
     };
+
     const onFailed = (msg: string) => {
+      console.log('[Register] ← SERVER: registerFailed', msg);
       setLoading(false);
-      Alert.alert('Thất bại', msg || 'Đăng ký không thành công.');
+      showError(msg || 'Đăng ký không thành công. Vui lòng thử lại.');
     };
+
     client.on('registerSuccess', onSuccess);
-    client.on('registerFailed', onFailed);
+    client.on('registerFailed',  onFailed);
+
     return () => {
+      console.log('[Register] Unmounting: unsubscribing events');
       client.off('registerSuccess', onSuccess);
-      client.off('registerFailed', onFailed);
+      client.off('registerFailed',  onFailed);
     };
   }, []);
 
   useEffect(() => {
     const h = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (showCalendar) {
-        setShowCalendar(false);
-        return true;
-      }
+      if (showCalendar) { setShowCalendar(false); return true; }
       onBack();
       return true;
     });
@@ -80,54 +84,85 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
   }, [showCalendar]);
 
   const handleRegister = () => {
-    if (!username.trim()) return Alert.alert('Chú ý', 'Vui lòng nhập tên đăng nhập');
-    if (!password)        return Alert.alert('Chú ý', 'Vui lòng nhập mật khẩu');
-    if (password !== confirm) return Alert.alert('Chú ý', 'Mật khẩu nhập lại không khớp');
-    if (captcha !== CAPTCHA_CODE) return Alert.alert('Chú ý', 'Mã xác nhận không đúng');
+    console.log('[Register] ── handleRegister fired ──');
+    clearMsg();
+
+    const trimUser  = username.trim();
+    const trimName  = fullName.trim();
+    const trimPhone = phone.trim();
+
+    console.log('[Register] username:', JSON.stringify(trimUser));
+    console.log('[Register] password length:', password.length);
+    console.log('[Register] confirm match:', password === confirm);
+
+    // ── Validate — hiển thị lỗi trực tiếp trên màn hình ─────────────────
+    if (!trimUser) {
+      console.log('[Register] FAIL: username empty');
+      showError('Vui lòng nhập tên đăng nhập');
+      return;
+    }
+    if (trimUser.length < 4) {
+      console.log('[Register] FAIL: username too short', trimUser.length);
+      showError('Tên đăng nhập phải từ 4 ký tự trở lên');
+      return;
+    }
+    if (!password) {
+      console.log('[Register] FAIL: password empty');
+      showError('Vui lòng nhập mật khẩu');
+      return;
+    }
+    if (password.length < 6) {
+      console.log('[Register] FAIL: password too short', password.length);
+      showError('Mật khẩu phải có ít nhất 6 ký tự');
+      return;
+    }
+    if (password !== confirm) {
+      console.log('[Register] FAIL: passwords do not match');
+      showError('Mật khẩu nhập lại không khớp');
+      return;
+    }
+
+    console.log('[Register] Validation OK → setLoading(true) → client.register()');
     setLoading(true);
-    client.register(username.trim(), password);
+
+    client.register(
+      trimUser,
+      password,
+      trimName,
+      dob,
+      trimPhone,
+      gender === 'Nam' ? 0 : 1,
+    );
   };
 
-  /**
-   * Helper to render Clean Input Box (No ornaments, no border when active)
-   */
+  // ── Render input ──────────────────────────────────────────────────────────
   const renderInput = (
-    name: string, 
-    val: string, 
-    setVal: (v: string) => void, 
-    extraProps: any = {}, 
+    name: string,
+    val: string,
+    setVal: (v: string) => void,
+    extraProps: any = {},
     isCentered = false
   ) => {
     const isFocused = focusedField === name;
-    
-    // Special handling for DOB to open Calendar instead of keyboard
+
     if (name === 'dob') {
-        return (
-            <TouchableOpacity 
-                activeOpacity={1}
-                style={[styles.inputBox, isFocused ? styles.inputActive : styles.inputInactive]}
-                onPress={() => {
-                    setFocusedField('dob');
-                    setShowCalendar(true);
-                }}
-            >
-                <Text style={[styles.textInput, styles.dobText, { lineHeight: 30 }]}>{val}</Text>
-            </TouchableOpacity>
-        );
+      return (
+        <TouchableOpacity
+          activeOpacity={1}
+          style={[styles.inputBox, isFocused ? styles.inputActive : styles.inputInactive]}
+          onPress={() => { setFocusedField('dob'); setShowCalendar(true); }}
+        >
+          <Text style={[styles.textInput, styles.dobText, { lineHeight: 30 }]}>{val}</Text>
+        </TouchableOpacity>
+      );
     }
 
     return (
-      <View style={[
-        styles.inputBox, 
-        isFocused ? styles.inputActive : styles.inputInactive
-      ]}>
+      <View style={[styles.inputBox, isFocused ? styles.inputActive : styles.inputInactive]}>
         <TextInput
-          style={[
-            styles.textInput, 
-            isCentered && styles.dobText,
-          ]}
+          style={[styles.textInput, isCentered && styles.dobText]}
           value={val}
-          onChangeText={setVal}
+          onChangeText={(v) => { setVal(v); clearMsg(); }}
           onFocus={() => setFocusedField(name)}
           selectionColor="red"
           {...extraProps}
@@ -138,7 +173,7 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
 
   return (
     <View style={styles.container}>
-      
+
       <View style={styles.header}>
         <Text style={styles.headerText}>Đăng ký</Text>
       </View>
@@ -148,6 +183,18 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
+        {/* ── Banner lỗi / thành công ─────────────────────────────────────── */}
+        {!!errorMsg && (
+          <View style={styles.bannerError}>
+            <Text style={styles.bannerText}>⚠ {errorMsg}</Text>
+          </View>
+        )}
+        {!!successMsg && (
+          <View style={styles.bannerSuccess}>
+            <Text style={styles.bannerText}>✓ {successMsg}</Text>
+          </View>
+        )}
+
         <Text style={styles.label}>Tên đăng nhập</Text>
         {renderInput('username', username, setUsername, { autoCapitalize: 'none', autoCorrect: false })}
 
@@ -182,11 +229,6 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.label}>Nhập lại những ký tự sau:</Text>
-        <View style={styles.captchaContainer}>
-          <Text style={styles.captchaText}>{CAPTCHA_CODE}</Text>
-        </View>
-        {renderInput('captcha', captcha, setCaptcha, { keyboardType: 'numeric', maxLength: 4, onSubmitEditing: handleRegister })}
       </ScrollView>
 
       {loading && (
@@ -195,14 +237,10 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
         </View>
       )}
 
-      {/* ── Calendar Selection Modal ──────────────────────────── */}
       <CalendarPicker
         visible={showCalendar}
         initialDate={dob}
-        onSelect={(newDate) => {
-            setDob(newDate);
-            setShowCalendar(false);
-        }}
+        onSelect={(newDate) => { setDob(newDate); setShowCalendar(false); }}
         onClose={() => setShowCalendar(false)}
       />
 
@@ -220,8 +258,8 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
 
 function getTodayString(): string {
   const d = new Date();
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd   = String(d.getDate()).padStart(2, '0');
+  const mm   = String(d.getMonth() + 1).padStart(2, '0');
   const yyyy = d.getFullYear();
   return `${dd} - ${mm} - ${yyyy}`;
 }

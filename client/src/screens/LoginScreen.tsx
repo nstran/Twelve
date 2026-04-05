@@ -239,7 +239,6 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
             onLeftPress={handleLeftSoftkey}
             onCenterPress={handleCenterKey}
             onRightPress={handleRightSoftkey}
-            menuVisible={menuVisible}
             leftIcon={menuVisible ? ASSET_ICON_OK : ASSET_RED_SUN}
             rightIcon={menuVisible ? ASSET_ICON_CANCEL : undefined}
           />

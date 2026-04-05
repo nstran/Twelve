@@ -32,6 +32,31 @@ export const getStyles = (width: number, height: number) => {
       paddingBottom: 40,
     },
 
+    // ── Banner thông báo (thay Alert.alert) ───────────────────────────────
+    bannerError: {
+      backgroundColor: '#cc0000',
+      borderRadius: 6,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      marginTop: 10,
+      marginBottom: 4,
+    },
+    bannerSuccess: {
+      backgroundColor: '#1a7a1a',
+      borderRadius: 6,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      marginTop: 10,
+      marginBottom: 4,
+    },
+    bannerText: {
+      color: '#ffffff',
+      fontSize: 14,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    },
+
     label: {
       color: '#000000',
       fontSize: FONT_MED,
@@ -115,23 +140,6 @@ export const getStyles = (width: number, height: number) => {
       color: '#000000',
       fontSize: FONT_MED,
       fontWeight: 'bold',
-    },
-
-    captchaContainer: {
-      backgroundColor: '#f5f5f5',
-      borderWidth: 1,
-      borderColor: '#cccccc',
-      paddingVertical: 10,
-      alignItems: 'center',
-      marginTop: 10,
-      marginBottom: 8,
-    },
-    captchaText: {
-      color: '#000000',
-      fontSize: 28,
-      fontWeight: 'bold',
-      letterSpacing: 10,
-      fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
     },
 
     loadingOverlay: {

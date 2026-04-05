@@ -7,33 +7,32 @@ namespace Twelve.Application
     {
         public static IServiceCollection AddTwelveApplication(this IServiceCollection services)
         {
-            // Register Handlers as services to support DI
+            // ── Đăng ký Handlers ───────────────────────────────────────────────
             services.AddSingleton<AuthHandler>();
-            services.AddSingleton<RegisterHandler>(); // NEW
+            services.AddSingleton<RegisterHandler>();
             services.AddSingleton<MapHandler>();
             services.AddSingleton<MoveHandler>();
 
-            // Register PacketDispatcher as a singleton using a factory to resolve handlers
-            services.AddSingleton<PacketDispatcher>(sp => 
+            // ── Wiring PacketDispatcher ────────────────────────────────────────
+            // CMD numbers (client → server):
+            //   1  = Đăng ký (Register)
+            //   2  = Đăng nhập (Login)
+            //   11 = Yêu cầu Map Info
+            //   44 = Di chuyển (Move)
+            services.AddSingleton<PacketDispatcher>(sp =>
             {
                 var dispatcher = new PacketDispatcher();
-                
-                // Resolve handlers from DI container
-                var authHandler = sp.GetRequiredService<AuthHandler>();
-                var registerHandler = sp.GetRequiredService<RegisterHandler>(); // NEW
-                var mapHandler = sp.GetRequiredService<MapHandler>();
-                var moveHandler = sp.GetRequiredService<MoveHandler>();
 
-                dispatcher.RegisterHandler(4, authHandler);   // Login
-                dispatcher.RegisterHandler(131, registerHandler); // Register
-                dispatcher.RegisterHandler(11, mapHandler);   // Map Info
-                dispatcher.RegisterHandler(13, mapHandler);   // Map Select
-                dispatcher.RegisterHandler(29, mapHandler);   // Map Join
-                dispatcher.RegisterHandler(44, moveHandler);  // Move (Action)
+                dispatcher.RegisterHandler(1,  sp.GetRequiredService<RegisterHandler>()); // CMD 1 = Register
+                dispatcher.RegisterHandler(2,  sp.GetRequiredService<AuthHandler>());     // CMD 2 = Login
+                dispatcher.RegisterHandler(11, sp.GetRequiredService<MapHandler>());      // CMD 11 = Map Info
+                dispatcher.RegisterHandler(13, sp.GetRequiredService<MapHandler>());      // CMD 13 = Map Select
+                dispatcher.RegisterHandler(29, sp.GetRequiredService<MapHandler>());      // CMD 29 = Map Join
+                dispatcher.RegisterHandler(44, sp.GetRequiredService<MoveHandler>());     // CMD 44 = Move
 
                 return dispatcher;
             });
-            
+
             return services;
         }
     }

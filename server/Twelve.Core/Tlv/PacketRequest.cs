@@ -45,5 +45,13 @@ namespace Twelve.Core.Tlv
             }
             return null;
         }
+
+        /// <summary>Trả về giá trị 1-byte (byte tag), mặc định 0 nếu không tìm thấy.</summary>
+        public byte GetByteTag(int tagId)
+        {
+            if (Tags.TryGetValue(tagId, out var value) && value.Length >= 1)
+                return value[0];
+            return 0;
+        }
     }
 }

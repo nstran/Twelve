@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Twelve.Core;
@@ -21,14 +22,36 @@ namespace Twelve.Application
 
         public async Task DispatchAsync(GameSession session, PacketRequest request)
         {
-            if (_handlers.TryGetValue(request.Command, out var handler))
+            Console.WriteLine($"[Dispatcher] ← CMD {request.Command}, payload={request.PayloadLength} bytes");
+
+            if (!_handlers.TryGetValue(request.Command, out var handler))
+            {
+                Console.WriteLine($"[Dispatcher] ✗ No handler registered for CMD {request.Command}");
+                return;
+            }
+
+            Console.WriteLine($"[Dispatcher] → Routing CMD {request.Command} to {handler.GetType().Name}");
+
+            try
             {
                 await handler.HandleAsync(session, request);
+                Console.WriteLine($"[Dispatcher] ✓ CMD {request.Command} handled OK");
             }
-            else
+            catch (Exception ex)
             {
-                // Log unhandled command
-                System.Console.WriteLine($"[Dispatcher] Warning: No handler for CMD {request.Command}");
+                // Bắt toàn bộ exception từ handler — KHÔNG để exception đóng WebSocket
+                Console.WriteLine($"[Dispatcher] ✗ Exception in CMD {request.Command} handler: {ex}");
+
+                // Gửi thông báo lỗi chung về cho client (CMD 0 = error)
+                try
+                {
+                    var errPayload = TlvCodec.MakeTag(1, $"Loi server khi xu ly lenh {request.Command}. Chi tiet: {ex.Message}");
+                    await session.SendPacketAsync(TlvCodec.BuildPacket(0, errPayload, subCount: 1));
+                }
+                catch (Exception sendEx)
+                {
+                    Console.WriteLine($"[Dispatcher] ✗ Could not send error to client: {sendEx.Message}");
+                }
             }
         }
     }
