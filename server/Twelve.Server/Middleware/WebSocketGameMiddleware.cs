@@ -30,7 +30,8 @@ namespace Twelve.Server.Middleware
                 if (context.WebSockets.IsWebSocketRequest)
                 {
                     using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-                    await HandleWebSocketAsync(webSocket, serviceProvider);
+                    // Pass context.RequestAborted so the loop cancels when the HTTP request ends
+                    await HandleWebSocketAsync(webSocket, serviceProvider, context.RequestAborted);
                 }
                 else
                 {
@@ -43,11 +44,11 @@ namespace Twelve.Server.Middleware
             }
         }
 
-        private async Task HandleWebSocketAsync(WebSocket webSocket, IServiceProvider serviceProvider)
+        private async Task HandleWebSocketAsync(WebSocket webSocket, IServiceProvider serviceProvider, CancellationToken cancellationToken)
         {
             using var scope = serviceProvider.CreateScope();
             var dispatcher = scope.ServiceProvider.GetRequiredService<PacketDispatcher>();
-            
+
             using var channel = new WebSocketCommunicationChannel(webSocket);
             using var session = new GameSession(channel);
 
@@ -56,10 +57,10 @@ namespace Twelve.Server.Middleware
             var buffer = new byte[8192];
             try
             {
-                while (webSocket.State == WebSocketState.Open)
+                while (webSocket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
                 {
                     // WebSocket is slightly different from Stream: we receive a full message or fragments
-                    var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                    var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
                     
                     if (result.MessageType == WebSocketMessageType.Close)
                     {

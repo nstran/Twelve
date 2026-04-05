@@ -22,8 +22,8 @@ namespace Twelve.Server.WebSockets
                 await _webSocket.SendAsync(
                     new ArraySegment<byte>(data),
                     WebSocketMessageType.Binary,
-                    true,
-                    CancellationToken.None);
+                    endOfMessage: true,
+                    cancellationToken: CancellationToken.None);
             }
         }
 
@@ -31,7 +31,14 @@ namespace Twelve.Server.WebSockets
         {
             if (_webSocket.State == WebSocketState.Open)
             {
-                _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed by server", CancellationToken.None).Wait();
+                // Use a short-lived token to avoid blocking indefinitely on close
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                try
+                {
+                    _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closed by server", cts.Token)
+                              .GetAwaiter().GetResult();
+                }
+                catch (OperationCanceledException) { /* Timeout on close is acceptable */ }
             }
         }
 

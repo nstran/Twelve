@@ -1,5 +1,22 @@
 import EventEmitter from 'eventemitter3';
 
+// Actor type exported here so both MapRenderer and MainScreen import from one place
+export interface Actor {
+  id: string;
+  label: string;
+  kind: number;
+  x: number;
+  y: number;
+}
+
+export interface MapInfo {
+  name: string;
+  width: number;
+  height: number;
+  tileSize: number;
+  tiles: number[];
+}
+
 export class SocketClient extends EventEmitter {
   private socket: WebSocket | null = null;
   private static instance: SocketClient;
@@ -20,7 +37,7 @@ export class SocketClient extends EventEmitter {
     this.socket.binaryType = 'arraybuffer';
 
     this.socket.onopen = () => {
-      console.log('Connected to battlefield');
+      console.log('[SocketClient] Connected to battlefield');
       this.emit('connected');
     };
 
@@ -30,28 +47,34 @@ export class SocketClient extends EventEmitter {
     };
 
     this.socket.onclose = () => {
-      console.log('Disconnected from battlefield');
+      console.log('[SocketClient] Disconnected from battlefield');
       this.emit('disconnected');
+    };
+
+    this.socket.onerror = (err) => {
+      console.error('[SocketClient] WebSocket error', err);
+      this.emit('error', err);
     };
   }
 
   private handlePacket(data: Uint8Array) {
+    // Minimum packet = 7-byte header: SubCount(2) + PayloadLength(4) + Command(1)
     if (data.length < 7) return;
 
-    // Decode 7-byte Header: SubCount(2) + PayloadLength(4) + Command(1)
-    const subCount = (data[0] << 8) | data[1];
     const payloadLength = (data[2] << 24) | (data[3] << 16) | (data[4] << 8) | data[5];
     const cmd = data[6];
-    const payload = data.slice(7);
+    const payload = data.slice(7, 7 + payloadLength);
 
     switch (cmd) {
       case 4: // Login Success
         this.emit('authSuccess');
         break;
-      case 0: // Error/Auth Failed
+
+      case 0: // Auth Failed / Error
         const errorMsg = this.parseStringTag(payload, 1);
         this.emit('authFailed', errorMsg);
         break;
+
       case 131: // Register Response
         const regMsg = this.parseStringTag(payload, 1);
         if (regMsg.includes('thanh cong')) {
@@ -60,38 +83,76 @@ export class SocketClient extends EventEmitter {
           this.emit('registerFailed', regMsg);
         }
         break;
-      case 11: // Map Info
-        this.emit('mapInfo', payload);
+
+      case 11: // Map Info — parse tags and emit structured MapInfo
+        const mapInfo = this.parseMapInfo(payload);
+        this.emit('mapInfo', mapInfo);
         break;
-      case 43: // Scene Actors
-        this.emit('actorsUpdate', payload);
+
+      case 43: // Scene Actors — parse sequentially (multiple actors share tag IDs)
+        const actors = this.parseActors(payload);
+        this.emit('actorsUpdate', actors);
         break;
+
       case 44: // Move Ack
         this.emit('moveAck', payload);
         break;
+
+      default:
+        console.log(`[SocketClient] Unhandled CMD ${cmd}`);
     }
   }
 
-  login(username: string, passwordHash: string) {
-    const packet = this.buildAuthPacket(4, username, passwordHash);
+  // ─── Auth ─────────────────────────────────────────────────────────────────
+
+  login(username: string, password: string) {
+    const packet = this.buildAuthPacket(2, username, password); // CMD 2 = Login
     this.socket?.send(packet);
   }
 
-  register(username: string, passwordHash: string) {
-    const packet = this.buildAuthPacket(131, username, passwordHash);
+  register(username: string, password: string) {
+    const packet = this.buildAuthPacket(1, username, password); // CMD 1 = Register
     this.socket?.send(packet);
   }
+
+  joinMap() {
+    // CMD 11: Request map info. 7-byte header with empty payload.
+    const packet = new Uint8Array(7);
+    packet[0] = 0; packet[1] = 0; // SubCount = 0
+    packet[2] = 0; packet[3] = 0; packet[4] = 0; packet[5] = 0; // PayloadLength = 0
+    packet[6] = 11; // CMD
+    this.socket?.send(packet);
+  }
+
+  move(x: number, y: number) {
+    // Build payload: xTag + yTag
+    const xTag = this.makeIntTag(102, x);
+    const yTag = this.makeIntTag(103, y);
+    const payload = new Uint8Array([...xTag, ...yTag]);
+
+    // 7-byte header: SubCount(2) + PayloadLength(4) + Command(1)
+    const packet = new Uint8Array(7 + payload.length);
+    packet[0] = 0; packet[1] = 2; // SubCount = 2 tags
+    packet[2] = (payload.length >> 24) & 0xFF;
+    packet[3] = (payload.length >> 16) & 0xFF;
+    packet[4] = (payload.length >> 8) & 0xFF;
+    packet[5] = payload.length & 0xFF;
+    packet[6] = 44; // CMD Move
+    packet.set(payload, 7);
+    this.socket?.send(packet);
+  }
+
+  // ─── Packet Builders ──────────────────────────────────────────────────────
 
   private buildAuthPacket(cmd: number, user: string, pass: string): Uint8Array {
     const userTag = this.makeStringTag(9, user);
     const passTag = this.makeStringTag(10, pass);
     const payload = new Uint8Array([...userTag, ...passTag]);
-    
-    // 7-byte Header: SubCount(2) + PayloadLength(4) + Command(1)
+
+    // 7-byte header: SubCount(2) + PayloadLength(4) + Command(1)
     const packet = new Uint8Array(7 + payload.length);
-    packet[0] = 0; // SubCount High
-    packet[1] = 1; // SubCount Low (1 tag)
-    packet[2] = (payload.length >> 24) & 0xFF; // Length 4 bytes
+    packet[0] = 0; packet[1] = 2; // SubCount = 2 tags
+    packet[2] = (payload.length >> 24) & 0xFF;
     packet[3] = (payload.length >> 16) & 0xFF;
     packet[4] = (payload.length >> 8) & 0xFF;
     packet[5] = payload.length & 0xFF;
@@ -100,18 +161,32 @@ export class SocketClient extends EventEmitter {
     return packet;
   }
 
+  // ─── Tag Builders ─────────────────────────────────────────────────────────
+
   private makeStringTag(id: number, value: string): number[] {
     const bytes = Array.from(new TextEncoder().encode(value));
-    // 5-byte Tag Header: ID(1) + Length(4)
     return [
-      id, 
-      (bytes.length >> 24) & 0xFF, 
-      (bytes.length >> 16) & 0xFF, 
-      (bytes.length >> 8) & 0xFF, 
-      bytes.length & 0xFF, 
-      ...bytes
+      id,
+      (bytes.length >> 24) & 0xFF,
+      (bytes.length >> 16) & 0xFF,
+      (bytes.length >> 8) & 0xFF,
+      bytes.length & 0xFF,
+      ...bytes,
     ];
   }
+
+  private makeIntTag(id: number, value: number): number[] {
+    return [
+      id,
+      0, 0, 0, 4, // length = 4 bytes
+      (value >> 24) & 0xFF,
+      (value >> 16) & 0xFF,
+      (value >> 8) & 0xFF,
+      value & 0xFF,
+    ];
+  }
+
+  // ─── Tag Parsers ──────────────────────────────────────────────────────────
 
   private parseStringTag(data: Uint8Array, targetId: number): string {
     let pos = 0;
@@ -126,21 +201,77 @@ export class SocketClient extends EventEmitter {
     return '';
   }
 
-  joinMap() {
-    const packet = new Uint8Array([29, 0, 0]); // Empty join
-    this.socket?.send(packet);
+  private readInt(data: Uint8Array, offset: number): number {
+    return ((data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3]) >>> 0;
   }
 
-  move(x: number, y: number) {
-    const xTag = [102, 0, 4, (x >> 24) & 0xFF, (x >> 16) & 0xFF, (x >> 8) & 0xFF, x & 0xFF];
-    const yTag = [103, 0, 4, (y >> 24) & 0xFF, (y >> 16) & 0xFF, (y >> 8) & 0xFF, y & 0xFF];
-    const payload = new Uint8Array([...xTag, ...yTag]);
-    
-    const packet = new Uint8Array(3 + payload.length);
-    packet[0] = 44;
-    packet[1] = (payload.length >> 8) & 0xFF;
-    packet[2] = payload.length & 0xFF;
-    packet.set(payload, 3);
-    this.socket?.send(packet);
+  /**
+   * Parse MapInfo from CMD 11 payload.
+   * Tags: 20=name, 56=width, 57=height, 58=tileW, 59=tileH, 55=ground layer
+   */
+  private parseMapInfo(payload: Uint8Array): MapInfo {
+    let pos = 0;
+    let name = 'Unknown';
+    let width = 10;
+    let height = 8;
+    let tileSize = 32;
+    let tiles: number[] = [];
+
+    while (pos <= payload.length - 5) {
+      const id = payload[pos];
+      const len = this.readInt(payload, pos + 1);
+      const val = payload.slice(pos + 5, pos + 5 + len);
+
+      switch (id) {
+        case 20: name = new TextDecoder().decode(val); break;
+        case 56: width = this.readInt(val, 0); break;
+        case 57: height = this.readInt(val, 0); break;
+        case 58: tileSize = this.readInt(val, 0); break;
+        case 55: tiles = Array.from(val); break; // Ground layer
+      }
+      pos += 5 + len;
+    }
+
+    return { name, width, height, tileSize, tiles };
+  }
+
+  /**
+   * Parse actor list from CMD 43 payload.
+   * Tags per actor: 9=id, 26=label, 27=kind, 102=x, 103=y
+   * Actors share the same tag IDs, so we must parse SEQUENTIALLY (not by dictionary).
+   * A new actor starts whenever we encounter tag 9 again.
+   */
+  private parseActors(payload: Uint8Array): Actor[] {
+    const actors: Actor[] = [];
+    let current: Partial<Actor> | null = null;
+    let pos = 0;
+
+    while (pos <= payload.length - 5) {
+      const id = payload[pos];
+      const len = this.readInt(payload, pos + 1);
+      const val = payload.slice(pos + 5, pos + 5 + len);
+
+      switch (id) {
+        case 9: // Actor ID — start of a new actor block
+          if (current?.id) actors.push(current as Actor);
+          current = { id: new TextDecoder().decode(val) };
+          break;
+        case 26: // Label / display name
+          if (current) current.label = new TextDecoder().decode(val);
+          break;
+        case 27: // Kind (class/monster type)
+          if (current) current.kind = this.readInt(val, 0);
+          break;
+        case 102: // X position
+          if (current) current.x = this.readInt(val, 0);
+          break;
+        case 103: // Y position
+          if (current) current.y = this.readInt(val, 0);
+          break;
+      }
+      pos += 5 + len;
+    }
+    if (current?.id) actors.push(current as Actor);
+    return actors;
   }
 }

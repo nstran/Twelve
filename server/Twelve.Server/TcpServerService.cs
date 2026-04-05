@@ -65,9 +65,17 @@ namespace Twelve.Server
                 while (!stoppingToken.IsCancellationRequested && socket.Connected)
                 {
                     // Read header: 2 (sub) + 4 (len) + 1 (cmd) = 7 bytes
+                    // ReadExactlyAsync ensures all 7 bytes are received before continuing,
+                    // preventing partial-read corruption on slow/fragmented TCP streams.
                     byte[] header = new byte[7];
-                    int read = await networkStream.ReadAsync(header.AsMemory(0, 7), stoppingToken);
-                    if (read == 0) break;
+                    try
+                    {
+                        await networkStream.ReadExactlyAsync(header.AsMemory(0, 7), stoppingToken);
+                    }
+                    catch (System.IO.EndOfStreamException)
+                    {
+                        break; // Client disconnected cleanly
+                    }
 
                     var request = TlvCodec.Decode(header, networkStream);
                     if (request != null)

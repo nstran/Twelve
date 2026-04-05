@@ -1,17 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { SocketClient, Actor } from '../network/SocketClient';
+import { SocketClient, Actor, MapInfo } from '../network/SocketClient';
 import { MapRenderer } from '../engine/MapRenderer';
 
 export const MainScreen: React.FC = () => {
-  const [mapData, setMapData] = useState<any>(null);
+  const [mapData, setMapData] = useState<MapInfo | null>(null);
   const [actors, setActors] = useState<Actor[]>([]);
-  const [client, setClient] = useState<SocketClient | null>(null);
+
+  // Use a ref so event handlers always have access to the stable singleton
+  const clientRef = useRef<SocketClient>(SocketClient.getInstance());
 
   useEffect(() => {
-    const wsClient = new SocketClient(
-      (data) => setMapData(data),
-      (newActors) => setActors(prev => {
+    const client = clientRef.current;
+
+    // ── Event listeners ────────────────────────────────────────────────────
+    const onMapInfo = (info: MapInfo) => {
+      setMapData(info);
+    };
+
+    const onActorsUpdate = (newActors: Actor[]) => {
+      setActors(prev => {
         const merged = [...prev];
         newActors.forEach(actor => {
           const idx = merged.findIndex(a => a.id === actor.id);
@@ -19,39 +27,67 @@ export const MainScreen: React.FC = () => {
           else merged.push(actor);
         });
         return merged;
-      })
-    );
-    
-    wsClient.connect('ws://localhost:2026');
-    setClient(wsClient);
+      });
+    };
+
+    const onMoveAck = (payload: Uint8Array) => {
+      // Server echoes back the move — update own actor position
+      // Tags 102=x, 103=y are in the payload; actor update will come via actorsUpdate
+      console.log('[MainScreen] Move acknowledged by server');
+    };
+
+    const onConnected = () => {
+      // Request map data immediately after connecting
+      client.joinMap();
+    };
+
+    client.on('connected', onConnected);
+    client.on('mapInfo', onMapInfo);
+    client.on('actorsUpdate', onActorsUpdate);
+    client.on('moveAck', onMoveAck);
+
+    // If already connected (singleton reused), request map right away
+    client.joinMap();
+
+    // ── Cleanup ────────────────────────────────────────────────────────────
+    return () => {
+      client.off('connected', onConnected);
+      client.off('mapInfo', onMapInfo);
+      client.off('actorsUpdate', onActorsUpdate);
+      client.off('moveAck', onMoveAck);
+    };
   }, []);
 
   const handleMapPress = (x: number, y: number) => {
-    if (client) {
-      client.move(x, y);
-    }
+    clientRef.current.move(x, y);
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Twelve - Lộ Diện Sứ Quân</Text>
+
       {mapData ? (
-        <MapRenderer 
-          width={mapData.width || 10} 
-          height={mapData.height || 10} 
-          tileSize={mapData.tileSize || 32} 
-          data={new Array(100).fill(32)} // Dummy grass tiles
+        <MapRenderer
+          width={mapData.width}
+          height={mapData.height}
+          tileSize={mapData.tileSize}
+          data={mapData.tiles}
           actors={actors}
           onMapPress={handleMapPress}
         />
       ) : (
         <Text style={styles.loading}>Hào khí vạn năm - Đang kết nối...</Text>
       )}
-      
+
       <View style={styles.stats}>
-        <Text style={styles.statText}>Nhân vật: {actors.length}</Text>
+        <Text style={styles.statText}>
+          {mapData ? `Bản đồ: ${mapData.name} (${mapData.width}x${mapData.height})` : 'Chưa kết nối'}
+        </Text>
+        <Text style={styles.statText}>Nhân vật trên sân: {actors.length}</Text>
         {actors.map(a => (
-          <Text key={a.id} style={styles.statText}> - {a.label} ({a.x}, {a.y})</Text>
+          <Text key={a.id} style={styles.statText}>
+            {'  '}— {a.label} ({a.x}, {a.y})
+          </Text>
         ))}
         <Text style={[styles.statText, { marginTop: 10, color: '#ffd700' }]}>
           * Chạm lên bản đồ để di binh!

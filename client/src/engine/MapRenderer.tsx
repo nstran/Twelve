@@ -1,14 +1,10 @@
 import React from 'react';
 import { Canvas, Rect, Group, Circle } from '@shopify/react-native-skia';
 import { View, StyleSheet, TouchableWithoutFeedback, GestureResponderEvent } from 'react-native';
+import { Actor } from '../network/SocketClient';
 
-export interface Actor {
-  id: string;
-  label: string;
-  kind: number;
-  x: number;
-  y: number;
-}
+// Actor is defined in SocketClient.ts and re-exported here for convenience
+export type { Actor };
 
 interface MapRendererProps {
   width: number; // In tiles
