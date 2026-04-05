@@ -92,6 +92,11 @@ namespace Twelve.Core.Tlv
             return MakeTag(tagId, new byte[] { value });
         }
 
+        public static byte[] BuildPacket(CommandCode command, byte[] payload, int subCount = 0)
+        {
+            return BuildPacket((int)command, payload, subCount);
+        }
+
         public static byte[] BuildPacket(int command, byte[] payload, int subCount = 0)
         {
             using (var ms = new MemoryStream())
@@ -115,6 +120,11 @@ namespace Twelve.Core.Tlv
 
                 return ms.ToArray();
             }
+        }
+
+        public static byte[] BuildEmptyPacket(CommandCode command)
+        {
+            return BuildPacket((int)command, System.Array.Empty<byte>(), 0);
         }
 
         public static byte[] BuildEmptyPacket(int command)
@@ -143,6 +153,11 @@ namespace Twelve.Core.Tlv
             }
 
             return new PacketRequest(0, payloadLength, command, payload, ParseTags(payload));
+        }
+
+        public static byte[] BuildSingleTagPacket(CommandCode command, TagCode tagId, string value)
+        {
+            return BuildSingleTagPacket((int)command, (int)tagId, value);
         }
 
         public static byte[] BuildSingleTagPacket(int command, int tagId, string value)

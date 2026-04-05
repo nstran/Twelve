@@ -19,7 +19,13 @@ namespace Twelve.Core.Entities
         public int MaxHp { get; set; } = 100;
         public int Mp { get; set; } = 50;
         public int MaxMp { get; set; } = 50;
-        
+        // Visual & Elemental Traits
+        public int Element { get; set; } = 0; // 0=Kim, 1=Mộc, 2=Thủy, 3=Hỏa, 4=Thổ
+        public int FaceStyle { get; set; } = 0;
+        public int HairStyle { get; set; } = 0;
+        public int HairColor { get; set; } = 0;
+        public int SkinColor { get; set; } = 0;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime LastSeenAt { get; set; } = DateTime.UtcNow;
     }

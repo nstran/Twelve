@@ -1,0 +1,102 @@
+// ── Bản sớ Mục lục Asset Nhân vật ───────────────────────────────────────────
+// File này giúp React Native quản lý và triệu hồi hàng chục mảnh ghép linh hoạt.
+
+export const BODIES = [
+  require('../../assets/createcs/base_body.png'),
+  require('../../assets/createcs/base_body_v3.png'),
+  require('../../assets/createcs/base_body_v4.png'),
+];
+
+export const HAIRS = [
+  // v1
+  require('../../assets/createcs/hairs/v1_hair_1.png'),
+  require('../../assets/createcs/hairs/v1_hair_2.png'),
+  require('../../assets/createcs/hairs/v1_hair_3.png'),
+  require('../../assets/createcs/hairs/v1_hair_4.png'),
+  require('../../assets/createcs/hairs/v1_hair_5.png'),
+  require('../../assets/createcs/hairs/v1_hair_6.png'),
+  require('../../assets/createcs/hairs/v1_hair_7.png'),
+  require('../../assets/createcs/hairs/v1_hair_8.png'),
+  require('../../assets/createcs/hairs/v1_hair_9.png'),
+  require('../../assets/createcs/hairs/v1_hair_10.png'),
+  // v2
+  require('../../assets/createcs/hairs/v2_hair_0.png'),
+  require('../../assets/createcs/hairs/v2_hair_1.png'),
+  require('../../assets/createcs/hairs/v2_hair_2.png'),
+  require('../../assets/createcs/hairs/v2_hair_3.png'),
+  require('../../assets/createcs/hairs/v2_hair_4.png'),
+  require('../../assets/createcs/hairs/v2_hair_5.png'),
+  require('../../assets/createcs/hairs/v2_hair_6.png'),
+  require('../../assets/createcs/hairs/v2_hair_7.png'),
+  require('../../assets/createcs/hairs/v2_hair_8.png'),
+  require('../../assets/createcs/hairs/v2_hair_9.png'),
+  // v3
+  require('../../assets/createcs/hairs/v3_hair_0.png'),
+  require('../../assets/createcs/hairs/v3_hair_1.png'),
+  require('../../assets/createcs/hairs/v3_hair_2.png'),
+  require('../../assets/createcs/hairs/v3_hair_3.png'),
+  require('../../assets/createcs/hairs/v3_hair_4.png'),
+  require('../../assets/createcs/hairs/v3_hair_5.png'),
+  require('../../assets/createcs/hairs/v3_hair_6.png'),
+  require('../../assets/createcs/hairs/v3_hair_7.png'),
+  require('../../assets/createcs/hairs/v3_hair_8.png'),
+  // v4
+  require('../../assets/createcs/hairs/v4_hair_0.png'),
+  require('../../assets/createcs/hairs/v4_hair_1.png'),
+  require('../../assets/createcs/hairs/v4_hair_2.png'),
+  require('../../assets/createcs/hairs/v4_hair_3.png'),
+  require('../../assets/createcs/hairs/v4_hair_4.png'),
+  require('../../assets/createcs/hairs/v4_hair_5.png'),
+  require('../../assets/createcs/hairs/v4_hair_6.png'),
+  require('../../assets/createcs/hairs/v4_hair_7.png'),
+  require('../../assets/createcs/hairs/v4_hair_8.png'),
+  require('../../assets/createcs/hairs/v4_hair_9.png'),
+];
+
+export const FACES = [
+  // v1
+  require('../../assets/createcs/faces/v1_face_0.png'),
+  require('../../assets/createcs/faces/v1_face_1.png'),
+  require('../../assets/createcs/faces/v1_face_2.png'),
+  require('../../assets/createcs/faces/v1_face_3.png'),
+  require('../../assets/createcs/faces/v1_face_4.png'),
+  require('../../assets/createcs/faces/v1_face_5.png'),
+  require('../../assets/createcs/faces/v1_face_6.png'),
+  require('../../assets/createcs/faces/v1_face_7.png'),
+  require('../../assets/createcs/faces/v1_face_8.png'),
+  require('../../assets/createcs/faces/v1_face_9.png'),
+  require('../../assets/createcs/faces/v1_face_10.png'),
+  // v2
+  require('../../assets/createcs/faces/v2_face_0.png'),
+  require('../../assets/createcs/faces/v2_face_1.png'),
+  require('../../assets/createcs/faces/v2_face_2.png'),
+  require('../../assets/createcs/faces/v2_face_3.png'),
+  require('../../assets/createcs/faces/v2_face_4.png'),
+  require('../../assets/createcs/faces/v2_face_5.png'),
+  require('../../assets/createcs/faces/v2_face_6.png'),
+  require('../../assets/createcs/faces/v2_face_7.png'),
+  require('../../assets/createcs/faces/v2_face_8.png'),
+  // v3 (Chỉ lấy các file lớn > 10kb để đảm bảo là cả đôi mắt)
+  require('../../assets/createcs/faces/v3_face_0.png'),
+  require('../../assets/createcs/faces/v3_face_1.png'),
+  require('../../assets/createcs/faces/v3_face_2.png'),
+  require('../../assets/createcs/faces/v3_face_3.png'),
+  require('../../assets/createcs/faces/v3_face_4.png'),
+  require('../../assets/createcs/faces/v3_face_7.png'),
+  require('../../assets/createcs/faces/v3_face_8.png'),
+  require('../../assets/createcs/faces/v3_face_9.png'),
+  require('../../assets/createcs/faces/v3_face_10.png'),
+  require('../../assets/createcs/faces/v3_face_12.png'),
+  require('../../assets/createcs/faces/v3_face_13.png'),
+  require('../../assets/createcs/faces/v3_face_14.png'),
+  // v4
+  require('../../assets/createcs/faces/v4_face_9.png'),
+  require('../../assets/createcs/faces/v4_face_10.png'),
+  require('../../assets/createcs/faces/v4_face_11.png'),
+  require('../../assets/createcs/faces/v4_face_13.png'),
+  require('../../assets/createcs/faces/v4_face_14.png'),
+  require('../../assets/createcs/faces/v4_face_15.png'),
+  require('../../assets/createcs/faces/v4_face_17.png'),
+  require('../../assets/createcs/faces/v4_face_18.png'),
+  require('../../assets/createcs/faces/v4_face_19.png'),
+];

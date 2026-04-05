@@ -1,4 +1,5 @@
 import EventEmitter from 'eventemitter3';
+import { Command, Tag } from './Protocol';
 
 // Actor type exported here so both MapRenderer and MainScreen import from one place
 export interface Actor {
@@ -81,58 +82,69 @@ export class SocketClient extends EventEmitter {
     }
 
     const payloadLength = (data[2] << 24) | (data[3] << 16) | (data[4] << 8) | data[5];
-    const cmd = data[6];
+    const cmd = data[6] as Command;
     const payload = data.slice(7, 7 + payloadLength);
 
-    console.log(`[SocketClient] ← Received CMD ${cmd}, payloadLength=${payloadLength}`);
+    console.log(`[SocketClient] ← Received CMD ${cmd} (${Command[cmd]}), payloadLength=${payloadLength}`);
 
     switch (cmd) {
-      case 4: // Login Success
+      case Command.LOGIN_SUCCESS:
         this.emit('authSuccess');
         break;
 
-      case 0: // Server Error — phát cả authFailed lẫn registerFailed để màn hình nào cũng nhận được
-        const errorMsg = this.parseStringTag(payload, 1);
-        console.log('[SocketClient] ← CMD 0 server error:', JSON.stringify(errorMsg));
-        this.emit('authFailed',     errorMsg);
-        this.emit('registerFailed', errorMsg); // RegisterScreen cũng lắng nghe
+      case Command.CHARACTER_REQUIRED:
+        this.emit('characterRequired');
         break;
 
-      case 131: // Register Response
-        const regMsg = this.parseStringTag(payload, 1);
-        console.log('[SocketClient] ← CMD 131 Register response msg:', JSON.stringify(regMsg));
+      case Command.LOGIN_FAILED:
+        const errorMsg = this.parseStringTag(payload, Tag.MESSAGE);
+        console.log('[SocketClient] ← Login Failed:', JSON.stringify(errorMsg));
+        this.emit('authFailed',     errorMsg);
+        this.emit('registerFailed', errorMsg); 
+        break;
+
+      case Command.REGISTER_RESPONSE:
+        const regMsg = this.parseStringTag(payload, Tag.MESSAGE);
+        console.log('[SocketClient] ← Register response:', JSON.stringify(regMsg));
         if (regMsg.includes('thanh cong')) {
-          console.log('[SocketClient] → emit registerSuccess');
           this.emit('registerSuccess', regMsg);
         } else {
-          console.log('[SocketClient] → emit registerFailed');
           this.emit('registerFailed', regMsg);
         }
         break;
 
-      case 11: // Map Info — parse tags and emit structured MapInfo
+      case Command.CREATE_CHAR_RESPONSE:
+        const charMsg = this.parseStringTag(payload, Tag.MESSAGE);
+        console.log('[SocketClient] ← Create Character response:', JSON.stringify(charMsg));
+        if (charMsg.includes('thanh cong')) {
+          this.emit('createCharSuccess', charMsg);
+        } else {
+          this.emit('createCharFailed', charMsg);
+        }
+        break;
+
+      case Command.PLAYER_INFO:
         const mapInfo = this.parseMapInfo(payload);
         this.emit('mapInfo', mapInfo);
         break;
 
-      case 43: // Scene Actors — parse sequentially (multiple actors share tag IDs)
-        const actors = this.parseActors(payload);
-        this.emit('actorsUpdate', actors);
+      case Command.MAP_LOAD:
+        // Future map load logic
         break;
 
-      case 44: // Move Ack
+      case 44: // Move Ack (To be refactored)
         this.emit('moveAck', payload);
         break;
 
       default:
         console.log(`[SocketClient] Unhandled CMD ${cmd}`);
     }
-  }
+}
 
   // ─── Auth ─────────────────────────────────────────────────────────────────
 
   login(username: string, password: string) {
-    const packet = this.buildAuthPacket(2, username, password); // CMD 2 = Login
+    const packet = this.buildAuthPacket(Command.LOGIN_REQUEST, username, password); 
     this.socket?.send(packet);
   }
 
@@ -142,44 +154,47 @@ export class SocketClient extends EventEmitter {
     username: string,
     password: string,
     fullName: string,
-    dob: string,        // DD-MM-YYYY
+    dob: string,
     phone: string,
-    gender: 0 | 1,     // 0=Nam, 1=Nữ
+    gender: 0 | 1,
   ) {
-    console.log('[SocketClient] register() called, socket state:', this.socket ? this.socket.readyState : 'NULL');
-
-    if (!this.socket) {
-      console.error('[SocketClient] register() FAILED: socket is NULL');
-      return;
-    }
-    if (this.socket.readyState !== WebSocket.OPEN) {
-      console.error('[SocketClient] register() FAILED: socket.readyState =', this.socket.readyState, '(expected', WebSocket.OPEN, '= OPEN)');
-      return;
-    }
-
     const tags: number[] = [
-      ...this.makeStringTag(9,  username),
-      ...this.makeStringTag(10, password),
-      ...this.makeStringTag(11, fullName),
-      ...this.makeStringTag(12, dob),
-      ...this.makeStringTag(13, phone),
-      ...this.makeByteTag(14, gender),
+      ...this.makeStringTag(Tag.USERNAME,      username),
+      ...this.makeStringTag(Tag.PASSWORD,      password),
+      ...this.makeStringTag(Tag.FULL_NAME,     fullName),
+      ...this.makeStringTag(Tag.DATE_OF_BIRTH, dob),
+      ...this.makeStringTag(Tag.PHONE,         phone),
+      ...this.makeByteTag(Tag.GENDER,          gender),
     ];
     const payload = new Uint8Array(tags);
+    const packet = this.wrapPacket(Command.REGISTER_REQUEST, payload, 6);
+    this.socket?.send(packet);
+  }
 
-    // 7-byte header: SubCount(2) + PayloadLength(4) + CMD(1)
+  createCharacter(element: number, face: number, hair: number, color: number, skin: number) {
+    const tags: number[] = [
+      ...this.makeIntTag(Tag.ELEMENT,    element),
+      ...this.makeIntTag(Tag.FACE,       face),
+      ...this.makeIntTag(Tag.HAIR_STYLE, hair),
+      ...this.makeIntTag(Tag.HAIR_COLOR, color),
+      ...this.makeIntTag(Tag.SKIN_COLOR, skin),
+    ];
+    const payload = new Uint8Array(tags);
+    const packet = this.wrapPacket(Command.CREATE_CHAR_REQUEST, payload, 5);
+    this.socket?.send(packet);
+  }
+
+  private wrapPacket(cmd: Command, payload: Uint8Array, subCount: number): Uint8Array {
     const packet = new Uint8Array(7 + payload.length);
-    packet[0] = 0; packet[1] = 6;                       // SubCount = 6 tags
+    packet[0] = (subCount >> 8) & 0xFF;
+    packet[1] = subCount & 0xFF;
     packet[2] = (payload.length >> 24) & 0xFF;
     packet[3] = (payload.length >> 16) & 0xFF;
     packet[4] = (payload.length >> 8)  & 0xFF;
     packet[5] =  payload.length        & 0xFF;
-    packet[6] = 1;                                       // CMD 1 = Register
+    packet[6] = cmd;
     packet.set(payload, 7);
-
-    console.log('[SocketClient] → Sending CMD 1 Register, packet size:', packet.length, 'bytes');
-    this.socket.send(packet);
-    console.log('[SocketClient] → send() completed');
+    return packet;
   }
 
   joinMap() {

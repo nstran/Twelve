@@ -69,13 +69,22 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
       showError(msg || 'Sai tài khoản hoặc mật khẩu. Vui lòng thử lại.');
     };
 
-    client.on('authSuccess', onAuthSuccess);
-    client.on('authFailed',  onAuthFailed);
+    const onCharacterRequired = () => {
+      console.log('[Login] ← CMD 5 characterRequired → app will switch screen');
+      setLoading(false);
+      clearError();
+      // App.tsx is also listening to this, so it will switch to 'createCharacter'
+    };
+
+    client.on('authSuccess',       onAuthSuccess);
+    client.on('authFailed',        onAuthFailed);
+    client.on('characterRequired', onCharacterRequired);
 
     return () => {
       console.log('[Login] Unmounting');
-      client.off('authSuccess', onAuthSuccess);
-      client.off('authFailed',  onAuthFailed);
+      client.off('authSuccess',       onAuthSuccess);
+      client.off('authFailed',        onAuthFailed);
+      client.off('characterRequired', onCharacterRequired);
     };
   }, []);
 

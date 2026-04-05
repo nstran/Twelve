@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, View, Text } from 'react-native';
 import { LoginScreen }    from './src/screens/LoginScreen';
 import { RegisterScreen } from './src/screens/RegisterScreen';
-import { MainScreen }     from './src/screens/MainScreen';
-import { SocketClient }   from './src/network/SocketClient';
+import { MainScreen }           from './src/screens/MainScreen';
+import { CreateCharacterScreen } from './src/screens/CreateCharacterScreen';
+import { SocketClient }         from './src/network/SocketClient';
 
 // ── Screen states (mirrors J2ME screen stack) ────────────────────────────────
-type Screen = 'login' | 'register' | 'main';
+type Screen = 'login' | 'register' | 'main' | 'createCharacter';
 
 // Đổi thành LAN IP của máy khi test trên thiết bị thật, ví dụ: ws://192.168.1.x:5102/game
 const SERVER_URL = 'ws://localhost:5102/game';
@@ -47,17 +48,24 @@ export default function App() {
       console.error('[App] WebSocket error:', err);
     };
 
-    client.on('connected',    onConnected);
-    client.on('disconnected', onDisconnected);
-    client.on('error',        onError);
+    const onCharacterRequired = () => {
+      console.log('[App] Character missing → switching to createCharacter screen');
+      setScreen('createCharacter');
+    };
+
+    client.on('connected',         onConnected);
+    client.on('disconnected',      onDisconnected);
+    client.on('error',             onError);
+    client.on('characterRequired', onCharacterRequired);
 
     // Kết nối lần đầu
     doConnect();
 
     return () => {
-      client.off('connected',    onConnected);
-      client.off('disconnected', onDisconnected);
-      client.off('error',        onError);
+      client.off('connected',         onConnected);
+      client.off('disconnected',      onDisconnected);
+      client.off('error',             onError);
+      client.off('characterRequired', onCharacterRequired);
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
     };
   }, []);
@@ -81,6 +89,14 @@ export default function App() {
           <RegisterScreen
             onBack={() => setScreen('login')}
             onRegisterSuccess={() => setScreen('login')}
+          />
+        );
+
+      case 'createCharacter':
+        return (
+          <CreateCharacterScreen 
+            onSuccess={() => setScreen('main')}
+            onCancel={() => setScreen('login')}
           />
         );
 

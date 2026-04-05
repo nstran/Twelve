@@ -26,8 +26,18 @@ namespace Twelve.Infrastructure.Repositories
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
-                INSERT INTO Players (Username, Level, Gold, Exp, CurrentMap, CurrentRoom, Hp, MaxHp, Mp, MaxMp, CreatedAt, LastSeenAt)
-                VALUES (@Username, @Level, @Gold, @Exp, @CurrentMap, @CurrentRoom, @Hp, @MaxHp, @Mp, @MaxMp, @CreatedAt, @LastSeenAt)
+                INSERT INTO Players (
+                    Username, Level, Gold, Exp, CurrentMap, CurrentRoom, 
+                    Hp, MaxHp, Mp, MaxMp, 
+                    Element, FaceStyle, HairStyle, HairColor, SkinColor,
+                    CreatedAt, LastSeenAt
+                )
+                VALUES (
+                    @Username, @Level, @Gold, @Exp, @CurrentMap, @CurrentRoom, 
+                    @Hp, @MaxHp, @Mp, @MaxMp, 
+                    @Element, @FaceStyle, @HairStyle, @HairColor, @SkinColor,
+                    @CreatedAt, @LastSeenAt
+                )
                 RETURNING Id";
             return await connection.ExecuteScalarAsync<int>(sql, player);
         }
@@ -38,7 +48,9 @@ namespace Twelve.Infrastructure.Repositories
             const string sql = @"
                 UPDATE Players 
                 SET Level = @Level, Gold = @Gold, Exp = @Exp, CurrentMap = @CurrentMap, CurrentRoom = @CurrentRoom, 
-                    Hp = @Hp, MaxHp = @MaxHp, Mp = @Mp, MaxMp = @MaxMp, LastSeenAt = @LastSeenAt
+                    Hp = @Hp, MaxHp = @MaxHp, Mp = @Mp, MaxMp = @MaxMp, 
+                    Element = @Element, FaceStyle = @FaceStyle, HairStyle = @HairStyle, HairColor = @HairColor, SkinColor = @SkinColor,
+                    LastSeenAt = @LastSeenAt
                 WHERE Id = @Id";
             await connection.ExecuteAsync(sql, player);
         }

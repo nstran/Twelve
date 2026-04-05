@@ -43,12 +43,12 @@ namespace Twelve.Application.Handlers
             _logger.LogInformation("[Register] ── HandleAsync fired ──");
 
             // ── Đọc các trường bắt buộc ──────────────────────────────────────
-            string username = (request.GetStringTag(9)  ?? "").Trim();
-            string password =  request.GetStringTag(10) ?? "";
-            string fullName = (request.GetStringTag(11) ?? "").Trim();
-            string dob      = (request.GetStringTag(12) ?? "").Trim();
-            string phone    = (request.GetStringTag(13) ?? "").Trim();
-            byte   genderB  = request.GetByteTag(14);
+            string username = (request.GetStringTag((int)TagCode.Username)    ?? "").Trim();
+            string password =  request.GetStringTag((int)TagCode.Password)    ?? "";
+            string fullName = (request.GetStringTag((int)TagCode.FullName)    ?? "").Trim();
+            string dob      = (request.GetStringTag((int)TagCode.DateOfBirth) ?? "").Trim();
+            string phone    = (request.GetStringTag((int)TagCode.Phone)       ?? "").Trim();
+            byte   genderB  = request.GetByteTag((int)TagCode.Gender);
 
             _logger.LogInformation("[Register] username={Username} fullName={FullName} dob={Dob} phone={Phone} gender={Gender}",
                 username, fullName, dob, phone, genderB);
@@ -98,36 +98,19 @@ namespace Twelve.Application.Handlers
             int accountId = await _accountRepository.CreateAsync(account);
             _logger.LogInformation("[Register] Account created, Id={Id}", accountId);
 
-            // ── Auto-tạo Player (nhân vật mặc định) ──────────────────────────
-            var player = new Player
-            {
-                Username    = username,
-                Level       = 1,
-                Gold        = 0,
-                Exp         = 0,
-                CurrentMap  = "M99",
-                CurrentRoom = 1,
-                Hp          = 100,
-                MaxHp       = 100,
-                Mp          = 50,
-                MaxMp       = 50,
-            };
-            await _playerRepository.CreateAsync(player);
-            _logger.LogInformation("[Register] Player created for '{Username}'", username);
-
             // ── Phản hồi thành công ───────────────────────────────────────────
-            _logger.LogInformation("[Register] → Sending CMD 131 success response");
+            _logger.LogInformation("[Register] → Sending Success response");
             var tags = ConcatBytes(
-                TlvCodec.MakeTag(1, "Dang ky thanh cong!")
+                TlvCodec.MakeTag((int)TagCode.Message, "Dang ky thanh cong!")
             );
-            await session.SendPacketAsync(TlvCodec.BuildPacket(131, tags, subCount: 1));
+            await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.RegisterResponse, tags, subCount: 1));
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
         private static async Task SendError(GameSession session, string message)
         {
-            var response = TlvCodec.MakeTag(1, message);
-            await session.SendPacketAsync(TlvCodec.BuildPacket(131, response, subCount: 1));
+            var response = TlvCodec.MakeTag((int)TagCode.Message, message);
+            await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.RegisterResponse, response, subCount: 1));
         }
 
         private static byte[] ConcatBytes(params byte[][] arrays)
@@ -167,16 +150,16 @@ namespace Twelve.Application.Handlers
 
         public async Task HandleAsync(GameSession session, PacketRequest request)
         {
-            string username = (request.GetStringTag(9)  ?? "").Trim();
-            string password =  request.GetStringTag(10) ?? "";
+            string username = (request.GetStringTag((int)TagCode.Username) ?? "").Trim();
+            string password = (request.GetStringTag((int)TagCode.Password) ?? "");
 
             _logger.LogInformation("[Login] ── HandleAsync fired, username='{Username}'", username);
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
                 _logger.LogWarning("[Login] FAIL: username hoặc password rỗng");
-                var err = TlvCodec.MakeTag(1, "Vui long nhap day du thong tin.");
-                await session.SendPacketAsync(TlvCodec.BuildPacket(0, err, subCount: 1));
+                var err = TlvCodec.MakeTag((int)TagCode.Message, "Vui long nhap day du thong tin.");
+                await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.LoginFailed, err, subCount: 1));
                 return;
             }
 
@@ -184,26 +167,39 @@ namespace Twelve.Application.Handlers
             if (account == null)
             {
                 _logger.LogWarning("[Login] FAIL: không tìm thấy tài khoản '{Username}'", username);
-                var err = TlvCodec.MakeTag(1, "Tài khoản không tồn tại.");
-                await session.SendPacketAsync(TlvCodec.BuildPacket(0, err, subCount: 1));
+                var err = TlvCodec.MakeTag((int)TagCode.Message, "Tài khoản không tồn tại.");
+                await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.LoginFailed, err, subCount: 1));
                 return;
             }
 
             if (!_passwordHasher.VerifyPassword(password, account.PasswordHash, account.Salt))
             {
                 _logger.LogWarning("[Login] FAIL: sai mật khẩu cho '{Username}'", username);
-                var err = TlvCodec.MakeTag(1, "Sai mật khẩu.");
-                await session.SendPacketAsync(TlvCodec.BuildPacket(0, err, subCount: 1));
+                var err = TlvCodec.MakeTag((int)TagCode.Message, "Sai mật khẩu.");
+                await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.LoginFailed, err, subCount: 1));
                 return;
             }
 
-            // ── Đăng nhập thành công ──────────────────────────────────────────
+            // ── Đăng nhập phần Account thành công ──────────────────────────
             session.Username        = username;
             session.IsAuthenticated = true;
             await _accountRepository.UpdateLastLoginAsync(account.Id);
 
-            _logger.LogInformation("[Login] ✓ '{Username}' đăng nhập thành công → CMD 4", username);
-            await session.SendPacketAsync(TlvCodec.BuildEmptyPacket(4));
+            // ── Kiểm tra Nhân vật (Player) ──────────────────────────────────
+            var player = await _playerRepository.GetByUsernameAsync(username);
+            
+            // Nếu không có nhân vật HOẶC nhân vật chưa được khởi tạo đầy đủ (chưa có Hệ/Mặt/Tóc)
+            bool isNewChar = (player == null) || (player.Element == 0 && player.Face == 0);
+
+            if (isNewChar)
+            {
+                _logger.LogInformation("[Login] Character Missing or Incomplete → Redirecting to creation screen");
+                await session.SendPacketAsync(TlvCodec.BuildEmptyPacket(CommandCode.CharacterRequired));
+                return;
+            }
+
+            _logger.LogInformation("[Login] ✓ '{Username}' login success & fully initialized → Entering Game", username);
+            await session.SendPacketAsync(TlvCodec.BuildEmptyPacket(CommandCode.LoginSuccess));
         }
     }
 }

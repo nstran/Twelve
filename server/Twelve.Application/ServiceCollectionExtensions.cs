@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Twelve.Application.Handlers;
+using Twelve.Core.Tlv;
 
 namespace Twelve.Application
 {
@@ -10,6 +11,7 @@ namespace Twelve.Application
             // ── Đăng ký Handlers ───────────────────────────────────────────────
             services.AddSingleton<AuthHandler>();
             services.AddSingleton<RegisterHandler>();
+            services.AddSingleton<CreateCharacterHandler>();
             services.AddSingleton<MapHandler>();
             services.AddSingleton<MoveHandler>();
 
@@ -23,12 +25,13 @@ namespace Twelve.Application
             {
                 var dispatcher = new PacketDispatcher();
 
-                dispatcher.RegisterHandler(1,  sp.GetRequiredService<RegisterHandler>()); // CMD 1 = Register
-                dispatcher.RegisterHandler(2,  sp.GetRequiredService<AuthHandler>());     // CMD 2 = Login
-                dispatcher.RegisterHandler(11, sp.GetRequiredService<MapHandler>());      // CMD 11 = Map Info
-                dispatcher.RegisterHandler(13, sp.GetRequiredService<MapHandler>());      // CMD 13 = Map Select
-                dispatcher.RegisterHandler(29, sp.GetRequiredService<MapHandler>());      // CMD 29 = Map Join
-                dispatcher.RegisterHandler(44, sp.GetRequiredService<MoveHandler>());     // CMD 44 = Move
+                dispatcher.RegisterHandler((int)CommandCode.RegisterRequest,        sp.GetRequiredService<RegisterHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.LoginRequest,           sp.GetRequiredService<AuthHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.CreateCharacterRequest, sp.GetRequiredService<CreateCharacterHandler>());
+                dispatcher.RegisterHandler(11, sp.GetRequiredService<MapHandler>()); // To be refactored soon
+                dispatcher.RegisterHandler(13, sp.GetRequiredService<MapHandler>()); 
+                dispatcher.RegisterHandler(29, sp.GetRequiredService<MapHandler>()); 
+                dispatcher.RegisterHandler(44, sp.GetRequiredService<MoveHandler>());
 
                 return dispatcher;
             });
