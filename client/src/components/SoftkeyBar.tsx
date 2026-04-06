@@ -34,12 +34,16 @@ export const SoftkeyBar: React.FC<SoftkeyBarProps> = ({
   leftLabel,
   rightLabel,
 }) => {
-  const [time, setTime] = useState('00:00');
+  const getCurrentTime = () => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const [time, setTime] = useState(getCurrentTime());
 
   useEffect(() => {
     const timer = setInterval(() => {
-      const now = new Date();
-      setTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+      setTime(getCurrentTime());
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -77,13 +81,20 @@ export const SoftkeyBar: React.FC<SoftkeyBarProps> = ({
 
       {/* ─── LAYER 4: TOPMOST INTERACTION / LABELS / ICONS ─── */}
       <View style={[styles.topmostLayer, { zIndex: 10 }]}>
-        <TouchableOpacity style={styles.softkeyArea} onPress={onLeftPress} activeOpacity={0.6}>
+        <TouchableOpacity 
+          style={[
+            styles.softkeyArea, 
+            leftLabel ? { width: 'auto', minWidth: 40 } : { marginLeft: 6 } // Icon lùi vào 6px (tổng 12px), Chữ không lùi (tổng 6px)
+          ]} 
+          onPress={onLeftPress} 
+          activeOpacity={0.6}
+        >
            {leftLabel ? (
              <Text style={styles.softkeyLabelText}>{leftLabel}</Text>
            ) : (
              <Image 
                source={leftIcon || ASSET_SHARP_ICON} 
-               style={styles.sharpIconTop} 
+               style={[styles.sharpIconTop, { marginLeft: 0 }]} 
                resizeMode="contain" 
              />
            )}
@@ -91,18 +102,32 @@ export const SoftkeyBar: React.FC<SoftkeyBarProps> = ({
         
         <View style={{ flex: 1 }} />
         
-        <TouchableOpacity style={styles.softkeyArea} onPress={onCenterPress} activeOpacity={0.6} />
+        <TouchableOpacity 
+          style={styles.softkeyArea} 
+          onPress={onCenterPress} 
+          activeOpacity={0.6}
+          disabled={!onCenterPress}
+        />
+
+        <View style={{ flex: 1 }} />
         
-        <TouchableOpacity style={styles.softkeyArea} onPress={onRightPress} activeOpacity={0.6}>
+        <TouchableOpacity 
+          style={[
+            styles.softkeyArea, 
+            rightLabel ? { width: 'auto', minWidth: 40 } : { marginRight: 6 } // Icon lùi vào 6px (tổng 12px), Chữ không lùi (tổng 6px)
+          ]} 
+          onPress={onRightPress} 
+          activeOpacity={0.6}
+        >
            {rightLabel ? (
-             <Text style={[styles.softkeyLabelText, { alignSelf: 'flex-end', paddingRight: 10 }]}>
+             <Text style={styles.softkeyLabelText}>
                {rightLabel}
              </Text>
            ) : (
              rightIcon && (
                <Image 
                  source={rightIcon} 
-                 style={[styles.sharpIconTop, { alignSelf: 'flex-end', marginRight: 10 }]} 
+                 style={[styles.sharpIconTop, { marginLeft: 0 }]} 
                  resizeMode="contain" 
                />
              )

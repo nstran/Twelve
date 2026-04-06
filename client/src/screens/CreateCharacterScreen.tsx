@@ -14,6 +14,16 @@ import {
 import { styles }       from './CreateCharacterScreen.styles';
 import { SocketClient } from '../network/SocketClient';
 import { BODIES, HAIRS, FACES, SWORDS, FRONT_ARMS } from '../assets/AssetIndex';
+import { SoftkeyBar }   from '../components/SoftkeyBar';
+import { PopupMenu, MenuItem } from '../components/PopupMenu';
+import { Dimensions }   from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// ─── Assets ───────────────────────────────────────────────────────────────
+const ASSET_ICON_OK     = require('../../assets/ui/icons/icon_ok.png');
+const ASSET_ICON_CANCEL = require('../../assets/ui/icons/icon_cancel.png');
+const ASSET_RED_SUN     = require('../../assets/ui/icons/icon_sharpest_1.png');
 
 interface CreateCharacterScreenProps {
   onSuccess: () => void;
@@ -21,6 +31,11 @@ interface CreateCharacterScreenProps {
 }
 
 const ELEMENTS = ['KIM', 'MỘC', 'THỦY', 'HỎA', 'THỔ'];
+
+const MENU_ITEMS: MenuItem[] = [
+  { label: 'Bắt đầu',   id: 1 },
+  { label: 'Đăng Xuất', id: 0 },
+];
 
 export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ onSuccess, onCancel }) => {
   const client = SocketClient.getInstance();
@@ -31,6 +46,10 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
   const [hairIdx,     setHairIdx]     = useState(-1); // -1 = Không có tóc (trọc)
   const [faceIdx,     setFaceIdx]     = useState(-1); // -1 = Không có mặt (ẩn mắt)
   const [swordIdx,    setSwordIdx]    = useState(0);
+
+  // ── States for Menu ────────────────────────────────────────────────
+  const [menuVisible, setMenuVisible]     = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   // ── Floating Animation ──────────────────────────────────────────────
   const floatingAnim = useRef(new Animated.Value(0)).current;
@@ -59,27 +78,42 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
     client.createCharacter(element, faceIdx, hairIdx, 0, genderIdx);
   };
 
-  const SelectorRow = ({ label, value, options, onPrev, onNext, suffix = "" }: any) => (
-    <View style={styles.selectionRow}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.selector}>
-        <TouchableOpacity style={styles.arrow} onPress={onPrev}>
-          <Text style={styles.arrowText}>{'<'}</Text>
-        </TouchableOpacity>
-        <Text style={styles.valueText}>
-          {value === -1 || options.length === 0 ? (label === "MÁI TÓC" ? "TRỌC" : "TRỐNG") : `${suffix} ${value + 1} / ${options.length}`}
-        </Text>
-        <TouchableOpacity style={styles.arrow} onPress={onNext}>
-          <Text style={styles.arrowText}>{'>'}</Text>
-        </TouchableOpacity>
+  const handleMenuSelect = (id: number) => {
+    setMenuVisible(false);
+    switch (id) {
+      case 1: handleCreate(); break;
+      case 2: handleCreate(); break; // Reuse create for now
+      case 0: onCancel();     break;
+    }
+  };
+
+  const handleLeftSoftkey  = () => menuVisible ? handleMenuSelect(MENU_ITEMS[selectedIndex].id as number) : setMenuVisible(true);
+  const handleRightSoftkey = () => menuVisible ? setMenuVisible(false) : onCancel();
+
+  const SelectorRow = ({ label, value, options, onPrev, onNext, suffix = "" }: any) => {
+    const displayValue = value === -1 || (Array.isArray(options) && options.length === 0)
+      ? (label === "MÁI TÓC" ? "TRỌC" : "TRỐNG")
+      : `${suffix} ${value + 1} / ${options.length || 0}`;
+
+    return (
+      <View style={styles.selectionRow}>
+        <Text style={styles.label}>{label}</Text>
+        <View style={styles.selector}>
+          <TouchableOpacity style={styles.arrow} onPress={onPrev}>
+            <Text style={styles.arrowText}>{'<'}</Text>
+          </TouchableOpacity>
+          <Text style={styles.valueText}>{displayValue}</Text>
+          <TouchableOpacity style={styles.arrow} onPress={onNext}>
+            <Text style={styles.arrowText}>{'>'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
       <Image source={require('../../assets/createcs/bk.png')} style={styles.background} />
-
 
       <View style={styles.previewContainer}>
         <Animated.View style={{ transform: [{ translateY: floatingAnim }], alignItems: 'center' }}>
@@ -90,13 +124,13 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
              {/* Lớp 1: Thân (Body) */}
              <Image source={BODIES[genderIdx]} style={styles.bodyLayer} />
 
-             {/* Lớp 2: Kiếm - Dùng style riêng swordNu viết thêm ở cuối file cho Nữ */}
+             {/* Lớp 2: Kiếm */}
              <Image 
                 source={SWORDS[genderIdx]} 
                 style={genderIdx === 1 ? styles.swordNu : styles.swordLayer} 
              />
 
-             {/* Lớp 3: Bàn tay - Dùng style riêng frontArmNu viết thêm ở cuối file cho Nữ */}
+             {/* Lớp 3: Bàn tay */}
              <Image 
                 source={FRONT_ARMS[genderIdx]} 
                 style={genderIdx === 1 ? styles.frontArmNu : styles.frontArmLayer} 
@@ -113,7 +147,6 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
 
       <View style={styles.selectionPanel}>
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Menu chọn Giới tính (NAM/NỮ) */}
           <SelectorRow label="GIỚI TÍNH" value={genderIdx} options={BODIES} suffix={genderIdx === 0 ? "NAM" : "NỮ"}
             onPrev={() => setGenderIdx(v => (v > 0 ? 0 : 1))}
             onNext={() => setGenderIdx(v => (v < 1 ? 1 : 0))} />
@@ -136,9 +169,25 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
         </ScrollView>
       </View>
 
-      <View style={styles.softKeyBar}>
-        <TouchableOpacity style={styles.softKey} onPress={handleCreate}><Text style={styles.softKeyText}>CHỌN XONG</Text></TouchableOpacity>
-        <View style={styles.softKeyDivider} /><TouchableOpacity style={styles.softKey} onPress={onCancel}><Text style={styles.softKeyText}>QUAY LẠI</Text></TouchableOpacity>
+      {/* ── Popup menu ── */}
+      <PopupMenu
+        visible={menuVisible}
+        items={MENU_ITEMS}
+        selectedIndex={selectedIndex}
+        onSelect={(item) => handleMenuSelect(item.id as number)}
+        onIndexChange={setSelectedIndex}
+        onClose={() => setMenuVisible(false)}
+      />
+
+      <View style={styles.softKeyBarContainer}>
+        <SoftkeyBar 
+          width={SCREEN_WIDTH}
+          leftIcon={menuVisible ? ASSET_ICON_OK : ASSET_RED_SUN}
+          rightIcon={menuVisible ? ASSET_ICON_CANCEL : undefined}
+          onLeftPress={handleLeftSoftkey}
+          onRightPress={handleRightSoftkey}
+          onCenterPress={menuVisible ? () => setMenuVisible(false) : undefined}
+        />
       </View>
     </View>
   );

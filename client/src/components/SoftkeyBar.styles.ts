@@ -51,25 +51,28 @@ export const styles = StyleSheet.create({
   topmostLayer: {
     ...StyleSheet.absoluteFillObject,
     flexDirection: 'row',
+    paddingHorizontal: 6, // Khoảng cách cơ bản (dùng cho chữ)
     zIndex: 4,
   },
   softkeyArea: {
-    flex: 1,
-    height: 26,
+    width: 12, // Vùng bấm thực tế cực nhỏ (12px)
+    height: 12,
+    alignSelf: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'visible', // Để icon to hiển thị ra ngoài vùng bấm nhỏ
   },
   
   sharpIconTop: {
-    width: 25,
-    height: 25,
-    marginLeft: 6,
+    width: 24, // Trả lại kích thước icon to rõ (24px)
+    height: 24,
+    position: 'absolute', // Để nó không bị bó hẹp bởi cái "vùng" 12px
   },
 
   softkeyLabelText: {
     color: '#ffffff',
     fontSize: 13,
     fontWeight: 'bold',
-    paddingLeft: 10, 
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,

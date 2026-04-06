@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -80,76 +80,68 @@ export const styles = StyleSheet.create({
 
   // ── Selection Panel (Hệ, Tóc, Da...) ───────────────────────────────
   selectionPanel: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 248, 220, 0.9)', // Màu Beige đặc trưng J2ME
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    marginHorizontal: 10,
+    marginBottom: 60, // Chừa chỗ cho Softbar
+    backgroundColor: '#FEF8E6', // Creamy beige from Image 1
+    borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#8B4513',
-    padding: 16,
+    borderColor: '#8B4513', // SaddleBrown
+    padding: 12,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   selectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(139, 69, 19, 0.2)',
+    borderBottomColor: 'rgba(139, 69, 19, 0.2)', // Light brown divider
   },
   label: {
-    color: '#5D4037',
+    color: '#5D4037', // Dark brown for text
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '900', // Sắc nét (Sharp)
+    textTransform: 'uppercase',
   },
   selector: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   valueText: {
     color: '#212121',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
-    minWidth: 80,
+    minWidth: 90,
     textAlign: 'center',
+    textTransform: 'uppercase',
   },
   arrow: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#8B4513',
     borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#5D4037',
   },
   arrowText: {
     color: '#FFF',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
 
-  // ── Bottom Softkeys ───────────────────────────────────────────────
-  softKeyBar: {
-    height: 50,
-    flexDirection: 'row',
-    backgroundColor: '#3E2723',
-    borderTopWidth: 2,
-    borderTopColor: '#5D4037',
-  },
-  softKey: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  softKeyText: {
-    color: '#FFF8DC',
-    fontSize: 14,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  softKeyDivider: {
-    width: 2,
-    backgroundColor: '#5D4037',
-    marginVertical: 10,
+  // ── Bottom Softkeys (Sẽ dùng chung component) ─────────────────────
+  softKeyBarContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 
   // ── FEMALE STYLE (DÀNH RIÊNG CHO NỮ - VIẾT THÊM Ở CUỐI) ────────────

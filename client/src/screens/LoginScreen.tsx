@@ -15,15 +15,14 @@ import {
 import { SocketClient } from '../network/SocketClient';
 import { getStyles } from './LoginScreen.styles';
 import { SoftkeyBar } from '../components/SoftkeyBar';
+import { PopupMenu, MenuItem } from '../components/PopupMenu';
 
 // ─── Assets ───────────────────────────────────────────────────────────────
 const ASSET_ICON_OK     = require('../../assets/ui/icons/icon_ok.png');
 const ASSET_ICON_CANCEL = require('../../assets/ui/icons/icon_cancel.png');
-const ASSET_ORNATE      = require('../../assets/ui/frames/cornerskb.png');
-const ASSET_BASE_FRAME  = require('../../assets/ui/frames/1.png');
 const ASSET_RED_SUN     = require('../../assets/ui/icons/icon_sharpest_1.png');
 
-const MENU_ITEMS = [
+const MENU_ITEMS: MenuItem[] = [
   { label: 'Đăng nhập', id: 200 },
   { label: 'Đăng ký',   id: 201 },
   { label: 'Thoát',     id: 205 },
@@ -128,8 +127,8 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
 
   const openMenu = () => { setSelectedIndex(0); setMenuVisible(true); };
 
-  const handleLeftSoftkey  = () => menuVisible ? handleMenuSelect(MENU_ITEMS[selectedIndex].id) : openMenu();
-  const handleCenterKey    = () => menuVisible ? setMenuVisible(false) : openMenu();
+  const handleLeftSoftkey  = () => menuVisible ? handleMenuSelect(MENU_ITEMS[selectedIndex].id as number) : openMenu();
+  const handleCenterKey    = () => menuVisible ? setMenuVisible(false) : undefined;
   const handleRightSoftkey = () => menuVisible ? setMenuVisible(false) : BackHandler.exitApp();
 
   return (
@@ -205,51 +204,14 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
             </View>
           )}
 
-          {/* ── Popup menu ────────────────────────────────────────────── */}
-          {menuVisible && (
-            <>
-              <TouchableOpacity
-                style={styles.menuBackdrop}
-                activeOpacity={1}
-                onPress={() => setMenuVisible(false)}
-              />
-              <View style={styles.menuBox}>
-                <View style={styles.menuInnerBox}>
-                  {MENU_ITEMS.map((item, idx) => {
-                    const isSelected = idx === selectedIndex;
-                    return (
-                      <TouchableOpacity
-                        key={item.id}
-                        style={styles.menuItem}
-                        onPressIn={() => setSelectedIndex(idx)}
-                        onPress={() => handleMenuSelect(item.id)}
-                        activeOpacity={1}
-                      >
-                        {isSelected && (
-                          <View style={styles.menuItemSelectedBg}>
-                            <Image
-                              source={ASSET_BASE_FRAME}
-                              style={styles.menuSelectedBaseImage}
-                              resizeMode="stretch"
-                            />
-                            <View style={[styles.menuOrnateClip, { left: 0 }]}>
-                              <Image source={ASSET_ORNATE} style={styles.menuOrnateImage} resizeMode="stretch" />
-                            </View>
-                            <View style={[styles.menuOrnateClip, { right: 0, transform: [{ scaleX: -1 }] }]}>
-                              <Image source={ASSET_ORNATE} style={styles.menuOrnateImage} resizeMode="stretch" />
-                            </View>
-                          </View>
-                        )}
-                        <Text style={[styles.menuItemText, isSelected && styles.menuItemTextSelected]}>
-                          {item.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            </>
-          )}
+          <PopupMenu
+            visible={menuVisible}
+            items={MENU_ITEMS}
+            selectedIndex={selectedIndex}
+            onSelect={(item) => handleMenuSelect(item.id as number)}
+            onIndexChange={setSelectedIndex}
+            onClose={() => setMenuVisible(false)}
+          />
 
           {/* ── Softkey bar ───────────────────────────────────────────── */}
           <SoftkeyBar
