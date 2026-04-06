@@ -38,6 +38,34 @@ const MENU_ITEMS: MenuItem[] = [
   { label: 'Đăng Xuất', id: 0 },
 ];
 
+// ─── Selector Component ──────────────────────────────────────────────────
+const SelectorRow = ({ label, value, options, onPrev, onNext, suffix = "", hideCounter = false }: any) => {
+  const displayValue = value === -1 || (Array.isArray(options) && options.length === 0)
+    ? (label === "TÓC" ? "TRỌC" : "TRỐNG") 
+    : hideCounter ? suffix : `${suffix} ${value + 1} / ${options.length || 0}`;
+
+  return (
+    <View style={styles.selectionRow}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.selector}>
+        <TouchableOpacity style={styles.arrow} onPress={onPrev}>
+          <Image 
+            source={ASSET_ARROW} 
+            style={[styles.arrowIcon, { transform: [{ rotate: '-90deg' }] }]} 
+          />
+        </TouchableOpacity>
+        <Text style={styles.valueText}>{displayValue}</Text>
+        <TouchableOpacity style={styles.arrow} onPress={onNext}>
+          <Image 
+            source={ASSET_ARROW} 
+            style={[styles.arrowIcon, { transform: [{ rotate: '90deg' }] }]} 
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
 export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ onSuccess, onCancel }) => {
   const client = SocketClient.getInstance();
   
@@ -90,33 +118,6 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
 
   const handleLeftSoftkey  = () => menuVisible ? handleMenuSelect(MENU_ITEMS[selectedIndex].id as number) : setMenuVisible(true);
   const handleRightSoftkey = () => menuVisible ? setMenuVisible(false) : onCancel();
-
-  const SelectorRow = ({ label, value, options, onPrev, onNext, suffix = "", hideCounter = false }: any) => {
-    const displayValue = value === -1 || (Array.isArray(options) && options.length === 0)
-      ? (label === "TÓC" ? "TRỌC" : "TRỐNG") // Updated Label name check
-      : hideCounter ? suffix : `${suffix} ${value + 1} / ${options.length || 0}`;
-
-    return (
-      <View style={styles.selectionRow}>
-        <Text style={styles.label}>{label}</Text>
-        <View style={styles.selector}>
-          <TouchableOpacity style={styles.arrow} onPress={onPrev}>
-            <Image 
-              source={ASSET_ARROW} 
-              style={[styles.arrowIcon, { transform: [{ rotate: '-90deg' }] }]} 
-            />
-          </TouchableOpacity>
-          <Text style={styles.valueText}>{displayValue}</Text>
-          <TouchableOpacity style={styles.arrow} onPress={onNext}>
-            <Image 
-              source={ASSET_ARROW} 
-              style={[styles.arrowIcon, { transform: [{ rotate: '90deg' }] }]} 
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
 
   return (
     <View style={styles.container}>

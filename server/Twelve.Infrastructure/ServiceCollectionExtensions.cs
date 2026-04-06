@@ -13,7 +13,7 @@ namespace Twelve.Infrastructure
             services.AddSingleton<IPlayerRepository, PlayerRepository>();
             services.AddSingleton<IAccountRepository, AccountRepository>();
             services.AddSingleton<IPasswordHasher, PasswordHasher>();
-            services.AddSingleton<ISessionTokenStore, InMemorySessionTokenStore>();
+            services.AddSingleton<ISessionTokenStore, JwtSessionTokenStore>();
 
             // Migration tự động khi khởi động
             services.AddSingleton<DatabaseMigrator>();

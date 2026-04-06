@@ -4,6 +4,7 @@ import { LoginScreen }           from './src/screens/LoginScreen';
 import { RegisterScreen }        from './src/screens/RegisterScreen';
 import { MainScreen }            from './src/screens/MainScreen';
 import { CreateCharacterScreen } from './src/screens/CreateCharacterScreen';
+import { CharacterStatusScreen } from './src/screens/CharacterStatusScreen';
 import { SocketClient }          from './src/network/SocketClient';
 import {
   loadSession,
@@ -13,7 +14,7 @@ import {
 } from './src/storage/SessionStorage';
 
 // ── Screen states ────────────────────────────────────────────────────────────
-type Screen = 'login' | 'register' | 'main' | 'createCharacter';
+type Screen = 'login' | 'register' | 'main' | 'createCharacter' | 'characterStatus';
 
 const SERVER_URL         = 'ws://localhost:5102/game';
 const RECONNECT_DELAY_MS = 2000;
@@ -22,11 +23,7 @@ export default function App() {
   const [screen, setScreen]           = useState<Screen>('login');
   const [isConnected, setIsConnected] = useState(false);
   const [connectMsg, setConnectMsg]   = useState('ĐANG KẾT NỐI CHIẾN TRƯỜNG...');
-  const [debugLog, setDebugLog]       = useState<string[]>([]);
-  const addLog = (msg: string) => {
-    console.log(msg);
-    setDebugLog(prev => [...prev.slice(-8), msg]);
-  };
+  const addLog = (msg: string) => console.log(msg);
 
   const client         = SocketClient.getInstance();
   const reconnectTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,7 +45,7 @@ export default function App() {
     if (token && expiresAt && username) {
       saveSession({ token, username, expiresAt });
     }
-    setScreen('main');
+    setScreen('characterStatus');
   };
 
   useEffect(() => {
@@ -86,7 +83,7 @@ export default function App() {
         saveSession({ token: payload.token, expiresAt: payload.expiresAt, username });
         pendingUsername.current = null;
       }
-      setScreen('main');
+      setScreen('characterStatus');
     };
 
     const onAuthSuccessWithUser = ({ token, expiresAt, username }: {
@@ -94,7 +91,7 @@ export default function App() {
     }) => {
       addLog(`[App] authSuccessWithUser → ${username}`);
       saveSession({ token, expiresAt, username });
-      setScreen('main');
+      setScreen('characterStatus');
     };
 
     const onCharacterRequired = () => {
@@ -128,17 +125,6 @@ export default function App() {
     };
   }, []);
 
-  // Debug overlay — hiển thị ở mọi màn hình
-  const renderDebug = () => (
-    debugLog.length > 0 ? (
-      <View style={styles.debugBox} pointerEvents="none">
-        {debugLog.map((line, i) => (
-          <Text key={i} style={styles.debugText}>{line}</Text>
-        ))}
-      </View>
-    ) : null
-  );
-
   const renderScreen = () => {
     if (!isConnected) {
       return (
@@ -147,14 +133,20 @@ export default function App() {
           <Text style={styles.loadingSubText}>
             Đảm bảo server đang chạy tại{'\n'}{SERVER_URL}
           </Text>
-          {renderDebug()}
         </View>
       );
     }
 
     switch (screen) {
       case 'main':
-        return <MainScreen />;
+        return <MainScreen onLogout={() => setScreen('login')} />;
+
+      case 'characterStatus':
+        return (
+          <CharacterStatusScreen 
+            onStart={() => setScreen('main')}
+          />
+        );
 
       case 'register':
         return (
@@ -168,20 +160,17 @@ export default function App() {
         return (
           <CreateCharacterScreen
             onSuccess={() => setScreen('main')}
-            onCancel={() => setScreen('login')}
+            onCancel={async () => { await clearSession(); setScreen('login'); }}
           />
         );
 
       case 'login':
       default:
         return (
-          <>
-            <LoginScreen
-              onLoginSuccess={() => setScreen('main')}
-              onRegister={() => setScreen('register')}
-            />
-            {renderDebug()}
-          </>
+          <LoginScreen
+            onLoginSuccess={() => setScreen('main')}
+            onRegister={() => setScreen('register')}
+          />
         );
     }
   };
@@ -206,12 +195,5 @@ const styles = StyleSheet.create({
   },
   loadingSubText: {
     color: '#666666', fontSize: 12, textAlign: 'center', lineHeight: 18,
-  },
-  debugBox: {
-    position: 'absolute', bottom: 40, left: 4, right: 4,
-    backgroundColor: 'rgba(0,0,0,0.82)', padding: 6, borderRadius: 4, zIndex: 999,
-  },
-  debugText: {
-    color: '#00ff88', fontSize: 10, fontFamily: 'monospace', lineHeight: 14,
   },
 });

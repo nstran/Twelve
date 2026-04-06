@@ -1,9 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SocketClient, Actor, MapInfo } from '../network/SocketClient';
 import { MapRenderer } from '../engine/MapRenderer';
+import { clearSession } from '../storage/SessionStorage';
 
-export const MainScreen: React.FC = () => {
+interface Props {
+  onLogout: () => void;
+}
+
+export const MainScreen: React.FC<Props> = ({ onLogout }) => {
   const [mapData, setMapData] = useState<MapInfo | null>(null);
   const [actors, setActors] = useState<Actor[]>([]);
 
@@ -62,9 +67,19 @@ export const MainScreen: React.FC = () => {
     clientRef.current.move(x, y);
   };
 
+  const handleLogout = async () => {
+    await clearSession();
+    onLogout();
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Twelve - Lộ Diện Sứ Quân</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Twelve - Lộ Diện Sứ Quân</Text>
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Đăng xuất</Text>
+        </TouchableOpacity>
+      </View>
 
       {mapData ? (
         <MapRenderer
@@ -104,12 +119,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
   title: {
     color: '#ffd700',
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 20,
     textTransform: 'uppercase',
+    flex: 1,
+  },
+  logoutBtn: {
+    backgroundColor: '#5a0000',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#a00',
+  },
+  logoutText: {
+    color: '#ff8888',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
   loading: {
     color: '#888',
