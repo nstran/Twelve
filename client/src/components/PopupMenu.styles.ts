@@ -11,7 +11,7 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 26, // BOTTOM_BAR_H
     left: 4,
-    minWidth: '45%', 
+    minWidth: 120, // Enough for "Đăng xuất"
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#2255bb',

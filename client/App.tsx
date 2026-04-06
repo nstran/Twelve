@@ -145,6 +145,10 @@ export default function App() {
         return (
           <CharacterStatusScreen 
             onStart={() => setScreen('main')}
+            onLogout={async () => { 
+              await clearSession(); 
+              setScreen('login'); 
+            }}
           />
         );
 
@@ -159,7 +163,7 @@ export default function App() {
       case 'createCharacter':
         return (
           <CreateCharacterScreen
-            onSuccess={() => setScreen('main')}
+            onSuccess={() => setScreen('characterStatus')}
             onCancel={async () => { await clearSession(); setScreen('login'); }}
           />
         );
@@ -168,7 +172,7 @@ export default function App() {
       default:
         return (
           <LoginScreen
-            onLoginSuccess={() => setScreen('main')}
+            onLoginSuccess={() => setScreen('characterStatus')}
             onRegister={() => setScreen('register')}
           />
         );

@@ -6,15 +6,27 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
-    padding: 8,
-    justifyContent: 'center',
+    justifyContent: 'center', // Center the content (outerBox)
+    alignItems: 'center',
+  },
+  bgWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  background: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   // ── Khung viền ngoài (Trắng, Viền Xanh đôi) ─────────────────────────
   outerBox: {
+    width: width * 0.9,
     backgroundColor: '#ffffff',
     borderWidth: 2,
     borderColor: '#2255bb',
-    borderRadius: 8,
     padding: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -44,10 +56,24 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 10,
   },
-  avatarLayer: {
-    width: 70,
-    height: 90,
+  avatarLayerBody: {
+    width: 60,
+    height: 60,
     resizeMode: 'contain',
+  },
+  avatarLayerFace: {
+    width: 30,
+    height: 18,
+    resizeMode: 'contain',
+    position: 'absolute',
+    top: 19,
+  },
+  avatarLayerHair: {
+    width: 54,
+    height: 54,
+    resizeMode: 'contain',
+    position: 'absolute',
+    top: -2,
   },
   topStats: {
     flex: 1,
@@ -246,8 +272,10 @@ export const styles = StyleSheet.create({
   // ── Softkey Bar Container ─────────────────────────────────────────
   softKeyBarContainer: {
     position: 'absolute',
-    bottom: -8,
-    left: -4,
-    right: -4,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+    backgroundColor: 'transparent', // Make it transparent to show background
   },
 });

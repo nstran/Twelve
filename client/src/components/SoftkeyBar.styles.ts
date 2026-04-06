@@ -38,12 +38,13 @@ export const styles = StyleSheet.create({
   },
   timeText: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 14, // Reduced from 18 for sharper look
     fontWeight: 'bold',
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 1,
     textAlign: 'center',
+    textTransform: 'uppercase', // Added for technical/sharp look
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
 

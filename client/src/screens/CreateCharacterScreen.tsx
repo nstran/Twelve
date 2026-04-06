@@ -16,6 +16,7 @@ import { SocketClient } from '../network/SocketClient';
 import { BODIES, HAIRS, FACES, SWORDS, FRONT_ARMS } from '../assets/AssetIndex';
 import { SoftkeyBar }   from '../components/SoftkeyBar';
 import { PopupMenu, MenuItem } from '../components/PopupMenu';
+import { MENU_START, MENU_LOGOUT } from '../constants/MenuConstants';
 import { Dimensions }   from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -34,8 +35,8 @@ interface CreateCharacterScreenProps {
 const ELEMENTS = ['LÔI', 'HỎA', 'THỦY'];
 
 const MENU_ITEMS: MenuItem[] = [
-  { label: 'Bắt đầu',   id: 1 },
-  { label: 'Đăng Xuất', id: 0 },
+  MENU_START,
+  MENU_LOGOUT,
 ];
 
 // ─── Selector Component ──────────────────────────────────────────────────

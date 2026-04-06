@@ -2,16 +2,26 @@ import { Dimensions, View, Text, Image, ScrollView } from 'react-native';
 import React from 'react';
 import { styles } from './CharacterStatusScreen.styles';
 import { SoftkeyBar } from '../components/SoftkeyBar';
+import { PopupMenu } from '../components/PopupMenu';
 import { BODIES, FACES, HAIRS } from '../assets/AssetIndex';
+import { COMMON_MENU_ITEMS } from '../constants/MenuConstants';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ASSET_CORNERS = require('../../assets/ui/frames/cornerskb.png');
+const ASSET_CANCEL  = require('../../assets/ui/icons/icon_cancel.png');
+const ASSET_BK      = require('../../assets/createcs/bk.png');
 
 interface StatusScreenProps {
   onStart: () => void;
+  onLogout: () => void;
 }
 
-export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({ onStart }) => {
+const MENU_ITEMS = COMMON_MENU_ITEMS;
+
+export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({ onStart, onLogout }) => {
+  const [menuVisible, setMenuVisible] = React.useState(false);
+  const [selectedIndex, setSelectedIndex] = React.useState(0);
+
   // ── Fake Data for Mockup (Matching i_win_95 image) ─────────────────────
   const player = {
     username: 'i_win_95',
@@ -68,23 +78,21 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({ onStart }) 
 
   return (
     <View style={styles.container}>
-      <View style={styles.outerBox}>
-        {/* Ornate Corners */}
-        <Image source={ASSET_CORNERS} style={{ position: 'absolute', top: -2, left: -2, width: 20, height: 20, zIndex: 10, resizeMode: 'contain' }} />
-        <Image source={ASSET_CORNERS} style={{ position: 'absolute', top: -2, right: -2, width: 20, height: 20, zIndex: 10, resizeMode: 'contain', transform: [{ scaleX: -1 }] }} />
-        <Image source={ASSET_CORNERS} style={{ position: 'absolute', bottom: -2, left: -2, width: 20, height: 20, zIndex: 10, resizeMode: 'contain', transform: [{ scaleY: -1 }] }} />
-        <Image source={ASSET_CORNERS} style={{ position: 'absolute', bottom: -2, right: -2, width: 20, height: 20, zIndex: 10, resizeMode: 'contain', transform: [{ scale: -1 }] }} />
+      <View style={styles.bgWrapper}>
+        <Image source={ASSET_BK} style={styles.background} />
+      </View>
 
+      <View style={styles.outerBox}>
         <View style={styles.innerBox}>
           
           {/* ── Header ──────────────────────────────────────────────── */}
           <View style={styles.headerRow}>
             <View style={styles.avatarContainer}>
-              <View style={{ width: 60, height: 80, position: 'relative' }}>
-                {/* Lớp Layered Nhân vật */}
-                <Image source={BODIES[0]} style={[styles.avatarLayer, { position: 'absolute' }]} />
-                <Image source={FACES[1]} style={[styles.avatarLayer, { position: 'absolute', top: 5 }]} />
-                {/* <Image source={HAIRS[0]} style={[styles.avatarLayer, { position: 'absolute', top: -2 }]} /> */}
+              <View style={{ width: 60, height: 60, alignItems: 'center', justifyContent: 'center' }}>
+                {/* Lớp Layered Nhân vật Scaled 0.3x */}
+                <Image source={BODIES[0]} style={styles.avatarLayerBody} />
+                <Image source={FACES[1]} style={styles.avatarLayerFace} />
+                {/* <Image source={HAIRS[0]} style={styles.avatarLayerHair} /> */}
               </View>
             </View>
             
@@ -157,17 +165,32 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({ onStart }) 
             </View>
           </View>
 
-          {/* ── Bottom Softkeys (Overlay) ────────────────────────────── */}
-          <View style={styles.softKeyBarContainer}>
-            <SoftkeyBar 
-              width={SCREEN_WIDTH - 24} // Adjust for padding
-              leftLabel="Menu"
-              rightLabel="Bắt đầu"
-              onRightPress={onStart}
-              onLeftPress={() => {}} // Future menu
-            />
-          </View>
         </View>
+      </View>
+
+      {/* ── Bottom Softkeys (Full Screen Width) ────────────────────────── */}
+      <View style={styles.softKeyBarContainer}>
+        <PopupMenu
+          visible={menuVisible}
+          items={MENU_ITEMS}
+          selectedIndex={selectedIndex}
+          onSelect={(item) => {
+            setMenuVisible(false);
+            if (item.id === 0) onLogout();
+          }}
+          onIndexChange={setSelectedIndex}
+          onClose={() => setMenuVisible(false)}
+          bottomOffset={28} // Height above softbar
+        />
+
+        <SoftkeyBar 
+          width={SCREEN_WIDTH}
+          centerLabel="Bắt đầu"
+          onCenterPress={onStart}
+          onLeftPress={() => setMenuVisible(true)}
+          rightIcon={menuVisible ? ASSET_CANCEL : undefined}
+          onRightPress={() => { if(menuVisible) setMenuVisible(false); }}
+        />
       </View>
     </View>
   );

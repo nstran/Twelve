@@ -22,6 +22,7 @@ interface SoftkeyBarProps {
   rightIcon?: ImageSourcePropType;
   leftLabel?: string;
   rightLabel?: string;
+  centerLabel?: string;
 }
 
 export const SoftkeyBar: React.FC<SoftkeyBarProps> = ({
@@ -33,6 +34,7 @@ export const SoftkeyBar: React.FC<SoftkeyBarProps> = ({
   rightIcon,
   leftLabel,
   rightLabel,
+  centerLabel,
 }) => {
   const getCurrentTime = () => {
     const now = new Date();
@@ -75,7 +77,7 @@ export const SoftkeyBar: React.FC<SoftkeyBarProps> = ({
       {/* ─── LAYER 3: TIME (CENTERED) ─── */}
       <View style={[styles.content, { zIndex: 3 }]}>
         <View style={styles.centerContent}>
-           <Text style={styles.timeText}>{time}</Text>
+           <Text style={styles.timeText}>{centerLabel || time}</Text>
         </View>
       </View>
 
