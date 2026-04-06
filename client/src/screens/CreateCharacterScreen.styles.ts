@@ -78,31 +78,6 @@ export const styles = StyleSheet.create({
     transform: [{ rotate: '-10deg' }], // Xoay thêm 90 độ so với góc cũ (15 -> 105)
   },
 
-  // ── Info Overlay (Title) ───────────────────────────────────────────
-  headerContainer: {
-    position: 'absolute',
-    top: 40,
-    width: '100%',
-    alignItems: 'center',
-  },
-  headerFrame: {
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderColor: '#FFD700',
-    borderWidth: 1,
-    borderRadius: 4,
-  },
-  headerText: {
-    color: '#FFD700',
-    fontSize: 18,
-    fontWeight: 'bold',
-    letterSpacing: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 10,
-  },
-
   // ── Selection Panel (Hệ, Tóc, Da...) ───────────────────────────────
   selectionPanel: {
     flex: 1,

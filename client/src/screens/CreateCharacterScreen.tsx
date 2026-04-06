@@ -80,9 +80,6 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
     <View style={styles.container}>
       <Image source={require('../../assets/createcs/bk.png')} style={styles.background} />
 
-      <View style={styles.headerContainer}>
-        <View style={styles.headerFrame}><Text style={styles.headerText}>KHỞI TẠO TƯỚNG QUÂN</Text></View>
-      </View>
 
       <View style={styles.previewContainer}>
         <Animated.View style={{ transform: [{ translateY: floatingAnim }], alignItems: 'center' }}>
