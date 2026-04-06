@@ -88,9 +88,15 @@ export class SocketClient extends EventEmitter {
     console.log(`[SocketClient] ← Received CMD ${cmd} (${Command[cmd]}), payloadLength=${payloadLength}`);
 
     switch (cmd) {
-      case Command.LOGIN_SUCCESS:
-        this.emit('authSuccess');
+      case Command.LOGIN_SUCCESS: {
+        // Payload gồm Token(tag 2) + ExpiresAt(tag 3)
+        const token     = this.parseStringTag(payload, Tag.TOKEN);
+        const expiresAt = this.parseLongTag(payload,   Tag.EXPIRES_AT);
+        console.log('[SocketClient] ← LOGIN_SUCCESS token=', token ? token.slice(0,8)+'…' : 'none',
+                    'expiresAt=', expiresAt);
+        this.emit('authSuccess', { token, expiresAt });
         break;
+      }
 
       case Command.CHARACTER_REQUIRED:
         this.emit('characterRequired');
@@ -144,7 +150,16 @@ export class SocketClient extends EventEmitter {
   // ─── Auth ─────────────────────────────────────────────────────────────────
 
   login(username: string, password: string) {
-    const packet = this.buildAuthPacket(Command.LOGIN_REQUEST, username, password); 
+    const packet = this.buildAuthPacket(Command.LOGIN_REQUEST, username, password);
+    this.socket?.send(packet);
+  }
+
+  // ─── CMD 3: Auto-login bằng session token ────────────────────────────────
+  tokenLogin(token: string) {
+    console.log('[SocketClient] tokenLogin() token=', token.slice(0, 8) + '…');
+    const tokenTag = this.makeStringTag(Tag.TOKEN, token);
+    const payload  = new Uint8Array(tokenTag);
+    const packet   = this.wrapPacket(Command.TOKEN_LOGIN_REQUEST, payload, 1);
     this.socket?.send(packet);
   }
 
@@ -289,6 +304,24 @@ export class SocketClient extends EventEmitter {
 
   private readInt(data: Uint8Array, offset: number): number {
     return ((data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3]) >>> 0;
+  }
+
+  // Đọc long 8-byte big-endian từ payload theo tagId (trả về Unix seconds)
+  private parseLongTag(data: Uint8Array, targetId: number): number {
+    let pos = 0;
+    while (pos <= data.length - 5) {
+      const id  = data[pos];
+      const len = (data[pos+1] << 24) | (data[pos+2] << 16) | (data[pos+3] << 8) | data[pos+4];
+      if (id === targetId && len === 8) {
+        // JS không có int64 — dùng DataView để đọc high/low 32-bit và ghép
+        const view = new DataView(data.buffer, data.byteOffset + pos + 5, 8);
+        const high = view.getUint32(0, false); // big-endian
+        const low  = view.getUint32(4, false);
+        return high * 0x100000000 + low;       // safe cho timestamp Unix (< 2^53)
+      }
+      pos += 5 + len;
+    }
+    return 0;
   }
 
   /**

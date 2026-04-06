@@ -10,7 +10,7 @@
 - **Clean Architecture**: Use .NET 9. Logic MUST reside in the **Core (Domain)** layer. Use Dapper for high-perf DB access.
 - **Protocol**: Raw TCP + TLV (Tag-Length-Value) for game packets. Use `BinaryReader`/`BinaryWriter`.
 - **Frontend (Mobile)**: React Native + Skia. Use `service-proxies.ts` (NSwag) for Web API sync.
-- **Aesthetics**: No purple. Use "Technical, Sharp" aesthetics. Maintain the "Loạn 12 Sứ Quân" 2024 vibe.
+- **Aesthetics**: No purple. Use "Technical, Sharp" aesthetics. Maintain the "Loạn 12 Sứ Quân" 2026 vibe.
 
 ## 🛠️ Verification
 

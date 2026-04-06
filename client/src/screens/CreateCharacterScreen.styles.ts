@@ -26,13 +26,13 @@ export const styles = StyleSheet.create({
     height: 100,
     resizeMode: 'contain',
     position: 'absolute',
-    bottom: -40, // Hạ thấp xuống sát mép dưới
+    bottom: -160,
   },
   characterStack: {
     width: 250,
     height: 250,
     position: 'absolute',
-    bottom: '8%', // Căn để chân đứng trên khối đá dạt xuống mép
+    bottom: -120,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -82,10 +82,10 @@ export const styles = StyleSheet.create({
   selectionPanel: {
     marginHorizontal: 10,
     marginBottom: 60, // Chừa chỗ cho Softbar
-    backgroundColor: '#FEF8E6', // Creamy beige from Image 1
-    borderRadius: 12,
+    backgroundColor: '#ffffff', // White from Menu
+    borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#8B4513', // SaddleBrown
+    borderColor: '#2255bb', // Blue from Menu
     padding: 12,
     elevation: 5,
     shadowColor: '#000',
@@ -99,10 +99,10 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(139, 69, 19, 0.2)', // Light brown divider
+    borderBottomColor: 'rgba(34, 85, 187, 0.1)', // Light blue divider
   },
   label: {
-    color: '#5D4037', // Dark brown for text
+    color: '#000000', // Black from Menu
     fontSize: 14,
     fontWeight: '900', // Sắc nét (Sharp)
     textTransform: 'uppercase',
@@ -113,7 +113,7 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   valueText: {
-    color: '#212121',
+    color: '#000000',
     fontSize: 15,
     fontWeight: 'bold',
     minWidth: 90,
@@ -125,15 +125,16 @@ export const styles = StyleSheet.create({
     height: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#8B4513',
+    backgroundColor: '#4488ff', // Lighter blue from Menu highlight
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#5D4037',
+    borderColor: '#2255bb',
   },
-  arrowText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+  arrowIcon: {
+    width: 16,
+    height: 16,
+    resizeMode: 'contain',
+    tintColor: '#ffffff', // White to contrast with blue button
   },
 
   // ── Bottom Softkeys (Sẽ dùng chung component) ─────────────────────

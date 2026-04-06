@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,7 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
   const styles = useMemo(() => getStyles(width, height), [width, height]);
 
   const [username, setUsername]         = useState('trans');
+  const usernameRef = useRef(username); // ref luôn có giá trị mới nhất, tránh stale closure
   const [password, setPassword]         = useState('123456');
   const [rememberMe, setRememberMe]     = useState(true);
   const [autoLogin, setAutoLogin]       = useState(true);
@@ -55,10 +56,15 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
   useEffect(() => {
     console.log('[Login] Mounting: subscribing to authSuccess/authFailed');
 
-    const onAuthSuccess = () => {
-      console.log('[Login] ← CMD 4 authSuccess → navigate to main');
+    const onAuthSuccess = ({ token, expiresAt }: { token?: string; expiresAt?: number } = {}) => {
+      console.log('[Login] ← CMD 4 authSuccess token=', token?.slice(0, 8), 'expiresAt=', expiresAt);
       setLoading(false);
       clearError();
+      // Emit authSuccessWithUser so App.tsx can persist the full session
+      if (token && expiresAt) {
+        // Dùng ref để lấy username mới nhất, tránh stale closure
+        client.emit('authSuccessWithUser', { token, expiresAt, username: usernameRef.current.trim() });
+      }
       onLoginSuccess();
     };
 
@@ -154,7 +160,7 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
             <TextInput
               style={styles.transparentInput}
               value={username}
-              onChangeText={(v) => { setUsername(v); clearError(); }}
+              onChangeText={(v) => { setUsername(v); usernameRef.current = v; clearError(); }}
               autoCapitalize="none"
               underlineColorAndroid="transparent"
               spellCheck={false}

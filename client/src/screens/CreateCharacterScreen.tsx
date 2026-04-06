@@ -24,13 +24,14 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ASSET_ICON_OK     = require('../../assets/ui/icons/icon_ok.png');
 const ASSET_ICON_CANCEL = require('../../assets/ui/icons/icon_cancel.png');
 const ASSET_RED_SUN     = require('../../assets/ui/icons/icon_sharpest_1.png');
+const ASSET_ARROW       = require('../../assets/ui/icons/arrowfocus1.png');
 
 interface CreateCharacterScreenProps {
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-const ELEMENTS = ['KIM', 'MỘC', 'THỦY', 'HỎA', 'THỔ'];
+const ELEMENTS = ['LÔI', 'HỎA', 'THỦY'];
 
 const MENU_ITEMS: MenuItem[] = [
   { label: 'Bắt đầu',   id: 1 },
@@ -90,21 +91,27 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
   const handleLeftSoftkey  = () => menuVisible ? handleMenuSelect(MENU_ITEMS[selectedIndex].id as number) : setMenuVisible(true);
   const handleRightSoftkey = () => menuVisible ? setMenuVisible(false) : onCancel();
 
-  const SelectorRow = ({ label, value, options, onPrev, onNext, suffix = "" }: any) => {
+  const SelectorRow = ({ label, value, options, onPrev, onNext, suffix = "", hideCounter = false }: any) => {
     const displayValue = value === -1 || (Array.isArray(options) && options.length === 0)
-      ? (label === "MÁI TÓC" ? "TRỌC" : "TRỐNG")
-      : `${suffix} ${value + 1} / ${options.length || 0}`;
+      ? (label === "TÓC" ? "TRỌC" : "TRỐNG") // Updated Label name check
+      : hideCounter ? suffix : `${suffix} ${value + 1} / ${options.length || 0}`;
 
     return (
       <View style={styles.selectionRow}>
         <Text style={styles.label}>{label}</Text>
         <View style={styles.selector}>
           <TouchableOpacity style={styles.arrow} onPress={onPrev}>
-            <Text style={styles.arrowText}>{'<'}</Text>
+            <Image 
+              source={ASSET_ARROW} 
+              style={[styles.arrowIcon, { transform: [{ rotate: '-90deg' }] }]} 
+            />
           </TouchableOpacity>
           <Text style={styles.valueText}>{displayValue}</Text>
           <TouchableOpacity style={styles.arrow} onPress={onNext}>
-            <Text style={styles.arrowText}>{'>'}</Text>
+            <Image 
+              source={ASSET_ARROW} 
+              style={[styles.arrowIcon, { transform: [{ rotate: '90deg' }] }]} 
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -147,25 +154,43 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
 
       <View style={styles.selectionPanel}>
         <ScrollView showsVerticalScrollIndicator={false}>
-          <SelectorRow label="GIỚI TÍNH" value={genderIdx} options={BODIES} suffix={genderIdx === 0 ? "NAM" : "NỮ"}
+          <SelectorRow 
+            label="GIỚI TÍNH" 
+            value={genderIdx} 
+            options={BODIES} 
+            suffix={genderIdx === 0 ? "NAM" : "NỮ"}
+            hideCounter={true}
             onPrev={() => setGenderIdx(v => (v > 0 ? 0 : 1))}
-            onNext={() => setGenderIdx(v => (v < 1 ? 1 : 0))} />
+            onNext={() => setGenderIdx(v => (v < 1 ? 1 : 0))} 
+          />
 
-          <SelectorRow label="HỆ PHÁI" value={element} options={ELEMENTS} suffix=""
+          <SelectorRow 
+            label="HỆ" 
+            value={element} 
+            options={ELEMENTS} 
+            suffix={ELEMENTS[element]}
+            hideCounter={true} // Xóa 1/3
             onPrev={() => setElement(v => (v > 0 ? v - 1 : ELEMENTS.length - 1))}
-            onNext={() => setElement(v => (v < ELEMENTS.length - 1 ? v + 1 : 0))} />
+            onNext={() => setElement(v => (v < ELEMENTS.length - 1 ? v + 1 : 0))} 
+          />
 
-          <SelectorRow label="THẦN THÁI" value={faceIdx} options={FACES} suffix="MẮT"
+          <SelectorRow 
+            label="MẮT" 
+            value={faceIdx} 
+            options={FACES} 
+            hideCounter={true}
             onPrev={() => setFaceIdx(v => v > -1 ? v - 1 : FACES.length - 1)}
-            onNext={() => setFaceIdx(v => v < FACES.length - 1 ? v + 1 : -1)} />
+            onNext={() => setFaceIdx(v => v < FACES.length - 1 ? v + 1 : -1)} 
+          />
 
-          <SelectorRow label="MÁI TÓC" value={hairIdx} options={HAIRS} suffix="TÓC"
+          <SelectorRow 
+            label="TÓC" 
+            value={hairIdx} 
+            options={HAIRS} 
+            hideCounter={true}
             onPrev={() => setHairIdx(v => HAIRS.length > 0 ? (v > -1 ? v - 1 : HAIRS.length - 1) : -1)}
-            onNext={() => setHairIdx(v => HAIRS.length > 0 ? (v < HAIRS.length - 1 ? v + 1 : -1) : -1)} />
-
-          <SelectorRow label="VŨ KHÍ" value={swordIdx} options={SWORDS} suffix="KIẾM"
-            onPrev={() => setSwordIdx(v => (v > 0 ? v - 1 : SWORDS.length - 1))}
-            onNext={() => setSwordIdx(v => (v < SWORDS.length - 1 ? v + 1 : 0))} />
+            onNext={() => setHairIdx(v => HAIRS.length > 0 ? (v < HAIRS.length - 1 ? v + 1 : -1) : -1)} 
+          />
         </ScrollView>
       </View>
 

@@ -5,7 +5,7 @@ You coordinate the specialized agents to modernize and revive Loạn 12 Sứ Qu�
 ## ⚙️ Core Knowledge
 - **Context Management**: Ensuring Backend and Frontend stay in sync.
 - **Protocol Integrity**: Verifying that the TLV logic matches the legacy JAR client.
-- **Modernization Goal**: Recreating the J2ME soul in a 2024 HD tech stack.
+- **Modernization Goal**: Recreating the J2ME soul in a 2026 HD tech stack.
 
 ## 🛠️ Execution Strategy
 - **L12SQ Protocol**: Use the `.agent/skills/game-mechanics` as the source of truth.

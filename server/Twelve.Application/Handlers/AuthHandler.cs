@@ -134,72 +134,96 @@ namespace Twelve.Application.Handlers
         private readonly IAccountRepository   _accountRepository;
         private readonly IPasswordHasher      _passwordHasher;
         private readonly IPlayerRepository    _playerRepository;
+        private readonly ISessionTokenStore   _tokenStore;
         private readonly ILogger<AuthHandler> _logger;
 
         public AuthHandler(
             IAccountRepository   accountRepository,
             IPasswordHasher      passwordHasher,
             IPlayerRepository    playerRepository,
+            ISessionTokenStore   tokenStore,
             ILogger<AuthHandler> logger)
         {
             _accountRepository = accountRepository;
             _passwordHasher    = passwordHasher;
             _playerRepository  = playerRepository;
+            _tokenStore        = tokenStore;
             _logger            = logger;
         }
 
         public async Task HandleAsync(GameSession session, PacketRequest request)
         {
             string username = (request.GetStringTag((int)TagCode.Username) ?? "").Trim();
-            string password = (request.GetStringTag((int)TagCode.Password) ?? "");
+            string password =  request.GetStringTag((int)TagCode.Password) ?? "";
 
-            _logger.LogInformation("[Login] ── HandleAsync fired, username='{Username}'", username);
+            _logger.LogInformation("[Login] HandleAsync username='{Username}'", username);
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                _logger.LogWarning("[Login] FAIL: username hoặc password rỗng");
-                var err = TlvCodec.MakeTag((int)TagCode.Message, "Vui long nhap day du thong tin.");
-                await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.LoginFailed, err, subCount: 1));
+                await SendFail(session, "Vui lòng nhập đầy đủ thông tin.");
                 return;
             }
 
             var account = await _accountRepository.GetByUsernameAsync(username);
             if (account == null)
             {
-                _logger.LogWarning("[Login] FAIL: không tìm thấy tài khoản '{Username}'", username);
-                var err = TlvCodec.MakeTag((int)TagCode.Message, "Tài khoản không tồn tại.");
-                await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.LoginFailed, err, subCount: 1));
+                _logger.LogWarning("[Login] FAIL: không tìm thấy '{Username}'", username);
+                await SendFail(session, "Tài khoản không tồn tại.");
                 return;
             }
 
             if (!_passwordHasher.VerifyPassword(password, account.PasswordHash, account.Salt))
             {
-                _logger.LogWarning("[Login] FAIL: sai mật khẩu cho '{Username}'", username);
-                var err = TlvCodec.MakeTag((int)TagCode.Message, "Sai mật khẩu.");
-                await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.LoginFailed, err, subCount: 1));
+                _logger.LogWarning("[Login] FAIL: sai mật khẩu '{Username}'", username);
+                await SendFail(session, "Sai mật khẩu.");
                 return;
             }
 
-            // ── Đăng nhập phần Account thành công ──────────────────────────
             session.Username        = username;
             session.IsAuthenticated = true;
             await _accountRepository.UpdateLastLoginAsync(account.Id);
 
-            // ── Kiểm tra Nhân vật (Player) ──────────────────────────────────
-            var player = await _playerRepository.GetByUsernameAsync(username);
-            
-            // Nếu không có nhân vật HOẶC nhân vật chưa được khởi tạo đầy đủ (Element/FaceStyle là null)
-            bool isNewChar = (player == null) || (player.Element == null);
+            await SendLoginSuccessAsync(session, username);
+        }
 
-            if (isNewChar)
+        // ── Dùng chung cho cả AuthHandler và TokenAuthHandler ─────────────────
+        internal async Task SendLoginSuccessAsync(GameSession session, string username)
+        {
+            // Luôn tạo token và gửi CMD 4 TRƯỚC — để client có token lưu session
+            string token     = await _tokenStore.CreateTokenAsync(username);
+            long   expiresAt = DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds();
+
+            var payload = ConcatBytes(
+                TlvCodec.MakeTag((int)TagCode.Token,     token),
+                TlvCodec.MakeTag((int)TagCode.ExpiresAt, expiresAt)
+            );
+
+            _logger.LogInformation("[Login] ✓ '{Username}' → CMD 4 (token={Token})", username, token[..8] + "…");
+            await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.LoginSuccess, payload, subCount: 2));
+
+            // Sau đó kiểm tra nhân vật — nếu chưa có thì gửi thêm CMD 5
+            var player    = await _playerRepository.GetByUsernameAsync(username);
+            bool needChar = player == null || player.Element == null;
+
+            if (needChar)
             {
-                _logger.LogInformation("[Login] Character Missing or Incomplete → Redirecting to creation screen");
+                _logger.LogInformation("[Login] → CharacterRequired cho '{Username}'", username);
                 await session.SendPacketAsync(TlvCodec.BuildEmptyPacket(CommandCode.CharacterRequired));
-                return;
             }
+        }
 
-            _logger.LogInformation("[Login] ✓ '{Username}' login success & fully initialized → Entering Game", username);
-            await session.SendPacketAsync(TlvCodec.BuildEmptyPacket(CommandCode.LoginSuccess));
+        private static async Task SendFail(GameSession session, string message)
+        {
+            var err = TlvCodec.MakeTag((int)TagCode.Message, message);
+            await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.LoginFailed, err, subCount: 1));
+        }
+
+        private static byte[] ConcatBytes(params byte[][] arrays)
+        {
+            int total = 0; foreach (var a in arrays) total += a.Length;
+            var result = new byte[total]; int pos = 0;
+            foreach (var a in arrays) { a.CopyTo(result, pos); pos += a.Length; }
+            return result;
         }
     }
 }

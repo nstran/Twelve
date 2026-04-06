@@ -1,81 +1,153 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, View, Text } from 'react-native';
-import { LoginScreen }    from './src/screens/LoginScreen';
-import { RegisterScreen } from './src/screens/RegisterScreen';
-import { MainScreen }           from './src/screens/MainScreen';
+import { LoginScreen }           from './src/screens/LoginScreen';
+import { RegisterScreen }        from './src/screens/RegisterScreen';
+import { MainScreen }            from './src/screens/MainScreen';
 import { CreateCharacterScreen } from './src/screens/CreateCharacterScreen';
-import { SocketClient }         from './src/network/SocketClient';
+import { SocketClient }          from './src/network/SocketClient';
+import {
+  loadSession,
+  saveSession,
+  clearSession,
+  setupMobileClearOnClose,
+} from './src/storage/SessionStorage';
 
-// ── Screen states (mirrors J2ME screen stack) ────────────────────────────────
+// ── Screen states ────────────────────────────────────────────────────────────
 type Screen = 'login' | 'register' | 'main' | 'createCharacter';
 
-// Đổi thành LAN IP của máy khi test trên thiết bị thật, ví dụ: ws://192.168.1.x:5102/game
-const SERVER_URL = 'ws://localhost:5102/game';
+const SERVER_URL         = 'ws://localhost:5102/game';
 const RECONNECT_DELAY_MS = 2000;
 
 export default function App() {
-  const [screen, setScreen]         = useState<Screen>('login');
+  const [screen, setScreen]           = useState<Screen>('login');
   const [isConnected, setIsConnected] = useState(false);
   const [connectMsg, setConnectMsg]   = useState('ĐANG KẾT NỐI CHIẾN TRƯỜNG...');
+  const [debugLog, setDebugLog]       = useState<string[]>([]);
+  const addLog = (msg: string) => {
+    console.log(msg);
+    setDebugLog(prev => [...prev.slice(-8), msg]);
+  };
 
-  const client          = SocketClient.getInstance();
+  const client         = SocketClient.getInstance();
   const reconnectTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptRef      = useRef(0);
+  // Username lấy từ session đã lưu, dùng để save lại rolling token sau auto-login
+  const pendingUsername = useRef<string | null>(null);
 
   const doConnect = () => {
     const attempt = ++attemptRef.current;
-    console.log(`[App] Connecting (attempt #${attempt}) → ${SERVER_URL}`);
+    console.log(`[App] Connecting (#${attempt}) → ${SERVER_URL}`);
     setConnectMsg(`ĐANG KẾT NỐI CHIẾN TRƯỜNG... (#${attempt})`);
     client.connect(SERVER_URL);
   };
 
+  // ── Lưu session khi đăng nhập thành công ────────────────────────────────
+  const handleAuthSuccess = ({ token, expiresAt, username }: {
+    token?: string; expiresAt?: number; username?: string;
+  }) => {
+    if (token && expiresAt && username) {
+      saveSession({ token, username, expiresAt });
+    }
+    setScreen('main');
+  };
+
   useEffect(() => {
-    const onConnected = () => {
-      console.log('[App] WebSocket connected ✓');
+    // Setup xoá token khi app tắt (mobile only, web giữ qua F5)
+    const unsubAppState = setupMobileClearOnClose();
+
+    const onConnected = async () => {
+      addLog('[App] WS connected ✓');
       attemptRef.current = 0;
       setIsConnected(true);
       setConnectMsg('ĐANG KẾT NỐI CHIẾN TRƯỜNG...');
+
+      // ── Thử auto-login bằng token đã lưu ─────────────────────────────────
+      const session = await loadSession();
+      if (session) {
+        addLog(`[App] Session: ${session.username} expires ${new Date(session.expiresAt*1000).toLocaleTimeString()}`);
+        pendingUsername.current = session.username;
+        client.tokenLogin(session.token);
+      } else {
+        addLog('[App] No session → login screen');
+      }
     };
 
     const onDisconnected = () => {
-      console.log('[App] WebSocket disconnected — reconnecting in', RECONNECT_DELAY_MS, 'ms');
+      console.log('[App] Disconnected — reconnecting in', RECONNECT_DELAY_MS, 'ms');
       setIsConnected(false);
-      // Auto-reconnect sau 2 giây
       reconnectTimer.current = setTimeout(doConnect, RECONNECT_DELAY_MS);
     };
 
-    const onError = (err: any) => {
-      console.error('[App] WebSocket error:', err);
+    const onAuthSuccess = (payload: { token?: string; expiresAt?: number } = {}) => {
+      addLog(`[App] CMD4 token=${payload.token?.slice(0,6)}`);
+      const username = pendingUsername.current;
+      if (username && payload.token && payload.expiresAt) {
+        addLog(`[App] Save rolling → ${username}`);
+        saveSession({ token: payload.token, expiresAt: payload.expiresAt, username });
+        pendingUsername.current = null;
+      }
+      setScreen('main');
+    };
+
+    const onAuthSuccessWithUser = ({ token, expiresAt, username }: {
+      token: string; expiresAt: number; username: string;
+    }) => {
+      addLog(`[App] authSuccessWithUser → ${username}`);
+      saveSession({ token, expiresAt, username });
+      setScreen('main');
     };
 
     const onCharacterRequired = () => {
-      console.log('[App] Character missing → switching to createCharacter screen');
+      addLog('[App] CharacterRequired → createChar');
       setScreen('createCharacter');
     };
 
-    client.on('connected',         onConnected);
-    client.on('disconnected',      onDisconnected);
-    client.on('error',             onError);
-    client.on('characterRequired', onCharacterRequired);
+    const onAuthFailed = (msg?: string) => {
+      addLog(`[App] authFailed: ${msg ?? '?'} → clearSession`);
+      clearSession();
+    };
 
-    // Kết nối lần đầu
+    client.on('connected',             onConnected);
+    client.on('disconnected',          onDisconnected);
+    client.on('authSuccess',           onAuthSuccess);
+    client.on('authSuccessWithUser',   onAuthSuccessWithUser);
+    client.on('characterRequired',     onCharacterRequired);
+    client.on('authFailed',            onAuthFailed);
+
     doConnect();
 
     return () => {
-      client.off('connected',         onConnected);
-      client.off('disconnected',      onDisconnected);
-      client.off('error',             onError);
-      client.off('characterRequired', onCharacterRequired);
+      client.off('connected',           onConnected);
+      client.off('disconnected',        onDisconnected);
+      client.off('authSuccess',         onAuthSuccess);
+      client.off('authSuccessWithUser', onAuthSuccessWithUser);
+      client.off('characterRequired',   onCharacterRequired);
+      client.off('authFailed',          onAuthFailed);
+      unsubAppState();
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
     };
   }, []);
+
+  // Debug overlay — hiển thị ở mọi màn hình
+  const renderDebug = () => (
+    debugLog.length > 0 ? (
+      <View style={styles.debugBox} pointerEvents="none">
+        {debugLog.map((line, i) => (
+          <Text key={i} style={styles.debugText}>{line}</Text>
+        ))}
+      </View>
+    ) : null
+  );
 
   const renderScreen = () => {
     if (!isConnected) {
       return (
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>{connectMsg}</Text>
-          <Text style={styles.loadingSubText}>Đảm bảo server đang chạy tại{'\n'}{SERVER_URL}</Text>
+          <Text style={styles.loadingSubText}>
+            Đảm bảo server đang chạy tại{'\n'}{SERVER_URL}
+          </Text>
+          {renderDebug()}
         </View>
       );
     }
@@ -94,7 +166,7 @@ export default function App() {
 
       case 'createCharacter':
         return (
-          <CreateCharacterScreen 
+          <CreateCharacterScreen
             onSuccess={() => setScreen('main')}
             onCancel={() => setScreen('login')}
           />
@@ -103,10 +175,13 @@ export default function App() {
       case 'login':
       default:
         return (
-          <LoginScreen
-            onLoginSuccess={() => setScreen('main')}
-            onRegister={() => setScreen('register')}
-          />
+          <>
+            <LoginScreen
+              onLoginSuccess={() => setScreen('main')}
+              onRegister={() => setScreen('register')}
+            />
+            {renderDebug()}
+          </>
         );
     }
   };
@@ -120,28 +195,23 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
+  container:       { flex: 1, backgroundColor: '#000' },
   loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
-    gap: 16,
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: '#000', gap: 16,
   },
   loadingText: {
-    color: '#FFD700',
-    fontSize: 18,
-    fontWeight: 'bold',
-    letterSpacing: 2,
-    textAlign: 'center',
+    color: '#FFD700', fontSize: 18, fontWeight: 'bold',
+    letterSpacing: 2, textAlign: 'center',
   },
   loadingSubText: {
-    color: '#666666',
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 18,
+    color: '#666666', fontSize: 12, textAlign: 'center', lineHeight: 18,
+  },
+  debugBox: {
+    position: 'absolute', bottom: 40, left: 4, right: 4,
+    backgroundColor: 'rgba(0,0,0,0.82)', padding: 6, borderRadius: 4, zIndex: 999,
+  },
+  debugText: {
+    color: '#00ff88', fontSize: 10, fontFamily: 'monospace', lineHeight: 14,
   },
 });

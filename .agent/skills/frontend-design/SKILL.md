@@ -20,5 +20,5 @@
 
 ## 🧹 UI Aesthetics
 - **Theme**: "Technical, Sharp" (No Purple). 
-- **Modernization**: Use gradients, glassmorphism, and subtle micro-animations for a premium 2024 feel.
+- **Modernization**: Use gradients, glassmorphism, and subtle micro-animations for a premium 2026 feel.
 - **Typography**: Inter or Roboto (Modern sans-serif).

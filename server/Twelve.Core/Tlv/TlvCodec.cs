@@ -87,6 +87,13 @@ namespace Twelve.Core.Tlv
             return MakeTag(tagId, data);
         }
 
+        public static byte[] MakeTag(int tagId, long value)
+        {
+            byte[] data = new byte[8];
+            BinaryPrimitives.WriteInt64BigEndian(data, value);
+            return MakeTag(tagId, data);
+        }
+
         public static byte[] MakeTag(int tagId, byte value)
         {
             return MakeTag(tagId, new byte[] { value });

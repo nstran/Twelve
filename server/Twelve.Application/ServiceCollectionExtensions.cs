@@ -10,6 +10,7 @@ namespace Twelve.Application
         {
             // ── Đăng ký Handlers ───────────────────────────────────────────────
             services.AddSingleton<AuthHandler>();
+            services.AddSingleton<TokenAuthHandler>();
             services.AddSingleton<RegisterHandler>();
             services.AddSingleton<CreateCharacterHandler>();
             services.AddSingleton<MapHandler>();
@@ -27,6 +28,7 @@ namespace Twelve.Application
 
                 dispatcher.RegisterHandler((int)CommandCode.RegisterRequest,        sp.GetRequiredService<RegisterHandler>());
                 dispatcher.RegisterHandler((int)CommandCode.LoginRequest,           sp.GetRequiredService<AuthHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.TokenLoginRequest,      sp.GetRequiredService<TokenAuthHandler>());
                 dispatcher.RegisterHandler((int)CommandCode.CreateCharacterRequest, sp.GetRequiredService<CreateCharacterHandler>());
                 dispatcher.RegisterHandler(11, sp.GetRequiredService<MapHandler>()); // To be refactored soon
                 dispatcher.RegisterHandler(13, sp.GetRequiredService<MapHandler>()); 
