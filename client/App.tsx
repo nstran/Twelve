@@ -10,6 +10,7 @@ import { SocketClient }          from './src/network/SocketClient';
 import {
   loadSession,
   saveSession,
+  saveLastScreen,
   clearSession,
   setupMobileClearOnClose,
 } from './src/storage/SessionStorage';
@@ -31,6 +32,14 @@ export default function App() {
   const attemptRef      = useRef(0);
   // Username lấy từ session đã lưu, dùng để save lại rolling token sau auto-login
   const pendingUsername = useRef<string | null>(null);
+  const lastScreen      = useRef<Screen | null>(null);
+
+  // ── Persist screen state ───────────────────────────────────────────────
+  useEffect(() => {
+    if (screen !== 'login' && screen !== 'register') {
+      saveLastScreen(screen);
+    }
+  }, [screen]);
 
   const doConnect = () => {
     const attempt = ++attemptRef.current;
@@ -62,8 +71,9 @@ export default function App() {
       // ── Thử auto-login bằng token đã lưu ─────────────────────────────────
       const session = await loadSession();
       if (session) {
-        addLog(`[App] Session: ${session.username} expires ${new Date(session.expiresAt*1000).toLocaleTimeString()}`);
+        addLog(`[App] Session: ${session.username} lastScreen: ${session.lastScreen}`);
         pendingUsername.current = session.username;
+        lastScreen.current      = (session.lastScreen as Screen) || 'characterStatus';
         client.tokenLogin(session.token);
       } else {
         addLog('[App] No session → login screen');
@@ -84,7 +94,8 @@ export default function App() {
         saveSession({ token: payload.token, expiresAt: payload.expiresAt, username });
         pendingUsername.current = null;
       }
-      setScreen('characterStatus');
+      setScreen(lastScreen.current || 'characterStatus');
+      lastScreen.current = null; 
     };
 
     const onAuthSuccessWithUser = ({ token, expiresAt, username }: {
@@ -92,7 +103,8 @@ export default function App() {
     }) => {
       addLog(`[App] authSuccessWithUser → ${username}`);
       saveSession({ token, expiresAt, username });
-      setScreen('characterStatus');
+      setScreen(lastScreen.current || 'characterStatus');
+      lastScreen.current = null;
     };
 
     const onCharacterRequired = () => {
@@ -200,7 +212,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container:       { flex: 1, backgroundColor: '#000' },
+  container:        { flex: 1, backgroundColor: '#000' },
   loadingContainer: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
     backgroundColor: '#000', gap: 16,

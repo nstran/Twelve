@@ -1,17 +1,20 @@
 // Platform-specific file cho WEB — Metro tự dùng file này thay SessionStorage.ts khi bundle web
 // Dùng localStorage trực tiếp, không cần AsyncStorage
-import { AppState, AppStateStatus } from 'react-native';
+import { AppStateStatus } from 'react-native';
 
-const KEY_TOKEN      = '@twelve:session_token';
-const KEY_USERNAME   = '@twelve:session_username';
-const KEY_EXPIRES_AT = '@twelve:session_expires_at';
+const KEY_TOKEN       = '@twelve:session_token';
+const KEY_USERNAME    = '@twelve:session_username';
+const KEY_EXPIRES_AT  = '@twelve:session_expires_at';
+const KEY_LAST_SCREEN = '@twelve:last_screen';
 
 export interface SavedSession {
-  token:     string;
-  username:  string;
-  expiresAt: number;
+  token:       string;
+  username:    string;
+  expiresAt:   number;
+  lastScreen?: string;
 }
 
+// ─── Lưu session sau khi đăng nhập thành công ───────────────────────────────
 export async function saveSession(session: SavedSession): Promise<void> {
   try {
     localStorage.setItem(KEY_TOKEN,      session.token);
@@ -24,14 +27,30 @@ export async function saveSession(session: SavedSession): Promise<void> {
   }
 }
 
+// ─── Lưu màn hình hiện tại để khôi phục khi F5 ─────────────────────────────
+export async function saveLastScreen(screen: string): Promise<void> {
+  try {
+    localStorage.setItem(KEY_LAST_SCREEN, screen);
+  } catch (e) {
+    console.error('[SessionStorage.web] saveLastScreen error:', e);
+  }
+}
+
+// ─── Tải session khi mở app ─────────────────────────────────────────────────
 export async function loadSession(): Promise<SavedSession | null> {
   try {
     const token      = localStorage.getItem(KEY_TOKEN);
     const username   = localStorage.getItem(KEY_USERNAME);
     const expiresStr = localStorage.getItem(KEY_EXPIRES_AT);
+    const lastScreen = localStorage.getItem(KEY_LAST_SCREEN);
     const expiresAt  = expiresStr ? parseInt(expiresStr, 10) : 0;
 
-    console.log('[SessionStorage.web] loadSession →', { token: token?.slice(0, 8), username, expiresAt });
+    console.log('[SessionStorage.web] loadSession →', {
+      token: token?.slice(0, 8),
+      username,
+      expiresAt,
+      lastScreen,
+    });
 
     if (!token || !username || !expiresAt) return null;
 
@@ -42,25 +61,27 @@ export async function loadSession(): Promise<SavedSession | null> {
       return null;
     }
 
-    return { token, username, expiresAt };
+    return { token, username, expiresAt, lastScreen: lastScreen || undefined };
   } catch (e) {
     console.error('[SessionStorage.web] loadSession error:', e);
     return null;
   }
 }
 
+// ─── Xoá session (đăng xuất) ────────────────────────────────────────────────
 export async function clearSession(): Promise<void> {
   try {
     localStorage.removeItem(KEY_TOKEN);
     localStorage.removeItem(KEY_USERNAME);
     localStorage.removeItem(KEY_EXPIRES_AT);
+    localStorage.removeItem(KEY_LAST_SCREEN);
     console.log('[SessionStorage.web] Session cleared');
   } catch (e) {
     console.error('[SessionStorage.web] clearSession error:', e);
   }
 }
 
-// Trên web không cần AppState listener — localStorage tự persist qua F5
+// ─── Mobile only: không làm gì trên web ─────────────────────────────────────
 export function setupMobileClearOnClose(): () => void {
   return () => {};
 }

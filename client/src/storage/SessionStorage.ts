@@ -6,11 +6,13 @@ import { AppState, AppStateStatus } from 'react-native';
 const KEY_TOKEN      = '@twelve:session_token';
 const KEY_USERNAME   = '@twelve:session_username';
 const KEY_EXPIRES_AT = '@twelve:session_expires_at';
+const KEY_LAST_SCREEN = '@twelve:last_screen';
 
 export interface SavedSession {
-  token:     string;
-  username:  string;
-  expiresAt: number;
+  token:      string;
+  username:   string;
+  expiresAt:  number;
+  lastScreen?: string;
 }
 
 export async function saveSession(session: SavedSession): Promise<void> {
@@ -58,6 +60,15 @@ export async function clearSession(): Promise<void> {
     console.log('[SessionStorage] Session cleared');
   } catch (e) {
     console.error('[SessionStorage] clearSession error:', e);
+  }
+}
+
+export async function saveLastScreen(screen: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEY_LAST_SCREEN, screen);
+    console.log('[SessionStorage] Saved lastScreen:', screen);
+  } catch (e) {
+    console.error('[SessionStorage] saveLastScreen error:', e);
   }
 }
 
