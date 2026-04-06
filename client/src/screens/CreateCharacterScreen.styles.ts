@@ -26,7 +26,7 @@ export const styles = StyleSheet.create({
     height: 100,
     resizeMode: 'contain',
     position: 'absolute',
-    bottom: -30, // Hạ thấp xuống sát mép dưới
+    bottom: -40, // Hạ thấp xuống sát mép dưới
   },
   characterStack: {
     width: 250,
@@ -59,12 +59,12 @@ export const styles = StyleSheet.create({
     zIndex: 3,
   },
   frontArmLayer: {
-    width: 35,    // Kích thước nắm đấm v4 thực tế
-    height: 40,
+    width: 27,    // Kích thước nắm đấm v4 thực tế
+    height: 30,
     resizeMode: 'contain',
     position: 'absolute',
-    right: 143,    // Tọa độ đã căn chỉnh chuẩn
-    bottom: 75,
+    right: 151,    // Tọa độ đã căn chỉnh chuẩn
+    bottom: 77,
     zIndex: 5,
   },
   swordLayer: {
@@ -73,7 +73,7 @@ export const styles = StyleSheet.create({
     resizeMode: 'contain',
     position: 'absolute',
     right: 42,      // Dời vào gần tay hơn sau khi xoay 90 độ
-    bottom: -4,    // Hạ thấp chút để cán kiếm khớp tay nằm ngang
+    bottom: -6,    // Hạ thấp chút để cán kiếm khớp tay nằm ngang
     zIndex: 4,
     transform: [{ rotate: '-10deg' }], // Xoay thêm 90 độ so với góc cũ (15 -> 105)
   },
@@ -175,5 +175,26 @@ export const styles = StyleSheet.create({
     width: 2,
     backgroundColor: '#5D4037',
     marginVertical: 10,
+  },
+
+  // ── FEMALE STYLE (DÀNH RIÊNG CHO NỮ - VIẾT THÊM Ở CUỐI) ────────────
+  frontArmNu: {
+    width: 18,
+    height: 28,
+    resizeMode: 'contain',
+    position: 'absolute',
+    right: 145,    // Tọa độ Nữ (Chuẩn)
+    bottom: 90,   // Tọa độ Nữ (Chuẩn)
+    zIndex: 5,
+  },
+  swordNu: {
+    width: 130,
+    height: 130,
+    resizeMode: 'contain',
+    position: 'absolute',
+    right: 48,      // Tọa độ Nữ (Chuẩn)
+    bottom: 22,     // Tọa độ Nữ (Chuẩn)
+    zIndex: 4,
+    transform: [{ rotate: '-10deg' }], // Tọa độ Nữ (Chuẩn)
   },
 });

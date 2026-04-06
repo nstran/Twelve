@@ -1,3 +1,6 @@
+// ── Màn hình Khởi tạo Tướng quân (Modernized 2026) ──────────────────────────
+// File này xử lý ghép lớp (Layering) cho nhân vật: Thân -> Kiếm -> Tay -> Mặt -> Tóc.
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
@@ -5,7 +8,8 @@ import {
   Image, 
   TouchableOpacity, 
   Animated, 
-  Alert 
+  Alert,
+  ScrollView
 } from 'react-native';
 import { styles }       from './CreateCharacterScreen.styles';
 import { SocketClient } from '../network/SocketClient';
@@ -23,7 +27,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
   
   // ── States for Selections ──────────────────────────────────────────
   const [element,     setElement]     = useState(0);
-  const [bodyIdx,     setBodyIdx]     = useState(0);
+  const [genderIdx,   setGenderIdx]   = useState(0); // 0: NAM (Mặc định), 1: NỮ
   const [hairIdx,     setHairIdx]     = useState(-1); // -1 = Không có tóc (trọc)
   const [faceIdx,     setFaceIdx]     = useState(-1); // -1 = Không có mặt (ẩn mắt)
   const [swordIdx,    setSwordIdx]    = useState(0);
@@ -52,9 +56,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
   }, []);
 
   const handleCreate = () => {
-    // Chúng ta tạm map face/hair index về server. 
-    // Trong thực tế, server cần biết ID của asset.
-    client.createCharacter(element, faceIdx, hairIdx, 0, bodyIdx);
+    client.createCharacter(element, faceIdx, hairIdx, 0, genderIdx);
   };
 
   const SelectorRow = ({ label, value, options, onPrev, onNext, suffix = "" }: any) => (
@@ -88,14 +90,24 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
           
           {/* ── Layered Character ── */}
           <View style={styles.characterStack}>
-             {/* Lớp 1: Thân */}
-             <Image source={BODIES[bodyIdx]} style={styles.bodyLayer} />
-             {/* Lớp 2: Kiếm (Weapon) */}
-             <Image source={SWORDS[swordIdx]} style={styles.swordLayer} />
-             {/* Lớp 3: Bàn tay đè lên (Lấy từ ảnh mới v4) */}
-             <Image source={FRONT_ARMS[0]} style={styles.frontArmLayer} />
+             {/* Lớp 1: Thân (Body) */}
+             <Image source={BODIES[genderIdx]} style={styles.bodyLayer} />
+
+             {/* Lớp 2: Kiếm - Dùng style riêng swordNu viết thêm ở cuối file cho Nữ */}
+             <Image 
+                source={SWORDS[genderIdx]} 
+                style={genderIdx === 1 ? styles.swordNu : styles.swordLayer} 
+             />
+
+             {/* Lớp 3: Bàn tay - Dùng style riêng frontArmNu viết thêm ở cuối file cho Nữ */}
+             <Image 
+                source={FRONT_ARMS[genderIdx]} 
+                style={genderIdx === 1 ? styles.frontArmNu : styles.frontArmLayer} 
+             />
+
              {/* Lớp 4: Mắt */}
              {faceIdx !== -1 && <Image source={FACES[faceIdx]} style={styles.faceLayer} />}
+
              {/* Lớp 5: Tóc */}
              {hairIdx !== -1 && <Image source={HAIRS[hairIdx]} style={styles.hairLayer} />}
           </View>
@@ -103,34 +115,28 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
       </View>
 
       <View style={styles.selectionPanel}>
-        <View style={styles.selectionRow}>
-          <Text style={styles.label}>HỆ PHÁI</Text>
-          <View style={styles.selector}>
-            <TouchableOpacity style={styles.arrow} onPress={() => setElement(v => v>0?v-1:ELEMENTS.length-1)}>
-               <Text style={styles.arrowText}>{'<'}</Text>
-            </TouchableOpacity>
-            <Text style={styles.valueText}>{ELEMENTS[element]}</Text>
-            <TouchableOpacity style={styles.arrow} onPress={() => setElement(v => v<ELEMENTS.length-1?v+1:0)}>
-               <Text style={styles.arrowText}>{'>'}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Menu chọn Giới tính (NAM/NỮ) */}
+          <SelectorRow label="GIỚI TÍNH" value={genderIdx} options={BODIES} suffix={genderIdx === 0 ? "NAM" : "NỮ"}
+            onPrev={() => setGenderIdx(v => (v > 0 ? 0 : 1))}
+            onNext={() => setGenderIdx(v => (v < 1 ? 1 : 0))} />
 
-        <SelectorRow label="VÓC DÁNG" value={bodyIdx} options={BODIES} suffix="KIỂU"
-          onPrev={() => setBodyIdx(v => v>0?v-1:BODIES.length-1)}
-          onNext={() => setBodyIdx(v => v<BODIES.length-1?v+1:0)} />
+          <SelectorRow label="HỆ PHÁI" value={element} options={ELEMENTS} suffix=""
+            onPrev={() => setElement(v => (v > 0 ? v - 1 : ELEMENTS.length - 1))}
+            onNext={() => setElement(v => (v < ELEMENTS.length - 1 ? v + 1 : 0))} />
 
-        <SelectorRow label="THẦN THÁI" value={faceIdx} options={FACES} suffix="MẮT"
-          onPrev={() => setFaceIdx(v => v>-1?v-1:FACES.length-1)}
-          onNext={() => setFaceIdx(v => v<FACES.length-1?v+1:-1)} />
+          <SelectorRow label="THẦN THÁI" value={faceIdx} options={FACES} suffix="MẮT"
+            onPrev={() => setFaceIdx(v => v > -1 ? v - 1 : FACES.length - 1)}
+            onNext={() => setFaceIdx(v => v < FACES.length - 1 ? v + 1 : -1)} />
 
-        <SelectorRow label="MÁI TÓC" value={hairIdx} options={HAIRS} suffix="TÓC"
-          onPrev={() => setHairIdx(v => HAIRS.length > 0 ? (v > -1 ? v - 1 : HAIRS.length - 1) : -1)}
-          onNext={() => setHairIdx(v => HAIRS.length > 0 ? (v < HAIRS.length - 1 ? v + 1 : -1) : -1)} />
+          <SelectorRow label="MÁI TÓC" value={hairIdx} options={HAIRS} suffix="TÓC"
+            onPrev={() => setHairIdx(v => HAIRS.length > 0 ? (v > -1 ? v - 1 : HAIRS.length - 1) : -1)}
+            onNext={() => setHairIdx(v => HAIRS.length > 0 ? (v < HAIRS.length - 1 ? v + 1 : -1) : -1)} />
 
-        <SelectorRow label="VŨ KHÍ" value={swordIdx} options={SWORDS} suffix="KIẾM"
-          onPrev={() => setSwordIdx(v => SWORDS.length > 0 ? (v > 0 ? v - 1 : SWORDS.length - 1) : 0)}
-          onNext={() => setSwordIdx(v => SWORDS.length > 0 ? (v < SWORDS.length - 1 ? v + 1 : 0) : 0)} />
+          <SelectorRow label="VŨ KHÍ" value={swordIdx} options={SWORDS} suffix="KIẾM"
+            onPrev={() => setSwordIdx(v => (v > 0 ? v - 1 : SWORDS.length - 1))}
+            onNext={() => setSwordIdx(v => (v < SWORDS.length - 1 ? v + 1 : 0))} />
+        </ScrollView>
       </View>
 
       <View style={styles.softKeyBar}>

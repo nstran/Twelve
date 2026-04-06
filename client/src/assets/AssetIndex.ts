@@ -2,15 +2,18 @@
 // File này giúp React Native quản lý và triệu hồi hàng chục mảnh ghép linh hoạt.
 
 export const BODIES = [
-  require('../../assets/character/Nguoi.png'), // Body mới
+  require('../../assets/character/Nguoi.png'),   // [0] Nam
+  require('../../assets/character/NguoiNu.png'), // [1] Nữ
 ];
 
 export const SWORDS = [
-  require('../../assets/character/Kiem.png'),  // Kiếm mới
+  require('../../assets/character/Kiem.png'),    // [0] Nam
+  require('../../assets/character/KiemNu.png'),  // [1] Nữ
 ];
 
 export const FRONT_ARMS = [
-  require('../../assets/character/Tay.png'),   // Tay mới
+  require('../../assets/character/Tay.png'),     // [0] Nam
+  require('../../assets/character/TayNu.png'),   // [1] Nữ
 ];
 
 export const HAIRS = [
