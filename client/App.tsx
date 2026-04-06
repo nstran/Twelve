@@ -5,6 +5,7 @@ import { RegisterScreen }        from './src/screens/RegisterScreen';
 import { MainScreen }            from './src/screens/MainScreen';
 import { CreateCharacterScreen } from './src/screens/CreateCharacterScreen';
 import { CharacterStatusScreen } from './src/screens/CharacterStatusScreen';
+import { MapSelectionScreen }     from './src/screens/MapSelectionScreen';
 import { SocketClient }          from './src/network/SocketClient';
 import {
   loadSession,
@@ -14,7 +15,7 @@ import {
 } from './src/storage/SessionStorage';
 
 // ── Screen states ────────────────────────────────────────────────────────────
-type Screen = 'login' | 'register' | 'main' | 'createCharacter' | 'characterStatus';
+type Screen = 'login' | 'register' | 'main' | 'createCharacter' | 'characterStatus' | 'mapSelection';
 
 const SERVER_URL         = 'ws://localhost:5102/game';
 const RECONNECT_DELAY_MS = 2000;
@@ -144,11 +145,22 @@ export default function App() {
       case 'characterStatus':
         return (
           <CharacterStatusScreen 
-            onStart={() => setScreen('main')}
+            onStart={() => setScreen('mapSelection')}
             onLogout={async () => { 
               await clearSession(); 
               setScreen('login'); 
             }}
+          />
+        );
+
+      case 'mapSelection':
+        return (
+          <MapSelectionScreen 
+            onSelect={(map) => {
+              console.log('[App] Selected Map:', map.name);
+              setScreen('main');
+            }}
+            onBack={() => setScreen('characterStatus')}
           />
         );
 
