@@ -38,10 +38,10 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
   const { width, height } = useWindowDimensions();
   const styles = useMemo(() => getStyles(width, height), [width, height]);
 
-  const [username, setUsername]         = useState('');
-  const [password, setPassword]         = useState('');
-  const [rememberMe, setRememberMe]     = useState(false);
-  const [autoLogin, setAutoLogin]       = useState(false);
+  const [username, setUsername]         = useState('trans');
+  const [password, setPassword]         = useState('123456');
+  const [rememberMe, setRememberMe]     = useState(true);
+  const [autoLogin, setAutoLogin]       = useState(true);
   const [loading, setLoading]           = useState(false);
   const [menuVisible, setMenuVisible]   = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);

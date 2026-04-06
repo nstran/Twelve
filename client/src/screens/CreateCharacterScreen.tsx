@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { styles }       from './CreateCharacterScreen.styles';
 import { SocketClient } from '../network/SocketClient';
-import { BODIES, HAIRS, FACES } from '../assets/AssetIndex';
+import { BODIES, HAIRS, FACES, SWORDS, FRONT_ARMS } from '../assets/AssetIndex';
 
 interface CreateCharacterScreenProps {
   onSuccess: () => void;
@@ -24,8 +24,9 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
   // ── States for Selections ──────────────────────────────────────────
   const [element,     setElement]     = useState(0);
   const [bodyIdx,     setBodyIdx]     = useState(0);
-  const [hairIdx,     setHairIdx]     = useState(0);
-  const [faceIdx,     setFaceIdx]     = useState(0);
+  const [hairIdx,     setHairIdx]     = useState(-1); // -1 = Không có tóc (trọc)
+  const [faceIdx,     setFaceIdx]     = useState(-1); // -1 = Không có mặt (ẩn mắt)
+  const [swordIdx,    setSwordIdx]    = useState(0);
 
   // ── Floating Animation ──────────────────────────────────────────────
   const floatingAnim = useRef(new Animated.Value(0)).current;
@@ -63,7 +64,9 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
         <TouchableOpacity style={styles.arrow} onPress={onPrev}>
           <Text style={styles.arrowText}>{'<'}</Text>
         </TouchableOpacity>
-        <Text style={styles.valueText}>{suffix} {value + 1} / {options.length}</Text>
+        <Text style={styles.valueText}>
+          {value === -1 || options.length === 0 ? (label === "MÁI TÓC" ? "TRỌC" : "TRỐNG") : `${suffix} ${value + 1} / ${options.length}`}
+        </Text>
         <TouchableOpacity style={styles.arrow} onPress={onNext}>
           <Text style={styles.arrowText}>{'>'}</Text>
         </TouchableOpacity>
@@ -87,10 +90,14 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
           <View style={styles.characterStack}>
              {/* Lớp 1: Thân */}
              <Image source={BODIES[bodyIdx]} style={styles.bodyLayer} />
-             {/* Lớp 2: Mắt (Cần offset để khớp mặt) */}
-             <Image source={FACES[faceIdx]} style={styles.faceLayer} />
-             {/* Lớp 3: Tóc (Cần offset cao hơn) */}
-             <Image source={HAIRS[hairIdx]} style={styles.hairLayer} />
+             {/* Lớp 2: Kiếm (Weapon) */}
+             <Image source={SWORDS[swordIdx]} style={styles.swordLayer} />
+             {/* Lớp 3: Bàn tay đè lên (Lấy từ ảnh mới v4) */}
+             <Image source={FRONT_ARMS[0]} style={styles.frontArmLayer} />
+             {/* Lớp 4: Mắt */}
+             {faceIdx !== -1 && <Image source={FACES[faceIdx]} style={styles.faceLayer} />}
+             {/* Lớp 5: Tóc */}
+             {hairIdx !== -1 && <Image source={HAIRS[hairIdx]} style={styles.hairLayer} />}
           </View>
         </Animated.View>
       </View>
@@ -114,12 +121,16 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
           onNext={() => setBodyIdx(v => v<BODIES.length-1?v+1:0)} />
 
         <SelectorRow label="THẦN THÁI" value={faceIdx} options={FACES} suffix="MẮT"
-          onPrev={() => setFaceIdx(v => v>0?v-1:FACES.length-1)}
-          onNext={() => setFaceIdx(v => v<FACES.length-1?v+1:0)} />
+          onPrev={() => setFaceIdx(v => v>-1?v-1:FACES.length-1)}
+          onNext={() => setFaceIdx(v => v<FACES.length-1?v+1:-1)} />
 
         <SelectorRow label="MÁI TÓC" value={hairIdx} options={HAIRS} suffix="TÓC"
-          onPrev={() => setHairIdx(v => v>0?v-1:HAIRS.length-1)}
-          onNext={() => setHairIdx(v => v<HAIRS.length-1?v+1:0)} />
+          onPrev={() => setHairIdx(v => HAIRS.length > 0 ? (v > -1 ? v - 1 : HAIRS.length - 1) : -1)}
+          onNext={() => setHairIdx(v => HAIRS.length > 0 ? (v < HAIRS.length - 1 ? v + 1 : -1) : -1)} />
+
+        <SelectorRow label="VŨ KHÍ" value={swordIdx} options={SWORDS} suffix="KIẾM"
+          onPrev={() => setSwordIdx(v => SWORDS.length > 0 ? (v > 0 ? v - 1 : SWORDS.length - 1) : 0)}
+          onNext={() => setSwordIdx(v => SWORDS.length > 0 ? (v < SWORDS.length - 1 ? v + 1 : 0) : 0)} />
       </View>
 
       <View style={styles.softKeyBar}>

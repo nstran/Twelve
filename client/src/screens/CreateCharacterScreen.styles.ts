@@ -26,13 +26,13 @@ export const styles = StyleSheet.create({
     height: 100,
     resizeMode: 'contain',
     position: 'absolute',
-    bottom: '20%',
+    bottom: -30, // Hạ thấp xuống sát mép dưới
   },
   characterStack: {
     width: 250,
     height: 250,
     position: 'absolute',
-    bottom: '30%',
+    bottom: '8%', // Căn để chân đứng trên khối đá dạt xuống mép
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -57,6 +57,25 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     top: -5,  // Cân chỉnh để tóc trùm lên đầu
     zIndex: 3,
+  },
+  frontArmLayer: {
+    width: 35,    // Kích thước nắm đấm v4 thực tế
+    height: 40,
+    resizeMode: 'contain',
+    position: 'absolute',
+    right: 143,    // Tọa độ đã căn chỉnh chuẩn
+    bottom: 75,
+    zIndex: 5,
+  },
+  swordLayer: {
+    width: 150,
+    height: 150,
+    resizeMode: 'contain',
+    position: 'absolute',
+    right: 42,      // Dời vào gần tay hơn sau khi xoay 90 độ
+    bottom: -4,    // Hạ thấp chút để cán kiếm khớp tay nằm ngang
+    zIndex: 4,
+    transform: [{ rotate: '-10deg' }], // Xoay thêm 90 độ so với góc cũ (15 -> 105)
   },
 
   // ── Info Overlay (Title) ───────────────────────────────────────────
