@@ -6,6 +6,7 @@ import { MainScreen }            from './src/screens/MainScreen';
 import { CreateCharacterScreen } from './src/screens/CreateCharacterScreen';
 import { CharacterStatusScreen } from './src/screens/CharacterStatusScreen';
 import { MapSelectionScreen }     from './src/screens/MapSelectionScreen';
+import { HoaLuMapScreen }         from './src/screens/HoaLuMapScreen';
 import { SocketClient }          from './src/network/SocketClient';
 import {
   loadSession,
@@ -16,7 +17,7 @@ import {
 } from './src/storage/SessionStorage';
 
 // ── Screen states ────────────────────────────────────────────────────────────
-type Screen = 'login' | 'register' | 'main' | 'createCharacter' | 'characterStatus' | 'mapSelection';
+type Screen = 'login' | 'register' | 'main' | 'createCharacter' | 'characterStatus' | 'mapSelection' | 'hoaLuMap';
 
 const SERVER_URL         = 'ws://localhost:5102/game';
 const RECONNECT_DELAY_MS = 2000;
@@ -167,12 +168,24 @@ export default function App() {
 
       case 'mapSelection':
         return (
-          <MapSelectionScreen 
+          <MapSelectionScreen
             onSelect={(map) => {
-              console.log('[App] Selected Map:', map.name);
-              setScreen('main');
+              console.log('[App] Selected Map:', map.name, map.id);
+              // Hoa Lư → màn hình map side-scrolling mới
+              if (map.id === 'hoalu') {
+                setScreen('hoaLuMap');
+              } else {
+                setScreen('main');
+              }
             }}
             onBack={() => setScreen('characterStatus')}
+          />
+        );
+
+      case 'hoaLuMap':
+        return (
+          <HoaLuMapScreen
+            onBack={() => setScreen('mapSelection')}
           />
         );
 
