@@ -7,6 +7,7 @@ import { CreateCharacterScreen } from './src/screens/CreateCharacterScreen';
 import { CharacterStatusScreen } from './src/screens/CharacterStatusScreen';
 import { MapSelectionScreen }     from './src/screens/MapSelectionScreen';
 import { HoaLuMapScreen }         from './src/screens/HoaLuMapScreen';
+import { BattleScreen }           from './src/screens/BattleScreen';
 import { SocketClient }          from './src/network/SocketClient';
 import {
   loadSession,
@@ -17,13 +18,15 @@ import {
 } from './src/storage/SessionStorage';
 
 // ── Screen states ────────────────────────────────────────────────────────────
-type Screen = 'login' | 'register' | 'main' | 'createCharacter' | 'characterStatus' | 'mapSelection' | 'hoaLuMap';
+type Screen = 'login' | 'register' | 'main' | 'createCharacter' | 'characterStatus' | 'mapSelection' | 'hoaLuMap' | 'battle';
+type MonsterTypeNav = 'fire' | 'ice' | 'zap';
 
 const SERVER_URL         = 'ws://localhost:5102/game';
 const RECONNECT_DELAY_MS = 2000;
 
 export default function App() {
   const [screen, setScreen]           = useState<Screen>('login');
+  const [battleMonster, setBattleMonster] = useState<MonsterTypeNav>('fire');
   const [isConnected, setIsConnected] = useState(false);
   const [connectMsg, setConnectMsg]   = useState('ĐANG KẾT NỐI CHIẾN TRƯỜNG...');
   const addLog = (msg: string) => console.log(msg);
@@ -186,6 +189,20 @@ export default function App() {
         return (
           <HoaLuMapScreen
             onBack={() => setScreen('mapSelection')}
+            onBattle={(type) => {
+              setBattleMonster(type as MonsterTypeNav);
+              setScreen('battle');
+            }}
+          />
+        );
+
+      case 'battle':
+        return (
+          <BattleScreen
+            monsterType={battleMonster}
+            onVictory={() => setScreen('hoaLuMap')}
+            onDefeat={()  => setScreen('hoaLuMap')}
+            onFlee={()    => setScreen('hoaLuMap')}
           />
         );
 

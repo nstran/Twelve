@@ -75,12 +75,14 @@ function buildInitialMonsters(): MonsterState[] {
 
 // ── Props ────────────────────────────────────────────────────────────────────
 interface Props {
-  onBack: () => void;
+  onBack:    () => void;
+  onBattle?: (monsterType: MonsterType) => void;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-export const HoaLuMapScreen: React.FC<Props> = ({ onBack }) => {
-  const scrollRef = useRef<ScrollView>(null);
+export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onBattle }) => {
+  const scrollRef         = useRef<ScrollView>(null);
+  const battleTriggered   = useRef(false);
 
   // Vị trí nhân vật (Animated cho mượt, ref cho game logic)
   const charLeft    = useRef(new Animated.Value(CHAR_INIT_X)).current;
@@ -106,6 +108,12 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack }) => {
 
         // Kiểm tra va chạm với nhân vật
         const attacking = Math.abs(newX - playerCenter) < COLLISION_DIST;
+
+        // Khi quái va chạm → vào màn hình trận đấu (chỉ trigger 1 lần)
+        if (attacking && !battleTriggered.current && onBattle) {
+          battleTriggered.current = true;
+          setTimeout(() => onBattle(m.type), 120);
+        }
 
         // Cycle frame
         const newTick = m.tickCount + 1;
@@ -257,7 +265,10 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack }) => {
         <TouchableOpacity style={styles.btn} onPress={onBack}>
           <Text style={styles.btnTxt}>◀ Quay lại</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.btn, styles.btnEnter]}>
+        <TouchableOpacity
+          style={[styles.btn, styles.btnEnter]}
+          onPress={() => { if (onBattle) { battleTriggered.current = true; onBattle('fire'); } }}
+        >
           <Text style={styles.btnTxt}>⚔ Vào Trận</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.btn}>
