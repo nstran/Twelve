@@ -40,6 +40,7 @@ import type {
   FallEntry,
   FXKind,
   GemType,
+  MoveSpec,
 } from './BattleScreen.shared';
 import {
   s,
@@ -84,6 +85,8 @@ export const BattleScreen: React.FC<Props> = ({
 
   const [board,         setBoard]         = useState<Board>(makeBoard);
   const [selected,      setSelected]      = useState<[number, number] | null>(null);
+  const [hintCell,      setHintCell]      = useState<[number, number] | null>(null);
+  const [hintMove,      setHintMove]      = useState<MoveSpec | null>(null);
   const [explodeFrames, setExplodeFrames] = useState<Record<string, number>>({});
   const [playerHP,  setPlayerHP]  = useState(maxHP);
   const [enemyHP,   setEnemyHP]   = useState(maxEHP);
@@ -123,6 +126,9 @@ export const BattleScreen: React.FC<Props> = ({
   const boardRef   = useRef<Board>(board);
   const enemyHPRef = useRef(enemyHP);
   const playerHPRef= useRef(playerHP);
+  const selectedRef = useRef<[number, number] | null>(selected);
+  const hintMoveRef = useRef<MoveSpec | null>(hintMove);
+  const playerHintShownRef = useRef(false);
   const turnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const turnDeadlineRef = useRef(0);
 
@@ -147,6 +153,8 @@ export const BattleScreen: React.FC<Props> = ({
   useEffect(() => { boardRef.current = board; }, [board]);
   useEffect(() => { enemyHPRef.current = enemyHP; }, [enemyHP]);
   useEffect(() => { playerHPRef.current = playerHP; }, [playerHP]);
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
+  useEffect(() => { hintMoveRef.current = hintMove; }, [hintMove]);
   useEffect(() => { turnRef.current = turn; }, [turn]);
   useEffect(() => { extraTurnsRef.current = extraTurns; }, [extraTurns]);
   useEffect(() => {
@@ -614,6 +622,36 @@ export const BattleScreen: React.FC<Props> = ({
     }
   }, []);
 
+  const pickRandomValidMove = useCallback((b: Board): MoveSpec | null => {
+    const valid = getAllValidMoves(b);
+    if (valid.length === 0) return null;
+    return valid[Math.floor(Math.random() * valid.length)] ?? null;
+  }, []);
+
+  const runAutoPlayerMove = useCallback((move: MoveSpec, logMessage: string) => {
+    aiTimers.current.forEach(clearTimeout);
+    aiTimers.current = [];
+    playerHintShownRef.current = true;
+    setHintCell(null);
+    setHintMove(null);
+    setAiStep(null);
+    setSelected([move.r1, move.c1]);
+    setLog(logMessage);
+
+    const t1 = setTimeout(() => {
+      if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'player') return;
+      setSelected([move.r2, move.c2]);
+
+      const t2 = setTimeout(() => {
+        if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'player') return;
+        setSelected(null);
+        doDirectSwapRef.current(move.r1, move.c1, move.r2, move.c2);
+      }, 350);
+      aiTimers.current.push(t2);
+    }, 350);
+    aiTimers.current.push(t1);
+  }, []);
+
   const handleTurnTimeout = useCallback(() => {
     if (!mountedRef.current || phaseRef.current !== 'idle' || result !== null) return;
 
@@ -622,6 +660,16 @@ export const BattleScreen: React.FC<Props> = ({
     aiTimers.current = [];
     setAiStep(null);
     setSelected(null);
+    setHintCell(null);
+
+    if (turnRef.current === 'player') {
+      const move = hintMoveRef.current ?? pickRandomValidMove(boardRef.current);
+      if (move) {
+        setTurnTimeLeft(TURN_TIME_LIMIT_SEC);
+        runAutoPlayerMove(move, '⏳ Hết 30 giây, hệ thống tự di chuyển giúp bạn.');
+        return;
+      }
+    }
 
     const who = turnRef.current === 'player' ? 'Bạn' : 'Quái';
     if (extraTurnsRef.current > 0) {
@@ -641,7 +689,19 @@ export const BattleScreen: React.FC<Props> = ({
     setTurnTimeLeft(TURN_TIME_LIMIT_SEC);
     setLog(`⏳ ${who} hết 30 giây, mất lượt.`);
     showBonusBanner(`⏳ ${who} hết giờ, đổi lượt!`);
-  }, [clearTurnTimer, result, showBonusBanner]);
+  }, [clearTurnTimer, pickRandomValidMove, result, runAutoPlayerMove, showBonusBanner]);
+
+  useEffect(() => {
+    if (turn === 'player' && phase === 'idle' && result === null) {
+      playerHintShownRef.current = false;
+      setHintCell(null);
+      setHintMove(null);
+      return;
+    }
+
+    setHintCell(null);
+    setHintMove(null);
+  }, [turn, phase, result, turnCycle]);
 
   useEffect(() => {
     clearTurnTimer();
@@ -657,11 +717,26 @@ export const BattleScreen: React.FC<Props> = ({
       const remainingMs = turnDeadlineRef.current - Date.now();
       const next = Math.max(0, Math.ceil(remainingMs / 1000));
       if (mountedRef.current) setTurnTimeLeft(prev => (prev === next ? prev : next));
+      if (
+        turnRef.current === 'player' &&
+        !playerHintShownRef.current &&
+        selectedRef.current === null &&
+        remainingMs <= 20000 &&
+        remainingMs > 0
+      ) {
+        const move = pickRandomValidMove(boardRef.current);
+        if (move && mountedRef.current) {
+          const pickFirst = Math.random() > 0.5;
+          setHintCell(pickFirst ? [move.r1, move.c1] : [move.r2, move.c2]);
+          setHintMove(move);
+          playerHintShownRef.current = true;
+        }
+      }
       if (remainingMs <= 0) handleTurnTimeout();
     }, 250);
 
     return clearTurnTimer;
-  }, [phase, turn, result, turnCycle, clearTurnTimer, handleTurnTimeout]);
+  }, [phase, turn, result, turnCycle, clearTurnTimer, handleTurnTimeout, pickRandomValidMove]);
 
   useEffect(() => {
     // Monster AI triggers only when it's monster's turn, phase is idle, and AI level is set
@@ -673,6 +748,8 @@ export const BattleScreen: React.FC<Props> = ({
     aiTimers.current = [];
 
     // Step 0: Monster "thinking" — chờ thinkMs
+    setHintCell(null);
+    setHintMove(null);
     setAiStep('think');
     setSelected(null);
     setLog(`🐉 Lượt quái vật — ${cfg.emoji} ${cfg.name} đang suy nghĩ...`);
@@ -719,6 +796,8 @@ export const BattleScreen: React.FC<Props> = ({
   // ── Human tap ─────────────────────────────────────────────────────────────
   const handleGemPress = useCallback((row: number, col: number) => {
     if (phase !== 'idle' || turn !== 'player') return; // Chỉ cho tap khi lượt player
+    setHintCell(null);
+    setHintMove(null);
     if (!selected) { setSelected([row, col]); return; }
     const [sr, sc] = selected;
     if (sr === row && sc === col) { setSelected(null); return; }
@@ -732,6 +811,8 @@ export const BattleScreen: React.FC<Props> = ({
   // ── Skill ──────────────────────────────────────────────────────────────────
   const handleSkill = useCallback(() => {
     if (mana < 30 || phase !== 'idle' || turn !== 'player') return;
+    setHintCell(null);
+    setHintMove(null);
     setMana(m => m - 30);
     const dmg = 40 + Math.floor(Math.random() * 20);
     setEnemyHP(hp => {
@@ -847,8 +928,6 @@ export const BattleScreen: React.FC<Props> = ({
   const AI_LABEL_SHIFT_Y = 0;
   const EXTRA_TURNS_SHIFT_X = 0;
   const EXTRA_TURNS_SHIFT_Y = 0;
-  const BONUS_BANNER_SHIFT_X = 0;
-  const BONUS_BANNER_SHIFT_Y = 0;
   const CHARS_TOP  = SCREEN_H - 178 + CHARS_ROW_SHIFT_Y * BOARD_SCALE;
   const GND_TOP    = CHARS_TOP + 80 + GROUND_SHIFT_Y * BOARD_SCALE;
   const BTN_TOP    = SCREEN_H - 70 + BTN_ROW_SHIFT_Y * BOARD_SCALE;
@@ -935,7 +1014,11 @@ export const BattleScreen: React.FC<Props> = ({
                     position: 'absolute',
                     left: c * GEM_SIZE, top: r * GEM_SIZE,
                     width: GEM_SIZE,    height: GEM_SIZE,
-                    zIndex: selected?.[0] === r && selected?.[1] === c ? 120 : 1,
+                    zIndex:
+                      (selected?.[0] === r && selected?.[1] === c) ||
+                      (hintCell?.[0] === r && hintCell?.[1] === c)
+                        ? 120
+                        : 1,
                     transform: [
                       { translateX: swapOffsetsX[r][c] },
                       { translateY: swapOffsetsY[r][c] },
@@ -947,7 +1030,10 @@ export const BattleScreen: React.FC<Props> = ({
                     gemType={gemType}
                     frameIndex={explodeFrames[`${r},${c}`] ?? 0}
                     size={GEM_SIZE}
-                    selected={selected?.[0] === r && selected?.[1] === c}
+                    selected={
+                      (selected?.[0] === r && selected?.[1] === c) ||
+                      (hintCell?.[0] === r && hintCell?.[1] === c)
+                    }
                     focusVariant={turn === 'monster' ? 'enemy' : 'player'}
                     onPress={() => handleGemPress(r, c)}
                   />
