@@ -4,9 +4,45 @@ import {
   Animated, Easing,
 } from 'react-native';
 import {
-  MonsterSprite, MonsterType, WALK_FRAMES, ATTACK_FRAMES, monsterDisplaySize,
+  MonsterSprite, WALK_FRAMES, ATTACK_FRAMES,
 } from '../../engine/MonsterSprite';
 import { AnimatedTBar, GemCell, TBar } from './BattleScreen.components';
+import {
+  BONUS_BANNER_FADE_IN_MS,
+  BONUS_BANNER_FADE_OUT_MS,
+  BONUS_BANNER_HOLD_MS,
+  BATTLE_ASSETS,
+  COLLECT_FX_DURATION_MS,
+  COLLECT_PULSE_IN_MS,
+  COLLECT_PULSE_OUT_MS,
+  EXTRA_TURNS_BADGE_TOTAL_MS,
+  GAIN_POPUP_DURATION_MS,
+  MATCH_HOLD_BEFORE_EXPLODE_MS,
+  MATCH_SPARKLE_MAX_MS,
+  MATCH_SPARKLE_MIN_MS,
+  MATCH_SPARKLE_STAGGER_MS,
+  RESULT_ART_INDEX,
+  RESULT_ART_META,
+  TURN_TIME_LIMIT_SEC,
+} from './BattleScreen.constants';
+import {
+  BOARD_LEFT,
+  BOARD_TOP,
+  CHARS_ROW_SHIFT_X,
+  ENEMY_HUD_LAYOUT,
+  ENEMY_SPRITE_SHIFT_X,
+  ENEMY_SPRITE_SHIFT_Y,
+  EXTRA_TURNS_SHIFT_X,
+  EXTRA_TURNS_SHIFT_Y,
+  getBattleStageLayout,
+  HUD_BASE_Y,
+  HUD_STACK_H,
+  PLAYER_HUD_LAYOUT,
+  PLAYER_SPRITE_SHIFT_X,
+  PLAYER_SPRITE_SHIFT_Y,
+  TURN_TIMER_SHIFT_X,
+  TURN_TIMER_TOP,
+} from './BattleScreen.layout';
 import {
   calcSwordDamage,
   collapseLogic,
@@ -19,7 +55,6 @@ import {
 } from './BattleScreen.logic';
 import {
   AI_CONFIGS,
-  AI_ORDER,
   AURA1_IMG,
   AURA2_IMG,
   AURA3_IMG,
@@ -31,7 +66,6 @@ import {
   GEM_FX,
   GEM_FX_KIND,
   MONSTER_HP,
-  RED_SWORD_GEM,
   SWORD_CAT,
 } from './BattleScreen.shared';
 import type {
@@ -42,55 +76,25 @@ import type {
   GemType,
   MoveSpec,
 } from './BattleScreen.shared';
+import type {
+  BattleCell,
+  BattlePhase,
+  BattleResult,
+  BattleScreenProps,
+  BattleSide,
+  BattleTurn,
+  CollectFXItem,
+  DamagePopupItem,
+  GainPopupItem,
+  MatchFXItem,
+} from './BattleScreen.types';
 import {
   s,
-  SCREEN_W, SCREEN_H,
   BG_W, BG_H, BOARD_SCALE,
   BOARD_COLS, BOARD_ROWS, GEM_SIZE,
-  BOARD_LEFT_OFFSET, BOARD_TOP_OFFSET,
 } from './BattleScreen.styles';
-interface Props {
-  monsterType: MonsterType;
-  onVictory:  () => void;
-  onDefeat:   () => void;
-  onFlee:     () => void;
-}
-
-const TURN_TIME_LIMIT_SEC = 30;
-const MATCH_HOLD_BEFORE_EXPLODE_MS = 120;
-const MATCH_SPARKLE_MIN_MS = 720;
-const MATCH_SPARKLE_MAX_MS = 980;
-const MATCH_SPARKLE_STAGGER_MS = 140;
-const BONUS_BANNER_FADE_IN_MS = 250;
-const BONUS_BANNER_TOTAL_MS = 2000;
-const BONUS_BANNER_FADE_OUT_MS = 300;
-const BONUS_BANNER_HOLD_MS =
-  BONUS_BANNER_TOTAL_MS - BONUS_BANNER_FADE_IN_MS - BONUS_BANNER_FADE_OUT_MS;
-const EXTRA_TURNS_BADGE_TOTAL_MS = 3000;
-const COLLECT_FX_DURATION_MS = 2600;
-const GAIN_POPUP_DURATION_MS = 1200;
-const COLLECT_PULSE_IN_MS = 240;
-const COLLECT_PULSE_OUT_MS = 320;
-const RESULT_ART_INDEX = 1;
-const RESULT_ART_META = {
-  victory: {
-    asset: require('../../../assets/strwin.png'),
-    frameWidth: 172,
-    frameHeight: 65,
-    sheetWidth: 516,
-    sheetHeight: 65,
-  },
-  defeat: {
-    asset: require('../../../assets/strlose.png'),
-    frameWidth: 146,
-    frameHeight: 56,
-    sheetWidth: 438,
-    sheetHeight: 56,
-  },
-} as const;
-
-export const BattleScreen: React.FC<Props> = ({
-  monsterType, onVictory, onDefeat, onFlee,
+export const BattleScreen: React.FC<BattleScreenProps> = ({
+  monsterType, onVictory, onDefeat,
 }) => {
   const maxHP  = 100;
   const maxEHP = MONSTER_HP[monsterType] ?? 150;
@@ -98,25 +102,23 @@ export const BattleScreen: React.FC<Props> = ({
   const maxPow = 100;
 
   const [board,         setBoard]         = useState<Board>(makeBoard);
-  const [selected,      setSelected]      = useState<[number, number] | null>(null);
-  const [hintCell,      setHintCell]      = useState<[number, number] | null>(null);
+  const [selected,      setSelected]      = useState<BattleCell | null>(null);
+  const [hintCell,      setHintCell]      = useState<BattleCell | null>(null);
   const [hintMove,      setHintMove]      = useState<MoveSpec | null>(null);
   const [explodeFrames, setExplodeFrames] = useState<Record<string, number>>({});
   const [playerHP,  setPlayerHP]  = useState(maxHP);
   const [enemyHP,   setEnemyHP]   = useState(maxEHP);
   const [mana,      setMana]      = useState(30);
   const [power,     setPower]     = useState(40);
-  const [log,       setLog]       = useState('Trận đấu bắt đầu!');
-  const [combo,     setCombo]     = useState(0);
-  const [phase,     setPhase]     = useState<'idle' | 'busy' | 'over'>('idle');
-  const [result,    setResult]    = useState<'victory' | 'defeat' | null>(null);
+  const [phase,     setPhase]     = useState<BattlePhase>('idle');
+  const [result,    setResult]    = useState<BattleResult | null>(null);
   const [monFrame,  setMonFrame]  = useState<number>(WALK_FRAMES[0]);
   const [monAtk,    setMonAtk]   = useState(false);
-  const [aiLevel,   setAiLevel]  = useState<AILevel | null>('linh_canh');
+  const [aiLevel]  = useState<AILevel | null>('linh_canh');
 
   // ── Turn-based system ──────────────────────────────────────────────────────
-  const [turn, setTurn] = useState<'player' | 'monster'>('player');
-  const turnRef = useRef<'player' | 'monster'>('player');
+  const [turn, setTurn] = useState<BattleTurn>('player');
+  const turnRef = useRef<BattleTurn>('player');
 
   // ── Extra turns: match 4+ → bonus lượt ────────────────────────────────────
   const [extraTurns, setExtraTurns] = useState(0);
@@ -130,50 +132,6 @@ export const BattleScreen: React.FC<Props> = ({
   const [turnTimeLeft, setTurnTimeLeft] = useState(TURN_TIME_LIMIT_SEC);
   const [turnCycle, setTurnCycle] = useState(0);
 
-  // Match particle effects
-  interface MatchFXItem {
-    key: string;
-    r: number;
-    c: number;
-    kind: FXKind;
-    source: any;
-    size: number;
-    startOffsetX: number;
-    startOffsetY: number;
-    driftX: number;
-    driftY: number;
-    rotate: string;
-    anim: Animated.Value;
-    delayMs: number;
-    durationMs: number;
-  }
-  interface DamagePopupItem { key: string; side: 'player' | 'enemy'; amount: number; anim: Animated.Value }
-  interface CollectFXItem {
-    key: string;
-    source: any;
-    startX: number;
-    startY: number;
-    curve1X: number;
-    curve1Y: number;
-    curve2X: number;
-    curve2Y: number;
-    endX: number;
-    endY: number;
-    size: number;
-    isCrystal: boolean;
-    renderW: number;
-    renderH: number;
-    cropLeft: number;
-    cropWidth: number;
-    fadeOutAt: number;
-    endScale: number;
-    glowScale: number;
-    glowOpacity: number;
-    delayMs: number;
-    durationMs: number;
-    anim: Animated.Value;
-  }
-  interface GainPopupItem { key: string; side: 'player' | 'enemy'; text: string; anim: Animated.Value }
   const [matchFX, setMatchFX] = useState<MatchFXItem[]>([]);
   const [damagePopups, setDamagePopups] = useState<DamagePopupItem[]>([]);
   const [collectFX, setCollectFX] = useState<CollectFXItem[]>([]);
@@ -190,12 +148,12 @@ export const BattleScreen: React.FC<Props> = ({
   const playerCollectAnim = useRef(new Animated.Value(0)).current;
   const enemyCollectAnim = useRef(new Animated.Value(0)).current;
   const powerBlinkLoopRef = useRef<Animated.CompositeAnimation | null>(null);
-  const phaseRef   = useRef<'idle' | 'busy' | 'over'>('idle');
+  const phaseRef   = useRef<BattlePhase>('idle');
   const mountedRef = useRef(true);
   const boardRef   = useRef<Board>(board);
   const enemyHPRef = useRef(enemyHP);
   const playerHPRef= useRef(playerHP);
-  const selectedRef = useRef<[number, number] | null>(selected);
+  const selectedRef = useRef<BattleCell | null>(selected);
   const hintMoveRef = useRef<MoveSpec | null>(hintMove);
   const playerHintShownRef = useRef(false);
   const turnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -634,7 +592,7 @@ export const BattleScreen: React.FC<Props> = ({
     ]).start(() => { if (mountedRef.current) setBonusBanner(null); });
   }, [bonusBannerAnim]);
 
-  const showDamagePopup = useCallback((side: 'player' | 'enemy', amount: number) => {
+  const showDamagePopup = useCallback((side: BattleSide, amount: number) => {
     if (amount <= 0) return;
     const anim = new Animated.Value(0);
     const key = `dmg-${++damagePopupKeyRef.current}`;
@@ -650,7 +608,7 @@ export const BattleScreen: React.FC<Props> = ({
     });
   }, []);
 
-  const showGainPopup = useCallback((side: 'player' | 'enemy', text: string) => {
+  const showGainPopup = useCallback((side: BattleSide, text: string) => {
     const anim = new Animated.Value(0);
     const key = `gain-${++gainPopupKeyRef.current}`;
     setGainPopups(prev => [...prev, { key, side, text, anim }]);
@@ -665,7 +623,7 @@ export const BattleScreen: React.FC<Props> = ({
     });
   }, []);
 
-  const pulseCollector = useCallback((side: 'player' | 'enemy') => {
+  const pulseCollector = useCallback((side: BattleSide) => {
     const anim = side === 'player' ? playerCollectAnim : enemyCollectAnim;
     anim.stopAnimation();
     anim.setValue(0);
@@ -688,59 +646,59 @@ export const BattleScreen: React.FC<Props> = ({
   const spawnCollectFX = useCallback((
     matched: Set<string>,
     b: Board,
-    collectorSide: 'player' | 'enemy',
+    collectorSide: BattleSide,
     healAmount: number,
   ) => {
     const rand = (min: number, max: number) => min + Math.random() * (max - min);
     const hpRect = collectorSide === 'player'
       ? {
-        x: BATTLE_PANEL_LEFT + PLAYER_HUD_LEFT + PLAYER_HP_X,
-        y: BATTLE_PANEL_TOP + HUD_BASE_Y + PLAYER_HUD_SHIFT_Y * BOARD_SCALE + PLAYER_HP_Y,
-        w: PLAYER_HP_W,
-        h: PLAYER_HP_H,
+        x: panelLeft + playerHud.offsetX + playerHud.hp.x,
+        y: panelTop + HUD_BASE_Y + playerHud.shiftY + playerHud.hp.y,
+        w: playerHud.hp.w,
+        h: playerHud.hp.h,
       }
       : {
-        x: BATTLE_PANEL_LEFT + BG_W - ENEMY_HUD_RIGHT - ENEMY_HP_X - ENEMY_HP_W,
-        y: BATTLE_PANEL_TOP + HUD_BASE_Y + ENEMY_HUD_SHIFT_Y * BOARD_SCALE + ENEMY_HP_Y,
-        w: ENEMY_HP_W,
-        h: ENEMY_HP_H,
+        x: panelLeft + BG_W - enemyHud.offsetX - enemyHud.hp.x - enemyHud.hp.w,
+        y: panelTop + HUD_BASE_Y + enemyHud.shiftY + enemyHud.hp.y,
+        w: enemyHud.hp.w,
+        h: enemyHud.hp.h,
       };
     const mpRect = collectorSide === 'player'
       ? {
-        x: BATTLE_PANEL_LEFT + PLAYER_HUD_LEFT + PLAYER_MP_X,
-        y: BATTLE_PANEL_TOP + HUD_BASE_Y + PLAYER_HUD_SHIFT_Y * BOARD_SCALE + PLAYER_MP_Y,
-        w: PLAYER_MP_W,
-        h: PLAYER_MP_H,
+        x: panelLeft + playerHud.offsetX + playerHud.mp.x,
+        y: panelTop + HUD_BASE_Y + playerHud.shiftY + playerHud.mp.y,
+        w: playerHud.mp.w,
+        h: playerHud.mp.h,
       }
       : {
-        x: BATTLE_PANEL_LEFT + BG_W - ENEMY_HUD_RIGHT - ENEMY_MP_X - ENEMY_MP_W,
-        y: BATTLE_PANEL_TOP + HUD_BASE_Y + ENEMY_HUD_SHIFT_Y * BOARD_SCALE + ENEMY_MP_Y,
-        w: ENEMY_MP_W,
-        h: ENEMY_MP_H,
+        x: panelLeft + BG_W - enemyHud.offsetX - enemyHud.mp.x - enemyHud.mp.w,
+        y: panelTop + HUD_BASE_Y + enemyHud.shiftY + enemyHud.mp.y,
+        w: enemyHud.mp.w,
+        h: enemyHud.mp.h,
       };
     const powRect = collectorSide === 'player'
       ? {
-        x: BATTLE_PANEL_LEFT + PLAYER_HUD_LEFT + PLAYER_POWER_X,
-        y: BATTLE_PANEL_TOP + HUD_BASE_Y + PLAYER_HUD_SHIFT_Y * BOARD_SCALE + PLAYER_POWER_Y,
-        w: PLAYER_POWER_W,
-        h: PLAYER_POWER_H,
+        x: panelLeft + playerHud.offsetX + playerHud.power.x,
+        y: panelTop + HUD_BASE_Y + playerHud.shiftY + playerHud.power.y,
+        w: playerHud.power.w,
+        h: playerHud.power.h,
       }
       : {
-        x: BATTLE_PANEL_LEFT + BG_W - ENEMY_HUD_RIGHT - ENEMY_POWER_X - ENEMY_POWER_W,
-        y: BATTLE_PANEL_TOP + HUD_BASE_Y + ENEMY_HUD_SHIFT_Y * BOARD_SCALE + ENEMY_POWER_Y,
-        w: ENEMY_POWER_W,
-        h: ENEMY_POWER_H,
+        x: panelLeft + BG_W - enemyHud.offsetX - enemyHud.power.x - enemyHud.power.w,
+        y: panelTop + HUD_BASE_Y + enemyHud.shiftY + enemyHud.power.y,
+        w: enemyHud.power.w,
+        h: enemyHud.power.h,
       };
     const charRect = collectorSide === 'player'
       ? {
-        x: BATTLE_PANEL_LEFT + 24,
-        y: CHARS_TOP + 10,
+        x: panelLeft + 24,
+        y: charsTop + 10,
         w: 42,
         h: 30,
       }
       : {
-        x: BATTLE_PANEL_LEFT + BG_W - 92,
-        y: CHARS_TOP + 6,
+        x: panelLeft + BG_W - 92,
+        y: charsTop + 6,
         w: 46,
         h: 34,
       };
@@ -866,8 +824,8 @@ export const BattleScreen: React.FC<Props> = ({
       const g = b[r][c];
       if (g === null) return;
       const fx = GEM_FX[g];
-      const startX = BATTLE_PANEL_LEFT + BOARD_LEFT + c * GEM_SIZE + GEM_SIZE / 2;
-      const startY = BATTLE_PANEL_TOP + BOARD_TOP + r * GEM_SIZE + GEM_SIZE / 2;
+      const startX = panelLeft + BOARD_LEFT + c * GEM_SIZE + GEM_SIZE / 2;
+      const startY = panelTop + BOARD_TOP + r * GEM_SIZE + GEM_SIZE / 2;
 
       if (fx.heal > 0) {
         hitHP = true;
@@ -938,11 +896,10 @@ export const BattleScreen: React.FC<Props> = ({
     if (!mountedRef.current) return;
     const raw = findMatches(b);
     if (raw.size === 0) {
-      setBoard(b); setCombo(0);
+      setBoard(b);
 
       // ── Check deadlock: không còn nước đi → reset board ──
       if (getAllValidMoves(b).length === 0) {
-        setLog('🔀 Hết nước đi! Xáo trộn bàn cờ...');
         showBonusBanner('🔀 Hết nước! Bàn cờ mới!');
         resetBoardAnim(() => {
           if (!mountedRef.current) return;
@@ -960,7 +917,6 @@ export const BattleScreen: React.FC<Props> = ({
         setExtraTurns(remaining);
         const who = turnRef.current === 'player' ? 'Bạn' : 'Quái';
         showBonusBanner(`🔄 ${who} được thêm lượt! ${remaining > 0 ? `Còn ${remaining} lượt` : ''}`);
-        setLog(`🔄 Thêm lượt! ${remaining > 0 ? `(còn ${remaining} lượt nữa)` : '(lượt cuối)'}`);
         setPhase('idle'); phaseRef.current = 'idle';
       } else {
         // Hết lượt bonus → chuyển turn
@@ -999,11 +955,6 @@ export const BattleScreen: React.FC<Props> = ({
       pow  += Math.round(fx.pow  * cnt!);
     });
     dmg = Math.round(dmg * (1 + chain * 0.4));
-    const hasRedBlast = [...matched].some(k => {
-      const [r, c] = k.split(',').map(Number);
-      return b[r][c] === RED_SWORD_GEM;
-    }) && matched.size > raw.size;
-
     setTimeout(() => {
       if (!mountedRef.current || phaseRef.current === 'over') return;
       const collectorSide = turnRef.current === 'player' ? 'player' : 'enemy';
@@ -1044,14 +995,6 @@ export const BattleScreen: React.FC<Props> = ({
           // Monster doesn't gain player's mana/power
         }
 
-        const isMonTurn = turnRef.current === 'monster';
-        const parts: string[] = [];
-        if (hasRedBlast) parts.push('💥 Kiếm đỏ nổ dây chuyền!');
-        if (dmg > 0)  parts.push(isMonTurn ? `🐉 Quái đánh -${dmg} HP` : `⚔ -${dmg}`);
-        if (heal > 0) parts.push(isMonTurn ? `🐉 Quái hồi +${heal} HP` : `❤ +${heal}`);
-        setLog((chain > 0 ? `COMBO ×${chain + 1}!  ` : '') + parts.join('  '));
-        setCombo(chain + 1);
-
         animateFall(newBoard, fallMap, () => {
           setTimeout(() => processMatches(newBoard, chain + 1), 80);
         });
@@ -1068,12 +1011,8 @@ export const BattleScreen: React.FC<Props> = ({
       setPhase('busy'); phaseRef.current = 'busy';
       animateInvalidSwapBounce(r1, c1, r2, c2, () => {
         if (!mountedRef.current) return;
-        setCombo(0);
         if (turnRef.current === 'monster') {
           turnRef.current = 'player'; setTurn('player');
-          setLog('🐉 Quái đổi chỗ nhưng không ghép được, quân cờ bật lại.');
-        } else {
-          setLog('↩ Không tạo được match, quân cờ trở về vị trí cũ.');
         }
         setPhase('idle'); phaseRef.current = 'idle';
       });
@@ -1108,7 +1047,7 @@ export const BattleScreen: React.FC<Props> = ({
     return valid[Math.floor(Math.random() * valid.length)] ?? null;
   }, []);
 
-  const runAutoPlayerMove = useCallback((move: MoveSpec, logMessage: string) => {
+  const runAutoPlayerMove = useCallback((move: MoveSpec) => {
     aiTimers.current.forEach(clearTimeout);
     aiTimers.current = [];
     playerHintShownRef.current = true;
@@ -1116,7 +1055,6 @@ export const BattleScreen: React.FC<Props> = ({
     setHintMove(null);
     setAiStep(null);
     setSelected([move.r1, move.c1]);
-    setLog(logMessage);
 
     const t1 = setTimeout(() => {
       if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'player') return;
@@ -1146,7 +1084,7 @@ export const BattleScreen: React.FC<Props> = ({
       const move = hintMoveRef.current ?? pickRandomValidMove(boardRef.current);
       if (move) {
         setTurnTimeLeft(TURN_TIME_LIMIT_SEC);
-        runAutoPlayerMove(move, '⏳ Hết 30 giây, hệ thống tự di chuyển giúp bạn.');
+        runAutoPlayerMove(move);
         return;
       }
     }
@@ -1156,7 +1094,6 @@ export const BattleScreen: React.FC<Props> = ({
       const remaining = extraTurnsRef.current - 1;
       extraTurnsRef.current = remaining;
       setExtraTurns(remaining);
-      setLog(`⏳ ${who} hết 30 giây, mất 1 lượt thưởng.`);
       showBonusBanner(`⏳ ${who} hết giờ! -1 lượt thưởng`);
       setTurnTimeLeft(TURN_TIME_LIMIT_SEC);
       setTurnCycle(v => v + 1);
@@ -1167,7 +1104,6 @@ export const BattleScreen: React.FC<Props> = ({
     turnRef.current = nextTurn;
     setTurn(nextTurn);
     setTurnTimeLeft(TURN_TIME_LIMIT_SEC);
-    setLog(`⏳ ${who} hết 30 giây, mất lượt.`);
     showBonusBanner(`⏳ ${who} hết giờ, đổi lượt!`);
   }, [clearTurnTimer, pickRandomValidMove, result, runAutoPlayerMove, showBonusBanner]);
 
@@ -1246,7 +1182,6 @@ export const BattleScreen: React.FC<Props> = ({
     setHintMove(null);
     setAiStep('think');
     setSelected(null);
-    setLog(`🐉 Lượt quái vật — ${cfg.emoji} ${cfg.name} đang suy nghĩ...`);
 
     const t1 = setTimeout(() => {
       if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') return;
@@ -1257,7 +1192,6 @@ export const BattleScreen: React.FC<Props> = ({
         // No valid moves — skip monster turn
         setAiStep(null);
         turnRef.current = 'player'; setTurn('player');
-        setLog('🐉 Quái không tìm được nước đi!');
         return;
       }
 
@@ -1317,109 +1251,15 @@ export const BattleScreen: React.FC<Props> = ({
       }
       return next;
     });
-    setLog(`💫 Kỹ năng! -${dmg} HP quái!`);
     // Skill also ends player turn → switch to monster
     turnRef.current = 'monster'; setTurn('monster');
   }, [mana, phase, showDamagePopup, turn]);
 
   // ── Layout ─────────────────────────────────────────────────────────────────
-  // Khung battle panel bám theo bkboardv. Các phần bên trong dùng toạ độ local
-  // để chỉ cần căn trong một container relative.
-  const BATTLE_PANEL_LEFT_SHIFT = 0;
-  const CHARS_ROW_H = 80;
-  const CHARS_PANEL_OVERLAP = 60 * BOARD_SCALE;
-  const CHARS_VISIBLE_BELOW_PANEL = Math.max(0, CHARS_ROW_H - CHARS_PANEL_OVERLAP);
-  const STAGE_TOTAL_H = BG_H + CHARS_VISIBLE_BELOW_PANEL;
-  const BATTLE_PANEL_LEFT = Math.round((SCREEN_W - BG_W) / 2)
-    + Math.round(BATTLE_PANEL_LEFT_SHIFT * BOARD_SCALE);
-  const BATTLE_PANEL_TOP = Math.round((SCREEN_H - STAGE_TOTAL_H) / 2);
-
-  // Hai cột thanh chỉ số trái/phải nằm trong 3 rãnh dưới board.
-  // Tách riêng offset để về sau có thể căn từng bên độc lập.
-  const PLAYER_HUD_LEFT = 8 * BOARD_SCALE;
-  const PLAYER_HUD_SHIFT_Y = -1;
-  const ENEMY_HUD_RIGHT = 8 * BOARD_SCALE;
-  const ENEMY_HUD_SHIFT_Y = -1;
-
-  // HUD_BASE_Y: vị trí bắt đầu stack HP/MP/Nộ.
-  // Mỗi thanh có x/y/w/h riêng để chỉnh pixel-perfect từng thanh.
-  const HUD_BASE_Y = 231 * BOARD_SCALE;
-  const PLAYER_HP_X = 2.6 * BOARD_SCALE;
-  const PLAYER_HP_Y = 3 * BOARD_SCALE;
-  const PLAYER_HP_W = 74.7 * BOARD_SCALE;
-  const PLAYER_HP_H = 5 * BOARD_SCALE;
-  const PLAYER_MP_X = 2.6 * BOARD_SCALE;
-  const PLAYER_MP_Y = 10.3 * BOARD_SCALE;
-  const PLAYER_MP_W = 75 * BOARD_SCALE;
-  const PLAYER_MP_H = 5 * BOARD_SCALE;
-  const PLAYER_POWER_X = 2 * BOARD_SCALE;
-  const PLAYER_POWER_Y = 17.4 * BOARD_SCALE;
-  const PLAYER_POWER_W = 74.7 * BOARD_SCALE;
-  const PLAYER_POWER_H = 5 * BOARD_SCALE;
-
-  const ENEMY_HP_X = 2.6 * BOARD_SCALE;
-  const ENEMY_HP_Y = 3 * BOARD_SCALE;
-  const ENEMY_HP_W = 74.7 * BOARD_SCALE;
-  const ENEMY_HP_H = 5 * BOARD_SCALE;
-  const ENEMY_MP_X = 2.6 * BOARD_SCALE;
-  const ENEMY_MP_Y = 10.3 * BOARD_SCALE;
-  const ENEMY_MP_W = 74.7 * BOARD_SCALE;
-  const ENEMY_MP_H = 5 * BOARD_SCALE;
-  const ENEMY_POWER_X = 0 * BOARD_SCALE;
-  const ENEMY_POWER_Y = 17.4 * BOARD_SCALE;
-  const ENEMY_POWER_W = 74.7 * BOARD_SCALE;
-  const ENEMY_POWER_H = 5 * BOARD_SCALE;
-
-  const PLAYER_HUD_BOX_W = Math.max(
-    PLAYER_HP_X + PLAYER_HP_W,
-    PLAYER_MP_X + PLAYER_MP_W,
-    PLAYER_POWER_X + PLAYER_POWER_W,
-  );
-  const PLAYER_HUD_BOX_H = Math.max(
-    PLAYER_HP_Y + PLAYER_HP_H,
-    PLAYER_MP_Y + PLAYER_MP_H,
-    PLAYER_POWER_Y + PLAYER_POWER_H,
-  );
-  const ENEMY_HUD_BOX_W = Math.max(
-    ENEMY_HP_X + ENEMY_HP_W,
-    ENEMY_MP_X + ENEMY_MP_W,
-    ENEMY_POWER_X + ENEMY_POWER_W,
-  );
-  const ENEMY_HUD_BOX_H = Math.max(
-    ENEMY_HP_Y + ENEMY_HP_H,
-    ENEMY_MP_Y + ENEMY_MP_H,
-    ENEMY_POWER_Y + ENEMY_POWER_H,
-  );
-  const HUD_STACK_H = Math.max(PLAYER_HUD_BOX_H, ENEMY_HUD_BOX_H);
-
-  // TURN_TIMER_TOP: dòng số giây còn lại ở giữa, ngay dưới 2 cụm thanh chỉ số.
-  const TURN_TIMER_SHIFT_X = 0;
-  const TURN_TIMER_SHIFT_Y = 0;
-  const TURN_TIMER_TOP = HUD_BASE_Y + HUD_STACK_H - 20 * BOARD_SCALE + TURN_TIMER_SHIFT_Y * BOARD_SCALE;
-
-  // BOARD_TOP: vị trí thật của lưới gem, dùng chung cho badge thêm lượt và bonus banner.
-  const BOARD_SHIFT_X = 0;
-  const BOARD_SHIFT_Y = -17;
-  const BOARD_LEFT = BOARD_LEFT_OFFSET + BOARD_SHIFT_X * BOARD_SCALE + 7;
-  const BOARD_TOP  = BOARD_TOP_OFFSET + BOARD_SHIFT_Y * BOARD_SCALE;
-
-  // LOG_TOP: thanh text log nằm ngay dưới bàn cờ.
-  const LOG_SHIFT_X = 0;
-  const LOG_SHIFT_Y = 0;
-  const LOG_TOP    = BOARD_TOP + GEM_SIZE * BOARD_ROWS + 4 + LOG_SHIFT_Y * BOARD_SCALE;
-
-  // Các cụm phía dưới panel battle.
-  // CHARS_TOP: hàng nhân vật/quái ngay dưới panel battle.
-  const CHARS_ROW_SHIFT_X = 0;
-  const CHARS_ROW_SHIFT_Y = 0;
-  const PLAYER_SPRITE_SHIFT_X = 0;
-  const PLAYER_SPRITE_SHIFT_Y = 0;
-  const ENEMY_SPRITE_SHIFT_X = 0;
-  const ENEMY_SPRITE_SHIFT_Y = 0;
-  const EXTRA_TURNS_SHIFT_X = 0;
-  const EXTRA_TURNS_SHIFT_Y = 0;
-  const CHARS_TOP  = BATTLE_PANEL_TOP + BG_H - CHARS_PANEL_OVERLAP + CHARS_ROW_SHIFT_Y * BOARD_SCALE;
-  const { w: mW, h: mH } = monsterDisplaySize(monsterType);
+  const { panelLeft, panelTop, charsTop, damagePopupTop, monsterSize } = getBattleStageLayout(monsterType);
+  const playerHud = PLAYER_HUD_LAYOUT;
+  const enemyHud = ENEMY_HUD_LAYOUT;
+  const { w: mW, h: mH } = monsterSize;
   const resultMeta = result ? RESULT_ART_META[result] : null;
   const resultArtScale = resultArtAnim.interpolate({
     inputRange: [0, 1],
@@ -1434,9 +1274,8 @@ export const BattleScreen: React.FC<Props> = ({
     outputRange: [14, 0],
   });
   const hasBoardFocus = selected !== null || hintCell !== null;
-  const playerDamageLeft = BATTLE_PANEL_LEFT + 4;
-  const enemyDamageLeft = BATTLE_PANEL_LEFT + BG_W - 84;
-  const damagePopupTop = CHARS_TOP - 8 * BOARD_SCALE;
+  const playerDamageLeft = panelLeft + 4;
+  const enemyDamageLeft = panelLeft + BG_W - 84;
 
   return (
     <View style={s.root}>
@@ -1444,46 +1283,46 @@ export const BattleScreen: React.FC<Props> = ({
       {/* ── Battle Panel: relative frame for bkboardv + everything inside it ── */}
       <View style={{
         position: 'absolute',
-        top: BATTLE_PANEL_TOP,
-        left: BATTLE_PANEL_LEFT,
+        top: panelTop,
+        left: panelLeft,
         width: BG_W,
         height: BG_H,
       }}>
         <Image
-          source={require('../../../assets/play/bkboardv.png')}
+          source={BATTLE_ASSETS.boardFrame}
           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
           resizeMode="stretch"
         />
 
       {/* ── Player bars ──────────────────────────────────────── */}
         <View style={{
-          position: 'absolute', top: HUD_BASE_Y + PLAYER_HUD_SHIFT_Y * BOARD_SCALE,
-          left: PLAYER_HUD_LEFT, width: PLAYER_HUD_BOX_W, height: PLAYER_HUD_BOX_H, zIndex: 20,
+          position: 'absolute', top: HUD_BASE_Y + playerHud.shiftY,
+          left: playerHud.offsetX, width: playerHud.boxW, height: playerHud.boxH, zIndex: 20,
         }}>
-          <View style={{ position: 'absolute', top: PLAYER_HP_Y, left: PLAYER_HP_X }}>
-            <AnimatedTBar asset={require('../../../assets/play/hpbar.png')} fillAnim={playerHPBarAnim} max={maxHP} w={PLAYER_HP_W} h={PLAYER_HP_H} direction="ltr" />
+          <View style={{ position: 'absolute', top: playerHud.hp.y, left: playerHud.hp.x }}>
+            <AnimatedTBar asset={BATTLE_ASSETS.hpBar} fillAnim={playerHPBarAnim} max={maxHP} w={playerHud.hp.w} h={playerHud.hp.h} direction="ltr" />
           </View>
-          <View style={{ position: 'absolute', top: PLAYER_MP_Y, left: PLAYER_MP_X }}>
-            <TBar asset={require('../../../assets/play/manabar.png')} fill={mana / maxMP} w={PLAYER_MP_W} h={PLAYER_MP_H} direction="ltr" />
+          <View style={{ position: 'absolute', top: playerHud.mp.y, left: playerHud.mp.x }}>
+            <TBar asset={BATTLE_ASSETS.manaBar} fill={mana / maxMP} w={playerHud.mp.w} h={playerHud.mp.h} direction="ltr" />
           </View>
-          <Animated.View style={{ position: 'absolute', top: PLAYER_POWER_Y, left: PLAYER_POWER_X, opacity: powerBlinkAnim }}>
-            <TBar asset={require('../../../assets/play/powerbar.png')} fill={power / maxPow} w={PLAYER_POWER_W} h={PLAYER_POWER_H} direction="ltr" />
+          <Animated.View style={{ position: 'absolute', top: playerHud.power.y, left: playerHud.power.x, opacity: powerBlinkAnim }}>
+            <TBar asset={BATTLE_ASSETS.powerBar} fill={power / maxPow} w={playerHud.power.w} h={playerHud.power.h} direction="ltr" />
           </Animated.View>
         </View>
 
         {/* ── Enemy bars ───────────────────────────────────────── */}
         <View style={{
-          position: 'absolute', top: HUD_BASE_Y + ENEMY_HUD_SHIFT_Y * BOARD_SCALE,
-          right: ENEMY_HUD_RIGHT, width: ENEMY_HUD_BOX_W, height: ENEMY_HUD_BOX_H, zIndex: 20,
+          position: 'absolute', top: HUD_BASE_Y + enemyHud.shiftY,
+          right: enemyHud.offsetX, width: enemyHud.boxW, height: enemyHud.boxH, zIndex: 20,
         }}>
-          <View style={{ position: 'absolute', top: ENEMY_HP_Y, right: ENEMY_HP_X }}>
-            <AnimatedTBar asset={require('../../../assets/play/hpbar.png')} fillAnim={enemyHPBarAnim} max={maxEHP} w={ENEMY_HP_W} h={ENEMY_HP_H} direction="rtl" />
+          <View style={{ position: 'absolute', top: enemyHud.hp.y, right: enemyHud.hp.x }}>
+            <AnimatedTBar asset={BATTLE_ASSETS.hpBar} fillAnim={enemyHPBarAnim} max={maxEHP} w={enemyHud.hp.w} h={enemyHud.hp.h} direction="rtl" />
           </View>
-          <View style={{ position: 'absolute', top: ENEMY_MP_Y, right: ENEMY_MP_X }}>
-            <TBar asset={require('../../../assets/play/manabar.png')} fill={0} w={ENEMY_MP_W} h={ENEMY_MP_H} direction="rtl" />
+          <View style={{ position: 'absolute', top: enemyHud.mp.y, right: enemyHud.mp.x }}>
+            <TBar asset={BATTLE_ASSETS.manaBar} fill={0} w={enemyHud.mp.w} h={enemyHud.mp.h} direction="rtl" />
           </View>
-          <View style={{ position: 'absolute', top: ENEMY_POWER_Y, right: ENEMY_POWER_X }}>
-            <TBar asset={require('../../../assets/play/powerbar.png')} fill={0} w={ENEMY_POWER_W} h={ENEMY_POWER_H} direction="rtl" />
+          <View style={{ position: 'absolute', top: enemyHud.power.y, right: enemyHud.power.x }}>
+            <TBar asset={BATTLE_ASSETS.powerBar} fill={0} w={enemyHud.power.w} h={enemyHud.power.h} direction="rtl" />
           </View>
         </View>
 
@@ -1611,8 +1450,8 @@ export const BattleScreen: React.FC<Props> = ({
 
       {/* ── Characters ───────────────────────────────────────── */}
       <View style={[s.charsRow, {
-        top: CHARS_TOP,
-        left: BATTLE_PANEL_LEFT + 20 + CHARS_ROW_SHIFT_X * BOARD_SCALE,
+        top: charsTop,
+        left: panelLeft + 20 + CHARS_ROW_SHIFT_X * BOARD_SCALE,
         width: BG_W - 40,
       }]}>
         <Animated.View style={{
@@ -1625,7 +1464,7 @@ export const BattleScreen: React.FC<Props> = ({
             },
           ],
         }}>
-          <Image source={require('../../../assets/character/Full.png')}
+          <Image source={BATTLE_ASSETS.playerSprite}
             style={[s.playerSprite, {
               transform: [
                 { translateX: PLAYER_SPRITE_SHIFT_X * BOARD_SCALE },
@@ -1711,10 +1550,10 @@ export const BattleScreen: React.FC<Props> = ({
             pointerEvents="none"
             style={{
               position: 'absolute',
-              top: BATTLE_PANEL_TOP + HUD_BASE_Y - 18 * BOARD_SCALE,
+              top: panelTop + HUD_BASE_Y - 18 * BOARD_SCALE,
               left: item.side === 'player'
-                ? BATTLE_PANEL_LEFT + PLAYER_HUD_LEFT + PLAYER_HP_X + 8
-                : BATTLE_PANEL_LEFT + BG_W - ENEMY_HUD_RIGHT - ENEMY_HP_X - ENEMY_HP_W + 8,
+                ? panelLeft + playerHud.offsetX + playerHud.hp.x + 8
+                : panelLeft + BG_W - enemyHud.offsetX - enemyHud.hp.x - enemyHud.hp.w + 8,
               opacity,
               transform: [{ translateY }],
               zIndex: 42,
@@ -1869,7 +1708,7 @@ export const BattleScreen: React.FC<Props> = ({
             style={[
               s.resultBannerStage,
               {
-                top: BATTLE_PANEL_TOP + BOARD_TOP + GEM_SIZE * BOARD_ROWS / 2 - 34 * BOARD_SCALE,
+                top: panelTop + BOARD_TOP + GEM_SIZE * BOARD_ROWS / 2 - 34 * BOARD_SCALE,
                 opacity: resultArtAnim,
                 transform: [
                   { translateY: resultArtLift },
