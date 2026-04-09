@@ -57,6 +57,12 @@ interface Props {
 }
 
 const TURN_TIME_LIMIT_SEC = 30;
+const MATCH_HOLD_BEFORE_EXPLODE_MS = 120;
+const BONUS_BANNER_FADE_IN_MS = 250;
+const BONUS_BANNER_TOTAL_MS = 2000;
+const BONUS_BANNER_FADE_OUT_MS = 300;
+const BONUS_BANNER_HOLD_MS =
+  BONUS_BANNER_TOTAL_MS - BONUS_BANNER_FADE_IN_MS - BONUS_BANNER_FADE_OUT_MS;
 const RESULT_ART_INDEX = 1;
 const RESULT_ART_META = {
   victory: {
@@ -117,7 +123,6 @@ export const BattleScreen: React.FC<Props> = ({
   const [matchFX, setMatchFX] = useState<MatchFXItem[]>([]);
   const fxKeyRef = useRef(0);
 
-  const shakeAnim  = useRef(new Animated.Value(0)).current;
   const resultArtAnim = useRef(new Animated.Value(0)).current;
   const powerBlinkAnim = useRef(new Animated.Value(1)).current;
   const powerBlinkLoopRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -131,6 +136,7 @@ export const BattleScreen: React.FC<Props> = ({
   const playerHintShownRef = useRef(false);
   const turnTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const turnDeadlineRef = useRef(0);
+  const turnDeadlineKeyRef = useRef('');
 
   const offsets = useRef<Animated.Value[][]>(
     Array.from({ length: BOARD_ROWS }, () =>
@@ -447,9 +453,9 @@ export const BattleScreen: React.FC<Props> = ({
     setBonusBanner(msg);
     bonusBannerAnim.setValue(0);
     Animated.sequence([
-      Animated.timing(bonusBannerAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
-      Animated.delay(800),
-      Animated.timing(bonusBannerAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(bonusBannerAnim, { toValue: 1, duration: BONUS_BANNER_FADE_IN_MS, useNativeDriver: true }),
+      Animated.delay(BONUS_BANNER_HOLD_MS),
+      Animated.timing(bonusBannerAnim, { toValue: 0, duration: BONUS_BANNER_FADE_OUT_MS, useNativeDriver: true }),
     ]).start(() => { if (mountedRef.current) setBonusBanner(null); });
   }, [bonusBannerAnim]);
 
@@ -502,13 +508,6 @@ export const BattleScreen: React.FC<Props> = ({
     }
 
     const matched = expandSword(raw, b);
-    if (matched.size > 4 || chain > 0) {
-      Animated.sequence([
-        Animated.timing(shakeAnim, { toValue:  7, duration: 35, useNativeDriver: true }),
-        Animated.timing(shakeAnim, { toValue: -7, duration: 35, useNativeDriver: true }),
-        Animated.timing(shakeAnim, { toValue:  0, duration: 35, useNativeDriver: true }),
-      ]).start();
-    }
 
     let dmg = 0, heal = 0, mp = 0, pow = 0;
     const counts: Partial<Record<GemType, number>> = {};
@@ -531,53 +530,56 @@ export const BattleScreen: React.FC<Props> = ({
       return b[r][c] === RED_SWORD_GEM;
     }) && matched.size > raw.size;
 
-    playExplosion(raw, matched, b, () => {
-      if (!mountedRef.current) return;
-      const { newBoard, fallMap } = collapseLogic(b, matched);
+    setTimeout(() => {
+      if (!mountedRef.current || phaseRef.current === 'over') return;
+      playExplosion(raw, matched, b, () => {
+        if (!mountedRef.current) return;
+        const { newBoard, fallMap } = collapseLogic(b, matched);
 
-      // ── Turn-based effects: player turn → hurt monster, monster turn → hurt player ──
-      if (turnRef.current === 'player') {
-        // Player's turn: damage to enemy, heal/mp/pow to player
-        setEnemyHP(hp => {
-          const next = Math.max(0, hp - dmg);
-          if (next === 0 && phaseRef.current !== 'over') {
-            phaseRef.current = 'over'; setPhase('over'); setResult('victory');
-          }
-          return next;
-        });
-        if (heal > 0) setPlayerHP(hp => Math.min(maxHP, hp + heal));
-        if (mp   > 0) setMana(m       => Math.min(maxMP, m + mp));
-        if (pow  > 0) setPower(p      => Math.min(maxPow, p + pow));
-      } else {
-        // Monster's turn: damage to player, heal to monster
-        if (dmg > 0) {
-          setMonAtk(true);
-          setTimeout(() => mountedRef.current && setMonAtk(false), 600);
-          setPlayerHP(hp => {
+        // ── Turn-based effects: player turn → hurt monster, monster turn → hurt player ──
+        if (turnRef.current === 'player') {
+          // Player's turn: damage to enemy, heal/mp/pow to player
+          setEnemyHP(hp => {
             const next = Math.max(0, hp - dmg);
             if (next === 0 && phaseRef.current !== 'over') {
-              phaseRef.current = 'over'; setPhase('over'); setResult('defeat');
+              phaseRef.current = 'over'; setPhase('over'); setResult('victory');
             }
             return next;
           });
+          if (heal > 0) setPlayerHP(hp => Math.min(maxHP, hp + heal));
+          if (mp   > 0) setMana(m       => Math.min(maxMP, m + mp));
+          if (pow  > 0) setPower(p      => Math.min(maxPow, p + pow));
+        } else {
+          // Monster's turn: damage to player, heal to monster
+          if (dmg > 0) {
+            setMonAtk(true);
+            setTimeout(() => mountedRef.current && setMonAtk(false), 600);
+            setPlayerHP(hp => {
+              const next = Math.max(0, hp - dmg);
+              if (next === 0 && phaseRef.current !== 'over') {
+                phaseRef.current = 'over'; setPhase('over'); setResult('defeat');
+              }
+              return next;
+            });
+          }
+          if (heal > 0) setEnemyHP(hp => Math.min(maxEHP, hp + heal));
+          // Monster doesn't gain player's mana/power
         }
-        if (heal > 0) setEnemyHP(hp => Math.min(maxEHP, hp + heal));
-        // Monster doesn't gain player's mana/power
-      }
 
-      const isMonTurn = turnRef.current === 'monster';
-      const parts: string[] = [];
-      if (hasRedBlast) parts.push('💥 Kiếm đỏ nổ dây chuyền!');
-      if (dmg > 0)  parts.push(isMonTurn ? `🐉 Quái đánh -${dmg} HP` : `⚔ -${dmg}`);
-      if (heal > 0) parts.push(isMonTurn ? `🐉 Quái hồi +${heal} HP` : `❤ +${heal}`);
-      setLog((chain > 0 ? `COMBO ×${chain + 1}!  ` : '') + parts.join('  '));
-      setCombo(chain + 1);
+        const isMonTurn = turnRef.current === 'monster';
+        const parts: string[] = [];
+        if (hasRedBlast) parts.push('💥 Kiếm đỏ nổ dây chuyền!');
+        if (dmg > 0)  parts.push(isMonTurn ? `🐉 Quái đánh -${dmg} HP` : `⚔ -${dmg}`);
+        if (heal > 0) parts.push(isMonTurn ? `🐉 Quái hồi +${heal} HP` : `❤ +${heal}`);
+        setLog((chain > 0 ? `COMBO ×${chain + 1}!  ` : '') + parts.join('  '));
+        setCombo(chain + 1);
 
-      animateFall(newBoard, fallMap, () => {
-        setTimeout(() => processMatches(newBoard, chain + 1), 80);
+        animateFall(newBoard, fallMap, () => {
+          setTimeout(() => processMatches(newBoard, chain + 1), 80);
+        });
       });
-    });
-  }, [playExplosion, animateFall, resetBoardAnim, shakeAnim, showBonusBanner, maxHP, maxEHP, maxMP, maxPow]);
+    }, MATCH_HOLD_BEFORE_EXPLODE_MS);
+  }, [playExplosion, animateFall, resetBoardAnim, showBonusBanner, maxHP, maxEHP, maxMP, maxPow]);
 
   // ── Direct swap (dùng cho cả AI và human) ─────────────────────────────────
   const doDirectSwap = useCallback((r1: number, c1: number, r2: number, c2: number) => {
@@ -711,8 +713,22 @@ export const BattleScreen: React.FC<Props> = ({
       return;
     }
 
-    turnDeadlineRef.current = Date.now() + TURN_TIME_LIMIT_SEC * 1000;
-    setTurnTimeLeft(TURN_TIME_LIMIT_SEC);
+    const turnKey = `${turn}-${turnCycle}`;
+    const now = Date.now();
+    if (turnDeadlineKeyRef.current !== turnKey) {
+      turnDeadlineKeyRef.current = turnKey;
+      turnDeadlineRef.current = now + TURN_TIME_LIMIT_SEC * 1000;
+      setTurnTimeLeft(TURN_TIME_LIMIT_SEC);
+    } else {
+      const remainingMs = turnDeadlineRef.current - now;
+      const next = Math.max(0, Math.ceil(remainingMs / 1000));
+      setTurnTimeLeft(next);
+      if (remainingMs <= 0) {
+        handleTurnTimeout();
+        return;
+      }
+    }
+
     turnTimerRef.current = setInterval(() => {
       const remainingMs = turnDeadlineRef.current - Date.now();
       const next = Math.max(0, Math.ceil(remainingMs / 1000));
@@ -1003,7 +1019,6 @@ export const BattleScreen: React.FC<Props> = ({
           left:   BOARD_LEFT,
           width:  GEM_SIZE * BOARD_COLS,
           height: GEM_SIZE * BOARD_ROWS,
-          transform: [{ translateX: shakeAnim }],
         }]}>
           {board.map((row, r) =>
             row.map((gemType, c) =>
@@ -1094,7 +1109,7 @@ export const BattleScreen: React.FC<Props> = ({
             justifyContent: 'center', alignItems: 'center',
             zIndex: 50,
           }}>
-            <Text style={{ color: '#111', fontSize: 12, fontWeight: 'bold' }}>
+            <Text style={{ color: extraTurns === 1 ? '#fff' : '#111', fontSize: 12, fontWeight: 'bold' }}>
               Còn {extraTurns} lượt
             </Text>
           </View>
