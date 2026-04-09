@@ -163,13 +163,13 @@ export const BattleScreen: React.FC<Props> = ({
       Animated.sequence([
         Animated.timing(powerBlinkAnim, {
           toValue: 0.15,
-          duration: 250,
+          duration: 200,
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
         Animated.timing(powerBlinkAnim, {
           toValue: 1,
-          duration: 250,
+          duration: 200,
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
@@ -773,7 +773,7 @@ export const BattleScreen: React.FC<Props> = ({
   const PLAYER_MP_W = 75 * BOARD_SCALE;
   const PLAYER_MP_H = 5 * BOARD_SCALE;
   const PLAYER_POWER_X = 2 * BOARD_SCALE;
-  const PLAYER_POWER_Y = 17 * BOARD_SCALE;
+  const PLAYER_POWER_Y = 17.4 * BOARD_SCALE;
   const PLAYER_POWER_W = 74.7 * BOARD_SCALE;
   const PLAYER_POWER_H = 5 * BOARD_SCALE;
 
@@ -786,7 +786,7 @@ export const BattleScreen: React.FC<Props> = ({
   const ENEMY_MP_W = 74.7 * BOARD_SCALE;
   const ENEMY_MP_H = 5 * BOARD_SCALE;
   const ENEMY_POWER_X = 0 * BOARD_SCALE;
-  const ENEMY_POWER_Y = 17 * BOARD_SCALE;
+  const ENEMY_POWER_Y = 17.4 * BOARD_SCALE;
   const ENEMY_POWER_W = 74.7 * BOARD_SCALE;
   const ENEMY_POWER_H = 5 * BOARD_SCALE;
 
