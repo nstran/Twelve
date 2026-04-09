@@ -6,7 +6,7 @@ import {
 import {
   MonsterSprite, MonsterType, WALK_FRAMES, ATTACK_FRAMES, monsterDisplaySize,
 } from '../../engine/MonsterSprite';
-import { GemCell, TBar } from './BattleScreen.components';
+import { AnimatedTBar, GemCell, TBar } from './BattleScreen.components';
 import {
   calcSwordDamage,
   collapseLogic,
@@ -58,11 +58,19 @@ interface Props {
 
 const TURN_TIME_LIMIT_SEC = 30;
 const MATCH_HOLD_BEFORE_EXPLODE_MS = 120;
+const MATCH_SPARKLE_MIN_MS = 720;
+const MATCH_SPARKLE_MAX_MS = 980;
+const MATCH_SPARKLE_STAGGER_MS = 140;
 const BONUS_BANNER_FADE_IN_MS = 250;
 const BONUS_BANNER_TOTAL_MS = 2000;
 const BONUS_BANNER_FADE_OUT_MS = 300;
 const BONUS_BANNER_HOLD_MS =
   BONUS_BANNER_TOTAL_MS - BONUS_BANNER_FADE_IN_MS - BONUS_BANNER_FADE_OUT_MS;
+const EXTRA_TURNS_BADGE_TOTAL_MS = 3000;
+const COLLECT_FX_DURATION_MS = 2600;
+const GAIN_POPUP_DURATION_MS = 1200;
+const COLLECT_PULSE_IN_MS = 240;
+const COLLECT_PULSE_OUT_MS = 320;
 const RESULT_ART_INDEX = 1;
 const RESULT_ART_META = {
   victory: {
@@ -113,18 +121,74 @@ export const BattleScreen: React.FC<Props> = ({
   // ── Extra turns: match 4+ → bonus lượt ────────────────────────────────────
   const [extraTurns, setExtraTurns] = useState(0);
   const extraTurnsRef = useRef(0);
+  const [showExtraTurnsBadge, setShowExtraTurnsBadge] = useState(false);
   const [bonusBanner, setBonusBanner] = useState<string | null>(null);
   const bonusBannerAnim = useRef(new Animated.Value(0)).current;
+  const extraTurnsBadgeAnim = useRef(new Animated.Value(1)).current;
+  const extraTurnsBadgeLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  const extraTurnsBadgeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [turnTimeLeft, setTurnTimeLeft] = useState(TURN_TIME_LIMIT_SEC);
   const [turnCycle, setTurnCycle] = useState(0);
 
   // Match particle effects
-  interface MatchFXItem { key: string; r: number; c: number; kind: FXKind; anim: Animated.Value }
+  interface MatchFXItem {
+    key: string;
+    r: number;
+    c: number;
+    kind: FXKind;
+    source: any;
+    size: number;
+    startOffsetX: number;
+    startOffsetY: number;
+    driftX: number;
+    driftY: number;
+    rotate: string;
+    anim: Animated.Value;
+    delayMs: number;
+    durationMs: number;
+  }
+  interface DamagePopupItem { key: string; side: 'player' | 'enemy'; amount: number; anim: Animated.Value }
+  interface CollectFXItem {
+    key: string;
+    source: any;
+    startX: number;
+    startY: number;
+    curve1X: number;
+    curve1Y: number;
+    curve2X: number;
+    curve2Y: number;
+    endX: number;
+    endY: number;
+    size: number;
+    isCrystal: boolean;
+    renderW: number;
+    renderH: number;
+    cropLeft: number;
+    cropWidth: number;
+    fadeOutAt: number;
+    endScale: number;
+    glowScale: number;
+    glowOpacity: number;
+    delayMs: number;
+    durationMs: number;
+    anim: Animated.Value;
+  }
+  interface GainPopupItem { key: string; side: 'player' | 'enemy'; text: string; anim: Animated.Value }
   const [matchFX, setMatchFX] = useState<MatchFXItem[]>([]);
+  const [damagePopups, setDamagePopups] = useState<DamagePopupItem[]>([]);
+  const [collectFX, setCollectFX] = useState<CollectFXItem[]>([]);
+  const [gainPopups, setGainPopups] = useState<GainPopupItem[]>([]);
   const fxKeyRef = useRef(0);
+  const damagePopupKeyRef = useRef(0);
+  const collectFXKeyRef = useRef(0);
+  const gainPopupKeyRef = useRef(0);
 
   const resultArtAnim = useRef(new Animated.Value(0)).current;
   const powerBlinkAnim = useRef(new Animated.Value(1)).current;
+  const playerHPBarAnim = useRef(new Animated.Value(maxHP)).current;
+  const enemyHPBarAnim = useRef(new Animated.Value(maxEHP)).current;
+  const playerCollectAnim = useRef(new Animated.Value(0)).current;
+  const enemyCollectAnim = useRef(new Animated.Value(0)).current;
   const powerBlinkLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const phaseRef   = useRef<'idle' | 'busy' | 'over'>('idle');
   const mountedRef = useRef(true);
@@ -163,6 +227,73 @@ export const BattleScreen: React.FC<Props> = ({
   useEffect(() => { hintMoveRef.current = hintMove; }, [hintMove]);
   useEffect(() => { turnRef.current = turn; }, [turn]);
   useEffect(() => { extraTurnsRef.current = extraTurns; }, [extraTurns]);
+  useEffect(() => () => {
+    extraTurnsBadgeLoopRef.current?.stop();
+    if (extraTurnsBadgeTimeoutRef.current !== null) {
+      clearTimeout(extraTurnsBadgeTimeoutRef.current);
+      extraTurnsBadgeTimeoutRef.current = null;
+    }
+  }, []);
+  useEffect(() => {
+    Animated.timing(playerHPBarAnim, {
+      toValue: playerHP,
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [playerHP, playerHPBarAnim]);
+  useEffect(() => {
+    Animated.timing(enemyHPBarAnim, {
+      toValue: enemyHP,
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [enemyHP, enemyHPBarAnim]);
+  useEffect(() => {
+    extraTurnsBadgeLoopRef.current?.stop();
+    extraTurnsBadgeLoopRef.current = null;
+    if (extraTurnsBadgeTimeoutRef.current !== null) {
+      clearTimeout(extraTurnsBadgeTimeoutRef.current);
+      extraTurnsBadgeTimeoutRef.current = null;
+    }
+
+    if (extraTurns <= 0) {
+      setShowExtraTurnsBadge(false);
+      extraTurnsBadgeAnim.setValue(1);
+      return;
+    }
+
+    setShowExtraTurnsBadge(true);
+    extraTurnsBadgeAnim.setValue(1);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(extraTurnsBadgeAnim, {
+          toValue: 0.25,
+          duration: 220,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(extraTurnsBadgeAnim, {
+          toValue: 1,
+          duration: 220,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    extraTurnsBadgeLoopRef.current = loop;
+    loop.start();
+
+    extraTurnsBadgeTimeoutRef.current = setTimeout(() => {
+      if (!mountedRef.current) return;
+      extraTurnsBadgeLoopRef.current?.stop();
+      extraTurnsBadgeLoopRef.current = null;
+      extraTurnsBadgeAnim.setValue(1);
+      setShowExtraTurnsBadge(false);
+      extraTurnsBadgeTimeoutRef.current = null;
+    }, EXTRA_TURNS_BADGE_TOTAL_MS);
+  }, [extraTurns, extraTurnsBadgeAnim]);
   useEffect(() => {
     powerBlinkLoopRef.current?.stop();
     powerBlinkLoopRef.current = null;
@@ -252,21 +383,62 @@ export const BattleScreen: React.FC<Props> = ({
     const items: MatchFXItem[] = [];
     const hasSwordExpansion = expanded.size > matched.size;
 
+    const rand = (min: number, max: number) => min + Math.random() * (max - min);
+    const pickMatchFXSource = (kind: FXKind) => {
+      switch (kind) {
+        case 'gold':
+          return Math.random() > 0.35 ? AURA1_IMG : AURA2_IMG;
+        case 'mp':
+          return Math.random() > 0.5 ? CRYS_BLUE : AURA3_IMG;
+        case 'crystal_red':
+          return Math.random() > 0.55 ? CRYS_RED : AURA1_IMG;
+        case 'sword':
+          return Math.random() > 0.5 ? AURA2_IMG : AURA3_IMG;
+      }
+    };
+    const pushBurst = (
+      r: number,
+      c: number,
+      kind: FXKind,
+      count: number,
+      spreadMul: number,
+      sizeMul: [number, number],
+    ) => {
+      for (let i = 0; i < count; i++) {
+        const angle = rand(-Math.PI, Math.PI);
+        const startRadius = rand(GEM_SIZE * 0.04, GEM_SIZE * 0.24);
+        const spreadRadius = rand(GEM_SIZE * 0.42, GEM_SIZE * spreadMul);
+        const lift = rand(GEM_SIZE * 0.18, GEM_SIZE * 0.6);
+        items.push({
+          key: `fx-${++fxKeyRef.current}`,
+          r,
+          c,
+          kind,
+          source: pickMatchFXSource(kind),
+          size: rand(GEM_SIZE * sizeMul[0], GEM_SIZE * sizeMul[1]),
+          startOffsetX: Math.cos(angle) * startRadius,
+          startOffsetY: Math.sin(angle) * startRadius * 0.7,
+          driftX: Math.cos(angle) * spreadRadius,
+          driftY: Math.sin(angle) * spreadRadius * 0.65 - lift,
+          rotate: `${rand(-28, 28)}deg`,
+          anim: new Animated.Value(0),
+          delayMs: rand(0, MATCH_SPARKLE_STAGGER_MS),
+          durationMs: rand(MATCH_SPARKLE_MIN_MS, MATCH_SPARKLE_MAX_MS),
+        });
+      }
+    };
+
     matched.forEach(k => {
       const [r, c] = k.split(',').map(Number);
       const g = b[r][c];
       if (g === null) return;
       const kind = GEM_FX_KIND[g];
-      // For non-sword gems, spawn individual particles
       if (kind !== 'sword') {
-        const anim = new Animated.Value(0);
-        items.push({ key: `fx-${++fxKeyRef.current}`, r, c, kind, anim });
+        pushBurst(r, c, kind, 5, 1.1, [0.24, 0.62]);
       }
     });
 
-    // Sword explosion: spawn aura2/aura3 at center of sword matches
     if (hasSwordExpansion) {
-      // Find sword cells in original match
       const swordCells: Array<[number, number]> = [];
       matched.forEach(k => {
         const [r, c] = k.split(',').map(Number);
@@ -274,22 +446,25 @@ export const BattleScreen: React.FC<Props> = ({
         if (g !== null && GEM_CATEGORY[g] === SWORD_CAT) swordCells.push([r, c]);
       });
       swordCells.forEach(([r, c]) => {
-        const anim = new Animated.Value(0);
-        items.push({ key: `fx-${++fxKeyRef.current}`, r, c, kind: 'sword', anim });
+        pushBurst(r, c, 'sword', 9, 1.35, [0.32, 0.78]);
       });
     }
 
     if (items.length === 0) return;
     setMatchFX(prev => [...prev, ...items]);
 
-    // Animate: 0→1 over 500ms (scale up + float up + fade out)
     Animated.parallel(
-      items.map(fx => Animated.timing(fx.anim, {
-        toValue: 1, duration: 550, easing: Easing.out(Easing.quad), useNativeDriver: true,
-      }))
+      items.map(fx => Animated.sequence([
+        Animated.delay(fx.delayMs),
+        Animated.timing(fx.anim, {
+          toValue: 1,
+          duration: fx.durationMs,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]))
     ).start(() => {
       if (!mountedRef.current) return;
-      // Remove finished particles
       const keys = new Set(items.map(f => f.key));
       setMatchFX(prev => prev.filter(f => !keys.has(f.key)));
     });
@@ -459,6 +634,305 @@ export const BattleScreen: React.FC<Props> = ({
     ]).start(() => { if (mountedRef.current) setBonusBanner(null); });
   }, [bonusBannerAnim]);
 
+  const showDamagePopup = useCallback((side: 'player' | 'enemy', amount: number) => {
+    if (amount <= 0) return;
+    const anim = new Animated.Value(0);
+    const key = `dmg-${++damagePopupKeyRef.current}`;
+    setDamagePopups(prev => [...prev, { key, side, amount, anim }]);
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 700,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => {
+      if (!mountedRef.current) return;
+      setDamagePopups(prev => prev.filter(item => item.key !== key));
+    });
+  }, []);
+
+  const showGainPopup = useCallback((side: 'player' | 'enemy', text: string) => {
+    const anim = new Animated.Value(0);
+    const key = `gain-${++gainPopupKeyRef.current}`;
+    setGainPopups(prev => [...prev, { key, side, text, anim }]);
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: GAIN_POPUP_DURATION_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start(() => {
+      if (!mountedRef.current) return;
+      setGainPopups(prev => prev.filter(item => item.key !== key));
+    });
+  }, []);
+
+  const pulseCollector = useCallback((side: 'player' | 'enemy') => {
+    const anim = side === 'player' ? playerCollectAnim : enemyCollectAnim;
+    anim.stopAnimation();
+    anim.setValue(0);
+    Animated.sequence([
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: COLLECT_PULSE_IN_MS,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: COLLECT_PULSE_OUT_MS,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [enemyCollectAnim, playerCollectAnim]);
+
+  const spawnCollectFX = useCallback((
+    matched: Set<string>,
+    b: Board,
+    collectorSide: 'player' | 'enemy',
+    healAmount: number,
+  ) => {
+    const rand = (min: number, max: number) => min + Math.random() * (max - min);
+    const hpRect = collectorSide === 'player'
+      ? {
+        x: BATTLE_PANEL_LEFT + PLAYER_HUD_LEFT + PLAYER_HP_X,
+        y: BATTLE_PANEL_TOP + HUD_BASE_Y + PLAYER_HUD_SHIFT_Y * BOARD_SCALE + PLAYER_HP_Y,
+        w: PLAYER_HP_W,
+        h: PLAYER_HP_H,
+      }
+      : {
+        x: BATTLE_PANEL_LEFT + BG_W - ENEMY_HUD_RIGHT - ENEMY_HP_X - ENEMY_HP_W,
+        y: BATTLE_PANEL_TOP + HUD_BASE_Y + ENEMY_HUD_SHIFT_Y * BOARD_SCALE + ENEMY_HP_Y,
+        w: ENEMY_HP_W,
+        h: ENEMY_HP_H,
+      };
+    const mpRect = collectorSide === 'player'
+      ? {
+        x: BATTLE_PANEL_LEFT + PLAYER_HUD_LEFT + PLAYER_MP_X,
+        y: BATTLE_PANEL_TOP + HUD_BASE_Y + PLAYER_HUD_SHIFT_Y * BOARD_SCALE + PLAYER_MP_Y,
+        w: PLAYER_MP_W,
+        h: PLAYER_MP_H,
+      }
+      : {
+        x: BATTLE_PANEL_LEFT + BG_W - ENEMY_HUD_RIGHT - ENEMY_MP_X - ENEMY_MP_W,
+        y: BATTLE_PANEL_TOP + HUD_BASE_Y + ENEMY_HUD_SHIFT_Y * BOARD_SCALE + ENEMY_MP_Y,
+        w: ENEMY_MP_W,
+        h: ENEMY_MP_H,
+      };
+    const powRect = collectorSide === 'player'
+      ? {
+        x: BATTLE_PANEL_LEFT + PLAYER_HUD_LEFT + PLAYER_POWER_X,
+        y: BATTLE_PANEL_TOP + HUD_BASE_Y + PLAYER_HUD_SHIFT_Y * BOARD_SCALE + PLAYER_POWER_Y,
+        w: PLAYER_POWER_W,
+        h: PLAYER_POWER_H,
+      }
+      : {
+        x: BATTLE_PANEL_LEFT + BG_W - ENEMY_HUD_RIGHT - ENEMY_POWER_X - ENEMY_POWER_W,
+        y: BATTLE_PANEL_TOP + HUD_BASE_Y + ENEMY_HUD_SHIFT_Y * BOARD_SCALE + ENEMY_POWER_Y,
+        w: ENEMY_POWER_W,
+        h: ENEMY_POWER_H,
+      };
+    const charRect = collectorSide === 'player'
+      ? {
+        x: BATTLE_PANEL_LEFT + 24,
+        y: CHARS_TOP + 10,
+        w: 42,
+        h: 30,
+      }
+      : {
+        x: BATTLE_PANEL_LEFT + BG_W - 92,
+        y: CHARS_TOP + 6,
+        w: 46,
+        h: 34,
+      };
+
+    const usedTargets = {
+      hp: [] as Array<{ x: number; y: number }>,
+      mp: [] as Array<{ x: number; y: number }>,
+      pow: [] as Array<{ x: number; y: number }>,
+      char: [] as Array<{ x: number; y: number }>,
+    };
+    const pickSpacedTarget = (
+      bucket: Array<{ x: number; y: number }>,
+      rect: { x: number; y: number; w: number; h: number },
+      minDistance: number,
+      yOvershoot: number,
+    ) => {
+      let best = {
+        x: rect.x + rect.w / 2,
+        y: rect.y + rect.h / 2,
+        score: -Infinity,
+      };
+
+      for (let i = 0; i < 16; i++) {
+        const x = rect.x + rand(-rect.w * 0.08, rect.w * 1.08);
+        const y = rect.y + rand(-yOvershoot, rect.h + yOvershoot);
+        const minScore = bucket.length === 0
+          ? Infinity
+          : Math.min(...bucket.map(p => Math.hypot(x - p.x, y - p.y)));
+        if (minScore > best.score) best = { x, y, score: minScore };
+        if (minScore >= minDistance) {
+          bucket.push({ x, y });
+          return { x, y };
+        }
+      }
+
+      bucket.push({ x: best.x, y: best.y });
+      return { x: best.x, y: best.y };
+    };
+
+    const pushCollectBurst = (
+      source: any,
+      startX: number,
+      startY: number,
+      rect: { x: number; y: number; w: number; h: number },
+      targetBucket: Array<{ x: number; y: number }>,
+      count: number,
+      sizeRange: [number, number],
+      fadeOutAt: number,
+      endScale: number,
+      arcLiftRange: [number, number],
+      glow: { scale: number; opacity: number },
+      minDistance: number,
+      crop?: { left: number; width: number },
+      sizeProfile?: number[],
+      delayRangeMs: [number, number] = [0, 320],
+      durationRangeMs: [number, number] = [COLLECT_FX_DURATION_MS - 380, COLLECT_FX_DURATION_MS + 260],
+    ) => {
+      for (let i = 0; i < count; i++) {
+        const particleStartX = startX + rand(-GEM_SIZE * 0.34, GEM_SIZE * 0.34);
+        const particleStartY = startY + rand(-GEM_SIZE * 0.26, GEM_SIZE * 0.26);
+        const target = pickSpacedTarget(targetBucket, rect, minDistance, rect.h * 0.9);
+        const targetX = target.x;
+        const targetY = target.y;
+        const curve1X = particleStartX
+          + (targetX - particleStartX) * rand(0.14, 0.3)
+          + rand(-GEM_SIZE * 1.9, GEM_SIZE * 1.9);
+        const curve1Y = particleStartY
+          + (targetY - particleStartY) * rand(0.1, 0.22)
+          - rand(arcLiftRange[0] * 1.08, arcLiftRange[1] * 1.22);
+        const curve2X = particleStartX
+          + (targetX - particleStartX) * rand(0.5, 0.78)
+          + rand(-GEM_SIZE * 1.45, GEM_SIZE * 1.45);
+        const curve2Y = particleStartY
+          + (targetY - particleStartY) * rand(0.44, 0.68)
+          - rand(arcLiftRange[0] * 0.22, arcLiftRange[1] * 0.5);
+        const baseSize = sizeProfile !== undefined
+          ? sizeProfile[Math.min(i, sizeProfile.length - 1)]
+          : rand(sizeRange[0], sizeRange[1]);
+        const size = baseSize + rand(-1.2, 1.2);
+        const cropLeft = crop?.left ?? 0;
+        const cropWidth = crop?.width ?? 45;
+        const renderW = size;
+        const renderH = crop !== undefined ? size * (15 / cropWidth) : size;
+        const delayMs = rand(delayRangeMs[0], delayRangeMs[1]);
+        const durationMs = rand(durationRangeMs[0], durationRangeMs[1]);
+
+        items.push({
+          key: `cfx-${++collectFXKeyRef.current}`,
+          source,
+          startX: particleStartX,
+          startY: particleStartY,
+          curve1X,
+          curve1Y,
+          curve2X,
+          curve2Y,
+          endX: targetX,
+          endY: targetY,
+          size,
+          isCrystal: crop !== undefined,
+          renderW,
+          renderH,
+          cropLeft,
+          cropWidth,
+          fadeOutAt,
+          endScale,
+          glowScale: glow.scale,
+          glowOpacity: glow.opacity,
+          delayMs,
+          durationMs,
+          anim: new Animated.Value(0),
+        });
+      }
+    };
+
+    const items: CollectFXItem[] = [];
+    let hitHP = false;
+    let hitMP = false;
+    let hitPow = false;
+    let hitCharacter = false;
+
+    matched.forEach(k => {
+      const [r, c] = k.split(',').map(Number);
+      const g = b[r][c];
+      if (g === null) return;
+      const fx = GEM_FX[g];
+      const startX = BATTLE_PANEL_LEFT + BOARD_LEFT + c * GEM_SIZE + GEM_SIZE / 2;
+      const startY = BATTLE_PANEL_TOP + BOARD_TOP + r * GEM_SIZE + GEM_SIZE / 2;
+
+      if (fx.heal > 0) {
+        hitHP = true;
+        pushCollectBurst(
+          CRYS_RED, startX, startY, hpRect, usedTargets.hp, 2, [44, 56], 0.95, 0.9,
+          [GEM_SIZE * 0.48, GEM_SIZE * 1.14], { scale: 1.86, opacity: 0.62 }, 36,
+          { left: 7, width: 38 }, [56, 46], [0, 280], [COLLECT_FX_DURATION_MS - 220, COLLECT_FX_DURATION_MS + 320],
+        );
+      }
+      if (fx.mana > 0) {
+        hitMP = true;
+        pushCollectBurst(
+          CRYS_BLUE, startX, startY, mpRect, usedTargets.mp, 2, [42, 54], 0.95, 0.88,
+          [GEM_SIZE * 0.44, GEM_SIZE * 1.08], { scale: 1.82, opacity: 0.58 }, 34,
+          { left: 7, width: 38 }, [54, 44], [0, 280], [COLLECT_FX_DURATION_MS - 220, COLLECT_FX_DURATION_MS + 320],
+        );
+      }
+      if (fx.pow > 0) {
+        hitPow = true;
+        pushCollectBurst(
+          AURA1_IMG, startX, startY, powRect, usedTargets.pow, 3, [24, 34], 0.93, 0.54,
+          [GEM_SIZE * 0.36, GEM_SIZE * 1.04], { scale: 1.62, opacity: 0.34 }, 22,
+          undefined, [34, 29, 24], [20, 260], [COLLECT_FX_DURATION_MS - 260, COLLECT_FX_DURATION_MS + 280],
+        );
+      }
+      if (g === 2) {
+        hitCharacter = true;
+        pushCollectBurst(
+          AURA3_IMG, startX, startY, charRect, usedTargets.char, 4, [24, 34], 0.84, 0.38,
+          [GEM_SIZE * 0.3, GEM_SIZE * 0.94], { scale: 1.58, opacity: 0.3 }, 20,
+          undefined, [34, 30, 27, 24], [10, 260], [COLLECT_FX_DURATION_MS - 300, COLLECT_FX_DURATION_MS + 260],
+        );
+      }
+      if (g === 5) {
+        hitCharacter = true;
+        pushCollectBurst(
+          AURA2_IMG, startX, startY, charRect, usedTargets.char, 4, [24, 34], 0.84, 0.38,
+          [GEM_SIZE * 0.3, GEM_SIZE * 0.94], { scale: 1.58, opacity: 0.3 }, 20,
+          undefined, [34, 30, 27, 24], [10, 260], [COLLECT_FX_DURATION_MS - 300, COLLECT_FX_DURATION_MS + 260],
+        );
+      }
+    });
+
+    if (items.length === 0) return;
+    setCollectFX(prev => [...prev, ...items]);
+
+    Animated.parallel(
+      items.map(item => Animated.sequence([
+        Animated.delay(item.delayMs),
+        Animated.timing(item.anim, {
+          toValue: 1,
+          duration: item.durationMs,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])),
+    ).start(() => {
+      if (!mountedRef.current) return;
+      const keys = new Set(items.map(item => item.key));
+      setCollectFX(prev => prev.filter(item => !keys.has(item.key)));
+      if (hitHP && healAmount > 0) showGainPopup(collectorSide, `+${healAmount} HP`);
+      if (hitHP || hitMP || hitPow || hitCharacter) pulseCollector(collectorSide);
+    });
+  }, [pulseCollector, showGainPopup]);
+
   // ── Chain processor ────────────────────────────────────────────────────────
   const processMatches = useCallback((b: Board, chain: number) => {
     if (!mountedRef.current) return;
@@ -532,6 +1006,8 @@ export const BattleScreen: React.FC<Props> = ({
 
     setTimeout(() => {
       if (!mountedRef.current || phaseRef.current === 'over') return;
+      const collectorSide = turnRef.current === 'player' ? 'player' : 'enemy';
+      spawnCollectFX(raw, b, collectorSide, heal);
       playExplosion(raw, matched, b, () => {
         if (!mountedRef.current) return;
         const { newBoard, fallMap } = collapseLogic(b, matched);
@@ -539,6 +1015,7 @@ export const BattleScreen: React.FC<Props> = ({
         // ── Turn-based effects: player turn → hurt monster, monster turn → hurt player ──
         if (turnRef.current === 'player') {
           // Player's turn: damage to enemy, heal/mp/pow to player
+          if (dmg > 0) showDamagePopup('enemy', dmg);
           setEnemyHP(hp => {
             const next = Math.max(0, hp - dmg);
             if (next === 0 && phaseRef.current !== 'over') {
@@ -552,6 +1029,7 @@ export const BattleScreen: React.FC<Props> = ({
         } else {
           // Monster's turn: damage to player, heal to monster
           if (dmg > 0) {
+            showDamagePopup('player', dmg);
             setMonAtk(true);
             setTimeout(() => mountedRef.current && setMonAtk(false), 600);
             setPlayerHP(hp => {
@@ -579,7 +1057,7 @@ export const BattleScreen: React.FC<Props> = ({
         });
       });
     }, MATCH_HOLD_BEFORE_EXPLODE_MS);
-  }, [playExplosion, animateFall, resetBoardAnim, showBonusBanner, maxHP, maxEHP, maxMP, maxPow]);
+  }, [playExplosion, animateFall, resetBoardAnim, showBonusBanner, showDamagePopup, spawnCollectFX, maxHP, maxEHP, maxMP, maxPow]);
 
   // ── Direct swap (dùng cho cả AI và human) ─────────────────────────────────
   const doDirectSwap = useCallback((r1: number, c1: number, r2: number, c2: number) => {
@@ -831,6 +1309,7 @@ export const BattleScreen: React.FC<Props> = ({
     setHintMove(null);
     setMana(m => m - 30);
     const dmg = 40 + Math.floor(Math.random() * 20);
+    showDamagePopup('enemy', dmg);
     setEnemyHP(hp => {
       const next = Math.max(0, hp - dmg);
       if (next === 0 && phaseRef.current !== 'over') {
@@ -841,15 +1320,19 @@ export const BattleScreen: React.FC<Props> = ({
     setLog(`💫 Kỹ năng! -${dmg} HP quái!`);
     // Skill also ends player turn → switch to monster
     turnRef.current = 'monster'; setTurn('monster');
-  }, [mana, phase, turn]);
+  }, [mana, phase, showDamagePopup, turn]);
 
   // ── Layout ─────────────────────────────────────────────────────────────────
   // Khung battle panel bám theo bkboardv. Các phần bên trong dùng toạ độ local
   // để chỉ cần căn trong một container relative.
   const BATTLE_PANEL_LEFT_SHIFT = 0;
+  const CHARS_ROW_H = 80;
+  const CHARS_PANEL_OVERLAP = 60 * BOARD_SCALE;
+  const CHARS_VISIBLE_BELOW_PANEL = Math.max(0, CHARS_ROW_H - CHARS_PANEL_OVERLAP);
+  const STAGE_TOTAL_H = BG_H + CHARS_VISIBLE_BELOW_PANEL;
   const BATTLE_PANEL_LEFT = Math.round((SCREEN_W - BG_W) / 2)
     + Math.round(BATTLE_PANEL_LEFT_SHIFT * BOARD_SCALE);
-  const BATTLE_PANEL_TOP = Math.round(20 * BOARD_SCALE) + 50;
+  const BATTLE_PANEL_TOP = Math.round((SCREEN_H - STAGE_TOTAL_H) / 2);
 
   // Hai cột thanh chỉ số trái/phải nằm trong 3 rãnh dưới board.
   // Tách riêng offset để về sau có thể căn từng bên độc lập.
@@ -926,29 +1409,16 @@ export const BattleScreen: React.FC<Props> = ({
   const LOG_TOP    = BOARD_TOP + GEM_SIZE * BOARD_ROWS + 4 + LOG_SHIFT_Y * BOARD_SCALE;
 
   // Các cụm phía dưới panel battle.
-  // CHARS_TOP: hàng nhân vật/quái, GND_TOP: mặt đất, BTN_TOP: nút hành động,
-  // AI_ROW_TOP + AI_LBL_TOP: cụm chọn AI và text báo lượt.
+  // CHARS_TOP: hàng nhân vật/quái ngay dưới panel battle.
   const CHARS_ROW_SHIFT_X = 0;
   const CHARS_ROW_SHIFT_Y = 0;
   const PLAYER_SPRITE_SHIFT_X = 0;
   const PLAYER_SPRITE_SHIFT_Y = 0;
   const ENEMY_SPRITE_SHIFT_X = 0;
   const ENEMY_SPRITE_SHIFT_Y = 0;
-  const GROUND_SHIFT_X = 0;
-  const GROUND_SHIFT_Y = 0;
-  const BTN_ROW_SHIFT_X = 0;
-  const BTN_ROW_SHIFT_Y = 0;
-  const AI_ROW_SHIFT_X = 0;
-  const AI_ROW_SHIFT_Y = 0;
-  const AI_LABEL_SHIFT_X = 0;
-  const AI_LABEL_SHIFT_Y = 0;
   const EXTRA_TURNS_SHIFT_X = 0;
   const EXTRA_TURNS_SHIFT_Y = 0;
-  const CHARS_TOP  = SCREEN_H - 178 + CHARS_ROW_SHIFT_Y * BOARD_SCALE;
-  const GND_TOP    = CHARS_TOP + 80 + GROUND_SHIFT_Y * BOARD_SCALE;
-  const BTN_TOP    = SCREEN_H - 70 + BTN_ROW_SHIFT_Y * BOARD_SCALE;
-  const AI_ROW_TOP = BTN_TOP + 46 + AI_ROW_SHIFT_Y * BOARD_SCALE;
-  const AI_LBL_TOP = AI_ROW_TOP + 38 + AI_LABEL_SHIFT_Y * BOARD_SCALE;
+  const CHARS_TOP  = BATTLE_PANEL_TOP + BG_H - CHARS_PANEL_OVERLAP + CHARS_ROW_SHIFT_Y * BOARD_SCALE;
   const { w: mW, h: mH } = monsterDisplaySize(monsterType);
   const resultMeta = result ? RESULT_ART_META[result] : null;
   const resultArtScale = resultArtAnim.interpolate({
@@ -963,6 +1433,10 @@ export const BattleScreen: React.FC<Props> = ({
     inputRange: [0, 1],
     outputRange: [14, 0],
   });
+  const hasBoardFocus = selected !== null || hintCell !== null;
+  const playerDamageLeft = BATTLE_PANEL_LEFT + 4;
+  const enemyDamageLeft = BATTLE_PANEL_LEFT + BG_W - 84;
+  const damagePopupTop = CHARS_TOP - 8 * BOARD_SCALE;
 
   return (
     <View style={s.root}>
@@ -987,7 +1461,7 @@ export const BattleScreen: React.FC<Props> = ({
           left: PLAYER_HUD_LEFT, width: PLAYER_HUD_BOX_W, height: PLAYER_HUD_BOX_H, zIndex: 20,
         }}>
           <View style={{ position: 'absolute', top: PLAYER_HP_Y, left: PLAYER_HP_X }}>
-            <TBar asset={require('../../../assets/play/hpbar.png')} fill={playerHP / maxHP} w={PLAYER_HP_W} h={PLAYER_HP_H} direction="ltr" />
+            <AnimatedTBar asset={require('../../../assets/play/hpbar.png')} fillAnim={playerHPBarAnim} max={maxHP} w={PLAYER_HP_W} h={PLAYER_HP_H} direction="ltr" />
           </View>
           <View style={{ position: 'absolute', top: PLAYER_MP_Y, left: PLAYER_MP_X }}>
             <TBar asset={require('../../../assets/play/manabar.png')} fill={mana / maxMP} w={PLAYER_MP_W} h={PLAYER_MP_H} direction="ltr" />
@@ -1003,7 +1477,7 @@ export const BattleScreen: React.FC<Props> = ({
           right: ENEMY_HUD_RIGHT, width: ENEMY_HUD_BOX_W, height: ENEMY_HUD_BOX_H, zIndex: 20,
         }}>
           <View style={{ position: 'absolute', top: ENEMY_HP_Y, right: ENEMY_HP_X }}>
-            <TBar asset={require('../../../assets/play/hpbar.png')} fill={enemyHP / maxEHP} w={ENEMY_HP_W} h={ENEMY_HP_H} direction="rtl" />
+            <AnimatedTBar asset={require('../../../assets/play/hpbar.png')} fillAnim={enemyHPBarAnim} max={maxEHP} w={ENEMY_HP_W} h={ENEMY_HP_H} direction="rtl" />
           </View>
           <View style={{ position: 'absolute', top: ENEMY_MP_Y, right: ENEMY_MP_X }}>
             <TBar asset={require('../../../assets/play/manabar.png')} fill={0} w={ENEMY_MP_W} h={ENEMY_MP_H} direction="rtl" />
@@ -1019,6 +1493,7 @@ export const BattleScreen: React.FC<Props> = ({
           left:   BOARD_LEFT,
           width:  GEM_SIZE * BOARD_COLS,
           height: GEM_SIZE * BOARD_ROWS,
+          zIndex: hasBoardFocus ? 30 : 10,
         }]}>
           {board.map((row, r) =>
             row.map((gemType, c) =>
@@ -1059,40 +1534,36 @@ export const BattleScreen: React.FC<Props> = ({
 
           {/* ── Match particle effects overlay ──────────────────── */}
           {matchFX.map(fx => {
-            const fxSize = fx.kind === 'sword' ? GEM_SIZE * 2.5 : GEM_SIZE * 1.4;
             const opacity = fx.anim.interpolate({
-              inputRange: [0, 0.3, 1], outputRange: [0, 1, 0],
+              inputRange: [0, 0.12, 0.75, 1],
+              outputRange: [0, 1, 0.9, 0],
             });
             const scale = fx.anim.interpolate({
-              inputRange: [0, 0.4, 1],
-              outputRange: [0.3, 1.1, fx.kind === 'sword' ? 1.6 : 0.7],
+              inputRange: [0, 0.2, 0.55, 1],
+              outputRange: [0.15, 0.95, fx.kind === 'sword' ? 1.42 : 1.18, 0.52],
             });
             const translateY = fx.anim.interpolate({
               inputRange: [0, 1],
-              outputRange: [0, fx.kind === 'sword' ? -GEM_SIZE * 0.4 : -GEM_SIZE * 0.8],
+              outputRange: [0, fx.driftY],
             });
-            const cx = fx.c * GEM_SIZE + GEM_SIZE / 2 - fxSize / 2;
-            const cy = fx.r * GEM_SIZE + GEM_SIZE / 2 - fxSize / 2;
-
-            let source: any;
-            switch (fx.kind) {
-              case 'gold':        source = AURA1_IMG;  break;
-              case 'mp':          source = CRYS_BLUE;  break;
-              case 'crystal_red': source = CRYS_RED;   break;
-              case 'sword':       source = Math.random() > 0.5 ? AURA2_IMG : AURA3_IMG; break;
-            }
+            const translateX = fx.anim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, fx.driftX],
+            });
+            const cx = fx.c * GEM_SIZE + GEM_SIZE / 2 - fx.size / 2 + fx.startOffsetX;
+            const cy = fx.r * GEM_SIZE + GEM_SIZE / 2 - fx.size / 2 + fx.startOffsetY;
 
             return (
               <Animated.Image
                 key={fx.key}
-                source={source}
+                source={fx.source}
                 resizeMode="contain"
                 style={{
                   position: 'absolute',
                   left: cx, top: cy,
-                  width: fxSize, height: fxSize,
+                  width: fx.size, height: fx.size,
                   opacity,
-                  transform: [{ scale }, { translateY }],
+                  transform: [{ translateX }, { translateY }, { scale }, { rotate: fx.rotate }],
                 }}
               />
             );
@@ -1100,19 +1571,20 @@ export const BattleScreen: React.FC<Props> = ({
         </Animated.View>
 
         {/* ── Extra turns badge (persistent, on board center) ──── */}
-        {extraTurns > 0 && (
-          <View style={{
+        {extraTurns > 0 && showExtraTurnsBadge && (
+          <Animated.View style={{
             position: 'absolute',
             top: BOARD_TOP + GEM_SIZE * BOARD_ROWS / 2 - 14 + EXTRA_TURNS_SHIFT_Y * BOARD_SCALE,
             left: BOARD_LEFT + GEM_SIZE * BOARD_COLS / 2 - 55 + EXTRA_TURNS_SHIFT_X * BOARD_SCALE,
             width: 110, height: 20,
             justifyContent: 'center', alignItems: 'center',
             zIndex: 50,
+            opacity: extraTurnsBadgeAnim,
           }}>
             <Text style={{ color: extraTurns === 1 ? '#fff' : '#111', fontSize: 12, fontWeight: 'bold' }}>
               Còn {extraTurns} lượt
             </Text>
-          </View>
+          </Animated.View>
         )}
 
         <View style={{
@@ -1137,98 +1609,254 @@ export const BattleScreen: React.FC<Props> = ({
         </View>
       </View>
 
-      {/* ── Ground ───────────────────────────────────────────── */}
-      <Image
-        source={require('../../../assets/play/ground.png')}
-        style={[s.ground, {
-          top: GND_TOP,
-          transform: [{ translateX: GROUND_SHIFT_X * BOARD_SCALE }],
-        }]}
-        resizeMode="repeat"
-      />
-
       {/* ── Characters ───────────────────────────────────────── */}
       <View style={[s.charsRow, {
         top: CHARS_TOP,
-        transform: [{ translateX: CHARS_ROW_SHIFT_X * BOARD_SCALE }],
+        left: BATTLE_PANEL_LEFT + 20 + CHARS_ROW_SHIFT_X * BOARD_SCALE,
+        width: BG_W - 40,
       }]}>
-        <Image source={require('../../../assets/character/Full.png')}
-          style={[s.playerSprite, {
-            transform: [
-              { translateX: PLAYER_SPRITE_SHIFT_X * BOARD_SCALE },
-              { translateY: PLAYER_SPRITE_SHIFT_Y * BOARD_SCALE },
-            ],
-          }]} resizeMode="contain" />
+        <Animated.View style={{
+          transform: [
+            {
+              scale: playerCollectAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 1.08],
+              }),
+            },
+          ],
+        }}>
+          <Image source={require('../../../assets/character/Full.png')}
+            style={[s.playerSprite, {
+              transform: [
+                { translateX: PLAYER_SPRITE_SHIFT_X * BOARD_SCALE },
+                { translateY: PLAYER_SPRITE_SHIFT_Y * BOARD_SCALE },
+              ],
+            }]} resizeMode="contain" />
+        </Animated.View>
         <View style={{ flex: 1 }} />
-        <View style={{
+        <Animated.View style={{
           width: mW,
           height: mH,
           alignSelf: 'flex-end',
           transform: [
+            {
+              scale: enemyCollectAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 1.08],
+              }),
+            },
             { translateX: ENEMY_SPRITE_SHIFT_X * BOARD_SCALE },
             { translateY: ENEMY_SPRITE_SHIFT_Y * BOARD_SCALE },
           ],
         }}>
           <MonsterSprite type={monsterType} frameIndex={monFrame} facingRight={false} />
-        </View>
+        </Animated.View>
       </View>
 
-      {/* ── Action buttons ───────────────────────────────────── */}
-      <View style={[s.btnRow, {
-        top: BTN_TOP,
-        transform: [{ translateX: BTN_ROW_SHIFT_X * BOARD_SCALE }],
-      }]}>
-        <TouchableOpacity style={s.btnFlee} onPress={onFlee}>
-          <Text style={s.btnTxt}>🏃 Tháo Chạy</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.btnSkill, mana < 30 && s.btnOff]}
-          onPress={handleSkill}
-          disabled={mana < 30 || phase !== 'idle' || turn !== 'player'}
-        >
-          <Text style={s.btnTxt}>💫 Kỹ Năng (30 MP)</Text>
-        </TouchableOpacity>
-      </View>
+      {damagePopups.map(item => {
+        const opacity = item.anim.interpolate({
+          inputRange: [0, 0.12, 0.85, 1],
+          outputRange: [0, 1, 1, 0],
+        });
+        const translateY = item.anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [10, -18],
+        });
+        const scale = item.anim.interpolate({
+          inputRange: [0, 0.2, 1],
+          outputRange: [0.8, 1.05, 1],
+        });
 
-      {/* ── AI level selector ────────────────────────────────── */}
-      <View style={[s.aiRow, {
-        top: AI_ROW_TOP,
-        transform: [{ translateX: AI_ROW_SHIFT_X * BOARD_SCALE }],
-      }]}>
-        {/* Monster difficulty label */}
-        <Text style={{ color: '#aaa', fontSize: 10, marginRight: 4 }}>Quái:</Text>
-
-        {/* Monster AI level chips */}
-        {AI_ORDER.map(lv => (
-          <TouchableOpacity
-            key={lv}
-            style={[s.aiChip, aiLevel === lv && s.aiChipActive]}
-            onPress={() => setAiLevel(lv)}
+        return (
+          <Animated.View
+            key={item.key}
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: damagePopupTop,
+              left: item.side === 'player' ? playerDamageLeft : enemyDamageLeft,
+              width: 80,
+              alignItems: 'center',
+              opacity,
+              transform: [{ translateY }, { scale }],
+              zIndex: 40,
+            }}
           >
-            <Text style={s.aiChipTxt}>{AI_CONFIGS[lv].emoji}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+            <Text style={{
+              color: '#ff4db8',
+              fontSize: 14,
+              textShadowColor: '#580026',
+              textShadowOffset: { width: 1, height: 1 },
+              textShadowRadius: 2,
+            }}>
+              -{item.amount}
+            </Text>
+          </Animated.View>
+        );
+      })}
 
-      {/* Turn indicator + AI info label */}
-      <View style={[s.aiLabelRow, {
-        top: AI_LBL_TOP,
-        transform: [{ translateX: AI_LABEL_SHIFT_X * BOARD_SCALE }],
-      }]}>
-        <Text style={[s.aiLabelTxt, {
-          color: turn === 'player' ? '#4fc3f7' : '#ff8a65',
-          fontWeight: 'bold',
-        }]}>
-          {turn === 'player' ? '⚔ LƯỢT CỦA BẠN' : '🐉 LƯỢT QUÁI VẬT'}
-          {turn === 'monster' && aiLevel !== null && (
-            aiStep === 'think' ? ` — ${AI_CONFIGS[aiLevel].emoji} đang suy nghĩ...` :
-            aiStep === 'pick1' ? ` — ${AI_CONFIGS[aiLevel].emoji} chọn viên 1...` :
-            aiStep === 'pick2' ? ` — ${AI_CONFIGS[aiLevel].emoji} di chuyển...` :
-            ` — ${AI_CONFIGS[aiLevel].emoji} ${AI_CONFIGS[aiLevel].name}`
-          )}
-          {aiLevel === null && turn === 'monster' ? ' — chọn độ khó quái!' : ''}
-        </Text>
-      </View>
+      {gainPopups.map(item => {
+        const opacity = item.anim.interpolate({
+          inputRange: [0, 0.12, 0.85, 1],
+          outputRange: [0, 1, 1, 0],
+        });
+        const translateY = item.anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [10, -14],
+        });
+
+        return (
+          <Animated.View
+            key={item.key}
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: BATTLE_PANEL_TOP + HUD_BASE_Y - 18 * BOARD_SCALE,
+              left: item.side === 'player'
+                ? BATTLE_PANEL_LEFT + PLAYER_HUD_LEFT + PLAYER_HP_X + 8
+                : BATTLE_PANEL_LEFT + BG_W - ENEMY_HUD_RIGHT - ENEMY_HP_X - ENEMY_HP_W + 8,
+              opacity,
+              transform: [{ translateY }],
+              zIndex: 42,
+            }}
+          >
+            <Text style={{
+              color: '#ffeef7',
+              fontSize: 12,
+              textShadowColor: '#8a295e',
+              textShadowOffset: { width: 1, height: 1 },
+              textShadowRadius: 2,
+            }}>
+              {item.text}
+            </Text>
+          </Animated.View>
+        );
+      })}
+
+      {collectFX.map(item => {
+        const translateX = item.anim.interpolate({
+          inputRange: [0, 0.24, 0.68, 1],
+          outputRange: [0, item.curve1X - item.startX, item.curve2X - item.startX, item.endX - item.startX],
+        });
+        const translateY = item.anim.interpolate({
+          inputRange: [0, 0.24, 0.68, 1],
+          outputRange: [0, item.curve1Y - item.startY, item.curve2Y - item.startY, item.endY - item.startY],
+        });
+        const scale = item.anim.interpolate({
+          inputRange: [0, 0.1, 0.34, 0.76, 1],
+          outputRange: [0.18, 1.18, 1.02, 0.92, item.endScale],
+        });
+        const opacity = item.anim.interpolate({
+          inputRange: [0, 0.06, 0.32, item.fadeOutAt, 1],
+          outputRange: [0, 1, 1, 0.96, 0],
+        });
+        const glowOpacity = item.anim.interpolate({
+          inputRange: [0, 0.05, 0.28, item.fadeOutAt, 1],
+          outputRange: [0, item.glowOpacity, item.glowOpacity, item.glowOpacity * 0.92, 0],
+        });
+        const cropScale = item.renderW / item.cropWidth;
+        const spriteW = 45 * cropScale;
+        const spriteH = 15 * cropScale;
+        const spriteOffsetX = -item.cropLeft * cropScale;
+
+        return (
+          <View
+            key={item.key}
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: item.startX,
+              top: item.startY,
+              width: item.renderW,
+              height: item.renderH,
+              overflow: 'visible',
+              zIndex: 41,
+            }}
+          >
+            {item.isCrystal ? (
+              <>
+                <Animated.View
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    width: item.renderW,
+                    height: item.renderH,
+                    overflow: 'hidden',
+                    opacity: glowOpacity,
+                    transform: [{ translateX }, { translateY }, { scale: Animated.multiply(scale, item.glowScale) }],
+                  }}
+                >
+                  <Image
+                    source={item.source}
+                    resizeMode="stretch"
+                    style={{
+                      position: 'absolute',
+                      left: spriteOffsetX,
+                      top: 0,
+                      width: spriteW,
+                      height: spriteH,
+                    }}
+                  />
+                </Animated.View>
+                <Animated.View
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    width: item.renderW,
+                    height: item.renderH,
+                    overflow: 'hidden',
+                    opacity,
+                    transform: [{ translateX }, { translateY }, { scale }],
+                  }}
+                >
+                  <Image
+                    source={item.source}
+                    resizeMode="stretch"
+                    style={{
+                      position: 'absolute',
+                      left: spriteOffsetX,
+                      top: 0,
+                      width: spriteW,
+                      height: spriteH,
+                    }}
+                  />
+                </Animated.View>
+              </>
+            ) : (
+              <>
+                <Animated.Image
+                  source={item.source}
+                  resizeMode="contain"
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    width: item.size,
+                    height: item.size,
+                    opacity: glowOpacity,
+                    transform: [{ translateX }, { translateY }, { scale: Animated.multiply(scale, item.glowScale) }],
+                  }}
+                />
+                <Animated.Image
+                  source={item.source}
+                  resizeMode="contain"
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    width: item.size,
+                    height: item.size,
+                    opacity,
+                    transform: [{ translateX }, { translateY }, { scale }],
+                  }}
+                />
+              </>
+            )}
+          </View>
+        );
+      })}
 
       {/* ── Overlay ──────────────────────────────────────────── */}
       {result !== null && resultMeta !== null && (

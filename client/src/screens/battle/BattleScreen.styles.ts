@@ -5,7 +5,7 @@ export const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 // ── Background image (bkboardv.png = 240 × 320 native) ───────────────────────
 export const BG_NATIVE_W = 240;
 export const BG_NATIVE_H = 320;
-export const BG_W        = SCREEN_W - 16;                        // 8px padding mỗi bên
+export const BG_W        = SCREEN_W;
 export const BG_H        = Math.round(BG_W * BG_NATIVE_H / BG_NATIVE_W);
 export const BOARD_SCALE = BG_W / BG_NATIVE_W;
 
@@ -55,11 +55,11 @@ export const s = StyleSheet.create({
   },
 
   ground: {
-    position: 'absolute', left: 0, right: 0, height: 20, width: '100%', zIndex: 7,
+    position: 'absolute', height: 20, zIndex: 7,
   },
 
   charsRow: {
-    position: 'absolute', left: 20, right: 20, height: 80,
+    position: 'absolute', height: 80,
     flexDirection: 'row', alignItems: 'flex-end', zIndex: 8,
   },
   playerSprite: { width: 64, height: 70 },

@@ -252,6 +252,60 @@ export const TBar: React.FC<{
   );
 };
 
+export const AnimatedTBar: React.FC<{
+  asset: any;
+  fillAnim: Animated.Value;
+  max: number;
+  w: number;
+  h: number;
+  direction?: 'ltr' | 'rtl';
+}> = ({
+  asset,
+  fillAnim,
+  max,
+  w,
+  h,
+  direction = 'ltr',
+}) => {
+  const isRTL = direction === 'rtl';
+  const fillWidth = fillAnim.interpolate({
+    inputRange: [0, max],
+    outputRange: [0, w],
+    extrapolate: 'clamp',
+  });
+  const translateX = fillAnim.interpolate({
+    inputRange: [0, max],
+    outputRange: [-w, 0],
+    extrapolate: 'clamp',
+  });
+
+  return (
+    <View style={[styles.barBase, { width: w, height: h }]}>
+      <Animated.View
+        style={[
+          styles.barClip,
+          {
+            width: fillWidth,
+            height: h,
+            left: isRTL ? undefined : 0,
+            right: isRTL ? 0 : undefined,
+          },
+        ]}
+      >
+        <Animated.Image
+          source={asset}
+          style={{
+            width: w,
+            height: h,
+            transform: isRTL ? [{ translateX }] : undefined,
+          }}
+          resizeMode="stretch"
+        />
+      </Animated.View>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   base: { borderRadius: 2 },
   focusWrap: {
