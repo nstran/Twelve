@@ -3,6 +3,8 @@
  *
  * Animation:
  *   offsets[r][c] = Animated.Value cho translateY (0 = đúng vị trí logic)
+ *   swapOffsetsX[r][c] = Animated.Value cho swap ngang / bounce-back
+ *   swapOffsetsY[r][c] = Animated.Value cho swap dọc / bounce-back
  *   Vào trận: rơi từ trên xuống theo stagger cột
  *   Sau match: gravity collapse với fall animation
  *
@@ -564,6 +566,16 @@ export const BattleScreen: React.FC<Props> = ({
       Array.from({ length: BOARD_COLS }, () => new Animated.Value(0))
     )
   ).current;
+  const swapOffsetsX = useRef<Animated.Value[][]>(
+    Array.from({ length: BOARD_ROWS }, () =>
+      Array.from({ length: BOARD_COLS }, () => new Animated.Value(0))
+    )
+  ).current;
+  const swapOffsetsY = useRef<Animated.Value[][]>(
+    Array.from({ length: BOARD_ROWS }, () =>
+      Array.from({ length: BOARD_COLS }, () => new Animated.Value(0))
+    )
+  ).current;
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => () => { mountedRef.current = false; }, []);
@@ -699,6 +711,87 @@ export const BattleScreen: React.FC<Props> = ({
       }))
     ).start(() => { if (mountedRef.current) onDone(); });
   }, [offsets]);
+
+  const animateInvalidSwapBounce = useCallback((
+    r1: number, c1: number, r2: number, c2: number, onDone: () => void,
+  ) => {
+    const x1 = swapOffsetsX[r1][c1];
+    const x2 = swapOffsetsX[r2][c2];
+    const y1 = swapOffsetsY[r1][c1];
+    const y2 = swapOffsetsY[r2][c2];
+    const travelX = (c2 - c1) * GEM_SIZE;
+    const travelY = (r2 - r1) * GEM_SIZE;
+
+    x1.stopAnimation();
+    x2.stopAnimation();
+    y1.stopAnimation();
+    y2.stopAnimation();
+    x1.setValue(0);
+    x2.setValue(0);
+    y1.setValue(0);
+    y2.setValue(0);
+
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(x1, {
+          toValue: travelX,
+          duration: 120,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(x2, {
+          toValue: -travelX,
+          duration: 120,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(y1, {
+          toValue: travelY,
+          duration: 120,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(y2, {
+          toValue: -travelY,
+          duration: 120,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(x1, {
+          toValue: 0,
+          duration: 340,
+          easing: Easing.out(Easing.back(1.4)),
+          useNativeDriver: true,
+        }),
+        Animated.timing(x2, {
+          toValue: 0,
+          duration: 340,
+          easing: Easing.out(Easing.back(1.4)),
+          useNativeDriver: true,
+        }),
+        Animated.timing(y1, {
+          toValue: 0,
+          duration: 340,
+          easing: Easing.out(Easing.back(1.4)),
+          useNativeDriver: true,
+        }),
+        Animated.timing(y2, {
+          toValue: 0,
+          duration: 340,
+          easing: Easing.out(Easing.back(1.4)),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => {
+      x1.setValue(0);
+      x2.setValue(0);
+      y1.setValue(0);
+      y2.setValue(0);
+      if (mountedRef.current) onDone();
+    });
+  }, [swapOffsetsX, swapOffsetsY]);
 
   // ── Board reset: khi không còn nước đi, tạo board mới rơi từ trên xuống ──
   const resetBoardAnim = useCallback((onDone: () => void) => {
@@ -870,16 +963,23 @@ export const BattleScreen: React.FC<Props> = ({
     const nb: Board = b.map(r => [...r]);
     [nb[r1][c1], nb[r2][c2]] = [nb[r2][c2], nb[r1][c1]];
     if (findMatches(nb).size === 0) {
-      // Bờm có thể fail — nếu là monster turn, vẫn switch sang player
-      if (turnRef.current === 'monster') {
-        turnRef.current = 'player'; setTurn('player');
-        setLog('🐉 Quái đánh trượt!');
-      }
+      setPhase('busy'); phaseRef.current = 'busy';
+      animateInvalidSwapBounce(r1, c1, r2, c2, () => {
+        if (!mountedRef.current) return;
+        setCombo(0);
+        if (turnRef.current === 'monster') {
+          turnRef.current = 'player'; setTurn('player');
+          setLog('🐉 Quái đổi chỗ nhưng không ghép được, quân cờ bật lại.');
+        } else {
+          setLog('↩ Không tạo được match, quân cờ trở về vị trí cũ.');
+        }
+        setPhase('idle'); phaseRef.current = 'idle';
+      });
       return;
     }
     setPhase('busy'); phaseRef.current = 'busy';
     setBoard(nb); processMatches(nb, 0);
-  }, [processMatches]);
+  }, [animateInvalidSwapBounce, processMatches]);
 
   const doDirectSwapRef = useRef(doDirectSwap);
   useEffect(() => { doDirectSwapRef.current = doDirectSwap; }, [doDirectSwap]);
@@ -1041,7 +1141,11 @@ export const BattleScreen: React.FC<Props> = ({
                   position: 'absolute',
                   left: c * GEM_SIZE, top: r * GEM_SIZE,
                   width: GEM_SIZE,    height: GEM_SIZE,
-                  transform: [{ translateY: offsets[r][c] }],
+                  transform: [
+                    { translateX: swapOffsetsX[r][c] },
+                    { translateY: swapOffsetsY[r][c] },
+                    { translateY: offsets[r][c] },
+                  ],
                 }}
               >
                 <GemCell
