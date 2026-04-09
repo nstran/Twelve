@@ -173,41 +173,50 @@ function findMatches(b: Board): Set<string> {
 }
 
 /**
- * Đếm số lượt bonus từ các match 4+ gem.
- * Match 4 = +1 lượt, match 5 = +2 lượt, match 6 = +3, v.v.
- * Cả ngang và dọc đều tính.
+ * Kiểm tra có nhóm gem CÙNG MÀU (category) match liền kề ≥ 4 viên hay không.
+ * Dùng connected-component (BFS), chỉ gom ô cùng category.
+ *
+ * Quy tắc: mỗi bước chain có BẤT KỲ nhóm cùng màu ≥ 4 gem → +1 lượt (flat).
+ * 3 máu + 3 vàng sát nhau KHÔNG tính (khác category).
+ * Hình L/T/+ cùng màu (≥ 4 gem) → +1 lượt.
  */
-function countBonusTurns(b: Board): number {
-  let bonus = 0;
-  // Horizontal runs
-  for (let r = 0; r < BOARD_ROWS; r++) {
-    let c = 0;
-    while (c < BOARD_COLS - 2) {
-      const g = b[r][c];
-      if (g !== null && sameCat(g, b[r][c + 1]) && sameCat(g, b[r][c + 2])) {
-        let e = c + 2;
-        while (e + 1 < BOARD_COLS && sameCat(g, b[r][e + 1])) e++;
-        const len = e - c + 1;
-        if (len >= 4) bonus += (len - 3); // 4→+1, 5→+2, 6→+3 ...
-        c = e + 1;
-      } else c++;
+function hasBonusTurn(matched: Set<string>, b: Board): boolean {
+  if (matched.size < 4) return false;
+
+  const visited = new Set<string>();
+  const DIRS = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+
+  for (const start of Array.from(matched)) {
+    if (visited.has(start)) continue;
+    const [sr, sc] = start.split(',').map(Number);
+    const startGem = b[sr][sc];
+    if (startGem === null) { visited.add(start); continue; }
+    const cat = GEM_CATEGORY[startGem];
+
+    // BFS: chỉ gom ô matched liền kề CÙNG category
+    const queue = [start];
+    visited.add(start);
+    let size = 0;
+    while (queue.length > 0) {
+      const k = queue.shift()!;
+      size++;
+      const [r, c] = k.split(',').map(Number);
+      for (const [dr, dc] of DIRS) {
+        const nr = r + dr, nc = c + dc;
+        const nk = `${nr},${nc}`;
+        if (matched.has(nk) && !visited.has(nk)) {
+          const ng = b[nr]?.[nc];
+          if (ng !== null && ng !== undefined && GEM_CATEGORY[ng] === cat) {
+            visited.add(nk);
+            queue.push(nk);
+          }
+        }
+      }
     }
+    if (size >= 4) return true;
   }
-  // Vertical runs
-  for (let c = 0; c < BOARD_COLS; c++) {
-    let r = 0;
-    while (r < BOARD_ROWS - 2) {
-      const g = b[r][c];
-      if (g !== null && sameCat(g, b[r + 1][c]) && sameCat(g, b[r + 2][c])) {
-        let e = r + 2;
-        while (e + 1 < BOARD_ROWS && sameCat(g, b[e + 1][c])) e++;
-        const len = e - r + 1;
-        if (len >= 4) bonus += (len - 3);
-        r = e + 1;
-      } else r++;
-    }
-  }
-  return bonus;
+
+  return false;
 }
 
 function expandSword(matched: Set<string>, b: Board): Set<string> {
@@ -768,14 +777,13 @@ export const BattleScreen: React.FC<Props> = ({
       return;
     }
 
-    // ── Detect 4+ match bonus turns ──
-    const bonus = countBonusTurns(b);
-    if (bonus > 0) {
-      const newExtra = extraTurnsRef.current + bonus;
+    // ── Detect 4+ match cùng màu → +1 bonus turn (flat, mỗi bước chain) ──
+    if (hasBonusTurn(raw, b)) {
+      const newExtra = extraTurnsRef.current + 1;
       extraTurnsRef.current = newExtra;
       setExtraTurns(newExtra);
       const who = turnRef.current === 'player' ? 'Bạn' : 'Quái';
-      showBonusBanner(`✨ ${who} +${bonus} lượt! (tổng ${newExtra})`);
+      showBonusBanner(`✨ ${who} +1 lượt!${newExtra > 1 ? ` (tổng ${newExtra})` : ''}`);
     }
 
     const matched = expandSword(raw, b);
