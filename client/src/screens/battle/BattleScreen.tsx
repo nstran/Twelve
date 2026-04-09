@@ -56,6 +56,23 @@ interface Props {
 }
 
 const TURN_TIME_LIMIT_SEC = 30;
+const RESULT_ART_INDEX = 1;
+const RESULT_ART_META = {
+  victory: {
+    asset: require('../../../assets/strwin.png'),
+    frameWidth: 172,
+    frameHeight: 65,
+    sheetWidth: 516,
+    sheetHeight: 65,
+  },
+  defeat: {
+    asset: require('../../../assets/strlose.png'),
+    frameWidth: 146,
+    frameHeight: 56,
+    sheetWidth: 438,
+    sheetHeight: 56,
+  },
+} as const;
 
 export const BattleScreen: React.FC<Props> = ({
   monsterType, onVictory, onDefeat, onFlee,
@@ -98,6 +115,9 @@ export const BattleScreen: React.FC<Props> = ({
   const fxKeyRef = useRef(0);
 
   const shakeAnim  = useRef(new Animated.Value(0)).current;
+  const resultArtAnim = useRef(new Animated.Value(0)).current;
+  const powerBlinkAnim = useRef(new Animated.Value(1)).current;
+  const powerBlinkLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const phaseRef   = useRef<'idle' | 'busy' | 'over'>('idle');
   const mountedRef = useRef(true);
   const boardRef   = useRef<Board>(board);
@@ -129,6 +149,55 @@ export const BattleScreen: React.FC<Props> = ({
   useEffect(() => { playerHPRef.current = playerHP; }, [playerHP]);
   useEffect(() => { turnRef.current = turn; }, [turn]);
   useEffect(() => { extraTurnsRef.current = extraTurns; }, [extraTurns]);
+  useEffect(() => {
+    powerBlinkLoopRef.current?.stop();
+    powerBlinkLoopRef.current = null;
+
+    if (power < maxPow || result !== null) {
+      powerBlinkAnim.setValue(1);
+      return;
+    }
+
+    powerBlinkAnim.setValue(1);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(powerBlinkAnim, {
+          toValue: 0.15,
+          duration: 250,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(powerBlinkAnim, {
+          toValue: 1,
+          duration: 250,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    powerBlinkLoopRef.current = loop;
+    loop.start();
+
+    return () => {
+      loop.stop();
+      powerBlinkLoopRef.current = null;
+      powerBlinkAnim.setValue(1);
+    };
+  }, [power, maxPow, result, powerBlinkAnim]);
+  useEffect(() => {
+    if (result === null) {
+      resultArtAnim.setValue(0);
+      return;
+    }
+
+    resultArtAnim.setValue(0);
+    Animated.spring(resultArtAnim, {
+      toValue: 1,
+      friction: 6,
+      tension: 80,
+      useNativeDriver: true,
+    }).start();
+  }, [result, resultArtAnim]);
 
   // ── Entry animation: gem rơi theo cột ─────────────────────────────────────
   useEffect(() => {
@@ -687,23 +756,61 @@ export const BattleScreen: React.FC<Props> = ({
 
   // Hai cột thanh chỉ số trái/phải nằm trong 3 rãnh dưới board.
   // Tách riêng offset để về sau có thể căn từng bên độc lập.
-  const PLAYER_HUD_SHIFT_X = 10;
-  const PLAYER_HUD_SHIFT_Y = 0;
-  const ENEMY_HUD_SHIFT_X = 7;
-  const ENEMY_HUD_SHIFT_Y = 0;
-  // HUD_LEFT_X/Y: toạ độ local trong khung battle panel.
-  const HUD_LEFT_X = PLAYER_HUD_SHIFT_X * BOARD_SCALE;
-  const HUD_MID_X  = BG_W / 2 + ENEMY_HUD_SHIFT_X * BOARD_SCALE;
+  const PLAYER_HUD_LEFT = 8 * BOARD_SCALE;
+  const PLAYER_HUD_SHIFT_Y = -1;
+  const ENEMY_HUD_RIGHT = 8 * BOARD_SCALE;
+  const ENEMY_HUD_SHIFT_Y = -1;
 
   // HUD_BASE_Y: vị trí bắt đầu stack HP/MP/Nộ.
-  // HUD_W/H: kích thước mỗi thanh, HUD_GAP_Y: khoảng cách dọc giữa 3 thanh.
-  const HUD_BASE_Y = 232 * BOARD_SCALE;
-  const HUD_GAP_Y  = 11 * BOARD_SCALE;
-  const PLAYER_HUD_W = 82 * BOARD_SCALE;
-  const PLAYER_HUD_H = 5  * BOARD_SCALE;
-  const ENEMY_HUD_W  = 82 * BOARD_SCALE;
-  const ENEMY_HUD_H  = 5  * BOARD_SCALE;
-  const HUD_STACK_H = PLAYER_HUD_H * 3 + (HUD_GAP_Y - PLAYER_HUD_H) * 2;
+  // Mỗi thanh có x/y/w/h riêng để chỉnh pixel-perfect từng thanh.
+  const HUD_BASE_Y = 231 * BOARD_SCALE;
+  const PLAYER_HP_X = 2.6 * BOARD_SCALE;
+  const PLAYER_HP_Y = 3 * BOARD_SCALE;
+  const PLAYER_HP_W = 74.7 * BOARD_SCALE;
+  const PLAYER_HP_H = 5 * BOARD_SCALE;
+  const PLAYER_MP_X = 2.6 * BOARD_SCALE;
+  const PLAYER_MP_Y = 10.3 * BOARD_SCALE;
+  const PLAYER_MP_W = 75 * BOARD_SCALE;
+  const PLAYER_MP_H = 5 * BOARD_SCALE;
+  const PLAYER_POWER_X = 2 * BOARD_SCALE;
+  const PLAYER_POWER_Y = 17 * BOARD_SCALE;
+  const PLAYER_POWER_W = 74.7 * BOARD_SCALE;
+  const PLAYER_POWER_H = 5 * BOARD_SCALE;
+
+  const ENEMY_HP_X = 2.6 * BOARD_SCALE;
+  const ENEMY_HP_Y = 3 * BOARD_SCALE;
+  const ENEMY_HP_W = 74.7 * BOARD_SCALE;
+  const ENEMY_HP_H = 5 * BOARD_SCALE;
+  const ENEMY_MP_X = 2.6 * BOARD_SCALE;
+  const ENEMY_MP_Y = 10.3 * BOARD_SCALE;
+  const ENEMY_MP_W = 74.7 * BOARD_SCALE;
+  const ENEMY_MP_H = 5 * BOARD_SCALE;
+  const ENEMY_POWER_X = 0 * BOARD_SCALE;
+  const ENEMY_POWER_Y = 17 * BOARD_SCALE;
+  const ENEMY_POWER_W = 74.7 * BOARD_SCALE;
+  const ENEMY_POWER_H = 5 * BOARD_SCALE;
+
+  const PLAYER_HUD_BOX_W = Math.max(
+    PLAYER_HP_X + PLAYER_HP_W,
+    PLAYER_MP_X + PLAYER_MP_W,
+    PLAYER_POWER_X + PLAYER_POWER_W,
+  );
+  const PLAYER_HUD_BOX_H = Math.max(
+    PLAYER_HP_Y + PLAYER_HP_H,
+    PLAYER_MP_Y + PLAYER_MP_H,
+    PLAYER_POWER_Y + PLAYER_POWER_H,
+  );
+  const ENEMY_HUD_BOX_W = Math.max(
+    ENEMY_HP_X + ENEMY_HP_W,
+    ENEMY_MP_X + ENEMY_MP_W,
+    ENEMY_POWER_X + ENEMY_POWER_W,
+  );
+  const ENEMY_HUD_BOX_H = Math.max(
+    ENEMY_HP_Y + ENEMY_HP_H,
+    ENEMY_MP_Y + ENEMY_MP_H,
+    ENEMY_POWER_Y + ENEMY_POWER_H,
+  );
+  const HUD_STACK_H = Math.max(PLAYER_HUD_BOX_H, ENEMY_HUD_BOX_H);
 
   // TURN_TIMER_TOP: dòng số giây còn lại ở giữa, ngay dưới 2 cụm thanh chỉ số.
   const TURN_TIMER_SHIFT_X = 0;
@@ -748,6 +855,19 @@ export const BattleScreen: React.FC<Props> = ({
   const AI_ROW_TOP = BTN_TOP + 46 + AI_ROW_SHIFT_Y * BOARD_SCALE;
   const AI_LBL_TOP = AI_ROW_TOP + 38 + AI_LABEL_SHIFT_Y * BOARD_SCALE;
   const { w: mW, h: mH } = monsterDisplaySize(monsterType);
+  const resultMeta = result ? RESULT_ART_META[result] : null;
+  const resultArtScale = resultArtAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.72, 1],
+  });
+  const resultArtTilt = resultArtAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-8deg', '-5deg'],
+  });
+  const resultArtLift = resultArtAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [14, 0],
+  });
 
   return (
     <View style={s.root}>
@@ -769,21 +889,33 @@ export const BattleScreen: React.FC<Props> = ({
       {/* ── Player bars ──────────────────────────────────────── */}
         <View style={{
           position: 'absolute', top: HUD_BASE_Y + PLAYER_HUD_SHIFT_Y * BOARD_SCALE,
-          left: HUD_LEFT_X, width: PLAYER_HUD_W, gap: HUD_GAP_Y - PLAYER_HUD_H, zIndex: 20,
+          left: PLAYER_HUD_LEFT, width: PLAYER_HUD_BOX_W, height: PLAYER_HUD_BOX_H, zIndex: 20,
         }}>
-          <TBar asset={require('../../../assets/play/hpbar.png')}    fill={playerHP / maxHP}  w={PLAYER_HUD_W} h={PLAYER_HUD_H} />
-          <TBar asset={require('../../../assets/play/manabar.png')}  fill={mana / maxMP}      w={PLAYER_HUD_W} h={PLAYER_HUD_H} />
-          <TBar asset={require('../../../assets/play/powerbar.png')} fill={power / maxPow}    w={PLAYER_HUD_W} h={PLAYER_HUD_H} />
+          <View style={{ position: 'absolute', top: PLAYER_HP_Y, left: PLAYER_HP_X }}>
+            <TBar asset={require('../../../assets/play/hpbar.png')} fill={playerHP / maxHP} w={PLAYER_HP_W} h={PLAYER_HP_H} direction="ltr" />
+          </View>
+          <View style={{ position: 'absolute', top: PLAYER_MP_Y, left: PLAYER_MP_X }}>
+            <TBar asset={require('../../../assets/play/manabar.png')} fill={mana / maxMP} w={PLAYER_MP_W} h={PLAYER_MP_H} direction="ltr" />
+          </View>
+          <Animated.View style={{ position: 'absolute', top: PLAYER_POWER_Y, left: PLAYER_POWER_X, opacity: powerBlinkAnim }}>
+            <TBar asset={require('../../../assets/play/powerbar.png')} fill={power / maxPow} w={PLAYER_POWER_W} h={PLAYER_POWER_H} direction="ltr" />
+          </Animated.View>
         </View>
 
         {/* ── Enemy bars ───────────────────────────────────────── */}
         <View style={{
           position: 'absolute', top: HUD_BASE_Y + ENEMY_HUD_SHIFT_Y * BOARD_SCALE,
-          left: HUD_MID_X, width: ENEMY_HUD_W, gap: HUD_GAP_Y - ENEMY_HUD_H, zIndex: 20,
+          right: ENEMY_HUD_RIGHT, width: ENEMY_HUD_BOX_W, height: ENEMY_HUD_BOX_H, zIndex: 20,
         }}>
-          <TBar asset={require('../../../assets/play/hpbar.png')}    fill={enemyHP / maxEHP} w={ENEMY_HUD_W} h={ENEMY_HUD_H} />
-          <TBar asset={require('../../../assets/play/manabar.png')}  fill={0}                w={ENEMY_HUD_W} h={ENEMY_HUD_H} />
-          <TBar asset={require('../../../assets/play/powerbar.png')} fill={0}                w={ENEMY_HUD_W} h={ENEMY_HUD_H} />
+          <View style={{ position: 'absolute', top: ENEMY_HP_Y, right: ENEMY_HP_X }}>
+            <TBar asset={require('../../../assets/play/hpbar.png')} fill={enemyHP / maxEHP} w={ENEMY_HP_W} h={ENEMY_HP_H} direction="rtl" />
+          </View>
+          <View style={{ position: 'absolute', top: ENEMY_MP_Y, right: ENEMY_MP_X }}>
+            <TBar asset={require('../../../assets/play/manabar.png')} fill={0} w={ENEMY_MP_W} h={ENEMY_MP_H} direction="rtl" />
+          </View>
+          <View style={{ position: 'absolute', top: ENEMY_POWER_Y, right: ENEMY_POWER_X }}>
+            <TBar asset={require('../../../assets/play/powerbar.png')} fill={0} w={ENEMY_POWER_W} h={ENEMY_POWER_H} direction="rtl" />
+          </View>
         </View>
 
         {/* ── Gem board ────────────────────────────────────────── */}
@@ -803,6 +935,7 @@ export const BattleScreen: React.FC<Props> = ({
                     position: 'absolute',
                     left: c * GEM_SIZE, top: r * GEM_SIZE,
                     width: GEM_SIZE,    height: GEM_SIZE,
+                    zIndex: selected?.[0] === r && selected?.[1] === c ? 120 : 1,
                     transform: [
                       { translateX: swapOffsetsX[r][c] },
                       { translateY: swapOffsetsY[r][c] },
@@ -815,6 +948,7 @@ export const BattleScreen: React.FC<Props> = ({
                     frameIndex={explodeFrames[`${r},${c}`] ?? 0}
                     size={GEM_SIZE}
                     selected={selected?.[0] === r && selected?.[1] === c}
+                    focusVariant={turn === 'monster' ? 'enemy' : 'player'}
                     onPress={() => handleGemPress(r, c)}
                   />
                 </Animated.View>
@@ -996,23 +1130,45 @@ export const BattleScreen: React.FC<Props> = ({
       </View>
 
       {/* ── Overlay ──────────────────────────────────────────── */}
-      {result !== null && (
-        <View style={s.overlay}>
-          <Text style={s.overlayTitle}>
-            {result === 'victory' ? '🏆 CHIẾN THẮNG!' : '💀 THẤT BẠI!'}
-          </Text>
-          <Text style={s.overlaySub}>
-            {result === 'victory' ? 'Quái vật đã bị tiêu diệt!' : 'Nhân vật đã ngã xuống...'}
-          </Text>
-          <TouchableOpacity
-            style={s.overlayBtn}
-            onPress={result === 'victory' ? onVictory : onDefeat}
+      {result !== null && resultMeta !== null && (
+        <TouchableOpacity
+          activeOpacity={1}
+          style={s.overlay}
+          onPress={result === 'victory' ? onVictory : onDefeat}
+        >
+          <Animated.View
+            style={[
+              s.resultBannerStage,
+              {
+                top: BATTLE_PANEL_TOP + BOARD_TOP + GEM_SIZE * BOARD_ROWS / 2 - 34 * BOARD_SCALE,
+                opacity: resultArtAnim,
+                transform: [
+                  { translateY: resultArtLift },
+                  { scale: resultArtScale },
+                  { rotate: resultArtTilt },
+                ],
+              },
+            ]}
           >
-            <Text style={s.overlayBtnTxt}>
-              {result === 'victory' ? '▶ Tiếp tục' : '↺ Thử lại'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            <View
+              style={{
+                width: resultMeta.frameWidth * BOARD_SCALE,
+                height: resultMeta.frameHeight * BOARD_SCALE,
+                overflow: 'hidden',
+              }}
+            >
+              <Image
+                source={resultMeta.asset}
+                resizeMode="stretch"
+                style={{
+                  width: resultMeta.sheetWidth * BOARD_SCALE,
+                  height: resultMeta.sheetHeight * BOARD_SCALE,
+                  transform: [{ translateX: -RESULT_ART_INDEX * resultMeta.frameWidth * BOARD_SCALE }],
+                }}
+              />
+            </View>
+          </Animated.View>
+        </TouchableOpacity>
       )}
     </View>
   );

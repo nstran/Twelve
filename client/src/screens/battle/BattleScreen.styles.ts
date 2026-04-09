@@ -119,14 +119,16 @@ export const s = StyleSheet.create({
 
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.78)',
-    justifyContent: 'center', alignItems: 'center', zIndex: 100,
+    backgroundColor: 'rgba(2,4,14,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
   },
-  overlayTitle: {
-    fontSize: 30, fontWeight: 'bold', color: '#FFD700', marginBottom: 10,
-    textShadowColor: '#000', textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 6,
+  resultBannerStage: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 101,
   },
-  overlaySub:    { fontSize: 14, color: '#ccc', marginBottom: 28 },
-  overlayBtn:    { paddingHorizontal: 36, paddingVertical: 14, backgroundColor: '#FFD700', borderRadius: 10 },
-  overlayBtnTxt: { color: '#000', fontSize: 17, fontWeight: 'bold' },
 });

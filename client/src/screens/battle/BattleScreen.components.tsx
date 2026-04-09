@@ -8,7 +8,8 @@ import {
   View,
 } from 'react-native';
 import {
-  ARROW_IMG,
+  ARROW_ENEMY_IMG,
+  ARROW_PLAYER_IMG,
   FOCUS_IMG,
   GEM_SHEETS,
   GemType,
@@ -16,9 +17,20 @@ import {
 } from './BattleScreen.shared';
 
 const GEM_RENDER_SCALE = 0.9;
+const FOCUS_RENDER_SCALE = 1.24;
+const FOCUS_OFFSET_X = -1;
+const FOCUS_OFFSET_Y = 1;
+const ARROW_TOP_INSET = 1.1;
+const ARROW_BOTTOM_INSET = 1.1;
+const ARROW_LEFT_INSET = 0.5;
+const ARROW_RIGHT_INSET = 6;
 
-const ArrowSet: React.FC<{ size: number }> = ({ size }) => {
+const ArrowSet: React.FC<{ size: number; variant?: 'player' | 'enemy' }> = ({
+  size,
+  variant = 'player',
+}) => {
   const pulse = useRef(new Animated.Value(0)).current;
+  const arrowAsset = variant === 'enemy' ? ARROW_ENEMY_IMG : ARROW_PLAYER_IMG;
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -44,59 +56,92 @@ const ArrowSet: React.FC<{ size: number }> = ({ size }) => {
   const arrowW = Math.round(size * 0.34);
   const arrowH = Math.round(arrowW * 7 / 10);
   const travel = Math.round(size * 0.14);
-  const outward = pulse.interpolate({ inputRange: [0, 1], outputRange: [0, travel] });
-  const inward = pulse.interpolate({ inputRange: [0, 1], outputRange: [0, -travel] });
+  const upShift = pulse.interpolate({ inputRange: [0, 1], outputRange: [0, -travel] });
+  const downShift = pulse.interpolate({ inputRange: [0, 1], outputRange: [0, travel] });
+  const leftShift = pulse.interpolate({ inputRange: [0, 1], outputRange: [0, -travel] });
+  const rightShift = pulse.interpolate({ inputRange: [0, 1], outputRange: [0, travel] });
 
   return (
     <>
-      <Animated.Image
-        source={ARROW_IMG}
-        resizeMode="contain"
+      <Animated.View
         style={{
           position: 'absolute',
           width: arrowW,
           height: arrowH,
           left: (size - arrowW) / 2,
-          top: -arrowH + 1,
-          transform: [{ translateY: inward }],
+          top: -arrowH + ARROW_TOP_INSET,
+          transform: [{ translateY: upShift }],
         }}
-      />
-      <Animated.Image
-        source={ARROW_IMG}
-        resizeMode="contain"
+      >
+        <Image
+          source={arrowAsset}
+          resizeMode="contain"
+          style={{
+            width: arrowW,
+            height: arrowH,
+          }}
+        />
+      </Animated.View>
+      <Animated.View
         style={{
           position: 'absolute',
           width: arrowW,
           height: arrowH,
           left: (size - arrowW) / 2,
-          bottom: -arrowH + 1,
-          transform: [{ rotate: '180deg' }, { translateY: inward }],
+          bottom: -arrowH + ARROW_BOTTOM_INSET,
+          transform: [{ translateY: downShift }],
         }}
-      />
-      <Animated.Image
-        source={ARROW_IMG}
-        resizeMode="contain"
+      >
+        <Image
+          source={arrowAsset}
+          resizeMode="contain"
+          style={{
+            width: arrowW,
+            height: arrowH,
+            transform: [{ rotate: '180deg' }],
+          }}
+        />
+      </Animated.View>
+      <Animated.View
         style={{
           position: 'absolute',
           width: arrowH,
           height: arrowW,
           top: (size - arrowW) / 2,
-          left: -arrowH + 1,
-          transform: [{ translateX: inward }],
+          left: -arrowH + ARROW_LEFT_INSET,
+          transform: [{ translateX: leftShift }],
         }}
-      />
-      <Animated.Image
-        source={ARROW_IMG}
-        resizeMode="contain"
+      >
+        <Image
+          source={arrowAsset}
+          resizeMode="contain"
+          style={{
+            width: arrowW,
+            height: arrowH,
+            transform: [{ rotate: '-90deg' }],
+          }}
+        />
+      </Animated.View>
+      <Animated.View
         style={{
           position: 'absolute',
           width: arrowH,
           height: arrowW,
           top: (size - arrowW) / 2,
-          right: -arrowH + 1,
-          transform: [{ translateX: outward }],
+          right: -arrowH + ARROW_RIGHT_INSET,
+          transform: [{ translateX: rightShift }],
         }}
-      />
+      >
+        <Image
+          source={arrowAsset}
+          resizeMode="contain"
+          style={{
+            width: arrowW,
+            height: arrowH,
+            transform: [{ rotate: '90deg' }],
+          }}
+        />
+      </Animated.View>
     </>
   );
 };
@@ -106,16 +151,22 @@ export const GemCell = React.memo(({
   frameIndex,
   size,
   selected,
+  focusVariant,
   onPress,
 }: {
   gemType: GemType;
   frameIndex: number;
   size: number;
   selected: boolean;
+  focusVariant?: 'player' | 'enemy';
   onPress: () => void;
 }) => {
   const spriteSize = Math.round(size * GEM_RENDER_SCALE);
   const inset = Math.floor((size - spriteSize) / 2);
+  const focusSize = Math.round(size * FOCUS_RENDER_SCALE);
+  const focusInset = Math.floor((size - focusSize) / 2);
+  const focusLeft = focusInset + Math.round(FOCUS_OFFSET_X * size / 28);
+  const focusTop = focusInset + Math.round(FOCUS_OFFSET_Y * size / 28);
 
   return (
     <TouchableOpacity
@@ -143,54 +194,87 @@ export const GemCell = React.memo(({
       </View>
 
       {selected && (
-        <View style={styles.focusWrap}>
+        <View style={[styles.focusWrap, {
+          top: focusTop,
+          left: focusLeft,
+          width: focusSize,
+          height: focusSize,
+        }]}>
           <Image source={FOCUS_IMG} style={styles.focus} resizeMode="stretch" />
-          <ArrowSet size={size} />
+          <ArrowSet size={focusSize} variant={focusVariant} />
         </View>
       )}
     </TouchableOpacity>
   );
 });
 
-export const TBar: React.FC<{ asset: any; fill: number; w: number; h: number }> = ({
+export const TBar: React.FC<{
+  asset: any;
+  fill: number;
+  w: number;
+  h: number;
+  direction?: 'ltr' | 'rtl';
+}> = ({
   asset,
   fill,
   w,
   h,
-}) => (
-  <View style={[styles.barBase, { width: w, height: h }]}>
-    <Image
-      source={asset}
-      style={{
-        width: w,
-        height: h,
-        transform: [{ translateX: -w * (1 - Math.max(0, Math.min(1, fill))) }],
-      }}
-      resizeMode="stretch"
-    />
-  </View>
-);
+  direction = 'ltr',
+}) => {
+  const clampedFill = Math.max(0, Math.min(1, fill));
+  const fillWidth = w * clampedFill;
+  const isRTL = direction === 'rtl';
+
+  return (
+    <View style={[styles.barBase, { width: w, height: h }]}>
+      <View
+        style={[
+          styles.barClip,
+          {
+            width: fillWidth,
+            height: h,
+            left: isRTL ? undefined : 0,
+            right: isRTL ? 0 : undefined,
+          },
+        ]}
+      >
+        <Image
+          source={asset}
+          style={{
+            width: w,
+            height: h,
+            transform: isRTL ? [{ translateX: -(w - fillWidth) }] : undefined,
+          }}
+          resizeMode="stretch"
+        />
+      </View>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   base: { borderRadius: 2 },
   focusWrap: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    zIndex: 50,
+    elevation: 50,
     overflow: 'visible',
+    pointerEvents: 'none',
   },
   focus: {
     position: 'absolute',
     top: 0,
     left: 0,
-    right: 0,
-    bottom: 0,
+    width: '100%',
+    height: '100%',
   },
   barBase: {
     backgroundColor: 'transparent',
-    overflow: 'hidden',
     borderRadius: 1,
+  },
+  barClip: {
+    position: 'absolute',
+    top: 0,
+    overflow: 'hidden',
   },
 });

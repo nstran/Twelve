@@ -106,7 +106,8 @@ export const AI_ORDER: AILevel[] = [
 ];
 
 export const FOCUS_IMG = require('../../../assets/focusmovechess1.png');
-export const ARROW_IMG = require('../../../assets/arrowfocus1.png');
+export const ARROW_PLAYER_IMG = require('../../../assets/arrowfocus1.png');
+export const ARROW_ENEMY_IMG = require('../../../assets/arrowfocus2.png');
 export const AURA1_IMG = require('../../../assets/aura1.png');
 export const AURA2_IMG = require('../../../assets/aura2.png');
 export const AURA3_IMG = require('../../../assets/aura3.png');
