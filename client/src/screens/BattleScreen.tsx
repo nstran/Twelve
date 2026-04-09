@@ -172,6 +172,44 @@ function findMatches(b: Board): Set<string> {
   return hit;
 }
 
+/**
+ * Đếm số lượt bonus từ các match 4+ gem.
+ * Match 4 = +1 lượt, match 5 = +2 lượt, match 6 = +3, v.v.
+ * Cả ngang và dọc đều tính.
+ */
+function countBonusTurns(b: Board): number {
+  let bonus = 0;
+  // Horizontal runs
+  for (let r = 0; r < BOARD_ROWS; r++) {
+    let c = 0;
+    while (c < BOARD_COLS - 2) {
+      const g = b[r][c];
+      if (g !== null && sameCat(g, b[r][c + 1]) && sameCat(g, b[r][c + 2])) {
+        let e = c + 2;
+        while (e + 1 < BOARD_COLS && sameCat(g, b[r][e + 1])) e++;
+        const len = e - c + 1;
+        if (len >= 4) bonus += (len - 3); // 4→+1, 5→+2, 6→+3 ...
+        c = e + 1;
+      } else c++;
+    }
+  }
+  // Vertical runs
+  for (let c = 0; c < BOARD_COLS; c++) {
+    let r = 0;
+    while (r < BOARD_ROWS - 2) {
+      const g = b[r][c];
+      if (g !== null && sameCat(g, b[r + 1][c]) && sameCat(g, b[r + 2][c])) {
+        let e = r + 2;
+        while (e + 1 < BOARD_ROWS && sameCat(g, b[e + 1][c])) e++;
+        const len = e - r + 1;
+        if (len >= 4) bonus += (len - 3);
+        r = e + 1;
+      } else r++;
+    }
+  }
+  return bonus;
+}
+
 function expandSword(matched: Set<string>, b: Board): Set<string> {
   const out = new Set<string>(matched);
   matched.forEach(k => {
@@ -494,6 +532,12 @@ export const BattleScreen: React.FC<Props> = ({
   const [turn, setTurn] = useState<'player' | 'monster'>('player');
   const turnRef = useRef<'player' | 'monster'>('player');
 
+  // ── Extra turns: match 4+ → bonus lượt ────────────────────────────────────
+  const [extraTurns, setExtraTurns] = useState(0);
+  const extraTurnsRef = useRef(0);
+  const [bonusBanner, setBonusBanner] = useState<string | null>(null);
+  const bonusBannerAnim = useRef(new Animated.Value(0)).current;
+
   // Match particle effects
   interface MatchFXItem { key: string; r: number; c: number; kind: FXKind; anim: Animated.Value }
   const [matchFX, setMatchFX] = useState<MatchFXItem[]>([]);
@@ -518,6 +562,7 @@ export const BattleScreen: React.FC<Props> = ({
   useEffect(() => { enemyHPRef.current = enemyHP; }, [enemyHP]);
   useEffect(() => { playerHPRef.current = playerHP; }, [playerHP]);
   useEffect(() => { turnRef.current = turn; }, [turn]);
+  useEffect(() => { extraTurnsRef.current = extraTurns; }, [extraTurns]);
 
   // ── Entry animation: gem rơi theo cột ─────────────────────────────────────
   useEffect(() => {
@@ -646,18 +691,91 @@ export const BattleScreen: React.FC<Props> = ({
     ).start(() => { if (mountedRef.current) onDone(); });
   }, [offsets]);
 
+  // ── Board reset: khi không còn nước đi, tạo board mới rơi từ trên xuống ──
+  const resetBoardAnim = useCallback((onDone: () => void) => {
+    const nb = makeBoard();
+    boardRef.current = nb;
+    setBoard(nb);
+
+    // Tất cả gem bắt đầu ở trên cao rồi rơi xuống (giống entry animation)
+    const TOP = -(BOARD_ROWS + 2) * GEM_SIZE;
+    for (let r = 0; r < BOARD_ROWS; r++)
+      for (let c = 0; c < BOARD_COLS; c++)
+        offsets[r][c].setValue(TOP);
+
+    const anims: Animated.CompositeAnimation[] = [];
+    for (let c = 0; c < BOARD_COLS; c++)
+      for (let r = 0; r < BOARD_ROWS; r++)
+        anims.push(Animated.timing(offsets[r][c], {
+          toValue: 0, duration: 480,
+          delay: c * 55,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }));
+
+    Animated.parallel(anims).start(() => {
+      if (mountedRef.current) onDone();
+    });
+  }, [offsets]);
+
+  // ── Bonus turn banner flash ─────────────────────────────────────────────────
+  const showBonusBanner = useCallback((msg: string) => {
+    setBonusBanner(msg);
+    bonusBannerAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(bonusBannerAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.delay(800),
+      Animated.timing(bonusBannerAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start(() => { if (mountedRef.current) setBonusBanner(null); });
+  }, [bonusBannerAnim]);
+
   // ── Chain processor ────────────────────────────────────────────────────────
   const processMatches = useCallback((b: Board, chain: number) => {
     if (!mountedRef.current) return;
     const raw = findMatches(b);
     if (raw.size === 0) {
       setBoard(b); setCombo(0);
-      // ── Turn switch: player→monster or monster→player ──
-      const nextTurn = turnRef.current === 'player' ? 'monster' : 'player';
-      turnRef.current = nextTurn;
-      setTurn(nextTurn);
-      setPhase('idle'); phaseRef.current = 'idle';
+
+      // ── Check deadlock: không còn nước đi → reset board ──
+      if (getAllValidMoves(b).length === 0) {
+        setLog('🔀 Hết nước đi! Xáo trộn bàn cờ...');
+        showBonusBanner('🔀 Hết nước! Bàn cờ mới!');
+        resetBoardAnim(() => {
+          if (!mountedRef.current) return;
+          // Sau khi reset, giữ nguyên turn + extraTurns, quay lại idle
+          setPhase('idle'); phaseRef.current = 'idle';
+        });
+        return;
+      }
+
+      // ── Turn switch: check extraTurns before switching ──
+      if (extraTurnsRef.current > 0) {
+        // Còn lượt bonus → giữ nguyên turn, trừ 1 lượt
+        const remaining = extraTurnsRef.current - 1;
+        extraTurnsRef.current = remaining;
+        setExtraTurns(remaining);
+        const who = turnRef.current === 'player' ? 'Bạn' : 'Quái';
+        showBonusBanner(`🔄 ${who} được thêm lượt! ${remaining > 0 ? `Còn ${remaining} lượt` : ''}`);
+        setLog(`🔄 Thêm lượt! ${remaining > 0 ? `(còn ${remaining} lượt nữa)` : '(lượt cuối)'}`);
+        setPhase('idle'); phaseRef.current = 'idle';
+      } else {
+        // Hết lượt bonus → chuyển turn
+        const nextTurn = turnRef.current === 'player' ? 'monster' : 'player';
+        turnRef.current = nextTurn;
+        setTurn(nextTurn);
+        setPhase('idle'); phaseRef.current = 'idle';
+      }
       return;
+    }
+
+    // ── Detect 4+ match bonus turns ──
+    const bonus = countBonusTurns(b);
+    if (bonus > 0) {
+      const newExtra = extraTurnsRef.current + bonus;
+      extraTurnsRef.current = newExtra;
+      setExtraTurns(newExtra);
+      const who = turnRef.current === 'player' ? 'Bạn' : 'Quái';
+      showBonusBanner(`✨ ${who} +${bonus} lượt! (tổng ${newExtra})`);
     }
 
     const matched = expandSword(raw, b);
@@ -736,7 +854,7 @@ export const BattleScreen: React.FC<Props> = ({
         setTimeout(() => processMatches(newBoard, chain + 1), 80);
       });
     });
-  }, [playExplosion, animateFall, shakeAnim, maxHP, maxEHP, maxMP, maxPow]);
+  }, [playExplosion, animateFall, resetBoardAnim, shakeAnim, showBonusBanner, maxHP, maxEHP, maxMP, maxPow]);
 
   // ── Direct swap (dùng cho cả AI và human) ─────────────────────────────────
   const doDirectSwap = useCallback((r1: number, c1: number, r2: number, c2: number) => {
@@ -971,6 +1089,51 @@ export const BattleScreen: React.FC<Props> = ({
           );
         })}
       </Animated.View>
+
+      {/* ── Extra turns badge (persistent, on board center) ──── */}
+      {extraTurns > 0 && (
+        <View style={{
+          position: 'absolute',
+          top: BOARD_POS_TOP + GEM_SIZE * BOARD_ROWS / 2 - 14,
+          left: BOARD_POS_LEFT + GEM_SIZE * BOARD_COLS / 2 - 55,
+          width: 110, height: 28,
+          backgroundColor: turn === 'player' ? 'rgba(33,150,243,0.88)' : 'rgba(255,87,34,0.88)',
+          borderRadius: 14,
+          justifyContent: 'center', alignItems: 'center',
+          zIndex: 50,
+          borderWidth: 1.5, borderColor: '#fff',
+        }}>
+          <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
+            🔄 Còn {extraTurns} lượt
+          </Text>
+        </View>
+      )}
+
+      {/* ── Bonus turn flash banner (animated) ───────────────── */}
+      {bonusBanner !== null && (
+        <Animated.View style={{
+          position: 'absolute',
+          top: BOARD_POS_TOP + GEM_SIZE * BOARD_ROWS / 2 - 24,
+          left: BOARD_POS_LEFT - 10,
+          width: GEM_SIZE * BOARD_COLS + 20,
+          height: 48,
+          backgroundColor: 'rgba(255,215,0,0.92)',
+          borderRadius: 8,
+          justifyContent: 'center', alignItems: 'center',
+          zIndex: 60,
+          opacity: bonusBannerAnim,
+          transform: [{
+            scale: bonusBannerAnim.interpolate({
+              inputRange: [0, 0.5, 1],
+              outputRange: [0.6, 1.1, 1],
+            }),
+          }],
+        }}>
+          <Text style={{ color: '#333', fontSize: 14, fontWeight: 'bold', textAlign: 'center' }}>
+            {bonusBanner}
+          </Text>
+        </Animated.View>
+      )}
 
       {/* ── Log ──────────────────────────────────────────────── */}
       <View style={[s.logBar, { top: LOG_TOP, width: BG_W - 30 }]}>
