@@ -488,7 +488,11 @@ export const BattleScreen: React.FC<Props> = ({
   const [result,    setResult]    = useState<'victory' | 'defeat' | null>(null);
   const [monFrame,  setMonFrame]  = useState<number>(WALK_FRAMES[0]);
   const [monAtk,    setMonAtk]   = useState(false);
-  const [aiLevel,   setAiLevel]  = useState<AILevel | null>(null);
+  const [aiLevel,   setAiLevel]  = useState<AILevel | null>('linh_canh');
+
+  // ── Turn-based system ──────────────────────────────────────────────────────
+  const [turn, setTurn] = useState<'player' | 'monster'>('player');
+  const turnRef = useRef<'player' | 'monster'>('player');
 
   // Match particle effects
   interface MatchFXItem { key: string; r: number; c: number; kind: FXKind; anim: Animated.Value }
@@ -513,6 +517,7 @@ export const BattleScreen: React.FC<Props> = ({
   useEffect(() => { boardRef.current = board; }, [board]);
   useEffect(() => { enemyHPRef.current = enemyHP; }, [enemyHP]);
   useEffect(() => { playerHPRef.current = playerHP; }, [playerHP]);
+  useEffect(() => { turnRef.current = turn; }, [turn]);
 
   // ── Entry animation: gem rơi theo cột ─────────────────────────────────────
   useEffect(() => {
@@ -546,24 +551,7 @@ export const BattleScreen: React.FC<Props> = ({
     return () => clearInterval(t);
   }, [monAtk]);
 
-  // ── Enemy auto-attack ──────────────────────────────────────────────────────
-  useEffect(() => {
-    const t = setInterval(() => {
-      if (!mountedRef.current || phaseRef.current === 'over') return;
-      const dmg = 8 + Math.floor(Math.random() * 14);
-      setMonAtk(true);
-      setTimeout(() => mountedRef.current && setMonAtk(false), 600);
-      setPlayerHP(hp => {
-        const next = Math.max(0, hp - dmg);
-        if (next === 0 && phaseRef.current !== 'over') {
-          phaseRef.current = 'over'; setPhase('over'); setResult('defeat');
-        }
-        return next;
-      });
-      setLog(`Quái tấn công! -${dmg} HP`);
-    }, 3500);
-    return () => clearInterval(t);
-  }, []);
+  // ── Enemy auto-attack REMOVED — monster now plays turn-based on the board ──
 
   // ── Spawn particle effects at matched positions ────────────────────────────
   const spawnFX = useCallback((matched: Set<string>, b: Board, expanded: Set<string>) => {
@@ -663,7 +651,13 @@ export const BattleScreen: React.FC<Props> = ({
     if (!mountedRef.current) return;
     const raw = findMatches(b);
     if (raw.size === 0) {
-      setBoard(b); setPhase('idle'); phaseRef.current = 'idle'; setCombo(0); return;
+      setBoard(b); setCombo(0);
+      // ── Turn switch: player→monster or monster→player ──
+      const nextTurn = turnRef.current === 'player' ? 'monster' : 'player';
+      turnRef.current = nextTurn;
+      setTurn(nextTurn);
+      setPhase('idle'); phaseRef.current = 'idle';
+      return;
     }
 
     const matched = expandSword(raw, b);
@@ -700,21 +694,41 @@ export const BattleScreen: React.FC<Props> = ({
       if (!mountedRef.current) return;
       const { newBoard, fallMap } = collapseLogic(b, matched);
 
-      setEnemyHP(hp => {
-        const next = Math.max(0, hp - dmg);
-        if (next === 0 && phaseRef.current !== 'over') {
-          phaseRef.current = 'over'; setPhase('over'); setResult('victory');
+      // ── Turn-based effects: player turn → hurt monster, monster turn → hurt player ──
+      if (turnRef.current === 'player') {
+        // Player's turn: damage to enemy, heal/mp/pow to player
+        setEnemyHP(hp => {
+          const next = Math.max(0, hp - dmg);
+          if (next === 0 && phaseRef.current !== 'over') {
+            phaseRef.current = 'over'; setPhase('over'); setResult('victory');
+          }
+          return next;
+        });
+        if (heal > 0) setPlayerHP(hp => Math.min(maxHP, hp + heal));
+        if (mp   > 0) setMana(m       => Math.min(maxMP, m + mp));
+        if (pow  > 0) setPower(p      => Math.min(maxPow, p + pow));
+      } else {
+        // Monster's turn: damage to player, heal to monster
+        if (dmg > 0) {
+          setMonAtk(true);
+          setTimeout(() => mountedRef.current && setMonAtk(false), 600);
+          setPlayerHP(hp => {
+            const next = Math.max(0, hp - dmg);
+            if (next === 0 && phaseRef.current !== 'over') {
+              phaseRef.current = 'over'; setPhase('over'); setResult('defeat');
+            }
+            return next;
+          });
         }
-        return next;
-      });
-      if (heal > 0) setPlayerHP(hp => Math.min(maxHP, hp + heal));
-      if (mp   > 0) setMana(m       => Math.min(maxMP, m + mp));
-      if (pow  > 0) setPower(p      => Math.min(maxPow, p + pow));
+        if (heal > 0) setEnemyHP(hp => Math.min(maxEHP, hp + heal));
+        // Monster doesn't gain player's mana/power
+      }
 
+      const isMonTurn = turnRef.current === 'monster';
       const parts: string[] = [];
       if (hasSword) parts.push('💥 Kiếm nổ 3×3!');
-      if (dmg > 0)  parts.push(`⚔ -${dmg}`);
-      if (heal > 0) parts.push(`❤ +${heal}`);
+      if (dmg > 0)  parts.push(isMonTurn ? `🐉 Quái đánh -${dmg} HP` : `⚔ -${dmg}`);
+      if (heal > 0) parts.push(isMonTurn ? `🐉 Quái hồi +${heal} HP` : `❤ +${heal}`);
       setLog((chain > 0 ? `COMBO ×${chain + 1}!  ` : '') + parts.join('  '));
       setCombo(chain + 1);
 
@@ -722,14 +736,21 @@ export const BattleScreen: React.FC<Props> = ({
         setTimeout(() => processMatches(newBoard, chain + 1), 80);
       });
     });
-  }, [playExplosion, animateFall, shakeAnim, maxHP, maxMP, maxPow]);
+  }, [playExplosion, animateFall, shakeAnim, maxHP, maxEHP, maxMP, maxPow]);
 
   // ── Direct swap (dùng cho cả AI và human) ─────────────────────────────────
   const doDirectSwap = useCallback((r1: number, c1: number, r2: number, c2: number) => {
     const b = boardRef.current;
     const nb: Board = b.map(r => [...r]);
     [nb[r1][c1], nb[r2][c2]] = [nb[r2][c2], nb[r1][c1]];
-    if (findMatches(nb).size === 0) return; // Bờm có thể fail
+    if (findMatches(nb).size === 0) {
+      // Bờm có thể fail — nếu là monster turn, vẫn switch sang player
+      if (turnRef.current === 'monster') {
+        turnRef.current = 'player'; setTurn('player');
+        setLog('🐉 Quái đánh trượt!');
+      }
+      return;
+    }
     setPhase('busy'); phaseRef.current = 'busy';
     setBoard(nb); processMatches(nb, 0);
   }, [processMatches]);
@@ -737,8 +758,8 @@ export const BattleScreen: React.FC<Props> = ({
   const doDirectSwapRef = useRef(doDirectSwap);
   useEffect(() => { doDirectSwapRef.current = doDirectSwap; }, [doDirectSwap]);
 
-  // ── AI loop: simulate real opponent clicking ──────────────────────────────
-  // Dùng state aiStep để hiển thị AI đang "click" trên bàn cờ
+  // ── Monster AI loop: monster plays on the board during its turn ────────────
+  // Dùng state aiStep để hiển thị monster đang "click" trên bàn cờ
   // step 0: thinking... → step 1: click gem1 (focus+arrows) → step 2: click gem2 → swap
   const [aiStep, setAiStep] = useState<'think' | 'pick1' | 'pick2' | null>(null);
   const aiTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -747,30 +768,39 @@ export const BattleScreen: React.FC<Props> = ({
   useEffect(() => () => { aiTimers.current.forEach(clearTimeout); }, []);
 
   useEffect(() => {
-    if (phase !== 'idle' || aiLevel === null || result !== null) return;
+    // Monster AI triggers only when it's monster's turn, phase is idle, and AI level is set
+    if (phase !== 'idle' || turn !== 'monster' || aiLevel === null || result !== null) return;
     const cfg = AI_CONFIGS[aiLevel];
 
     // Clear old timers
     aiTimers.current.forEach(clearTimeout);
     aiTimers.current = [];
 
-    // Step 0: AI "thinking" — chờ thinkMs
+    // Step 0: Monster "thinking" — chờ thinkMs
     setAiStep('think');
     setSelected(null);
+    setLog(`🐉 Lượt quái vật — ${cfg.emoji} ${cfg.name} đang suy nghĩ...`);
 
     const t1 = setTimeout(() => {
-      if (!mountedRef.current || phaseRef.current !== 'idle') return;
+      if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') return;
       const b  = boardRef.current;
-      const mv = pickAIMove(b, aiLevel, enemyHPRef.current, playerHPRef.current);
-      if (!mv) { setAiStep(null); return; }
+      // Monster AI: eHP & pHP swapped — monster wants to maximize its own benefit
+      const mv = pickAIMove(b, aiLevel, playerHPRef.current, enemyHPRef.current);
+      if (!mv) {
+        // No valid moves — skip monster turn
+        setAiStep(null);
+        turnRef.current = 'player'; setTurn('player');
+        setLog('🐉 Quái không tìm được nước đi!');
+        return;
+      }
 
-      // Step 1: AI "click" gem1 — hiện focus + mũi tên trên gem1
+      // Step 1: Monster "click" gem1 — hiện focus + mũi tên trên gem1
       setAiStep('pick1');
       setSelected([mv.r1, mv.c1]);
 
       const t2 = setTimeout(() => {
         if (!mountedRef.current) return;
-        // Step 2: AI "click" gem2 — focus chuyển sang gem2
+        // Step 2: Monster "click" gem2 — focus chuyển sang gem2
         setAiStep('pick2');
         setSelected([mv.r2, mv.c2]);
 
@@ -788,11 +818,11 @@ export const BattleScreen: React.FC<Props> = ({
     aiTimers.current.push(t1);
 
     return () => { aiTimers.current.forEach(clearTimeout); aiTimers.current = []; };
-  }, [phase, aiLevel, result]);
+  }, [phase, turn, aiLevel, result]);
 
   // ── Human tap ─────────────────────────────────────────────────────────────
   const handleGemPress = useCallback((row: number, col: number) => {
-    if (phase !== 'idle' || aiLevel !== null) return; // AI đang chơi → block tap
+    if (phase !== 'idle' || turn !== 'player') return; // Chỉ cho tap khi lượt player
     if (!selected) { setSelected([row, col]); return; }
     const [sr, sc] = selected;
     if (sr === row && sc === col) { setSelected(null); return; }
@@ -801,11 +831,11 @@ export const BattleScreen: React.FC<Props> = ({
     if (!adj) { setSelected([row, col]); return; }
     setSelected(null);
     doDirectSwapRef.current(sr, sc, row, col);
-  }, [selected, phase, aiLevel]);
+  }, [selected, phase, turn]);
 
   // ── Skill ──────────────────────────────────────────────────────────────────
   const handleSkill = useCallback(() => {
-    if (mana < 30 || phase !== 'idle') return;
+    if (mana < 30 || phase !== 'idle' || turn !== 'player') return;
     setMana(m => m - 30);
     const dmg = 40 + Math.floor(Math.random() * 20);
     setEnemyHP(hp => {
@@ -816,7 +846,9 @@ export const BattleScreen: React.FC<Props> = ({
       return next;
     });
     setLog(`💫 Kỹ năng! -${dmg} HP quái!`);
-  }, [mana, phase]);
+    // Skill also ends player turn → switch to monster
+    turnRef.current = 'monster'; setTurn('monster');
+  }, [mana, phase, turn]);
 
   // ── Layout ─────────────────────────────────────────────────────────────────
   const BG_LEFT    = Math.round((SCREEN_W - BG_W) / 2);
@@ -971,7 +1003,7 @@ export const BattleScreen: React.FC<Props> = ({
         <TouchableOpacity
           style={[s.btnSkill, mana < 30 && s.btnOff]}
           onPress={handleSkill}
-          disabled={mana < 30 || phase !== 'idle'}
+          disabled={mana < 30 || phase !== 'idle' || turn !== 'player'}
         >
           <Text style={s.btnTxt}>💫 Kỹ Năng (30 MP)</Text>
         </TouchableOpacity>
@@ -979,15 +1011,10 @@ export const BattleScreen: React.FC<Props> = ({
 
       {/* ── AI level selector ────────────────────────────────── */}
       <View style={[s.aiRow, { top: AI_ROW_TOP }]}>
-        {/* Manual button */}
-        <TouchableOpacity
-          style={[s.aiManualBtn, aiLevel === null && s.aiManualBtnActive]}
-          onPress={() => setAiLevel(null)}
-        >
-          <Text style={s.aiSmallTxt}>👤</Text>
-        </TouchableOpacity>
+        {/* Monster difficulty label */}
+        <Text style={{ color: '#aaa', fontSize: 10, marginRight: 4 }}>Quái:</Text>
 
-        {/* AI level chips */}
+        {/* Monster AI level chips */}
         {AI_ORDER.map(lv => (
           <TouchableOpacity
             key={lv}
@@ -999,19 +1026,21 @@ export const BattleScreen: React.FC<Props> = ({
         ))}
       </View>
 
-      {/* AI info label */}
+      {/* Turn indicator + AI info label */}
       <View style={[s.aiLabelRow, { top: AI_LBL_TOP }]}>
-        {aiLevel !== null ? (
-          <Text style={s.aiLabelTxt}>
-            AI {AI_CONFIGS[aiLevel].emoji} {AI_CONFIGS[aiLevel].name}
-            {aiStep === 'think' ? ' — đang suy nghĩ...' :
-             aiStep === 'pick1' ? ' — chọn viên 1...' :
-             aiStep === 'pick2' ? ' — di chuyển...' :
-             ` — ${AI_CONFIGS[aiLevel].desc}`}
-          </Text>
-        ) : (
-          <Text style={[s.aiLabelTxt, { color: '#888' }]}>Chế độ thủ công · Chọn emoji để bật AI</Text>
-        )}
+        <Text style={[s.aiLabelTxt, {
+          color: turn === 'player' ? '#4fc3f7' : '#ff8a65',
+          fontWeight: 'bold',
+        }]}>
+          {turn === 'player' ? '⚔ LƯỢT CỦA BẠN' : '🐉 LƯỢT QUÁI VẬT'}
+          {turn === 'monster' && aiLevel !== null && (
+            aiStep === 'think' ? ` — ${AI_CONFIGS[aiLevel].emoji} đang suy nghĩ...` :
+            aiStep === 'pick1' ? ` — ${AI_CONFIGS[aiLevel].emoji} chọn viên 1...` :
+            aiStep === 'pick2' ? ` — ${AI_CONFIGS[aiLevel].emoji} di chuyển...` :
+            ` — ${AI_CONFIGS[aiLevel].emoji} ${AI_CONFIGS[aiLevel].name}`
+          )}
+          {aiLevel === null && turn === 'monster' ? ' — chọn độ khó quái!' : ''}
+        </Text>
       </View>
 
       {/* ── Overlay ──────────────────────────────────────────── */}
