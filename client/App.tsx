@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, View, Text } from 'react-native';
-import { LoginScreen }           from './src/screens/LoginScreen';
-import { RegisterScreen }        from './src/screens/RegisterScreen';
-import { MainScreen }            from './src/screens/MainScreen';
-import { CreateCharacterScreen } from './src/screens/CreateCharacterScreen';
-import { CharacterStatusScreen } from './src/screens/CharacterStatusScreen';
-import { MapSelectionScreen }     from './src/screens/MapSelectionScreen';
-import { HoaLuMapScreen }         from './src/screens/HoaLuMapScreen';
-import { BattleScreen }           from './src/screens/BattleScreen';
+import {
+  BattleScreen,
+  CharacterStatusScreen,
+  CreateCharacterScreen,
+  HoaLuMapScreen,
+  LoginScreen,
+  MainScreen,
+  MapSelectionScreen,
+  RegisterScreen,
+} from './src/screens';
 import { SocketClient }          from './src/network/SocketClient';
 import {
   loadSession,

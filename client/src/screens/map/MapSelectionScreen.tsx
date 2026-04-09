@@ -9,16 +9,16 @@ import {
   Animated
 } from 'react-native';
 import { styles, MAP_WIDTH, MAP_HEIGHT } from './MapSelectionScreen.styles';
-import { SoftkeyBar }     from '../components/SoftkeyBar';
-import { MAPS, MapInfo }  from '../data/MapData';
+import { SoftkeyBar }     from '../../components/SoftkeyBar';
+import { MAPS, MapInfo }  from '../../data/MapData';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const ASSET_MAP_BG  = require('../../assets/m/m.png');
-const ASSET_LOCK    = require('../../assets/m/lock.png');
-const ASSET_ARENA   = require('../../assets/m/arena.png');
-const ASSET_ROOM    = require('../../assets/m/room.png');
-const ASSET_HAND    = require('../../assets/m/hand.png');
+const ASSET_MAP_BG  = require('../../../assets/m/m.png');
+const ASSET_LOCK    = require('../../../assets/m/lock.png');
+const ASSET_ARENA   = require('../../../assets/m/arena.png');
+const ASSET_ROOM    = require('../../../assets/m/room.png');
+const ASSET_HAND    = require('../../../assets/m/hand.png');
 
 interface MapSelectionScreenProps {
   onSelect: (map: MapInfo) => void;

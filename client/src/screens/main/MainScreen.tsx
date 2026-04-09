@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { SocketClient, Actor, MapInfo } from '../network/SocketClient';
-import { MapRenderer } from '../engine/MapRenderer';
-import { clearSession } from '../storage/SessionStorage';
+import { SocketClient, Actor, MapInfo } from '../../network/SocketClient';
+import { MapRenderer } from '../../engine/MapRenderer';
+import { clearSession } from '../../storage/SessionStorage';
 
 interface Props {
   onLogout: () => void;

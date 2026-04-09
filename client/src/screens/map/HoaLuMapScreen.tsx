@@ -6,7 +6,7 @@ import {
 import {
   MonsterSprite, MonsterType,
   WALK_FRAMES, ATTACK_FRAMES, monsterDisplaySize,
-} from '../engine/MonsterSprite';
+} from '../../engine/MonsterSprite';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -158,7 +158,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onBattle }) => {
         tiles.push(
           <Image
             key={`t-${row}-${col}`}
-            source={require('../../assets/createcs/stone.png')}
+            source={require('../../../assets/createcs/stone.png')}
             style={{
               position: 'absolute',
               left:   col * (TILE_W - 1),
@@ -232,7 +232,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onBattle }) => {
         >
           {/* Layer 0: Background */}
           <Image
-            source={require('../../assets/m/bgmap_hoa_lu.png')}
+            source={require('../../../assets/m/bgmap_hoa_lu.png')}
             style={styles.bg}
             resizeMode="stretch"
           />
@@ -251,7 +251,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onBattle }) => {
             ]}
           >
             <Image
-              source={require('../../assets/character/Full.png')}
+              source={require('../../../assets/character/Full.png')}
               style={[styles.charImg, !facingRight && { transform: [{ scaleX: -1 }] }]}
               resizeMode="contain"
             />

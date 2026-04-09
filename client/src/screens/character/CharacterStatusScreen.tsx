@@ -1,15 +1,15 @@
 import { Dimensions, View, Text, Image, ScrollView } from 'react-native';
 import React from 'react';
 import { styles } from './CharacterStatusScreen.styles';
-import { SoftkeyBar } from '../components/SoftkeyBar';
-import { PopupMenu } from '../components/PopupMenu';
-import { BODIES, FACES, HAIRS } from '../assets/AssetIndex';
-import { COMMON_MENU_ITEMS } from '../constants/MenuConstants';
+import { SoftkeyBar } from '../../components/SoftkeyBar';
+import { PopupMenu } from '../../components/PopupMenu';
+import { BODIES, FACES, HAIRS } from '../../assets/AssetIndex';
+import { COMMON_MENU_ITEMS } from '../../constants/MenuConstants';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const ASSET_CORNERS = require('../../assets/ui/frames/cornerskb.png');
-const ASSET_CANCEL  = require('../../assets/ui/icons/icon_cancel.png');
-const ASSET_BK      = require('../../assets/createcs/bk.png');
+const ASSET_CORNERS = require('../../../assets/ui/frames/cornerskb.png');
+const ASSET_CANCEL  = require('../../../assets/ui/icons/icon_cancel.png');
+const ASSET_BK      = require('../../../assets/createcs/bk.png');
 
 interface StatusScreenProps {
   onStart: () => void;
