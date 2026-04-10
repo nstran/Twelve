@@ -19,14 +19,14 @@ export const RESULT_ART_INDEX = 1;
 
 export const RESULT_ART_META: Record<BattleResult, ResultArtMeta> = {
   victory: {
-    asset: require('../../../assets/strwin.png'),
+    asset: require('../../../../assets/strwin.png'),
     frameWidth: 172,
     frameHeight: 65,
     sheetWidth: 516,
     sheetHeight: 65,
   },
   defeat: {
-    asset: require('../../../assets/strlose.png'),
+    asset: require('../../../../assets/strlose.png'),
     frameWidth: 146,
     frameHeight: 56,
     sheetWidth: 438,
@@ -35,9 +35,9 @@ export const RESULT_ART_META: Record<BattleResult, ResultArtMeta> = {
 };
 
 export const BATTLE_ASSETS = {
-  boardFrame: require('../../../assets/play/bkboardv.png'),
-  hpBar: require('../../../assets/play/hpbar.png'),
-  manaBar: require('../../../assets/play/manabar.png'),
-  powerBar: require('../../../assets/play/powerbar.png'),
-  playerSprite: require('../../../assets/character/Full.png'),
+  boardFrame: require('../../../../assets/play/bkboardv.png'),
+  hpBar: require('../../../../assets/play/hpbar.png'),
+  manaBar: require('../../../../assets/play/manabar.png'),
+  powerBar: require('../../../../assets/play/powerbar.png'),
+  playerSprite: require('../../../../assets/character/Full.png'),
 } as const;

@@ -14,7 +14,7 @@ import {
   GEM_SHEETS,
   GemType,
   TOTAL_FRAMES,
-} from './BattleScreen.shared';
+} from '../core';
 
 const GEM_RENDER_SCALE = 0.9;
 const FOCUS_RENDER_SCALE = 1.24;

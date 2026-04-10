@@ -9,7 +9,6 @@ import {
   GemType,
   MoveSpec,
   RED_SWORD_GEM,
-  SWORD_CAT,
   SWORD_DAMAGE,
   WHITE_SWORD_GEM,
 } from './BattleScreen.shared';

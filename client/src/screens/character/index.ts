@@ -1,2 +1,2 @@
-export { CharacterStatusScreen } from './CharacterStatusScreen';
-export { CreateCharacterScreen } from './CreateCharacterScreen';
+export * from './create';
+export * from './status';

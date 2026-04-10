@@ -10,10 +10,10 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
-import { SocketClient } from '../../network/SocketClient';
+import { SocketClient } from '../../../network/SocketClient';
 import { getStyles } from './RegisterScreen.styles';
-import { SoftkeyBar } from '../../components/SoftkeyBar';
-import { CalendarPicker } from '../../components/CalendarPicker';
+import { SoftkeyBar } from '../../../components/SoftkeyBar';
+import { CalendarPicker } from '../../../components/CalendarPicker';
 
 type Gender = 'Nam' | 'Nữ';
 

@@ -1,2 +1,2 @@
-export { LoginScreen } from './LoginScreen';
-export { RegisterScreen } from './RegisterScreen';
+export * from './login';
+export * from './register';

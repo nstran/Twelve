@@ -12,20 +12,21 @@ import {
   ScrollView
 } from 'react-native';
 import { styles }       from './CreateCharacterScreen.styles';
-import { SocketClient } from '../../network/SocketClient';
-import { BODIES, HAIRS, FACES, SWORDS, FRONT_ARMS } from '../../assets/AssetIndex';
-import { SoftkeyBar }   from '../../components/SoftkeyBar';
-import { PopupMenu, MenuItem } from '../../components/PopupMenu';
-import { MENU_START, MENU_LOGOUT } from '../../constants/MenuConstants';
+import { SocketClient } from '../../../network/SocketClient';
+import { BODIES, HAIRS, FACES, SWORDS, FRONT_ARMS } from '../../../assets/AssetIndex';
+import { SoftkeyBar }   from '../../../components/SoftkeyBar';
+import { PopupMenu, MenuItem } from '../../../components/PopupMenu';
+import { MENU_START, MENU_LOGOUT } from '../../../constants/MenuConstants';
+import { CREATE_CHARACTER_ASSETS } from './assets';
 import { Dimensions }   from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ─── Assets ───────────────────────────────────────────────────────────────
-const ASSET_ICON_OK     = require('../../../assets/ui/icons/icon_ok.png');
-const ASSET_ICON_CANCEL = require('../../../assets/ui/icons/icon_cancel.png');
-const ASSET_RED_SUN     = require('../../../assets/ui/icons/icon_sharpest_1.png');
-const ASSET_ARROW       = require('../../../assets/ui/icons/arrowfocus1.png');
+const ASSET_ICON_OK     = CREATE_CHARACTER_ASSETS.iconOk;
+const ASSET_ICON_CANCEL = CREATE_CHARACTER_ASSETS.iconCancel;
+const ASSET_RED_SUN     = CREATE_CHARACTER_ASSETS.redSun;
+const ASSET_ARROW       = CREATE_CHARACTER_ASSETS.arrow;
 
 interface CreateCharacterScreenProps {
   onSuccess: () => void;
@@ -122,11 +123,11 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
 
   return (
     <View style={styles.container}>
-      <Image source={require('../../../assets/createcs/bk.png')} style={styles.background} />
+      <Image source={CREATE_CHARACTER_ASSETS.background} style={styles.background} />
 
       <View style={styles.previewContainer}>
         <Animated.View style={{ transform: [{ translateY: floatingAnim }], alignItems: 'center' }}>
-          <Image source={require('../../../assets/createcs/stone.png')} style={styles.stonePlatform} />
+          <Image source={CREATE_CHARACTER_ASSETS.stone} style={styles.stonePlatform} />
           
           {/* ── Layered Character ── */}
           <View style={styles.characterStack}>

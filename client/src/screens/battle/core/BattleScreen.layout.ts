@@ -1,4 +1,4 @@
-import { monsterDisplaySize, type MonsterType } from '../../engine/MonsterSprite';
+import { monsterDisplaySize, type MonsterType } from '../../../engine/MonsterSprite';
 import {
   BG_H,
   BG_W,

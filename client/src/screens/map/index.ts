@@ -1,2 +1,2 @@
-export { HoaLuMapScreen } from './HoaLuMapScreen';
-export { MapSelectionScreen } from './MapSelectionScreen';
+export * from './hoa-lu';
+export * from './selection';

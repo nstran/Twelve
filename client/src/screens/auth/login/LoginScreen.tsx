@@ -12,15 +12,16 @@ import {
   StyleSheet,
 } from 'react-native';
 
-import { SocketClient } from '../../network/SocketClient';
+import { SocketClient } from '../../../network/SocketClient';
 import { getStyles } from './LoginScreen.styles';
-import { SoftkeyBar } from '../../components/SoftkeyBar';
-import { PopupMenu, MenuItem } from '../../components/PopupMenu';
+import { SoftkeyBar } from '../../../components/SoftkeyBar';
+import { PopupMenu, MenuItem } from '../../../components/PopupMenu';
+import { LOGIN_ASSETS } from './assets';
 
 // ─── Assets ───────────────────────────────────────────────────────────────
-const ASSET_ICON_OK     = require('../../../assets/ui/icons/icon_ok.png');
-const ASSET_ICON_CANCEL = require('../../../assets/ui/icons/icon_cancel.png');
-const ASSET_RED_SUN     = require('../../../assets/ui/icons/icon_sharpest_1.png');
+const ASSET_ICON_OK     = LOGIN_ASSETS.iconOk;
+const ASSET_ICON_CANCEL = LOGIN_ASSETS.iconCancel;
+const ASSET_RED_SUN     = LOGIN_ASSETS.redSun;
 
 const MENU_ITEMS: MenuItem[] = [
   { label: 'Đăng nhập', id: 200 },
@@ -142,7 +143,7 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
       <View style={styles.fullBg} />
 
       <ImageBackground
-        source={require('../../../assets/ui/backgrounds/login.png')}
+        source={LOGIN_ASSETS.bg}
         style={styles.imageBg}
         resizeMode="contain"
       >

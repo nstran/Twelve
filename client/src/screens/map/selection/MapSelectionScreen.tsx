@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
+import {
   View, 
   Text, 
   Image, 
@@ -9,16 +9,17 @@ import {
   Animated
 } from 'react-native';
 import { styles, MAP_WIDTH, MAP_HEIGHT } from './MapSelectionScreen.styles';
-import { SoftkeyBar }     from '../../components/SoftkeyBar';
-import { MAPS, MapInfo }  from '../../data/MapData';
+import { SoftkeyBar }     from '../../../components/SoftkeyBar';
+import { MAPS, MapInfo }  from '../../../data/MapData';
+import { MAP_SELECTION_ASSETS } from './assets';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const ASSET_MAP_BG  = require('../../../assets/m/m.png');
-const ASSET_LOCK    = require('../../../assets/m/lock.png');
-const ASSET_ARENA   = require('../../../assets/m/arena.png');
-const ASSET_ROOM    = require('../../../assets/m/room.png');
-const ASSET_HAND    = require('../../../assets/m/hand.png');
+const ASSET_MAP_BG  = MAP_SELECTION_ASSETS.background;
+const ASSET_LOCK    = MAP_SELECTION_ASSETS.lock;
+const ASSET_ARENA   = MAP_SELECTION_ASSETS.arena;
+const ASSET_ROOM    = MAP_SELECTION_ASSETS.room;
+const ASSET_HAND    = MAP_SELECTION_ASSETS.hand;
 
 interface MapSelectionScreenProps {
   onSelect: (map: MapInfo) => void;

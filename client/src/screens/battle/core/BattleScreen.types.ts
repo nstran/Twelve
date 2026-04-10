@@ -1,5 +1,5 @@
 import { Animated } from 'react-native';
-import type { MonsterType } from '../../engine/MonsterSprite';
+import type { MonsterType } from '../../../engine/MonsterSprite';
 import type { FXKind } from './BattleScreen.shared';
 
 export interface BattleScreenProps {
