@@ -13,7 +13,13 @@ import {
 } from 'react-native';
 import { styles }       from './CreateCharacterScreen.styles';
 import { SocketClient } from '../../../network/SocketClient';
-import { BODIES, HAIRS, FACES, SWORDS, FRONT_ARMS } from '../../../assets/AssetIndex';
+import {
+  CHARACTER_BODIES,
+  CHARACTER_FACES,
+  CHARACTER_FRONT_ARMS,
+  CHARACTER_HAIRS,
+  CHARACTER_SWORDS,
+} from '../shared';
 import { SoftkeyBar }   from '../../../components/SoftkeyBar';
 import { PopupMenu, MenuItem } from '../../../components/PopupMenu';
 import { MENU_START, MENU_LOGOUT } from '../../../constants/MenuConstants';
@@ -132,25 +138,25 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
           {/* ── Layered Character ── */}
           <View style={styles.characterStack}>
              {/* Lớp 1: Thân (Body) */}
-             <Image source={BODIES[genderIdx]} style={styles.bodyLayer} />
+             <Image source={CHARACTER_BODIES[genderIdx]} style={styles.bodyLayer} />
 
              {/* Lớp 2: Kiếm */}
              <Image 
-                source={SWORDS[genderIdx]} 
+                source={CHARACTER_SWORDS[genderIdx]} 
                 style={genderIdx === 1 ? styles.swordNu : styles.swordLayer} 
              />
 
              {/* Lớp 3: Bàn tay */}
              <Image 
-                source={FRONT_ARMS[genderIdx]} 
+                source={CHARACTER_FRONT_ARMS[genderIdx]} 
                 style={genderIdx === 1 ? styles.frontArmNu : styles.frontArmLayer} 
              />
 
              {/* Lớp 4: Mắt */}
-             {faceIdx !== -1 && <Image source={FACES[faceIdx]} style={styles.faceLayer} />}
+             {faceIdx !== -1 && <Image source={CHARACTER_FACES[faceIdx]} style={styles.faceLayer} />}
 
              {/* Lớp 5: Tóc */}
-             {hairIdx !== -1 && <Image source={HAIRS[hairIdx]} style={styles.hairLayer} />}
+             {hairIdx !== -1 && <Image source={CHARACTER_HAIRS[hairIdx]} style={styles.hairLayer} />}
           </View>
         </Animated.View>
       </View>
@@ -160,7 +166,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
           <SelectorRow 
             label="GIỚI TÍNH" 
             value={genderIdx} 
-            options={BODIES} 
+            options={CHARACTER_BODIES} 
             suffix={genderIdx === 0 ? "NAM" : "NỮ"}
             hideCounter={true}
             onPrev={() => setGenderIdx(v => (v > 0 ? 0 : 1))}
@@ -180,19 +186,19 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
           <SelectorRow 
             label="MẮT" 
             value={faceIdx} 
-            options={FACES} 
+            options={CHARACTER_FACES} 
             hideCounter={true}
-            onPrev={() => setFaceIdx(v => v > -1 ? v - 1 : FACES.length - 1)}
-            onNext={() => setFaceIdx(v => v < FACES.length - 1 ? v + 1 : -1)} 
+            onPrev={() => setFaceIdx(v => v > -1 ? v - 1 : CHARACTER_FACES.length - 1)}
+            onNext={() => setFaceIdx(v => v < CHARACTER_FACES.length - 1 ? v + 1 : -1)} 
           />
 
           <SelectorRow 
             label="TÓC" 
             value={hairIdx} 
-            options={HAIRS} 
+            options={CHARACTER_HAIRS} 
             hideCounter={true}
-            onPrev={() => setHairIdx(v => HAIRS.length > 0 ? (v > -1 ? v - 1 : HAIRS.length - 1) : -1)}
-            onNext={() => setHairIdx(v => HAIRS.length > 0 ? (v < HAIRS.length - 1 ? v + 1 : -1) : -1)} 
+            onPrev={() => setHairIdx(v => CHARACTER_HAIRS.length > 0 ? (v > -1 ? v - 1 : CHARACTER_HAIRS.length - 1) : -1)}
+            onNext={() => setHairIdx(v => CHARACTER_HAIRS.length > 0 ? (v < CHARACTER_HAIRS.length - 1 ? v + 1 : -1) : -1)} 
           />
         </ScrollView>
       </View>

@@ -3,7 +3,11 @@ import React from 'react';
 import { styles } from './CharacterStatusScreen.styles';
 import { SoftkeyBar } from '../../../components/SoftkeyBar';
 import { PopupMenu } from '../../../components/PopupMenu';
-import { BODIES, FACES, HAIRS } from '../../../assets/AssetIndex';
+import {
+  CHARACTER_BODIES,
+  CHARACTER_FACES,
+  CHARACTER_HAIRS,
+} from '../shared';
 import { COMMON_MENU_ITEMS } from '../../../constants/MenuConstants';
 import { CHARACTER_STATUS_ASSETS } from './assets';
 
@@ -91,9 +95,9 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({ onStart, on
             <View style={styles.avatarContainer}>
               <View style={{ width: 60, height: 60, alignItems: 'center', justifyContent: 'center' }}>
                 {/* Lớp Layered Nhân vật Scaled 0.3x */}
-                <Image source={BODIES[0]} style={styles.avatarLayerBody} />
-                <Image source={FACES[1]} style={styles.avatarLayerFace} />
-                {/* <Image source={HAIRS[0]} style={styles.avatarLayerHair} /> */}
+                <Image source={CHARACTER_BODIES[0]} style={styles.avatarLayerBody} />
+                <Image source={CHARACTER_FACES[1]} style={styles.avatarLayerFace} />
+                {/* <Image source={CHARACTER_HAIRS[0]} style={styles.avatarLayerHair} /> */}
               </View>
             </View>
             
