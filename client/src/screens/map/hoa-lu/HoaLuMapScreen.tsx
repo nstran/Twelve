@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View, Image, ScrollView, Animated,
   StyleSheet, Text, TouchableOpacity, Dimensions, Pressable,
@@ -8,6 +8,10 @@ import {
   WALK_FRAMES, ATTACK_FRAMES, monsterDisplaySize,
 } from '../../../engine/MonsterSprite';
 import { HOA_LU_MAP_ASSETS } from './assets';
+import { MapHUD } from '../../../components/MapHUD';
+import { SoftkeyBar } from '../../../components/SoftkeyBar';
+import { PopupMenu, MenuItem } from '../../../components/PopupMenu';
+import { clearSession } from '../../../storage/SessionStorage';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -31,6 +35,9 @@ const PLATFORM_TOP = Math.round(SCREEN_H * 0.72);
 const CHAR_W      = 72;
 const CHAR_H      = Math.round(CHAR_W * (1077 / 990)); // Full.png ≈ 78px
 const CHAR_INIT_X = Math.round(MAP_W * 0.08);
+
+// ── SoftkeyBar height ───────────────────────────────────────────────────────
+const SOFTKEY_H = 26;
 
 // ── Monster dữ liệu tĩnh (loại + patrol range) ────────────────────────────
 interface MonsterDef {
@@ -77,11 +84,12 @@ function buildInitialMonsters(): MonsterState[] {
 // ── Props ────────────────────────────────────────────────────────────────────
 interface Props {
   onBack:    () => void;
+  onLogout:  () => void;
   onBattle?: (monsterType: MonsterType) => void;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onBattle }) => {
+export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) => {
   const scrollRef         = useRef<ScrollView>(null);
   const battleTriggered   = useRef(false);
 
@@ -92,6 +100,73 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onBattle }) => {
 
   // Danh sách quái (state → trigger re-render mỗi tick)
   const [monsters, setMonsters] = useState<MonsterState[]>(buildInitialMonsters);
+
+  // ── Menu state ──────────────────────────────────────────────────────────
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuSelectedIndex, setMenuSelectedIndex] = useState(0);
+
+  const handleLogout = async () => {
+    await clearSession();
+    onLogout();
+  };
+
+  // ── Build game menu structure (standardized) ─────────────────────────────
+  const menuItems: MenuItem[] = useMemo(() => [
+    {
+      id: 'loi-dai',
+      label: 'Lôi Đài',
+      onPress: () => { /* TODO: Navigate to Loi Dai */ },
+    },
+    {
+      id: 'khieu-chien',
+      label: 'Khiêu Chiến',
+      onPress: () => { /* TODO: PvP challenge */ },
+    },
+    {
+      id: 'nhan-vat',
+      label: 'Nhân Vật',
+      children: [
+        { id: 'thong-tin', label: 'Thông tin', onPress: () => {} },
+        { id: 'tuyet-chieu', label: 'Tuyệt Chiêu', onPress: () => {} },
+        { id: 'ruong-do', label: 'Rương Đồ', onPress: () => {} },
+        { id: 'che-tao', label: 'Chế tạo', onPress: () => {} },
+        { id: 'xep-hang', label: 'Xếp hạng', onPress: () => {} },
+      ],
+    },
+    {
+      id: 'mua-ban',
+      label: 'Mua bán',
+      children: [
+        { id: 'cua-hang', label: 'Cửa hàng', children: [
+          { id: 'cua-hang-vu-khi', label: 'Vũ khí', onPress: () => {} },
+          { id: 'cua-hang-giap', label: 'Giáp', onPress: () => {} },
+          { id: 'cua-hang-tieu-hao', label: 'Tiêu hao', onPress: () => {} },
+        ]},
+        { id: 'cho-troi', label: 'Chợ trời', onPress: () => {} },
+        { id: 'giao-dich', label: 'Giao dịch', onPress: () => {} },
+      ],
+    },
+    {
+      id: 'nhiem-vu',
+      label: 'Nhiệm Vụ',
+      onPress: () => { /* TODO: Quest screen */ },
+    },
+    {
+      id: 'ho-tro',
+      label: 'Hỗ trợ',
+      children: [
+        { id: 'gioi-thieu', label: 'Giới thiệu', onPress: () => {} },
+        { id: 'ho-tro-sub', label: 'Hỗ trợ', onPress: () => {} },
+        { id: 'doi-sdt', label: 'Đổi SĐT', onPress: () => {} },
+        { id: 'cai-dat', label: 'Cài đặt', onPress: () => {} },
+      ],
+    },
+    {
+      id: 'dang-xuat',
+      label: 'Đăng Xuất',
+      onPress: handleLogout,
+    },
+  ], [handleLogout]);
 
   // ── Game loop: quái di chuyển 20fps ─────────────────────────────────────
   useEffect(() => {
@@ -137,6 +212,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onBattle }) => {
 
   // ── Di chuyển nhân vật ───────────────────────────────────────────────────
   const moveTo = useCallback((mapX: number) => {
+    if (menuVisible) return; // Don't move while menu is open
     const targetLeft = Math.max(0, Math.min(mapX - CHAR_W / 2, MAP_W - CHAR_W));
     setFacingRight(targetLeft >= charLeftVal.current);
     const distance = Math.abs(targetLeft - charLeftVal.current);
@@ -149,7 +225,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onBattle }) => {
       const camTarget = targetLeft + CHAR_W / 2 - SCREEN_W / 2;
       scrollRef.current?.scrollTo({ x: Math.max(0, camTarget), animated: true });
     });
-  }, [charLeft]);
+  }, [charLeft, menuVisible]);
 
   // ── Render: stone platform ──────────────────────────────────────────────
   const renderGround = () => {
@@ -206,18 +282,16 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onBattle }) => {
   return (
     <View style={styles.root}>
 
-      {/* HUD top */}
-      <View style={styles.hudTop} pointerEvents="none">
-        <View style={styles.hpBlock}>
-          <Text style={styles.charName}>Hoa Lư</Text>
-          <View style={styles.hpBg}>
-            <View style={[styles.hpFill, { width: '80%' }]} />
-          </View>
-        </View>
-        <Text style={styles.zoneName}>Hoa Lư 1</Text>
-      </View>
+      {/* ─── MapHUD: HP / EXP bars + Zone name (top-left) ─── */}
+      <MapHUD
+        hp={800}
+        maxHp={1000}
+        expPercent={45}
+        zoneName="Khu 1"
+        width={SCREEN_W}
+      />
 
-      {/* Scrollable map */}
+      {/* ─── Scrollable map ─── */}
       <ScrollView
         ref={scrollRef}
         horizontal
@@ -261,21 +335,43 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onBattle }) => {
         </Pressable>
       </ScrollView>
 
-      {/* HUD bottom */}
-      <View style={styles.hudBottom}>
-        <TouchableOpacity style={styles.btn} onPress={onBack}>
-          <Text style={styles.btnTxt}>◀ Quay lại</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.btn, styles.btnEnter]}
-          onPress={() => { if (onBattle) { battleTriggered.current = true; onBattle('fire'); } }}
-        >
-          <Text style={styles.btnTxt}>⚔ Vào Trận</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.btn}>
-          <Text style={styles.btnTxt}>☰ Menu</Text>
-        </TouchableOpacity>
-      </View>
+      {/* ─── Unified PopupMenu usage ─── */}
+      <PopupMenu
+        visible={menuVisible}
+        items={menuItems}
+        selectedIndex={menuSelectedIndex}
+        onIndexChange={setMenuSelectedIndex}
+        onSelect={(item: MenuItem) => { /* handle specific items if needed */ }}
+        onClose={() => setMenuVisible(false)}
+        bottomOffset={27} 
+      />
+
+      {/* ─── SoftkeyBar (bottom bar) - using icons like login screen ─── */}
+      <SoftkeyBar
+        width={SCREEN_W}
+        leftIcon={
+          menuVisible
+            ? require('../../../../assets/ui/icons/icon_ok.png')
+            : require('../../../../assets/ui/icons/icon_sharpest_1.png')
+        }
+        rightIcon={
+          menuVisible
+            ? require('../../../../assets/ui/icons/icon_cancel.png')
+            : require('../../../../assets/ui/icons/icon_fixed_2.png')
+        }
+        onLeftPress={() => setMenuVisible(prev => !prev)}
+        onRightPress={() => {
+          if (menuVisible) {
+            setMenuVisible(false);
+          }
+        }}
+        onCenterPress={() => {
+          if (onBattle) {
+            battleTriggered.current = true;
+            onBattle('fire');
+          }
+        }}
+      />
 
     </View>
   );
@@ -285,36 +381,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onBattle }) => {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
 
-  hudTop: {
-    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 12, paddingVertical: 6,
-    backgroundColor: 'rgba(0,0,0,0.50)',
-  },
-  hpBlock:  { flex: 1, marginRight: 16 },
-  charName: { color: '#FFD700', fontSize: 11, fontWeight: 'bold', marginBottom: 2, letterSpacing: 1 },
-  hpBg:     { height: 7, backgroundColor: '#3a0000', borderRadius: 4, borderWidth: 1, borderColor: '#800' },
-  hpFill:   { height: '100%', backgroundColor: '#e74c3c', borderRadius: 4 },
-  zoneName: { color: '#fff', fontSize: 11, fontWeight: '600', letterSpacing: 1 },
-
   scroll: { flex: 1 },
   bg: { position: 'absolute', top: 0, left: 0, width: MAP_W, height: MAP_H },
 
   charContainer: { position: 'absolute', width: CHAR_W, height: CHAR_H },
   charImg:        { width: CHAR_W, height: CHAR_H },
-
-  hudBottom: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20,
-    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
-    paddingHorizontal: 8, paddingVertical: 8,
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    borderTopWidth: 1, borderTopColor: '#333',
-  },
-  btn: {
-    paddingHorizontal: 18, paddingVertical: 8,
-    backgroundColor: 'rgba(40,40,60,0.9)',
-    borderRadius: 6, borderWidth: 1, borderColor: '#555',
-  },
-  btnEnter: { backgroundColor: 'rgba(120,20,20,0.95)', borderColor: '#a00' },
-  btnTxt:   { color: '#fff', fontSize: 13, fontWeight: 'bold' },
 });

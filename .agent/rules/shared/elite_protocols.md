@@ -2,45 +2,32 @@
 trigger: always_on
 ---
 
-# 🌐 Elite Shared Protocols (Game Dev Edition)
+# Shared Protocols (Project Twelve)
 
-This file contains the common rules for all specialist agents to ensure consistency across the project.
+> Common rules for all specialist agents. Avoid duplicating what's already in RULES.md.
 
-## 🤖 Chief Engineer & Delegation
+## Execution Model
 
-- **Direct Execution**: For all implementation tasks, you MUST execute code writing and modifications directly using your own tools.
-- **Self-Reliance**: You are fully capable of handling architecture, planning, code generation, and debugging internally.
-- **Full-Stack Role**: You plan, review, verify, and execute all tasks yourself.
+- **Direct Execution**: Write code and modifications directly using available tools.
+- **Self-Reliance**: Plan, review, verify, and execute all tasks yourself.
+- **No Delegation Loops**: Don't pass tasks between agents endlessly.
 
-## 🧹 Housekeeping & Cleanup
+## Housekeeping
 
-- **Build Logs**: Standardize on `build_error.log` for error output.
-- **Immediate Cleanup**: ANY temporary build or log files MUST be deleted immediately after resolution/fix.
+- **Build Logs**: Use `build_error.log` for error output. Delete immediately after fix.
 - **Git Hygiene**: Root plans `./{task-slug}.md` are ignored by `.gitignore`.
+- **Temp Files**: Clean up any temporary files after use.
 
-## 🏗️ Architecture Standards (.NET Core)
+## Code Quality (Quick Reference)
 
-- **Clean Architecture**: Use **Core**, **Application**, and **Infrastructure** layers.
-- **Core Layer (Domain)**: All game business logic (Combat calculations, EXP formulas, Map rules) MUST reside here.
-- **Application Layer**: For orchestration, REST API controllers, and Socket handlers.
-- **Infrastructure Layer**: For Database access (Dapper) and File storage.
-- **No Over-engineering**: Avoid complex design patterns unless they solve a specific scalability problem for the game.
+- Guard clauses first. Mandatory async/await.
+- SRP/DRY/KISS. Intent-revealing naming.
+- C#: PascalCase. JS/TS: camelCase.
+- Named constants for Tag IDs — no magic numbers.
+- Domain logic in Core layer ONLY.
 
-## 🎨 Mobile Frontend Standards (React Native)
+## Anti-Cheat (Game-Specific)
 
-- **Performance**: Use `react-native-skia` for heavy graphics (Map rendering, Battle board).
-- **Styling**: Use standard `css-in-js` or separate Stylesheets. Avoid inline styles for complex components.
-- **Assets**: All game assets (Sprites, Maps) must be optimized for mobile loading.
-- **State Management**: Use lightweight state management (Zustand or Redux Toolkit) to handle player stats and inventory.
-
-## 🛡️ Elite Configuration & Security
-
-- **Environment-First**: Sensitive settings (DB Connection, API Keys, Secrets) MUST be stored in `.env` files. NEVER hardcode or commit them to source control.
-- **Typed Options**: Use `IOptions<T>` and `IOptionsSnapshot<T>` in the Core layer to access settings in a type-safe manner.
-- **Example Template**: Always maintain a `.env.example` file with placeholders for all required environment variables.
-- **Payment Abstraction**: All payment portal logic MUST be hidden behind an `IPaymentProvider` interface to facilitate easy provider switching (e.g., Momo to VNPay).
-
-## ⚔️ Game Dev Integrity
-
-- **Binary Protocol**: Always verify Packet CMD IDs against the `game-mechanics` skill.
-- **Anti-Cheat**: Never trust the client for game state (HP, Gold, Battle Result). All critical calculations happen on the server.
+- Never trust client for game state (HP, Gold, Battle Result).
+- All critical calculations happen on the server.
+- Binary protocol: verify Packet CMD IDs against `game-mechanics` skill.

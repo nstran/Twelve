@@ -191,6 +191,10 @@ export default function App() {
         return (
           <HoaLuMapScreen
             onBack={() => setScreen('mapSelection')}
+            onLogout={async () => {
+              await clearSession();
+              setScreen('login');
+            }}
             onBattle={(type) => {
               setBattleMonster(type as MonsterTypeNav);
               setScreen('battle');
