@@ -3,7 +3,8 @@ import { StyleSheet, Platform } from 'react-native';
 export const styles = StyleSheet.create({
   menuBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 100,
+    zIndex: 1000,
+    elevation: 1000,
   },
 
   // Khung viền ngoài
@@ -16,7 +17,8 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2255bb',
     padding: 2, // Khe hở giữa 2 border
-    zIndex: 101,
+    zIndex: 1001,
+    elevation: 1001,
   },
 
   // Khung viền trong

@@ -93,7 +93,7 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
   };
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+    <View style={[StyleSheet.absoluteFill, { zIndex: 1000, elevation: 1000 }]} pointerEvents="box-none">
       {/* Tap backdrop to close */}
       <Pressable style={styles.menuBackdrop} onPress={onClose} />
 

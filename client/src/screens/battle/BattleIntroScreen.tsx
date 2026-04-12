@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     paddingBottom: 44,
   },
   cardsLayer: {
-    zIndex: 2,
+    zIndex: 4,
   },
   cardOuter: {
     borderWidth: 2,
@@ -503,11 +503,11 @@ const styles = StyleSheet.create({
   },
   previewPlayer: {
     position: 'absolute',
-    zIndex: 2,
+    zIndex: 1,
   },
   previewMonster: {
     position: 'absolute',
-    zIndex: 1,
+    zIndex: 0,
   },
   hitFlash: {
     position: 'absolute',
