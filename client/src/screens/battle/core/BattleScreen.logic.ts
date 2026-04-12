@@ -228,6 +228,17 @@ export function collapseLogic(b: Board, matched: Set<string>): { newBoard: Board
   return { newBoard: nextBoard, fallMap };
 }
 
+export function clearMatchedCells(b: Board, matched: Set<string>): Board {
+  const nextBoard: Board = b.map(row => [...row]);
+  matched.forEach(key => {
+    const [r, c] = key.split(',').map(Number);
+    if (r >= 0 && r < BOARD_ROWS && c >= 0 && c < BOARD_COLS) {
+      nextBoard[r][c] = null;
+    }
+  });
+  return nextBoard;
+}
+
 function applySwap(b: Board, r1: number, c1: number, r2: number, c2: number): Board {
   const nextBoard = b.map(row => [...row]);
   [nextBoard[r1][c1], nextBoard[r2][c2]] = [nextBoard[r2][c2], nextBoard[r1][c1]];

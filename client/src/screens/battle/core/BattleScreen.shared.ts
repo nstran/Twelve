@@ -2,7 +2,9 @@ import type { MonsterType } from '../../../engine/MonsterSprite';
 
 export const TOTAL_FRAMES = 7;
 export const EXPLODE_START = 1;
-export const EXPLODE_END = 6;
+// Skip the last sprite-sheet frame because it leaves a visible "residual line"
+// on sword gems before the cell clears.
+export const EXPLODE_END = 5;
 
 export const GEM_TYPES = [0, 1, 2, 3, 4, 5, 6, 8] as const;
 export type GemType = typeof GEM_TYPES[number];

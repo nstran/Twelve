@@ -63,6 +63,23 @@ export const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-end', zIndex: 8,
   },
   playerSprite: { width: 64, height: 70 },
+  fleeIconBtn: {
+    position: 'absolute',
+    left: 4,
+    bottom: 5,
+    width: 26,
+    height: 24,
+    zIndex: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fleeIconBtnDisabled: {
+    opacity: 0.45,
+  },
+  fleeIconImg: {
+    width: 26,
+    height: 24,
+  },
 
   btnRow: {
     position: 'absolute', left: 0, right: 0, height: 44,

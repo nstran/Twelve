@@ -1,4 +1,5 @@
 import { monsterDisplaySize, type MonsterType } from '../../../engine/MonsterSprite';
+import { characterDisplaySize } from '../../../engine/character';
 import {
   BG_H,
   BG_W,
@@ -80,10 +81,32 @@ export const PLAYER_SPRITE_SHIFT_X = 0;
 export const PLAYER_SPRITE_SHIFT_Y = 0;
 export const ENEMY_SPRITE_SHIFT_X = 0;
 export const ENEMY_SPRITE_SHIFT_Y = 0;
+export const BATTLE_PLAYER_SCALE = 0.54;
 
-const CHARS_ROW_H = 80;
+const CHARS_ROW_H = 88;
 const CHARS_PANEL_OVERLAP = 60 * BOARD_SCALE;
 const BATTLE_PANEL_LEFT_SHIFT = 0;
+const ACTOR_STAGE_W = BG_W - 40;
+const PLAYER_BASE_LEFT = Math.round(2 * BOARD_SCALE);
+const MONSTER_BASE_RIGHT = Math.round(2 * BOARD_SCALE);
+const ATTACK_CONTACT_OVERLAP = Math.round(22 * BOARD_SCALE);
+
+export const getBattleActorLayout = (monsterType: MonsterType) => {
+  const playerSize = characterDisplaySize(BATTLE_PLAYER_SCALE);
+  const monsterSize = monsterDisplaySize(monsterType);
+  const monsterBaseLeft = ACTOR_STAGE_W - monsterSize.w - MONSTER_BASE_RIGHT;
+  const attackStopLeft = monsterBaseLeft - playerSize.w + ATTACK_CONTACT_OVERLAP;
+  const attackTravelX = Math.max(0, attackStopLeft - PLAYER_BASE_LEFT);
+
+  return {
+    stageWidth: ACTOR_STAGE_W,
+    playerSize,
+    monsterSize,
+    playerBaseLeft: PLAYER_BASE_LEFT,
+    monsterBaseLeft,
+    attackTravelX,
+  };
+};
 
 export const getBattleStageLayout = (monsterType: MonsterType) => {
   const charsVisibleBelowPanel = Math.max(0, CHARS_ROW_H - CHARS_PANEL_OVERLAP);
@@ -99,6 +122,7 @@ export const getBattleStageLayout = (monsterType: MonsterType) => {
     panelTop,
     charsTop,
     damagePopupTop,
+    charsRowHeight: CHARS_ROW_H,
     monsterSize: monsterDisplaySize(monsterType),
   };
 };

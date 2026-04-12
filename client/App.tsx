@@ -255,9 +255,9 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: '#FFD700', fontSize: 18, fontWeight: 'bold',
-    letterSpacing: 2, textAlign: 'center',
+    letterSpacing: 2, textAlign: 'center' as const,
   },
   loadingSubText: {
-    color: '#666666', fontSize: 12, textAlign: 'center', lineHeight: 18,
+    color: '#999', fontSize: 13, textAlign: 'center' as const,
   },
 });

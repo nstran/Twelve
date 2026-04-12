@@ -1,14 +1,16 @@
 import React from 'react';
 import { Animated, Image, Text, TouchableOpacity, View } from 'react-native';
-import { MonsterSprite, type MonsterType } from '../../../engine/MonsterSprite';
+import { MonsterSprite, monsterDisplaySize, type MonsterType } from '../../../engine/MonsterSprite';
+import { CharacterSprite } from '../../../engine/character';
 import {
-  BATTLE_ASSETS,
+  BATTLE_PLAYER_SCALE,
   RESULT_ART_INDEX,
   BOARD_TOP,
   CHARS_ROW_SHIFT_X,
   ENEMY_HUD_LAYOUT,
   ENEMY_SPRITE_SHIFT_X,
   ENEMY_SPRITE_SHIFT_Y,
+  getBattleActorLayout,
   HUD_BASE_Y,
   PLAYER_HUD_LAYOUT,
   PLAYER_SPRITE_SHIFT_X,
@@ -27,82 +29,108 @@ import {
 interface BattleActorsRowProps {
   panelLeft: number;
   charsTop: number;
+  charsHeight: number;
   monsterType: MonsterType;
   monFrame: number;
+  playerFrame: number;
   monsterWidth: number;
   monsterHeight: number;
   playerCollectAnim: Animated.Value;
   enemyCollectAnim: Animated.Value;
+  playerAttackTranslateX: Animated.Value;
+  playerHitTranslateX: Animated.Value;
+  enemyAttackTranslateX: Animated.Value;
+  enemyHitTranslateX: Animated.Value;
 }
 
 export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
   panelLeft,
   charsTop,
+  charsHeight,
   monsterType,
   monFrame,
+  playerFrame,
   monsterWidth,
   monsterHeight,
   playerCollectAnim,
   enemyCollectAnim,
-}) => (
-  <View
-    style={[
-      s.charsRow,
-      {
-        top: charsTop,
-        left: panelLeft + 20 + CHARS_ROW_SHIFT_X * BOARD_SCALE,
-        width: BG_W - 40,
-      },
-    ]}
-  >
-    <Animated.View
-      style={{
-        transform: [
-          {
-            scale: playerCollectAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1, 1.08],
-            }),
-          },
-        ],
-      }}
+  playerAttackTranslateX,
+  playerHitTranslateX,
+  enemyAttackTranslateX,
+  enemyHitTranslateX,
+}) => {
+  const { groundOffset } = monsterDisplaySize(monsterType);
+  const { stageWidth, playerBaseLeft, monsterBaseLeft } = getBattleActorLayout(monsterType);
+
+  return (
+    <View
+      style={[
+        s.charsRow,
+        {
+          top: charsTop,
+          left: panelLeft + 20 + CHARS_ROW_SHIFT_X * BOARD_SCALE,
+          width: stageWidth,
+          height: charsHeight,
+        },
+      ]}
     >
-      <Image
-        source={BATTLE_ASSETS.playerSprite}
-        style={[
-          s.playerSprite,
-          {
+      <Animated.View
+        style={{
+          position: 'absolute',
+          left: playerBaseLeft,
+          bottom: 0,
+          transform: [
+            { translateX: Animated.add(playerAttackTranslateX, playerHitTranslateX) },
+            {
+              scale: playerCollectAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 1.08],
+              }),
+            },
+          ],
+        }}
+      >
+        <View
+          style={{
             transform: [
               { translateX: PLAYER_SPRITE_SHIFT_X * BOARD_SCALE },
               { translateY: PLAYER_SPRITE_SHIFT_Y * BOARD_SCALE },
             ],
-          },
-        ]}
-        resizeMode="contain"
-      />
-    </Animated.View>
-    <View style={{ flex: 1 }} />
-    <Animated.View
-      style={{
-        width: monsterWidth,
-        height: monsterHeight,
-        alignSelf: 'flex-end',
-        transform: [
-          {
-            scale: enemyCollectAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1, 1.08],
-            }),
-          },
-          { translateX: ENEMY_SPRITE_SHIFT_X * BOARD_SCALE },
-          { translateY: ENEMY_SPRITE_SHIFT_Y * BOARD_SCALE },
-        ],
-      }}
-    >
-      <MonsterSprite type={monsterType} frameIndex={monFrame} facingRight={false} />
-    </Animated.View>
-  </View>
-);
+          }}
+        >
+          <CharacterSprite
+            frameIndex={playerFrame}
+            facing="right"
+            scale={BATTLE_PLAYER_SCALE}
+            placementPreset="battle"
+          />
+        </View>
+      </Animated.View>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          left: monsterBaseLeft,
+          bottom: -groundOffset,
+          width: monsterWidth,
+          height: monsterHeight,
+          transform: [
+            {
+              scale: enemyCollectAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 1.08],
+              }),
+            },
+            { translateX: Animated.add(enemyAttackTranslateX, enemyHitTranslateX) },
+            { translateX: ENEMY_SPRITE_SHIFT_X * BOARD_SCALE },
+            { translateY: ENEMY_SPRITE_SHIFT_Y * BOARD_SCALE },
+          ],
+        }}
+      >
+        <MonsterSprite type={monsterType} frameIndex={monFrame} facingRight={false} />
+      </Animated.View>
+    </View>
+  );
+};
 
 interface BattleEffectsProps {
   panelLeft: number;

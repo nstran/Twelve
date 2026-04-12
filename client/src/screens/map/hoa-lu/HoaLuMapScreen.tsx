@@ -1,13 +1,19 @@
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
-  View, Image, ScrollView, Animated,
-  StyleSheet, Text, TouchableOpacity, Dimensions, Pressable,
+  View, Image, ScrollView,
+  StyleSheet, Dimensions,
 } from 'react-native';
 import {
   MonsterSprite, MonsterType,
   WALK_FRAMES, ATTACK_FRAMES, monsterDisplaySize,
 } from '../../../engine/MonsterSprite';
+import {
+  CharacterController,
+  characterDisplaySize,
+  type MonsterTarget,
+} from '../../../engine/character';
 import { HOA_LU_MAP_ASSETS } from './assets';
+import { BattleIntroScreen } from '../../battle';
 import { MapHUD } from '../../../components/MapHUD';
 import { SoftkeyBar } from '../../../components/SoftkeyBar';
 import { PopupMenu, MenuItem } from '../../../components/PopupMenu';
@@ -32,12 +38,10 @@ const GROUND_ROWS  = 1;
 const PLATFORM_TOP = Math.round(SCREEN_H * 0.72);
 
 // ── Player ──────────────────────────────────────────────────────────────────
-const CHAR_W      = 72;
-const CHAR_H      = Math.round(CHAR_W * (1077 / 990)); // Full.png ≈ 78px
+const CHAR_SCALE  = 0.7;
+const CHAR_SPEED  = 5;
+const CHAR_SIZE   = characterDisplaySize(CHAR_SCALE);
 const CHAR_INIT_X = Math.round(MAP_W * 0.08);
-
-// ── SoftkeyBar height ───────────────────────────────────────────────────────
-const SOFTKEY_H = 26;
 
 // ── Monster dữ liệu tĩnh (loại + patrol range) ────────────────────────────
 interface MonsterDef {
@@ -88,15 +92,19 @@ interface Props {
   onBattle?: (monsterType: MonsterType) => void;
 }
 
+interface EncounterPreviewState {
+  monsterType: MonsterType;
+  playerLeft: number;
+  monsterLeft: number;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) => {
-  const scrollRef         = useRef<ScrollView>(null);
-  const battleTriggered   = useRef(false);
-
-  // Vị trí nhân vật (Animated cho mượt, ref cho game logic)
-  const charLeft    = useRef(new Animated.Value(CHAR_INIT_X)).current;
-  const charLeftVal = useRef(CHAR_INIT_X);
-  const [facingRight, setFacingRight] = useState(true);
+  const scrollRef = useRef<ScrollView>(null);
+  const battleTriggered = useRef(false);
+  const charLeftRef = useRef(CHAR_INIT_X);
+  const cameraXRef = useRef(0);
+  const [encounterPreview, setEncounterPreview] = useState<EncounterPreviewState | null>(null);
 
   // Danh sách quái (state → trigger re-render mỗi tick)
   const [monsters, setMonsters] = useState<MonsterState[]>(buildInitialMonsters);
@@ -168,12 +176,60 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
     },
   ], [handleLogout]);
 
+  const scrollToCharacter = useCallback((charLeft: number) => {
+    const maxScrollX = Math.max(0, MAP_W - SCREEN_W);
+    const camTarget = charLeft + CHAR_SIZE.w / 2 - SCREEN_W / 2;
+    const nextScrollX = Math.max(0, Math.min(maxScrollX, camTarget));
+    cameraXRef.current = nextScrollX;
+    scrollRef.current?.scrollTo({ x: nextScrollX, animated: false });
+  }, []);
+
+  const monsterTargets = useMemo<MonsterTarget[]>(() => (
+    monsters.map((monster) => {
+      const { w, h, groundOffset } = monsterDisplaySize(monster.type);
+      return {
+        id: String(monster.id),
+        x: monster.x - w / 2,
+        y: PLATFORM_TOP - h + groundOffset,
+        width: w,
+        height: h,
+      };
+    })
+  ), [monsters]);
+
+  const isEncounterActive = encounterPreview !== null;
+
+  const startEncounter = useCallback((monster: MonsterState) => {
+    if (battleTriggered.current || isEncounterActive) return;
+
+    const { w: monsterW } = monsterDisplaySize(monster.type);
+
+    battleTriggered.current = true;
+    setEncounterPreview({
+      monsterType: monster.type,
+      playerLeft: charLeftRef.current - cameraXRef.current,
+      monsterLeft: monster.x - monsterW / 2 - cameraXRef.current,
+    });
+  }, [isEncounterActive]);
+
+  const confirmEncounter = useCallback(() => {
+    if (!encounterPreview || !onBattle) return;
+    onBattle(encounterPreview.monsterType);
+  }, [encounterPreview, onBattle]);
+
+  const cancelEncounter = useCallback(() => {
+    setEncounterPreview(null);
+    battleTriggered.current = false;
+  }, []);
+
   // ── Game loop: quái di chuyển 20fps ─────────────────────────────────────
   useEffect(() => {
     const TICK_MS = 50; // 20fps
 
     const loop = setInterval(() => {
-      const playerCenter = charLeftVal.current + CHAR_W / 2;
+      if (isEncounterActive) return;
+
+      const playerCenter = charLeftRef.current + CHAR_SIZE.w / 2;
 
       setMonsters(prev => prev.map(m => {
         // Di chuyển
@@ -186,9 +242,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
         const attacking = Math.abs(newX - playerCenter) < COLLISION_DIST;
 
         // Khi quái va chạm → vào màn hình trận đấu (chỉ trigger 1 lần)
-        if (attacking && !battleTriggered.current && onBattle) {
-          battleTriggered.current = true;
-          setTimeout(() => onBattle(m.type), 120);
+        if (attacking && !battleTriggered.current) {
+          setTimeout(() => startEncounter(m), 120);
         }
 
         // Cycle frame
@@ -208,24 +263,11 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
     }, TICK_MS);
 
     return () => clearInterval(loop);
-  }, []); // chạy 1 lần khi mount
+  }, [isEncounterActive, startEncounter]);
 
-  // ── Di chuyển nhân vật ───────────────────────────────────────────────────
-  const moveTo = useCallback((mapX: number) => {
-    if (menuVisible) return; // Don't move while menu is open
-    const targetLeft = Math.max(0, Math.min(mapX - CHAR_W / 2, MAP_W - CHAR_W));
-    setFacingRight(targetLeft >= charLeftVal.current);
-    const distance = Math.abs(targetLeft - charLeftVal.current);
-    charLeftVal.current = targetLeft;
-    Animated.timing(charLeft, {
-      toValue:        targetLeft,
-      duration:       Math.max(150, Math.min(distance * 1.8, 1200)),
-      useNativeDriver: true,
-    }).start(() => {
-      const camTarget = targetLeft + CHAR_W / 2 - SCREEN_W / 2;
-      scrollRef.current?.scrollTo({ x: Math.max(0, camTarget), animated: true });
-    });
-  }, [charLeft, menuVisible]);
+  useEffect(() => {
+    scrollToCharacter(CHAR_INIT_X);
+  }, [scrollToCharacter]);
 
   // ── Render: stone platform ──────────────────────────────────────────────
   const renderGround = () => {
@@ -295,16 +337,14 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
       <ScrollView
         ref={scrollRef}
         horizontal
+        scrollEnabled={false}
         showsHorizontalScrollIndicator={false}
         scrollEventThrottle={16}
         style={styles.scroll}
         contentContainerStyle={{ width: MAP_W, height: MAP_H }}
         keyboardShouldPersistTaps="handled"
       >
-        <Pressable
-          style={{ width: MAP_W, height: MAP_H }}
-          onPress={e => moveTo(e.nativeEvent.locationX)}
-        >
+        <View style={{ width: MAP_W, height: MAP_H }}>
           {/* Layer 0: Background */}
           <Image
             source={HOA_LU_MAP_ASSETS.background}
@@ -316,24 +356,49 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
           {renderGround()}
 
           {/* Layer 2: Quái vật */}
-          {renderMonsters()}
+          {!isEncounterActive && renderMonsters()}
 
           {/* Layer 3: Nhân vật */}
-          <Animated.View
-            style={[
-              styles.charContainer,
-              { top: PLATFORM_TOP - CHAR_H, transform: [{ translateX: charLeft }] },
-            ]}
-          >
-            <Image
-              source={HOA_LU_MAP_ASSETS.player}
-              style={[styles.charImg, !facingRight && { transform: [{ scaleX: -1 }] }]}
-              resizeMode="contain"
-            />
-          </Animated.View>
+          {!isEncounterActive && (
+            <CharacterController
+              initialX={CHAR_INIT_X}
+              groundY={PLATFORM_TOP}
+              controlMode="tap-to-move"
+              speed={CHAR_SPEED}
+              scale={CHAR_SCALE}
+              monsters={monsterTargets}
+              minX={0}
+              maxX={MAP_W}
+              containerWidth={MAP_W}
+              containerHeight={MAP_H}
+              disabled={menuVisible}
+              onMove={(x) => {
+                charLeftRef.current = x;
+                scrollToCharacter(x);
+              }}
+              onAttackMonster={(monsterId) => {
+                if (battleTriggered.current) return;
 
-        </Pressable>
+                const targetMonster = monsters.find((monster) => String(monster.id) === monsterId);
+                if (!targetMonster) return;
+
+                setTimeout(() => startEncounter(targetMonster), 180);
+              }}
+            />
+          )}
+        </View>
       </ScrollView>
+
+      {encounterPreview && (
+        <BattleIntroScreen
+          monsterType={encounterPreview.monsterType}
+          playerLeft={encounterPreview.playerLeft}
+          monsterLeft={encounterPreview.monsterLeft}
+          groundY={PLATFORM_TOP}
+          playerScale={CHAR_SCALE}
+          onConfirm={confirmEncounter}
+        />
+      )}
 
       {/* ─── Unified PopupMenu usage ─── */}
       <PopupMenu
@@ -355,20 +420,39 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
             : require('../../../../assets/ui/icons/icon_sharpest_1.png')
         }
         rightIcon={
-          menuVisible
+          isEncounterActive
+            ? undefined
+            : menuVisible
             ? require('../../../../assets/ui/icons/icon_cancel.png')
             : require('../../../../assets/ui/icons/icon_fixed_2.png')
         }
-        onLeftPress={() => setMenuVisible(prev => !prev)}
+        centerLabel={isEncounterActive ? 'Vào ngay' : undefined}
+        rightLabel={isEncounterActive ? 'Hủy' : undefined}
+        onLeftPress={() => {
+          if (isEncounterActive) return;
+          setMenuVisible(prev => !prev);
+        }}
         onRightPress={() => {
+          if (isEncounterActive) {
+            cancelEncounter();
+            return;
+          }
           if (menuVisible) {
             setMenuVisible(false);
+            return;
           }
+          onBack();
         }}
         onCenterPress={() => {
+          if (isEncounterActive) {
+            confirmEncounter();
+            return;
+          }
           if (onBattle) {
-            battleTriggered.current = true;
-            onBattle('fire');
+            const previewMonster = monsters.find((monster) => monster.type === 'fire') ?? monsters[0];
+            if (previewMonster) {
+              startEncounter(previewMonster);
+            }
           }
         }}
       />
@@ -383,7 +467,4 @@ const styles = StyleSheet.create({
 
   scroll: { flex: 1 },
   bg: { position: 'absolute', top: 0, left: 0, width: MAP_W, height: MAP_H },
-
-  charContainer: { position: 'absolute', width: CHAR_W, height: CHAR_H },
-  charImg:        { width: CHAR_W, height: CHAR_H },
 });

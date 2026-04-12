@@ -2,6 +2,7 @@ import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction 
 import {
   MATCH_HOLD_BEFORE_EXPLODE_MS,
   calcSwordDamage,
+  clearMatchedCells,
   collapseLogic,
   expandSword,
   findMatches,
@@ -34,7 +35,8 @@ interface UseBattleMatchFlowArgs {
   setMana: Dispatch<SetStateAction<number>>;
   setPower: Dispatch<SetStateAction<number>>;
   setResult: Dispatch<SetStateAction<BattleResult | null>>;
-  setMonAtk: Dispatch<SetStateAction<boolean>>;
+  playPlayerSwordAttack: (onImpact: () => void, onComplete: () => void) => void;
+  playMonsterSwordAttack: (onImpact: () => void, onComplete: () => void) => void;
   showBonusBanner: (msg: string) => void;
   showDamagePopup: (side: 'player' | 'enemy', amount: number) => void;
   spawnCollectFX: (matched: Set<string>, board: Board, collectorSide: 'player' | 'enemy', healAmount: number) => void;
@@ -63,7 +65,8 @@ export const useBattleMatchFlow = ({
   setMana,
   setPower,
   setResult,
-  setMonAtk,
+  playPlayerSwordAttack,
+  playMonsterSwordAttack,
   showBonusBanner,
   showDamagePopup,
   spawnCollectFX,
@@ -146,44 +149,68 @@ export const useBattleMatchFlow = ({
       playExplosion(raw, matched, board, () => {
         if (!mountedRef.current) return;
 
+        const clearedBoard = clearMatchedCells(board, matched);
         const { newBoard, fallMap } = collapseLogic(board, matched);
+        setBoard(clearedBoard);
+        const continueAfterFall = () => {
+          if (!mountedRef.current) return;
+          setTimeout(() => processMatches(newBoard, chain + 1), 80);
+        };
+        animateFall(newBoard, fallMap, continueAfterFall);
+
         if (turnRef.current === 'player') {
-          if (dmg > 0) showDamagePopup('enemy', dmg);
-          setEnemyHP(hp => {
-            const next = Math.max(0, hp - dmg);
-            if (next === 0 && phaseRef.current !== 'over') {
-              phaseRef.current = 'over';
-              setPhase('over');
-              setResult('victory');
-            }
-            return next;
-          });
-          if (heal > 0) setPlayerHP(hp => Math.min(maxHP, hp + heal));
-          if (mp > 0) setMana(value => Math.min(maxMP, value + mp));
-          if (pow > 0) setPower(value => Math.min(maxPow, value + pow));
-        } else {
-          if (dmg > 0) {
-            showDamagePopup('player', dmg);
-            setMonAtk(true);
-            setTimeout(() => {
-              if (mountedRef.current) setMonAtk(false);
-            }, 600);
-            setPlayerHP(hp => {
+          const applyPlayerRewards = () => {
+            if (heal > 0) setPlayerHP(hp => Math.min(maxHP, hp + heal));
+            if (mp > 0) setMana(value => Math.min(maxMP, value + mp));
+            if (pow > 0) setPower(value => Math.min(maxPow, value + pow));
+          };
+
+          const applyPlayerDamage = () => {
+            if (dmg <= 0) return;
+            showDamagePopup('enemy', dmg);
+            setEnemyHP(hp => {
               const next = Math.max(0, hp - dmg);
               if (next === 0 && phaseRef.current !== 'over') {
                 phaseRef.current = 'over';
                 setPhase('over');
-                setResult('defeat');
+                setResult('victory');
               }
               return next;
             });
+          };
+
+          if (dmg > 0) {
+            playPlayerSwordAttack(
+              () => {
+                if (!mountedRef.current) return;
+                applyPlayerDamage();
+              },
+              () => {},
+            );
+          }
+
+          applyPlayerRewards();
+        } else {
+          if (dmg > 0) {
+            playMonsterSwordAttack(
+              () => {
+                if (!mountedRef.current) return;
+                showDamagePopup('player', dmg);
+                setPlayerHP(hp => {
+                  const next = Math.max(0, hp - dmg);
+                  if (next === 0 && phaseRef.current !== 'over') {
+                    phaseRef.current = 'over';
+                    setPhase('over');
+                    setResult('defeat');
+                  }
+                  return next;
+                });
+              },
+              () => {},
+            );
           }
           if (heal > 0) setEnemyHP(hp => Math.min(maxEHP, hp + heal));
         }
-
-        animateFall(newBoard, fallMap, () => {
-          setTimeout(() => processMatches(newBoard, chain + 1), 80);
-        });
       });
     }, MATCH_HOLD_BEFORE_EXPLODE_MS);
   }, [
@@ -195,13 +222,14 @@ export const useBattleMatchFlow = ({
     maxPow,
     mountedRef,
     phaseRef,
+    playMonsterSwordAttack,
+    playPlayerSwordAttack,
     playExplosion,
     resetBoardAnim,
     setBoard,
     setEnemyHP,
     setExtraTurns,
     setMana,
-    setMonAtk,
     setPhase,
     setPlayerHP,
     setPower,
