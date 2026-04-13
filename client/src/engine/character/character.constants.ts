@@ -71,8 +71,13 @@ export const ANIM_SPEED: Record<CharacterAction, number> = {
 export const ATTACK_DURATION = ANIM_SPEED.attack * ANIM_FRAMES.attack.length * 2; // ~720ms (2 loops)
 
 // ── Movement ──────────────────────────────────────────────────────────────
-export const DEFAULT_SPEED = 3;          // pixels per tick
-export const MOVE_TICK_MS = 16;          // ~60fps
+/**
+ * Reference speed: pixels per MOVE_TICK_MS frame at 60fps.
+ * Actual per-frame step is scaled by delta-time in the rAF loop so speed
+ * stays stable when frame rate dips (e.g. speed * dt / MOVE_TICK_MS).
+ */
+export const DEFAULT_SPEED = 3;          // px per reference frame (60fps)
+export const MOVE_TICK_MS = 16;          // reference frame duration (~60fps)
 export const SWIPE_THRESHOLD = 10;       // min px to register as swipe (not tap)
 export const DEFAULT_ATTACK_RANGE = 60;  // px distance to trigger attack
 

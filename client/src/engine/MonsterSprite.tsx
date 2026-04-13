@@ -61,7 +61,7 @@ interface Props {
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
-export const MonsterSprite: React.FC<Props> = ({ type, frameIndex, facingRight }) => {
+const MonsterSpriteImpl: React.FC<Props> = ({ type, frameIndex, facingRight }) => {
   const spec   = SPECS[type];
   const dispW  = Math.round(spec.frameW  * DISPLAY_SCALE); // chiều rộng 1 frame hiển thị
   const dispH  = Math.round(spec.frameH  * DISPLAY_SCALE); // chiều cao hiển thị
@@ -92,6 +92,13 @@ export const MonsterSprite: React.FC<Props> = ({ type, frameIndex, facingRight }
     </View>
   );
 };
+
+/**
+ * Memoized — monster game loop ticks 20Hz and may spam re-renders on the
+ * list parent; React.memo ensures a sprite only re-renders when its own
+ * type/frameIndex/facingRight actually change.
+ */
+export const MonsterSprite = React.memo(MonsterSpriteImpl);
 
 // ── Helper: kích thước + ground offset (dùng để căn tọa độ bên ngoài) ─────
 export function monsterDisplaySize(type: MonsterType) {

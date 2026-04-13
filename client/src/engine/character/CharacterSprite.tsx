@@ -33,7 +33,7 @@ import {
   SPRITE_SOURCE,
 } from './character.constants';
 
-export const CharacterSprite: React.FC<CharacterSpriteProps> = ({
+const CharacterSpriteImpl: React.FC<CharacterSpriteProps> = ({
   frameIndex,
   facing,
   scale = DEFAULT_SCALE,
@@ -92,6 +92,13 @@ export const CharacterSprite: React.FC<CharacterSpriteProps> = ({
     </View>
   );
 };
+
+/**
+ * Memoized so that high-frequency position updates in the parent controller
+ * don't cause the sprite subtree (View + Image + transforms) to re-render.
+ * Only re-renders when frameIndex / facing / scale / placementPreset change.
+ */
+export const CharacterSprite = React.memo(CharacterSpriteImpl);
 
 // ── Helper: get display size for external layout calculations ─────────────
 export function characterDisplaySize(scale: number = DEFAULT_SCALE) {

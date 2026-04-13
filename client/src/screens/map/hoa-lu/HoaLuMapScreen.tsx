@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
-  View, Image, ScrollView,
+  Animated, View, Image, ScrollView,
   StyleSheet, Dimensions,
 } from 'react-native';
 import {
@@ -59,31 +59,113 @@ const MONSTER_DEFS: MonsterDef[] = [
   { id: 3, type: 'zap',  startX: MAP_W * 0.82, minX: MAP_W * 0.68, maxX: MAP_W * 0.94, speed: 3.0 },
 ];
 
-// ── Monster state (runtime) ─────────────────────────────────────────────────
-interface MonsterState extends MonsterDef {
-  x: number;          // center X hiện tại
-  direction: 1 | -1;  // 1=phải, -1=trái
-  frameIndex: number; // 0-5
+/**
+ * Runtime monster data (mutable, NEVER replaced).
+ * Position is driven by Animated.Value → native-thread translateX, no React
+ * render is needed for movement. Visual-only fields (frameIndex, direction,
+ * attacking) are mirrored into a React state array so the sprite can flip /
+ * cycle frames, but those fields change at ~5Hz instead of 20Hz.
+ */
+interface MonsterRuntime {
+  id: number;
+  type: MonsterType;
+  def: MonsterDef;
+  x: number;              // center X (mutable)
+  direction: 1 | -1;
+  tickCount: number;
   attacking: boolean;
-  tickCount: number;  // đếm tick để cycle frame
+  frameIndex: number;
+  xAnim: Animated.Value;  // drives translateX on native side
+  size: ReturnType<typeof monsterDisplaySize>;
+  topY: number;           // precomputed (constant)
+}
+
+/** React-state slice — only re-rendered when it actually changes. */
+interface MonsterVisual {
+  id: number;
+  frameIndex: number;
+  direction: 1 | -1;
+  attacking: boolean;
 }
 
 // Khoảng cách tính là "va chạm" (px từ center-to-center)
 const COLLISION_DIST = 52;
 // Mỗi bao nhiêu tick thì đổi frame (tick=50ms, FRAME_TICKS=4 → 80ms/frame ≈ 12fps anim)
 const FRAME_TICKS = 4;
+const MONSTER_TICK_MS = 50; // 20 logic ticks/sec
 
-// ── Build initial state ──────────────────────────────────────────────────────
-function buildInitialMonsters(): MonsterState[] {
-  return MONSTER_DEFS.map(def => ({
-    ...def,
-    x: def.startX,
-    direction: 1,
-    frameIndex: WALK_FRAMES[0],
-    attacking: false,
-    tickCount: 0,
+function buildMonsterRuntimes(): MonsterRuntime[] {
+  return MONSTER_DEFS.map(def => {
+    const size = monsterDisplaySize(def.type);
+    const leftX = def.startX - size.w / 2;
+    return {
+      id: def.id,
+      type: def.type,
+      def,
+      x: def.startX,
+      direction: 1,
+      tickCount: 0,
+      attacking: false,
+      frameIndex: WALK_FRAMES[0],
+      xAnim: new Animated.Value(leftX),
+      size,
+      topY: PLATFORM_TOP - size.h + size.groundOffset,
+    };
+  });
+}
+
+function buildInitialVisuals(runtimes: MonsterRuntime[]): MonsterVisual[] {
+  return runtimes.map(m => ({
+    id: m.id,
+    frameIndex: m.frameIndex,
+    direction: m.direction,
+    attacking: m.attacking,
   }));
 }
+
+/**
+ * Memoized monster renderer — driven by a **stable** runtimes array
+ * (identity never changes) + a React state array for visual changes.
+ * Position updates via Animated.Value don't cause this component to
+ * re-render at all; only frame/direction flips do.
+ */
+interface MonsterFieldProps {
+  runtimes: MonsterRuntime[];
+  visuals: MonsterVisual[];
+}
+
+const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals }) => (
+  <>
+    {runtimes.map((m, i) => {
+      const vis = visuals[i] ?? {
+        frameIndex: m.frameIndex,
+        direction: m.direction,
+        attacking: m.attacking,
+      };
+      return (
+        <Animated.View
+          key={m.id}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: m.topY,
+            width: m.size.w,
+            height: m.size.h,
+            zIndex: 8,
+            transform: [{ translateX: m.xAnim }],
+          }}
+        >
+          <MonsterSprite
+            type={m.type}
+            frameIndex={vis.frameIndex}
+            facingRight={vis.direction === 1}
+          />
+        </Animated.View>
+      );
+    })}
+  </>
+));
+MonsterField.displayName = 'MonsterField';
 
 // ── Props ────────────────────────────────────────────────────────────────────
 interface Props {
@@ -104,10 +186,43 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
   const battleTriggered = useRef(false);
   const charLeftRef = useRef(CHAR_INIT_X);
   const cameraXRef = useRef(0);
+  // Camera scroll is coalesced to 1 scrollTo per vsync via rAF, so 60Hz
+  // onMove callbacks from the character controller don't hammer the JS
+  // thread with redundant ScrollView updates.
+  const pendingScrollXRef = useRef<number | null>(null);
+  const scrollRafRef = useRef<number | null>(null);
   const [encounterPreview, setEncounterPreview] = useState<EncounterPreviewState | null>(null);
 
-  // Danh sách quái (state → trigger re-render mỗi tick)
-  const [monsters, setMonsters] = useState<MonsterState[]>(buildInitialMonsters);
+  // ── Monster runtime (stable identity, mutated in place) ─────────────────
+  // Created once; the rAF loop mutates fields directly and drives position
+  // via Animated.Value (native). This avoids 20Hz React re-renders and
+  // keeps the `monsters` prop identity stable for CharacterController.
+  const monsterRuntimesRef = useRef<MonsterRuntime[]>([]);
+  if (monsterRuntimesRef.current.length === 0) {
+    monsterRuntimesRef.current = buildMonsterRuntimes();
+  }
+  const monsterRuntimes = monsterRuntimesRef.current;
+
+  /**
+   * Stable MonsterTarget[] — same array identity across renders, contents
+   * are mutated in place by the game loop. CharacterController reads
+   * positions via its internal ref each rAF tick → always fresh.
+   */
+  const monsterTargetsRef = useRef<MonsterTarget[]>([]);
+  if (monsterTargetsRef.current.length === 0) {
+    monsterTargetsRef.current = monsterRuntimes.map(m => ({
+      id: String(m.id),
+      x: m.x - m.size.w / 2,
+      y: m.topY,
+      width: m.size.w,
+      height: m.size.h,
+    }));
+  }
+
+  // React state — only for frame/direction flips (changes ~5Hz, not 20Hz).
+  const [monsterVisuals, setMonsterVisuals] = useState<MonsterVisual[]>(
+    () => buildInitialVisuals(monsterRuntimes),
+  );
 
   // ── Menu state ──────────────────────────────────────────────────────────
   const [menuVisible, setMenuVisible] = useState(false);
@@ -180,35 +295,49 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
     const maxScrollX = Math.max(0, MAP_W - SCREEN_W);
     const camTarget = charLeft + CHAR_SIZE.w / 2 - SCREEN_W / 2;
     const nextScrollX = Math.max(0, Math.min(maxScrollX, camTarget));
-    cameraXRef.current = nextScrollX;
-    scrollRef.current?.scrollTo({ x: nextScrollX, animated: false });
+
+    // Skip no-op updates (character hugging a map boundary).
+    if (nextScrollX === cameraXRef.current && pendingScrollXRef.current === null) {
+      return;
+    }
+
+    pendingScrollXRef.current = nextScrollX;
+
+    if (scrollRafRef.current !== null) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      const target = pendingScrollXRef.current;
+      pendingScrollXRef.current = null;
+      if (target === null) return;
+      cameraXRef.current = target;
+      scrollRef.current?.scrollTo({ x: target, animated: false });
+    });
   }, []);
 
-  const monsterTargets = useMemo<MonsterTarget[]>(() => (
-    monsters.map((monster) => {
-      const { w, h, groundOffset } = monsterDisplaySize(monster.type);
-      return {
-        id: String(monster.id),
-        x: monster.x - w / 2,
-        y: PLATFORM_TOP - h + groundOffset,
-        width: w,
-        height: h,
-      };
-    })
-  ), [monsters]);
+  // Cancel any pending scroll rAF on unmount to avoid leaks.
+  useEffect(() => () => {
+    if (scrollRafRef.current !== null) {
+      cancelAnimationFrame(scrollRafRef.current);
+      scrollRafRef.current = null;
+    }
+  }, []);
+
+  // Stable array identity — CharacterController's useEffect for this prop
+  // fires only on mount; contents are mutated live by the game loop.
+  const monsterTargets = monsterTargetsRef.current;
 
   const isEncounterActive = encounterPreview !== null;
 
-  const startEncounter = useCallback((monster: MonsterState) => {
+  const startEncounter = useCallback((snap: { type: MonsterType; x: number }) => {
     if (battleTriggered.current || isEncounterActive) return;
 
-    const { w: monsterW } = monsterDisplaySize(monster.type);
+    const { w: monsterW } = monsterDisplaySize(snap.type);
 
     battleTriggered.current = true;
     setEncounterPreview({
-      monsterType: monster.type,
+      monsterType: snap.type,
       playerLeft: charLeftRef.current - cameraXRef.current,
-      monsterLeft: monster.x - monsterW / 2 - cameraXRef.current,
+      monsterLeft: snap.x - monsterW / 2 - cameraXRef.current,
     });
   }, [isEncounterActive]);
 
@@ -222,48 +351,101 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
     battleTriggered.current = false;
   }, []);
 
-  // ── Game loop: quái di chuyển 20fps ─────────────────────────────────────
+  // ── Game loop: rAF + accumulator (logic 20Hz, vsync-aligned) ────────────
+  // Mutates monster runtimes in place. Position goes through Animated.Value
+  // (native thread), so 20Hz logic no longer causes 20Hz React reconciles.
+  // A setState is only dispatched when a visual field (frame/direction/
+  // attacking) actually flips — typically every ~200ms.
   useEffect(() => {
-    const TICK_MS = 50; // 20fps
+    if (isEncounterActive) return;
 
-    const loop = setInterval(() => {
-      if (isEncounterActive) return;
+    let rafId: number | null = null;
+    let lastTime = 0;
+    let accumulator = 0;
+    let cancelled = false;
 
-      const playerCenter = charLeftRef.current + CHAR_SIZE.w / 2;
+    const step = (now: number) => {
+      if (cancelled) return;
+      if (lastTime === 0) lastTime = now;
+      const dt = Math.min(now - lastTime, 200); // clamp catch-up bursts
+      lastTime = now;
+      accumulator += dt;
 
-      setMonsters(prev => prev.map(m => {
-        // Di chuyển
-        let newX  = m.x + m.speed * m.direction;
-        let newDir = m.direction;
-        if (newX >= m.maxX) { newX = m.maxX; newDir = -1; }
-        if (newX <= m.minX) { newX = m.minX; newDir =  1; }
+      let visualsDirty = false;
 
-        // Kiểm tra va chạm với nhân vật
-        const attacking = Math.abs(newX - playerCenter) < COLLISION_DIST;
+      while (accumulator >= MONSTER_TICK_MS) {
+        accumulator -= MONSTER_TICK_MS;
+        const playerCenter = charLeftRef.current + CHAR_SIZE.w / 2;
 
-        // Khi quái va chạm → vào màn hình trận đấu (chỉ trigger 1 lần)
-        if (attacking && !battleTriggered.current) {
-          setTimeout(() => startEncounter(m), 120);
+        for (let i = 0; i < monsterRuntimes.length; i++) {
+          const m = monsterRuntimes[i];
+
+          // 1. Move
+          let newX  = m.x + m.def.speed * m.direction;
+          let newDir: 1 | -1 = m.direction;
+          if (newX >= m.def.maxX) { newX = m.def.maxX; newDir = -1; }
+          if (newX <= m.def.minX) { newX = m.def.minX; newDir =  1; }
+
+          // 2. Collision
+          const attacking = Math.abs(newX - playerCenter) < COLLISION_DIST;
+          if (attacking && !battleTriggered.current) {
+            const snap = { type: m.type, x: newX };
+            setTimeout(() => startEncounter(snap), 120);
+          }
+
+          // 3. Advance frame
+          const newTick   = m.tickCount + 1;
+          const frames    = attacking ? ATTACK_FRAMES : WALK_FRAMES;
+          const stepIdx   = Math.floor(newTick / FRAME_TICKS) % frames.length;
+          const nextFrame = frames[stepIdx];
+
+          // 4. Detect visual diff BEFORE mutating
+          if (
+            m.frameIndex !== nextFrame ||
+            m.direction !== newDir ||
+            m.attacking !== attacking
+          ) {
+            visualsDirty = true;
+          }
+
+          // 5. Commit to runtime (mutate in place)
+          m.x          = newX;
+          m.direction  = newDir;
+          m.attacking  = attacking;
+          m.tickCount  = newTick;
+          m.frameIndex = nextFrame;
+
+          // 6. Drive visuals natively (no React render needed)
+          const leftX = newX - m.size.w / 2;
+          m.xAnim.setValue(leftX);
+
+          // 7. Mutate the stable target array read by CharacterController
+          const target = monsterTargetsRef.current[i];
+          target.x = leftX;
         }
+      }
 
-        // Cycle frame
-        const newTick = m.tickCount + 1;
-        const frames  = attacking ? ATTACK_FRAMES : WALK_FRAMES;
-        const step    = Math.floor(newTick / FRAME_TICKS) % frames.length;
+      if (visualsDirty) {
+        // Rebuild the small visuals array (N=3). This triggers ONE
+        // re-render of MonsterField only — wrapper chain above is memoized.
+        setMonsterVisuals(monsterRuntimes.map(m => ({
+          id: m.id,
+          frameIndex: m.frameIndex,
+          direction: m.direction,
+          attacking: m.attacking,
+        })));
+      }
 
-        return {
-          ...m,
-          x:          newX,
-          direction:  newDir,
-          attacking,
-          tickCount:  newTick,
-          frameIndex: frames[step],
-        };
-      }));
-    }, TICK_MS);
+      rafId = requestAnimationFrame(step);
+    };
 
-    return () => clearInterval(loop);
-  }, [isEncounterActive, startEncounter]);
+    rafId = requestAnimationFrame(step);
+
+    return () => {
+      cancelled = true;
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  }, [isEncounterActive, monsterRuntimes, startEncounter]);
 
   useEffect(() => {
     scrollToCharacter(CHAR_INIT_X);
@@ -293,32 +475,6 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
     }
     return tiles;
   };
-
-  // ── Render: monsters ────────────────────────────────────────────────────
-  const renderMonsters = () =>
-    monsters.map(m => {
-      const { w: mW, h: mH, groundOffset } = monsterDisplaySize(m.type);
-      return (
-        <View
-          key={m.id}
-          style={{
-            position: 'absolute',
-            left:   m.x - mW / 2,
-            // groundOffset bù phần trong suốt dưới sprite → chân chạm đúng mặt đất
-            top:    PLATFORM_TOP - mH + groundOffset,
-            width:  mW,
-            height: mH,
-            zIndex: 8,
-          }}
-        >
-          <MonsterSprite
-            type={m.type}
-            frameIndex={m.frameIndex}
-            facingRight={m.direction === 1}
-          />
-        </View>
-      );
-    });
 
   // ═══════════════════════════════════════════════════════════════════════
   return (
@@ -356,7 +512,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
           {renderGround()}
 
           {/* Layer 2: Quái vật */}
-          {!isEncounterActive && renderMonsters()}
+          {!isEncounterActive && (
+            <MonsterField runtimes={monsterRuntimes} visuals={monsterVisuals} />
+          )}
 
           {/* Layer 3: Nhân vật */}
           {!isEncounterActive && (
@@ -379,10 +537,11 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
               onAttackMonster={(monsterId) => {
                 if (battleTriggered.current) return;
 
-                const targetMonster = monsters.find((monster) => String(monster.id) === monsterId);
+                const targetMonster = monsterRuntimes.find((m) => String(m.id) === monsterId);
                 if (!targetMonster) return;
 
-                setTimeout(() => startEncounter(targetMonster), 180);
+                const snap = { type: targetMonster.type, x: targetMonster.x };
+                setTimeout(() => startEncounter(snap), 180);
               }}
             />
           )}
@@ -449,9 +608,10 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
             return;
           }
           if (onBattle) {
-            const previewMonster = monsters.find((monster) => monster.type === 'fire') ?? monsters[0];
+            const previewMonster =
+              monsterRuntimes.find((m) => m.type === 'fire') ?? monsterRuntimes[0];
             if (previewMonster) {
-              startEncounter(previewMonster);
+              startEncounter({ type: previewMonster.type, x: previewMonster.x });
             }
           }
         }}

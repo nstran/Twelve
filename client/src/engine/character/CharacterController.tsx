@@ -1,13 +1,25 @@
 /**
  * CharacterController.tsx
  *
- * Supports two side-scrolling control styles:
+ * Optimized side-scrolling controller.
+ *
+ * Performance strategy (to eliminate movement jank):
+ * - requestAnimationFrame loop (vsync-locked, no setInterval drift)
+ * - Animated.Value + translateX with useNativeDriver → position updates
+ *   bypass React reconciliation entirely (compositor thread on native,
+ *   rAF on web)
+ * - Delta-time based stepping → speed is stable regardless of frame drops
+ * - onMove fires only on "meaningful" movement (throttle by pixel delta)
+ *   to avoid thrashing scrollToCharacter on the JS thread
+ * - Facing/action state only updates on real change (rare events)
+ *
+ * Supports two control styles:
  * - swipe: drag left/right to keep running until release
  * - tap-to-move: tap a point or monster to run there, then attack in range
  */
 
 import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
-import { View, PanResponder, StyleSheet } from 'react-native';
+import { Animated, View, PanResponder, StyleSheet } from 'react-native';
 import type {
   CharacterControllerProps,
   FacingDirection,
@@ -22,6 +34,13 @@ import {
   MOVE_TICK_MS,
   SWIPE_THRESHOLD,
 } from './character.constants';
+
+/**
+ * Minimum movement (in px) before onMove is forwarded to the parent.
+ * Camera/scroll logic doesn't need sub-pixel updates; this halves the
+ * work the JS thread does during a long run.
+ */
+const ON_MOVE_THROTTLE_PX = 1;
 
 export const CharacterController: React.FC<CharacterControllerProps> = ({
   initialX,
@@ -41,19 +60,29 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
   containerHeight,
   disabled = false,
 }) => {
-  const [posX, setPosX] = useState(initialX);
-  const [facing, setFacing] = useState<FacingDirection>('right');
+  // ── Position is animated value (native-driven translateX). ──────────────
+  // posXRef keeps the authoritative numeric value for reads (physics, AI).
   const posXRef = useRef(initialX);
+  const posAnim = useRef(new Animated.Value(initialX)).current;
+  const lastEmittedXRef = useRef(initialX);
+
+  // Facing is rare state change — keep in React state so sprite flips.
+  const [facing, setFacing] = useState<FacingDirection>('right');
   const facingRef = useRef<FacingDirection>('right');
+
   const actionRef = useRef<'idle' | 'run' | 'attack'>('idle');
   const monstersRef = useRef(monsters);
   const moveDirection = useRef<'left' | 'right' | null>(null);
   const moveTargetX = useRef<number | null>(null);
   const pendingAttackMonsterId = useRef<string | null>(null);
-  const moveTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // rAF loop state
+  const rafIdRef = useRef<number | null>(null);
+  const lastFrameTimeRef = useRef<number>(0);
+
   const isTap = useRef(true);
 
-  const charSize = characterDisplaySize(scale);
+  const charSize = useMemo(() => characterDisplaySize(scale), [scale]);
 
   const { frameIndex, action, setAction } = useCharacterAnimation({
     onAttackFinish: () => {
@@ -105,11 +134,34 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
   }, []);
 
   const clearMovementLoop = useCallback(() => {
-    if (moveTickRef.current) {
-      clearInterval(moveTickRef.current);
-      moveTickRef.current = null;
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
     }
+    lastFrameTimeRef.current = 0;
   }, []);
+
+  const setFacingIfChanged = useCallback((dir: FacingDirection) => {
+    if (facingRef.current === dir) return;
+    facingRef.current = dir;
+    setFacing(dir);
+  }, []);
+
+  /**
+   * Commits a new position: updates the animated value (native driver),
+   * the numeric ref, and throttles the onMove callback to avoid
+   * re-rendering parents every frame.
+   */
+  const updatePosition = useCallback((nextX: number) => {
+    if (nextX === posXRef.current) return;
+    posXRef.current = nextX;
+    posAnim.setValue(nextX);
+
+    if (onMove && Math.abs(nextX - lastEmittedXRef.current) >= ON_MOVE_THROTTLE_PX) {
+      lastEmittedXRef.current = nextX;
+      onMove(nextX, facingRef.current);
+    }
+  }, [onMove, posAnim]);
 
   const finishMovement = useCallback((x: number) => {
     moveDirection.current = null;
@@ -121,8 +173,11 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
       actionRef.current = 'idle';
       setAction('idle');
     }
+    // Always emit final position so camera snaps exactly.
+    lastEmittedXRef.current = x;
+    onMove?.(x, facingRef.current);
     onMoveEnd?.(x, facingRef.current);
-  }, [clearMovementLoop, onMoveEnd, setAction]);
+  }, [clearMovementLoop, onMove, onMoveEnd, setAction]);
 
   const performAttack = useCallback((preferredTarget?: MonsterTarget | null) => {
     moveDirection.current = null;
@@ -136,65 +191,69 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     if (target) {
       const cx = posXRef.current + charSize.w / 2;
       const mx = target.x + target.width / 2;
-      const dir: FacingDirection = mx > cx ? 'right' : 'left';
-      facingRef.current = dir;
-      setFacing(dir);
-
+      setFacingIfChanged(mx > cx ? 'right' : 'left');
       onAttackMonster?.(target.id);
     }
-  }, [charSize.w, clearMovementLoop, findMonsterInRange, onAttackMonster, setAction]);
-
-  const updatePosition = useCallback((nextX: number) => {
-    posXRef.current = nextX;
-    setPosX(nextX);
-    onMove?.(nextX, facingRef.current);
-  }, [onMove]);
+  }, [charSize.w, clearMovementLoop, findMonsterInRange, onAttackMonster, setAction, setFacingIfChanged]);
 
   const startMovementLoop = useCallback(() => {
-    if (moveTickRef.current || disabled) return;
+    if (rafIdRef.current !== null || disabled) return;
 
-    moveTickRef.current = setInterval(() => {
+    const tick = (now: number) => {
+      // Delta-time: keeps speed stable across FPS variance.
+      const last = lastFrameTimeRef.current;
+      const dt = last === 0 ? MOVE_TICK_MS : Math.min(now - last, 64); // clamp to avoid giant steps after tab backgrounding
+      lastFrameTimeRef.current = now;
+
+      const stepPx = speed * (dt / MOVE_TICK_MS);
+
+      // 1. Attack-on-reach check: if queued monster is now in range, attack.
       const queuedMonsterId = pendingAttackMonsterId.current;
       if (queuedMonsterId) {
-        const target = findMonsterInRange(queuedMonsterId);
-        if (target) {
-          performAttack(target);
+        const inRange = findMonsterInRange(queuedMonsterId);
+        if (inRange) {
+          performAttack(inRange);
           return;
         }
 
-        const queuedMonster = monstersRef.current.find((monster) => monster.id === queuedMonsterId);
+        // Monster may have moved — refresh the target X.
+        const queuedMonster = monstersRef.current.find((m) => m.id === queuedMonsterId);
         if (queuedMonster) {
-          const queuedCenterX = queuedMonster.x + queuedMonster.width / 2;
-          moveTargetX.current = clampX(queuedCenterX - charSize.w / 2);
+          const centerX = queuedMonster.x + queuedMonster.width / 2;
+          moveTargetX.current = clampX(centerX - charSize.w / 2);
         }
       }
 
+      // 2. Tap-to-move (moving toward a fixed target X).
       if (controlMode === 'tap-to-move' && moveTargetX.current !== null) {
         const targetX = moveTargetX.current;
         const deltaToTarget = targetX - posXRef.current;
 
-        if (Math.abs(deltaToTarget) <= speed) {
+        if (Math.abs(deltaToTarget) <= stepPx) {
           updatePosition(targetX);
           finishMovement(targetX);
           return;
         }
 
         const dir: FacingDirection = deltaToTarget > 0 ? 'right' : 'left';
-        facingRef.current = dir;
-        setFacing(dir);
+        setFacingIfChanged(dir);
+
         const currentX = posXRef.current;
-        const nextX = clampX(currentX + (dir === 'right' ? speed : -speed));
+        const nextX = clampX(currentX + (dir === 'right' ? stepPx : -stepPx));
         updatePosition(nextX);
 
         if (nextX === currentX) {
           finishMovement(nextX);
+          return;
         }
 
+        rafIdRef.current = requestAnimationFrame(tick);
         return;
       }
 
+      // 3. Swipe (continuous direction until release).
       if (moveDirection.current) {
-        const delta = moveDirection.current === 'right' ? speed : -speed;
+        const delta = moveDirection.current === 'right' ? stepPx : -stepPx;
         const currentX = posXRef.current;
         const nextX = clampX(currentX + delta);
 
@@ -204,11 +263,16 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
         }
 
         updatePosition(nextX);
+        rafIdRef.current = requestAnimationFrame(tick);
         return;
       }
 
+      // No active intent → stop.
       finishMovement(posXRef.current);
-    }, MOVE_TICK_MS);
+    };
+
+    lastFrameTimeRef.current = 0;
+    rafIdRef.current = requestAnimationFrame(tick);
   }, [
     charSize.w,
     clampX,
@@ -217,6 +281,7 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     findMonsterInRange,
     finishMovement,
     performAttack,
+    setFacingIfChanged,
     speed,
     updatePosition,
   ]);
@@ -227,12 +292,11 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     pendingAttackMonsterId.current = null;
     moveTargetX.current = null;
     moveDirection.current = dir;
-    facingRef.current = dir;
-    setFacing(dir);
+    setFacingIfChanged(dir);
     actionRef.current = 'run';
     setAction('run');
     startMovementLoop();
-  }, [disabled, setAction, startMovementLoop]);
+  }, [disabled, setAction, setFacingIfChanged, startMovementLoop]);
 
   const moveToX = useCallback((rawTargetX: number) => {
     if (disabled || actionRef.current === 'attack') return;
@@ -249,24 +313,22 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     moveTargetX.current = targetLeft;
     moveDirection.current = null;
     pendingAttackMonsterId.current = null;
-    facingRef.current = delta > 0 ? 'right' : 'left';
-    setFacing(facingRef.current);
+    setFacingIfChanged(delta > 0 ? 'right' : 'left');
     actionRef.current = 'run';
     setAction('run');
     startMovementLoop();
-  }, [charSize.w, clampX, disabled, finishMovement, setAction, speed, startMovementLoop, updatePosition]);
+  }, [charSize.w, clampX, disabled, finishMovement, setAction, setFacingIfChanged, speed, startMovementLoop, updatePosition]);
 
   const moveToMonster = useCallback((monster: MonsterTarget) => {
     const targetCenterX = monster.x + monster.width / 2;
     pendingAttackMonsterId.current = monster.id;
     moveTargetX.current = clampX(targetCenterX - charSize.w / 2);
     moveDirection.current = null;
-    facingRef.current = targetCenterX >= posXRef.current + charSize.w / 2 ? 'right' : 'left';
-    setFacing(facingRef.current);
+    setFacingIfChanged(targetCenterX >= posXRef.current + charSize.w / 2 ? 'right' : 'left');
     actionRef.current = 'run';
     setAction('run');
     startMovementLoop();
-  }, [charSize.w, clampX, setAction, startMovementLoop]);
+  }, [charSize.w, clampX, setAction, setFacingIfChanged, startMovementLoop]);
 
   const stopMoving = useCallback(() => {
     pendingAttackMonsterId.current = null;
@@ -340,10 +402,12 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     })
   ), [controlMode, disabled, handleTapToMove, performAttack, startMoving, stopMoving]);
 
+  // External initialX changes (e.g. scene reset) — snap instantly.
   useEffect(() => {
     posXRef.current = initialX;
-    setPosX(initialX);
-  }, [initialX]);
+    lastEmittedXRef.current = initialX;
+    posAnim.setValue(initialX);
+  }, [initialX, posAnim]);
 
   useEffect(() => {
     if (disabled) {
@@ -355,24 +419,32 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
 
   const charTop = groundY - charSize.h;
 
+  // Style objects are memoized to avoid allocating new objects each render.
+  const gestureStyle = useMemo(
+    () => [styles.gestureLayer, { width: containerWidth, height: containerHeight }],
+    [containerWidth, containerHeight],
+  );
+
+  const wrapperStyle = useMemo(
+    () => [
+      styles.characterWrapper,
+      {
+        top: charTop,
+        transform: [{ translateX: posAnim }],
+      },
+    ],
+    [charTop, posAnim],
+  );
+
   return (
-    <View
-      style={[styles.gestureLayer, { width: containerWidth, height: containerHeight }]}
-      {...panResponder.panHandlers}
-    >
-      <View
-        style={[
-          styles.characterWrapper,
-          { left: posX, top: charTop },
-        ]}
-        pointerEvents="none"
-      >
+    <View style={gestureStyle} {...panResponder.panHandlers}>
+      <Animated.View style={wrapperStyle} pointerEvents="none">
         <CharacterSprite
           frameIndex={frameIndex}
           facing={facing}
           scale={scale}
         />
-      </View>
+      </Animated.View>
     </View>
   );
 };
@@ -385,5 +457,6 @@ const styles = StyleSheet.create({
   },
   characterWrapper: {
     position: 'absolute',
+    left: 0,
   },
 });
