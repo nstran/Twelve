@@ -1,0 +1,19 @@
+{
+  "family_code": 1003,
+  "element_group_folder": "group_100x_hoa_fire_likely",
+  "element_label": "Hỏa / fire",
+  "java_class": "io(elementVariant=0)",
+  "skill_icon_id": 1003000,
+  "runtime_file_ids": [
+    1003001,
+    1003002,
+    1003003
+  ],
+  "shared_named_dependencies": [
+    "firerage.png",
+    "firerageext.png",
+    "miniexplosionfire.png"
+  ],
+  "status": "confirmed_runtime",
+  "notes": "Burst family with shared named fire-rage assets and mini explosion helper."
+}

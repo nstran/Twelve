@@ -1,0 +1,15 @@
+{
+  "family_code": 4005,
+  "element_group_folder": "group_400x_thuy_water_likely",
+  "element_label": "Thủy / water",
+  "java_class": "jd",
+  "skill_icon_id": 4005000,
+  "runtime_file_ids": [
+    4005001
+  ],
+  "shared_named_dependencies": [
+    "miniexplosionfire.png"
+  ],
+  "status": "confirmed_runtime",
+  "notes": "Runtime sheet plus recolored explosion helper instances."
+}

@@ -1,0 +1,13 @@
+{
+  "family_code": 2007,
+  "element_group_folder": "group_200x_loi_thunder_likely",
+  "element_label": "Lôi / thunder",
+  "java_class": "jk",
+  "skill_icon_id": 2007000,
+  "runtime_file_ids": [
+    2007001
+  ],
+  "shared_named_dependencies": [],
+  "status": "confirmed_runtime",
+  "notes": "Two-layer runtime effect from the same numeric sheet."
+}

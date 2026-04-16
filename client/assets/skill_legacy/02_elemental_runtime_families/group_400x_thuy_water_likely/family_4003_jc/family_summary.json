@@ -1,0 +1,13 @@
+{
+  "family_code": 4003,
+  "element_group_folder": "group_400x_thuy_water_likely",
+  "element_label": "Thủy / water",
+  "java_class": "jc",
+  "skill_icon_id": 4003000,
+  "runtime_file_ids": [
+    4003001
+  ],
+  "shared_named_dependencies": [],
+  "status": "confirmed_runtime",
+  "notes": "Single-sheet anchored effect."
+}

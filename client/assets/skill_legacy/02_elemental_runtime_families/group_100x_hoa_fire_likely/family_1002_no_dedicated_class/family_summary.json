@@ -1,0 +1,11 @@
+{
+  "family_code": 1002,
+  "element_group_folder": "group_100x_hoa_fire_likely",
+  "element_label": "Hỏa / fire",
+  "java_class": null,
+  "skill_icon_id": 1002000,
+  "runtime_file_ids": [],
+  "shared_named_dependencies": [],
+  "status": "icon_only_or_unresolved",
+  "notes": "Icon exists, but no dedicated runtime loader was found in the local Java jar."
+}

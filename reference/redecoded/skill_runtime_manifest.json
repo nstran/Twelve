@@ -1,0 +1,659 @@
+[
+  {
+    "section": "skill_tree_ui",
+    "group": "skill_tree_board",
+    "family_code": "",
+    "java_class": "de",
+    "file_type": "ui",
+    "source": "reference/review_assets/canonical_from_jar_png/info/skilltree.png",
+    "target": "reference/review_assets/skill_system_organized/00_skill_tree_ui_confirmed/skill_tree_board/skilltree.png"
+  },
+  {
+    "section": "skill_tree_ui",
+    "group": "skill_tree_board",
+    "family_code": "",
+    "java_class": "de",
+    "file_type": "ui",
+    "source": "reference/review_assets/canonical_from_jar_png/info/increase.png",
+    "target": "reference/review_assets/skill_system_organized/00_skill_tree_ui_confirmed/skill_tree_board/increase.png"
+  },
+  {
+    "section": "skill_tree_ui",
+    "group": "skill_tree_board",
+    "family_code": "",
+    "java_class": "de",
+    "file_type": "ui",
+    "source": "reference/review_assets/canonical_from_jar_png/info/decrease.png",
+    "target": "reference/review_assets/skill_system_organized/00_skill_tree_ui_confirmed/skill_tree_board/decrease.png"
+  },
+  {
+    "section": "shared_runtime",
+    "group": "named_effects",
+    "family_code": "",
+    "java_class": "mp/om",
+    "file_type": "shared_named",
+    "source": "reference/review_assets/canonical_from_jar_png/castingball.png",
+    "target": "reference/review_assets/skill_system_organized/01_battle_skill_shared_confirmed/named_effects/castingball.png"
+  },
+  {
+    "section": "shared_runtime",
+    "group": "named_effects",
+    "family_code": "",
+    "java_class": "mp/om",
+    "file_type": "shared_named",
+    "source": "reference/review_assets/canonical_from_jar_png/barrier.png",
+    "target": "reference/review_assets/skill_system_organized/01_battle_skill_shared_confirmed/named_effects/barrier.png"
+  },
+  {
+    "section": "shared_runtime",
+    "group": "named_effects",
+    "family_code": "",
+    "java_class": "mp/om",
+    "file_type": "shared_named",
+    "source": "reference/review_assets/canonical_from_jar_png/firerage.png",
+    "target": "reference/review_assets/skill_system_organized/01_battle_skill_shared_confirmed/named_effects/firerage.png"
+  },
+  {
+    "section": "shared_runtime",
+    "group": "named_effects",
+    "family_code": "",
+    "java_class": "mp/om",
+    "file_type": "shared_named",
+    "source": "reference/review_assets/canonical_from_jar_png/firerageext.png",
+    "target": "reference/review_assets/skill_system_organized/01_battle_skill_shared_confirmed/named_effects/firerageext.png"
+  },
+  {
+    "section": "shared_runtime",
+    "group": "named_effects",
+    "family_code": "",
+    "java_class": "mp/om",
+    "file_type": "shared_named",
+    "source": "reference/review_assets/canonical_from_jar_png/magicgate.png",
+    "target": "reference/review_assets/skill_system_organized/01_battle_skill_shared_confirmed/named_effects/magicgate.png"
+  },
+  {
+    "section": "shared_runtime",
+    "group": "named_effects",
+    "family_code": "",
+    "java_class": "mp/om",
+    "file_type": "shared_named",
+    "source": "reference/review_assets/canonical_from_jar_png/miniexplosionfire.png",
+    "target": "reference/review_assets/skill_system_organized/01_battle_skill_shared_confirmed/named_effects/miniexplosionfire.png"
+  },
+  {
+    "section": "shared_runtime",
+    "group": "named_effects",
+    "family_code": "",
+    "java_class": "mp/om",
+    "file_type": "shared_named",
+    "source": "reference/review_assets/canonical_from_jar_png/skillupdownstat.png",
+    "target": "reference/review_assets/skill_system_organized/01_battle_skill_shared_confirmed/named_effects/skillupdownstat.png"
+  },
+  {
+    "section": "shared_runtime",
+    "group": "battle_scene_support",
+    "family_code": "",
+    "java_class": "mp/om",
+    "file_type": "shared_named",
+    "source": "reference/review_assets/canonical_from_jar_png/zap.png",
+    "target": "reference/review_assets/skill_system_organized/01_battle_skill_shared_confirmed/battle_scene_support/zap.png"
+  },
+  {
+    "section": "shared_runtime",
+    "group": "battle_scene_support",
+    "family_code": "",
+    "java_class": "mp/om",
+    "file_type": "shared_named",
+    "source": "reference/review_assets/canonical_from_jar_png/ice.png",
+    "target": "reference/review_assets/skill_system_organized/01_battle_skill_shared_confirmed/battle_scene_support/ice.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1000",
+    "java_class": "is",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1000000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1000_is/skill_icon/1000000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1000",
+    "java_class": "is",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1000001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1000_is/runtime_png/1000001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1000",
+    "java_class": "is",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1000002.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1000_is/runtime_png/1000002.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1001",
+    "java_class": "it",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1001000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1001_it/skill_icon/1001000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1001",
+    "java_class": "it",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1001001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1001_it/runtime_png/1001001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1002",
+    "java_class": "",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1002000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1002_no_dedicated_class/skill_icon/1002000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1003",
+    "java_class": "io(elementVariant=0)",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1003000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1003_io_elementVariant-0/skill_icon/1003000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1003",
+    "java_class": "io(elementVariant=0)",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1003001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1003_io_elementVariant-0/runtime_png/1003001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1003",
+    "java_class": "io(elementVariant=0)",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1003002.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1003_io_elementVariant-0/runtime_png/1003002.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1003",
+    "java_class": "io(elementVariant=0)",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1003003.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1003_io_elementVariant-0/runtime_png/1003003.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1004",
+    "java_class": "iu",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1004000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1004_iu/skill_icon/1004000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1004",
+    "java_class": "iu",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1004001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1004_iu/runtime_png/1004001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1005",
+    "java_class": "iv",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1005000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1005_iv/skill_icon/1005000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1005",
+    "java_class": "iv",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1005001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1005_iv/runtime_png/1005001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1006",
+    "java_class": "iw",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1006000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1006_iw/skill_icon/1006000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1006",
+    "java_class": "iw",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1006001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1006_iw/runtime_png/1006001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1006",
+    "java_class": "iw",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1006002.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1006_iw/runtime_png/1006002.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1007",
+    "java_class": "ix",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1007000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1007_ix/skill_icon/1007000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1007",
+    "java_class": "ix",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1007001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1007_ix/runtime_png/1007001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1008",
+    "java_class": "iy",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1008000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1008_iy/skill_icon/1008000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_100x_hoa_fire_likely",
+    "family_code": "1008",
+    "java_class": "iy",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/1008001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1008_iy/runtime_png/1008001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2000",
+    "java_class": "jg",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2000000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2000_jg/skill_icon/2000000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2000",
+    "java_class": "jg",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2000001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2000_jg/runtime_png/2000001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2000",
+    "java_class": "jg",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2000002.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2000_jg/runtime_png/2000002.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2000",
+    "java_class": "jg",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2000003.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2000_jg/runtime_png/2000003.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2001",
+    "java_class": "",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2001000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2001_no_dedicated_class/skill_icon/2001000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2002",
+    "java_class": "",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2002000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2002_no_dedicated_class/skill_icon/2002000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2003",
+    "java_class": "jh",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2003000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2003_jh/skill_icon/2003000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2003",
+    "java_class": "jh",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2003001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2003_jh/runtime_png/2003001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2003",
+    "java_class": "jh",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2003002.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2003_jh/runtime_png/2003002.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2004",
+    "java_class": "ji",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2004000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2004_ji/skill_icon/2004000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2004",
+    "java_class": "ji",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2004001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2004_ji/runtime_png/2004001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2005",
+    "java_class": "io(elementVariant=1)",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2005000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2005_io_elementVariant-1/skill_icon/2005000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2005",
+    "java_class": "io(elementVariant=1)",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2005001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2005_io_elementVariant-1/runtime_png/2005001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2005",
+    "java_class": "io(elementVariant=1)",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2005002.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2005_io_elementVariant-1/runtime_png/2005002.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2006",
+    "java_class": "jj",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2006000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2006_jj/skill_icon/2006000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2006",
+    "java_class": "jj",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2006001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2006_jj/runtime_png/2006001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2007",
+    "java_class": "jk",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2007000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2007_jk/skill_icon/2007000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2007",
+    "java_class": "jk",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2007001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2007_jk/runtime_png/2007001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2008",
+    "java_class": "jl",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2008000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2008_jl/skill_icon/2008000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_200x_loi_thunder_likely",
+    "family_code": "2008",
+    "java_class": "jl",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/2008001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_200x_loi_thunder_likely/family_2008_jl/runtime_png/2008001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4000",
+    "java_class": "iz",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4000000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4000_iz/skill_icon/4000000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4000",
+    "java_class": "iz",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4000001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4000_iz/runtime_png/4000001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4000",
+    "java_class": "iz",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4000002.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4000_iz/runtime_png/4000002.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4001",
+    "java_class": "ja",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4001000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4001_ja/skill_icon/4001000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4001",
+    "java_class": "ja",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4001001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4001_ja/runtime_png/4001001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4002",
+    "java_class": "jb",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4002000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4002_jb/skill_icon/4002000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4002",
+    "java_class": "jb",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4002001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4002_jb/runtime_png/4002001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4003",
+    "java_class": "jc",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4003000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4003_jc/skill_icon/4003000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4003",
+    "java_class": "jc",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4003001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4003_jc/runtime_png/4003001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4004",
+    "java_class": "io(elementVariant=2)",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4004000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4004_io_elementVariant-2/skill_icon/4004000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4004",
+    "java_class": "io(elementVariant=2)",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4004001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4004_io_elementVariant-2/runtime_png/4004001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4004",
+    "java_class": "io(elementVariant=2)",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4004002.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4004_io_elementVariant-2/runtime_png/4004002.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4005",
+    "java_class": "jd",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4005000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4005_jd/skill_icon/4005000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4005",
+    "java_class": "jd",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4005001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4005_jd/runtime_png/4005001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4006",
+    "java_class": "je",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4006000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4006_je/skill_icon/4006000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4006",
+    "java_class": "je",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4006001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4006_je/runtime_png/4006001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4006",
+    "java_class": "je",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4006002.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4006_je/runtime_png/4006002.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4007",
+    "java_class": "jf",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4007000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4007_jf/skill_icon/4007000.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4007",
+    "java_class": "jf",
+    "file_type": "runtime_png",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4007001.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4007_jf/runtime_png/4007001.png"
+  },
+  {
+    "section": "family_runtime",
+    "group": "group_400x_thuy_water_likely",
+    "family_code": "4008",
+    "java_class": "",
+    "file_type": "skill_icon",
+    "source": "reference/review_assets/canonical_from_jar_png/offline/4008000.png",
+    "target": "reference/review_assets/skill_system_organized/02_elemental_runtime_families/group_400x_thuy_water_likely/family_4008_no_dedicated_class/skill_icon/4008000.png"
+  }
+]

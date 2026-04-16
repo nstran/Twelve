@@ -1,0 +1,13 @@
+{
+  "family_code": 1001,
+  "element_group_folder": "group_100x_hoa_fire_likely",
+  "element_label": "Hỏa / fire",
+  "java_class": "it",
+  "skill_icon_id": 1001000,
+  "runtime_file_ids": [
+    1001001
+  ],
+  "shared_named_dependencies": [],
+  "status": "confirmed_runtime",
+  "notes": "Single-sheet loop effect."
+}

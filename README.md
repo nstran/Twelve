@@ -68,6 +68,7 @@ Xem thêm các tài liệu phục hồi:
 - [Map Reconstruction Guide](./reference/redecoded/MAP_RECONSTRUCTION_GUIDE.md)
 - [Hoa Lu Map Breakdown](./reference/redecoded/HOALU_MAP_BREAKDOWN.md)
 - [Character Creation Reconstruction](./CHARACTER_CREATION_RECONSTRUCTION.md)
+- [Skill System Reconstruction](./SKILL_SYSTEM_RECONSTRUCTION.md)
 
 Các tài liệu này là bộ khung chính để phục hồi game từ Java cũ sang codebase hiện tại.
 

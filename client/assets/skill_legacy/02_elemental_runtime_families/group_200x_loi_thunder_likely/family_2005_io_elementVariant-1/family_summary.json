@@ -1,0 +1,18 @@
+{
+  "family_code": 2005,
+  "element_group_folder": "group_200x_loi_thunder_likely",
+  "element_label": "Lôi / thunder",
+  "java_class": "io(elementVariant=1)",
+  "skill_icon_id": 2005000,
+  "runtime_file_ids": [
+    2005001,
+    2005002
+  ],
+  "shared_named_dependencies": [
+    "firerage.png",
+    "firerageext.png",
+    "miniexplosionfire.png"
+  ],
+  "status": "confirmed_runtime",
+  "notes": "Variant branch in io using recolored fire-rage style assets and shared explosion helper."
+}

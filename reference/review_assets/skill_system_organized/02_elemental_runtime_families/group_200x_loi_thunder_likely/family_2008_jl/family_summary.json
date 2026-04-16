@@ -1,0 +1,13 @@
+{
+  "family_code": 2008,
+  "element_group_folder": "group_200x_loi_thunder_likely",
+  "element_label": "Lôi / thunder",
+  "java_class": "jl",
+  "skill_icon_id": 2008000,
+  "runtime_file_ids": [
+    2008001
+  ],
+  "shared_named_dependencies": [],
+  "status": "confirmed_runtime",
+  "notes": "Multi-instance particle burst from one runtime sheet."
+}

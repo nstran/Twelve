@@ -1,0 +1,14 @@
+{
+  "family_code": 1006,
+  "element_group_folder": "group_100x_hoa_fire_likely",
+  "element_label": "Hỏa / fire",
+  "java_class": "iw",
+  "skill_icon_id": 1006000,
+  "runtime_file_ids": [
+    1006001,
+    1006002
+  ],
+  "shared_named_dependencies": [],
+  "status": "confirmed_runtime",
+  "notes": "Projectile pair variant based on the same base runtime pattern as 1000."
+}
