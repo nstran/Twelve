@@ -1,0 +1,10 @@
+{
+  "meta_id": 89999,
+  "base_image_id": 89900,
+  "family_count": 10,
+  "version": 1,
+  "category": "01_core_compositor/default_overlay_candidates",
+  "label": "meta_89999_base_89900_candidate",
+  "confidence": "confirmed_runtime",
+  "note": "Instantiated directly by nw.java as the default overlay family used by the create-character compositor."
+}

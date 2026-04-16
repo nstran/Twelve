@@ -62,11 +62,12 @@ Nếu bạn chạy App trên điện thoại thật (thay vì Emulator), hãy l�
 ## 🗺️ Lộ trình (Roadmap)
 Xem thêm các tài liệu phục hồi:
 
-- [Java Reference Usage](./JAVA_REFERENCE_USAGE.md)
-- [Restoration Roadmap](./RESTORATION_ROADMAP.md)
+- [Java Reference Usage](./reference/redecoded/JAVA_REFERENCE_USAGE.md)
+- [Restoration Roadmap](./reference/redecoded/RESTORATION_ROADMAP.md)
 - [Re-Decoding Assessment](./reference/redecoded/ASSESSMENT.md)
 - [Map Reconstruction Guide](./reference/redecoded/MAP_RECONSTRUCTION_GUIDE.md)
 - [Hoa Lu Map Breakdown](./reference/redecoded/HOALU_MAP_BREAKDOWN.md)
+- [Character Creation Reconstruction](./CHARACTER_CREATION_RECONSTRUCTION.md)
 
 Các tài liệu này là bộ khung chính để phục hồi game từ Java cũ sang codebase hiện tại.
 
