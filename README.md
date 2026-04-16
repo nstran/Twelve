@@ -60,7 +60,13 @@ Nếu bạn chạy App trên điện thoại thật (thay vì Emulator), hãy l�
 ---
 
 ## 🗺️ Lộ trình (Roadmap)
-Xem chi tiết các giai đoạn tiếp theo tại [**PLAN.md**](./PLAN.md).
+Xem thêm các tài liệu phục hồi:
+
+- [Java Reference Usage](./reference/redecoded/JAVA_REFERENCE_USAGE.md)
+- [Restoration Roadmap](./reference/redecoded/RESTORATION_ROADMAP.md)
+- [Re-Decoding Assessment](./reference/redecoded/ASSESSMENT.md)
+
+Các tài liệu này là bộ khung chính để phục hồi game từ Java cũ sang codebase hiện tại.
 
 ---
 
