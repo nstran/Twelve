@@ -4,7 +4,7 @@ This is the top-level entrypoint for the legacy NPC restoration work.
 
 If you want the deep technical reference, use:
 
-- [reference/review_assets/npc_organized/README.md](/d:/Twelve/reference/review_assets/npc_organized/README.md)
+- [client/assets/npc_legacy/README.md](/d:/Twelve/client/assets/npc_legacy/README.md)
 
 ## Related Docs
 
@@ -26,7 +26,7 @@ The stable rules are:
 ## Main Working Folders
 
 - [client/assets/npc_legacy](/d:/Twelve/client/assets/npc_legacy)
-- [reference/review_assets/npc_organized](/d:/Twelve/reference/review_assets/npc_organized)
+- [reference/review_assets/npc_organized](/d:/Twelve/reference/review_assets/npc_organized) — raw organized source
 
 ## Confirmed Runtime Pieces
 
@@ -108,10 +108,10 @@ Do not rename these to final labels like `quest_giver`, `warp_portal`, or
 
 Use this order when working:
 
-1. [00_ui_confirmed](/d:/Twelve/reference/review_assets/npc_organized/00_ui_confirmed)
-2. [01_named_npc_confirmed](/d:/Twelve/reference/review_assets/npc_organized/01_named_npc_confirmed)
-3. [02_shared_actor_sheets](/d:/Twelve/reference/review_assets/npc_organized/02_shared_actor_sheets)
-4. [03_interactive_map_objects](/d:/Twelve/reference/review_assets/npc_organized/03_interactive_map_objects)
+1. [00_ui_confirmed](/d:/Twelve/client/assets/npc_legacy/00_ui_confirmed)
+2. [01_named_npc_confirmed](/d:/Twelve/client/assets/npc_legacy/01_named_npc_confirmed)
+3. [02_shared_actor_sheets](/d:/Twelve/client/assets/npc_legacy/02_shared_actor_sheets)
+4. [03_interactive_map_objects](/d:/Twelve/client/assets/npc_legacy/03_interactive_map_objects)
 
 ## Port Order
 

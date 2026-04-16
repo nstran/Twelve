@@ -4,7 +4,7 @@ This is the top-level entrypoint for the legacy monster restoration work.
 
 If you want the deep technical reference, use:
 
-- [reference/review_assets/monster_organized/README.md](/d:/Twelve/reference/review_assets/monster_organized/README.md)
+- [client/assets/monster_legacy/README.md](/d:/Twelve/client/assets/monster_legacy/README.md)
 
 ## Quick Position
 
@@ -24,7 +24,7 @@ The stable rules are:
 ## Main Working Folders
 
 - [client/assets/monster_legacy](/d:/Twelve/client/assets/monster_legacy)
-- [reference/review_assets/monster_organized](/d:/Twelve/reference/review_assets/monster_organized)
+- [reference/review_assets/monster_organized](/d:/Twelve/reference/review_assets/monster_organized) — raw organized source
 
 ## ID Schema
 
@@ -155,7 +155,7 @@ server-catalog data and must NOT be invented at the client / asset layer.
 
 The next coding step should be a monster asset loader that:
 
-- reads `reference/review_assets/monster_organized/index.csv`,
+- reads `client/assets/monster_legacy/index.csv`,
 - builds an in-memory map `species_code -> slot -> [frame_path]`,
 - exposes a `GetFrames(species, slot)` API for the renderer,
 - and returns `null` for any id that is still in
