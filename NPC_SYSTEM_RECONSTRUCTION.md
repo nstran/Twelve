@@ -6,6 +6,12 @@ If you want the deep technical reference, use:
 
 - [reference/review_assets/npc_organized/README.md](/d:/Twelve/reference/review_assets/npc_organized/README.md)
 
+## Related Docs
+
+- [MONSTER_SYSTEM_RECONSTRUCTION.md](/d:/Twelve/MONSTER_SYSTEM_RECONSTRUCTION.md) — per-species 6-digit monster pipeline
+- [CHARACTER_CREATION_RECONSTRUCTION.md](/d:/Twelve/CHARACTER_CREATION_RECONSTRUCTION.md)
+- [SKILL_SYSTEM_RECONSTRUCTION.md](/d:/Twelve/SKILL_SYSTEM_RECONSTRUCTION.md)
+
 ## Quick Position
 
 The legacy NPC system must be rebuilt from the `jo` actor model and the shared spritesheet architecture, not from guessed numeric IDs in `/offline/`.
@@ -34,6 +40,10 @@ These are safe to build around first:
   - [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java:84)
   - [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java:85)
   - [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java:86)
+  - Note: the root `/monster` sheet loaded here is the shared NPC surface for
+    `jo.c >> 1 == 0`. The per-species 6-digit monster frames under `/offline/`
+    are a separate pipeline covered in
+    [MONSTER_SYSTEM_RECONSTRUCTION.md](/d:/Twelve/MONSTER_SYSTEM_RECONSTRUCTION.md).
 - generic actor class: [ki.java](/d:/Twelve/reference/redecoded/decompiled/ki.java:11)
 - NPC data record: [jo.java](/d:/Twelve/reference/redecoded/decompiled/jo.java:4)
 - NPC list decoder: [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:1595)
