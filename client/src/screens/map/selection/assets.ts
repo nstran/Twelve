@@ -1,7 +1,7 @@
 export const MAP_SELECTION_ASSETS = {
-  background: require('../../../../assets/m/m.png'),
-  lock: require('../../../../assets/m/lock.png'),
-  arena: require('../../../../assets/m/arena.png'),
-  room: require('../../../../assets/m/room.png'),
-  hand: require('../../../../assets/m/hand.png'),
+  background: require('../../../../assets/map_legacy/00_map_tileset/m.png'),
+  lock: require('../../../../assets/map_legacy/03_locked_markers/lock.png'),
+  arena: require('../../../../assets/map_legacy/01_location_markers/arena.png'),
+  room: require('../../../../assets/map_legacy/01_location_markers/room.png'),
+  hand: require('../../../../assets/map_legacy/02_cursor_pointer/hand.png'),
 };

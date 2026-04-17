@@ -2,12 +2,9 @@ import React from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   Platform,
 } from 'react-native';
-
-const ASSET_BASE_FRAME = require('../../assets/ui/frames/1.png');
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface MapHUDProps {

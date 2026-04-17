@@ -31,14 +31,14 @@ export interface FallEntry {
 }
 
 export const GEM_SHEETS: Record<GemType, any> = {
-  0: require('../../../../assets/chess0.png'),
-  1: require('../../../../assets/chess1.png'),
-  2: require('../../../../assets/chess2.png'),
-  3: require('../../../../assets/chess3.png'),
-  4: require('../../../../assets/chess4.png'),
-  5: require('../../../../assets/chess5.png'),
-  6: require('../../../../assets/chess6.png'),
-  8: require('../../../../assets/chess8.png'),
+  0: require('../../../../assets/battle_legacy/02_chess_pieces/chess0.png'),
+  1: require('../../../../assets/battle_legacy/02_chess_pieces/chess1.png'),
+  2: require('../../../../assets/battle_legacy/02_chess_pieces/chess2.png'),
+  3: require('../../../../assets/battle_legacy/02_chess_pieces/chess3.png'),
+  4: require('../../../../assets/battle_legacy/02_chess_pieces/chess4.png'),
+  5: require('../../../../assets/battle_legacy/02_chess_pieces/chess5.png'),
+  6: require('../../../../assets/battle_legacy/02_chess_pieces/chess6.png'),
+  8: require('../../../../assets/battle_legacy/02_chess_pieces/chess8.png'),
 };
 
 // chess0 (kiếm trắng) + chess8 (kiếm đỏ) cùng category → match nhau
@@ -107,11 +107,11 @@ export const AI_ORDER: AILevel[] = [
   'thien_tai',
 ];
 
-export const FOCUS_IMG = require('../../../../assets/focusmovechess1.png');
-export const ARROW_PLAYER_IMG = require('../../../../assets/arrowfocus1.png');
-export const ARROW_ENEMY_IMG = require('../../../../assets/arrowfocus2.png');
-export const AURA1_IMG = require('../../../../assets/battle/effects/aura1.png');
-export const AURA2_IMG = require('../../../../assets/battle/effects/aura2.png');
-export const AURA3_IMG = require('../../../../assets/battle/effects/aura3.png');
-export const CRYS_BLUE = require('../../../../assets/battle/effects/crystalblue.png');
-export const CRYS_RED = require('../../../../assets/battle/effects/crystalred.png');
+export const FOCUS_IMG = require('../../../../assets/battle_legacy/08_focus_cursor/focusmovechess1.png');
+export const ARROW_PLAYER_IMG = require('../../../../assets/ui_legacy/10_focus_confirmed/arrowfocus1.png');
+export const ARROW_ENEMY_IMG = require('../../../../assets/ui_legacy/09_focus_candidate/arrowfocus2.png');
+export const AURA1_IMG = require('../../../../assets/battle_legacy/06_auras/aura1.png');
+export const AURA2_IMG = require('../../../../assets/battle_legacy/06_auras/aura2.png');
+export const AURA3_IMG = require('../../../../assets/battle_legacy/06_auras/aura3.png');
+export const CRYS_BLUE = require('../../../../assets/battle_legacy/03_crystals_casting/crystalblue.png');
+export const CRYS_RED = require('../../../../assets/battle_legacy/03_crystals_casting/crystalred.png');

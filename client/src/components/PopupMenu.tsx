@@ -9,8 +9,8 @@ import {
 } from 'react-native';
 import { styles } from './PopupMenu.styles';
 
-const ASSET_ORNATE      = require('../../assets/ui/frames/cornerskb.png');
-const ASSET_BASE_FRAME  = require('../../assets/ui/frames/1.png');
+const ASSET_ORNATE      = require('../../assets/ui_legacy/00_corner_frames/cornerskb.png');
+const ASSET_BASE_FRAME  = require('../../assets/ui_legacy/00_corner_frames/1.png');
 
 /** 
  * Unified MenuItem interface. 
