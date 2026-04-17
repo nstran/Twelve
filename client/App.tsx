@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, View, Text } from 'react-native';
 import {
   BattleScreen,
-  CharacterStatusScreen,
-  CreateCharacterScreen,
   HoaLuMapScreen,
   LoginScreen,
   MainScreen,
@@ -20,11 +18,19 @@ import {
 } from './src/storage/SessionStorage';
 
 // ── Screen states ────────────────────────────────────────────────────────────
-type Screen = 'login' | 'register' | 'main' | 'createCharacter' | 'characterStatus' | 'mapSelection' | 'hoaLuMap' | 'battle';
+type Screen = 'login' | 'register' | 'main' | 'mapSelection' | 'hoaLuMap' | 'battle';
 type MonsterTypeNav = 'fire' | 'ice' | 'zap';
 
 const SERVER_URL         = 'ws://localhost:5102/game';
 const RECONNECT_DELAY_MS = 2000;
+
+function normalizeScreen(screen?: string | null): Screen {
+  if (screen === 'hoaLuMap' || screen === 'battle' || screen === 'main' || screen === 'register') {
+    return screen;
+  }
+
+  return 'mapSelection';
+}
 
 export default function App() {
   const [screen, setScreen]           = useState<Screen>('login');
@@ -61,7 +67,7 @@ export default function App() {
     if (token && expiresAt && username) {
       saveSession({ token, username, expiresAt });
     }
-    setScreen('characterStatus');
+    setScreen('mapSelection');
   };
 
   useEffect(() => {
@@ -79,7 +85,7 @@ export default function App() {
       if (session) {
         addLog(`[App] Session: ${session.username} lastScreen: ${session.lastScreen}`);
         pendingUsername.current = session.username;
-        lastScreen.current      = (session.lastScreen as Screen) || 'characterStatus';
+        lastScreen.current      = normalizeScreen(session.lastScreen);
         client.tokenLogin(session.token);
       } else {
         addLog('[App] No session → login screen');
@@ -100,7 +106,7 @@ export default function App() {
         saveSession({ token: payload.token, expiresAt: payload.expiresAt, username });
         pendingUsername.current = null;
       }
-      setScreen(lastScreen.current || 'characterStatus');
+      setScreen(lastScreen.current || 'mapSelection');
       lastScreen.current = null; 
     };
 
@@ -109,13 +115,13 @@ export default function App() {
     }) => {
       addLog(`[App] authSuccessWithUser → ${username}`);
       saveSession({ token, expiresAt, username });
-      setScreen(lastScreen.current || 'characterStatus');
+      setScreen(lastScreen.current || 'mapSelection');
       lastScreen.current = null;
     };
 
     const onCharacterRequired = () => {
-      addLog('[App] CharacterRequired → createChar');
-      setScreen('createCharacter');
+      addLog('[App] CharacterRequired → mapSelection (create disabled)');
+      setScreen('mapSelection');
     };
 
     const onAuthFailed = (msg?: string) => {
@@ -160,17 +166,6 @@ export default function App() {
       case 'main':
         return <MainScreen onLogout={() => setScreen('login')} />;
 
-      case 'characterStatus':
-        return (
-          <CharacterStatusScreen 
-            onStart={() => setScreen('mapSelection')}
-            onLogout={async () => { 
-              await clearSession(); 
-              setScreen('login'); 
-            }}
-          />
-        );
-
       case 'mapSelection':
         return (
           <MapSelectionScreen
@@ -183,7 +178,10 @@ export default function App() {
                 setScreen('main');
               }
             }}
-            onBack={() => setScreen('characterStatus')}
+            onBack={async () => {
+              await clearSession();
+              setScreen('login');
+            }}
           />
         );
 
@@ -220,19 +218,11 @@ export default function App() {
           />
         );
 
-      case 'createCharacter':
-        return (
-          <CreateCharacterScreen
-            onSuccess={() => setScreen('characterStatus')}
-            onCancel={async () => { await clearSession(); setScreen('login'); }}
-          />
-        );
-
       case 'login':
       default:
         return (
           <LoginScreen
-            onLoginSuccess={() => setScreen('characterStatus')}
+            onLoginSuccess={() => setScreen('mapSelection')}
             onRegister={() => setScreen('register')}
           />
         );

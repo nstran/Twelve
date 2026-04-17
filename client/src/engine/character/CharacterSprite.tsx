@@ -1,36 +1,10 @@
-/**
- * CharacterSprite.tsx
- *
- * Pure renderer for the player character sprite.
- * Shows 1 frame from the 4-frame sprite sheet (man.png).
- *
- * Layout: [0: idle] [1: run] [2: attack_windup] [3: attack_slash]
- *
- * Uses the same overflow-clip technique as MonsterSprite:
- * - Container clips to 1 frame width
- * - Image is translated to show the correct frame
- * - scaleX: -1 flips for facing direction
- *
- * The character sprite naturally faces RIGHT.
- * facingLeft applies scaleX: -1 to mirror.
- */
-
 import React from 'react';
-import { View, Image } from 'react-native';
+import { View } from 'react-native';
 import type { CharacterSpriteProps } from './character.types';
 import {
-  BATTLE_FRAME_OFFSETS,
-  DEFAULT_FRAME_OFFSETS,
-  FRAME_WIDTH,
-  FRAME_HEIGHT,
-  SHEET_WIDTH,
-  FRAME_BOUNDS,
-  CONTENT_LEFT,
-  CONTENT_TOP,
   CONTENT_WIDTH,
   CONTENT_HEIGHT,
   DEFAULT_SCALE,
-  SPRITE_SOURCE,
 } from './character.constants';
 
 const CharacterSpriteImpl: React.FC<CharacterSpriteProps> = ({
@@ -39,68 +13,166 @@ const CharacterSpriteImpl: React.FC<CharacterSpriteProps> = ({
   scale = DEFAULT_SCALE,
   placementPreset = 'default',
 }) => {
-  const bounds = FRAME_BOUNDS[frameIndex] ?? FRAME_BOUNDS[0];
-  const frameOffsets =
-    placementPreset === 'battle' ? BATTLE_FRAME_OFFSETS : DEFAULT_FRAME_OFFSETS;
-  const placement = frameOffsets[frameIndex] ?? frameOffsets[0];
-  const cropW = (bounds.right - bounds.left + 1) * scale;
-  const cropH = (bounds.bottom - bounds.top + 1) * scale;
-  const cropLeft = ((bounds.left - CONTENT_LEFT) + placement.x) * scale;
-  const cropTop = ((bounds.top - CONTENT_TOP) + placement.y) * scale;
   const displayW = CONTENT_WIDTH * scale;
   const displayH = CONTENT_HEIGHT * scale;
-  const sheetDisplayW = SHEET_WIDTH * scale;
-  const sheetDisplayH = FRAME_HEIGHT * scale;
-
-  const offsetX = -((frameIndex * FRAME_WIDTH) + bounds.left) * scale;
-  const offsetY = -(bounds.top * scale);
-
   const isLeft = facing === 'left';
+  const activeFrame = frameIndex % 4;
+  const isAttackWindup = activeFrame === 2;
+  const isAttackSlash = activeFrame === 3;
+  const isRunning = activeFrame === 1;
+  const placementShiftY = placementPreset === 'battle' ? 1.5 * scale : 0;
+  const swordRotation = isAttackWindup ? '-34deg' : isAttackSlash ? '28deg' : isRunning ? '10deg' : '-6deg';
+  const weaponOffsetX = isAttackSlash ? 12 * scale : isAttackWindup ? -7 * scale : 0;
+  const armOffsetY = isAttackWindup ? -4 * scale : isAttackSlash ? 3 * scale : 0;
+  const legLift = isRunning ? 4 * scale : 0;
 
   return (
     <View
       style={{
         width: displayW,
         height: displayH,
-        // Sprite faces right by default → flip when facing left
-        transform: isLeft ? [{ scaleX: -1 }] : undefined,
+        transform: [
+          { translateY: placementShiftY },
+          ...(isLeft ? [{ scaleX: -1 as const }] : []),
+        ],
       }}
     >
       <View
         style={{
           position: 'absolute',
-          left: cropLeft,
-          top: cropTop,
-          width: cropW,
-          height: cropH,
-          overflow: 'hidden',
+          left: 18 * scale,
+          top: 8 * scale,
+          width: 54 * scale,
+          height: 32 * scale,
+          borderRadius: 16 * scale,
+          backgroundColor: '#151515',
+          opacity: 0.18,
         }}
       >
-        <Image
-          source={SPRITE_SOURCE}
+        <View
           style={{
-            width: sheetDisplayW,
-            height: sheetDisplayH,
-            transform: [
-              { translateX: offsetX },
-              { translateY: offsetY },
-            ],
+            flex: 1,
           }}
-          resizeMode="stretch"
         />
       </View>
+
+      <View
+        style={{
+          position: 'absolute',
+          left: 28 * scale,
+          top: 2 * scale,
+          width: 20 * scale,
+          height: 20 * scale,
+          borderRadius: 10 * scale,
+          backgroundColor: '#f1c27d',
+          borderWidth: scale,
+          borderColor: '#5a2d11',
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 25 * scale,
+          top: 8 * scale,
+          width: 26 * scale,
+          height: 10 * scale,
+          borderRadius: 6 * scale,
+          backgroundColor: '#a72828',
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 24 * scale,
+          top: 20 * scale,
+          width: 28 * scale,
+          height: 30 * scale,
+          borderRadius: 7 * scale,
+          backgroundColor: '#1f53a7',
+          borderWidth: scale,
+          borderColor: '#0c2553',
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 16 * scale,
+          top: (24 * scale) + armOffsetY,
+          width: 12 * scale,
+          height: 7 * scale,
+          borderRadius: 4 * scale,
+          backgroundColor: '#f1c27d',
+          transform: [{ rotate: '-12deg' }],
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: (45 * scale) + weaponOffsetX,
+          top: (22 * scale) + armOffsetY,
+          width: 13 * scale,
+          height: 7 * scale,
+          borderRadius: 4 * scale,
+          backgroundColor: '#f1c27d',
+          transform: [{ rotate: isAttackWindup ? '-24deg' : '18deg' }],
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 50 * scale + weaponOffsetX,
+          top: 10 * scale + armOffsetY,
+          width: 5 * scale,
+          height: 30 * scale,
+          borderRadius: 2 * scale,
+          backgroundColor: '#d8dce3',
+          borderWidth: Math.max(1, 0.5 * scale),
+          borderColor: '#7d8796',
+          transform: [{ rotate: swordRotation }],
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 47 * scale + weaponOffsetX,
+          top: 26 * scale + armOffsetY,
+          width: 10 * scale,
+          height: 4 * scale,
+          borderRadius: 2 * scale,
+          backgroundColor: '#d7a53a',
+          transform: [{ rotate: swordRotation }],
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 28 * scale,
+          top: 48 * scale,
+          width: 8 * scale,
+          height: 22 * scale,
+          borderRadius: 3 * scale,
+          backgroundColor: '#623612',
+          transform: [{ translateY: legLift }],
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: 40 * scale,
+          top: 48 * scale,
+          width: 8 * scale,
+          height: 22 * scale,
+          borderRadius: 3 * scale,
+          backgroundColor: '#623612',
+          transform: [{ translateY: -legLift }],
+        }}
+      />
     </View>
   );
 };
 
-/**
- * Memoized so that high-frequency position updates in the parent controller
- * don't cause the sprite subtree (View + Image + transforms) to re-render.
- * Only re-renders when frameIndex / facing / scale / placementPreset change.
- */
 export const CharacterSprite = React.memo(CharacterSpriteImpl);
 
-// ── Helper: get display size for external layout calculations ─────────────
 export function characterDisplaySize(scale: number = DEFAULT_SCALE) {
   return {
     w: CONTENT_WIDTH * scale,

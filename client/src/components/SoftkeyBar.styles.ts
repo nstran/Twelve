@@ -1,6 +1,9 @@
 import { StyleSheet, Platform } from 'react-native';
 
 export const styles = StyleSheet.create({
+  absoluteFill: {
+    ...StyleSheet.absoluteFillObject,
+  },
   container: {
     height: 26,
     flexDirection: 'row',

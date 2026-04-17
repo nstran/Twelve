@@ -4,14 +4,12 @@ import {
   Text,
   TouchableOpacity,
   Image,
-  StyleSheet,
   ImageSourcePropType,
 } from 'react-native';
 import { styles } from './SoftkeyBar.styles';
 
 const ASSET_ORNATE      = require('../../assets/ui_legacy/00_corner_frames/cornerskb.png'); 
 const ASSET_BASE_FRAME  = require('../../assets/ui_legacy/00_corner_frames/1.png'); 
-const ASSET_SHARP_ICON  = require('../../assets/ui/icons/icon_sharpest_1.png'); 
 
 interface SoftkeyBarProps {
   onLeftPress?: () => void;
@@ -62,7 +60,7 @@ export const SoftkeyBar: React.FC<SoftkeyBarProps> = ({
       </View>
 
       {/* ─── LAYER 2: ORNATE DECORATION (AS DECORATION ONLY) ─── */}
-      <View style={[StyleSheet.absoluteFill, { zIndex: 2 }]} pointerEvents="none">
+      <View style={[styles.absoluteFill, { zIndex: 2 }]} pointerEvents="none">
         <View style={styles.overlayRow}>
           <View style={styles.ornateClip}>
              <Image source={ASSET_ORNATE} style={styles.ornateImage} resizeMode="stretch" />
@@ -93,13 +91,13 @@ export const SoftkeyBar: React.FC<SoftkeyBarProps> = ({
         >
            {leftLabel ? (
              <Text style={styles.softkeyLabelText}>{leftLabel}</Text>
-           ) : (
+           ) : leftIcon ? (
              <Image 
-               source={leftIcon || ASSET_SHARP_ICON} 
+               source={leftIcon} 
                style={[styles.sharpIconTop, { marginLeft: 0 }]} 
                resizeMode="contain" 
              />
-           )}
+           ) : null}
         </TouchableOpacity>
         
         <View style={{ flex: 1 }} />

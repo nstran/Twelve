@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
-  Image,
   TouchableOpacity,
   Animated, Easing,
+  Text,
 } from 'react-native';
 import { PopupMenu, type MenuItem } from '../../components/PopupMenu';
 import {
@@ -51,8 +51,6 @@ const PLAYER_ATTACK_PREP_MS = 180;
 const PLAYER_ATTACK_HIT_MS = PLAYER_ATTACK_RUN_MS + PLAYER_ATTACK_PREP_MS;
 const PLAYER_ATTACK_RETURN_MS = PLAYER_ATTACK_TOTAL_MS - PLAYER_ATTACK_HIT_MS;
 const PLAYER_ATTACK_RECOVER_MS = 130;
-const BATTLE_MENU_ICON = require('../../../assets/ui/icons/icon_sharpest_1.png');
-
 interface QueuedAttack {
   onImpact: () => void;
   onComplete: () => void;
@@ -635,7 +633,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           result !== null && s.fleeIconBtnDisabled,
         ]}
       >
-        <Image source={BATTLE_MENU_ICON} style={s.fleeIconImg} resizeMode="stretch" />
+        <Text style={s.fleeTextBtn}>Menu</Text>
       </TouchableOpacity>
 
       <BattlePanel

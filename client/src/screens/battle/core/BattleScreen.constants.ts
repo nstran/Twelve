@@ -39,5 +39,4 @@ export const BATTLE_ASSETS = {
   hpBar: require('../../../../assets/battle_legacy/01_hud_bars/hpbar.png'),
   manaBar: require('../../../../assets/battle_legacy/01_hud_bars/manabar.png'),
   powerBar: require('../../../../assets/battle_legacy/01_hud_bars/powerbar.png'),
-  playerSprite: require('../../../../assets/character/Full.png'),
 } as const;

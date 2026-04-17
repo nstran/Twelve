@@ -1,10 +1,7 @@
 /**
  * character.constants.ts
- * Sprite sheet specs and animation configuration.
- *
- * Sprite sheet: man.png (612 x 408, 4 frames horizontal)
- * Layout: [0: idle] [1: run] [2: attack_windup] [3: attack_slash]
- * Crop is configured per frame via FRAME_BOUNDS below.
+ * Placeholder geometry and animation configuration used while
+ * the original character asset pack is removed.
  */
 
 import type { CharacterAction } from './character.types';
@@ -83,6 +80,3 @@ export const DEFAULT_ATTACK_RANGE = 60;  // px distance to trigger attack
 
 // ── Display ───────────────────────────────────────────────────────────────
 export const DEFAULT_SCALE = 1.8;
-
-/** Sprite source — used by CharacterSprite renderer */
-export const SPRITE_SOURCE = require('../../../assets/character/man.png');

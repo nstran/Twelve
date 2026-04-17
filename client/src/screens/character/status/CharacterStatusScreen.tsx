@@ -12,8 +12,6 @@ import { COMMON_MENU_ITEMS } from '../../../constants/MenuConstants';
 import { CHARACTER_STATUS_ASSETS } from './assets';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const ASSET_CORNERS = CHARACTER_STATUS_ASSETS.corners;
-const ASSET_CANCEL  = CHARACTER_STATUS_ASSETS.cancel;
 const ASSET_BK      = CHARACTER_STATUS_ASSETS.background;
 
 interface StatusScreenProps {
@@ -192,8 +190,9 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({ onStart, on
           width={SCREEN_WIDTH}
           centerLabel="Bắt đầu"
           onCenterPress={onStart}
+          leftLabel="Menu"
           onLeftPress={() => setMenuVisible(true)}
-          rightIcon={menuVisible ? ASSET_CANCEL : undefined}
+          rightLabel={menuVisible ? 'Đóng' : undefined}
           onRightPress={() => { if(menuVisible) setMenuVisible(false); }}
         />
       </View>

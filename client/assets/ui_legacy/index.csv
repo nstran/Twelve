@@ -23,3 +23,8 @@ file,bucket,f_d_path,java_ref,confidence,note
 09_focus_candidate/arrowfocus2.png,focus_candidate,,,candidate,Arrow-focus variant 2 — no literal string ref found; paired with arrowfocus1
 10_focus_confirmed/arrowfocus1.png,focus_confirmed,/arrowfocus1,mp.java:400,confirmed,Arrow focus marker (byte-array load f.b)
 10_focus_confirmed/focustab.png,focus_confirmed,/focustab,fc.java:49,confirmed,Focus tab highlight used in tabbed menus
+11_softkey_icons_confirmed/icon_cancel.png,softkey_icons,softkey/icon_cancel,,confirmed,Restored login softkey cancel icon from the earlier React Native client
+11_softkey_icons_confirmed/icon_fixed_2.png,softkey_icons,softkey/icon_fixed_2,,confirmed,Restored auxiliary softkey icon from the earlier React Native client
+11_softkey_icons_confirmed/icon_ok.png,softkey_icons,softkey/icon_ok,,confirmed,Restored login softkey OK icon from the earlier React Native client
+11_softkey_icons_confirmed/icon_sharpest_1.png,softkey_icons,softkey/icon_sharpest_1,,confirmed,Restored menu icon used on the login softkey bar
+11_softkey_icons_confirmed/skicon.png,softkey_icons,softkey/skicon,,confirmed,Restored softkey sprite strip from the earlier React Native client

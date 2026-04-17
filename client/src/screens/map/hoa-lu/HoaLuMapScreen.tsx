@@ -573,20 +573,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
       {/* ─── SoftkeyBar (bottom bar) - using icons like login screen ─── */}
       <SoftkeyBar
         width={SCREEN_W}
-        leftIcon={
-          menuVisible
-            ? require('../../../../assets/ui/icons/icon_ok.png')
-            : require('../../../../assets/ui/icons/icon_sharpest_1.png')
-        }
-        rightIcon={
-          isEncounterActive
-            ? undefined
-            : menuVisible
-            ? require('../../../../assets/ui/icons/icon_cancel.png')
-            : require('../../../../assets/ui/icons/icon_fixed_2.png')
-        }
+        leftLabel={menuVisible ? 'Chọn' : 'Menu'}
         centerLabel={isEncounterActive ? 'Vào ngay' : undefined}
-        rightLabel={isEncounterActive ? 'Hủy' : undefined}
+        rightLabel={isEncounterActive ? 'Hủy' : menuVisible ? 'Đóng' : 'Lùi'}
         onLeftPress={() => {
           if (isEncounterActive) return;
           setMenuVisible(prev => !prev);

@@ -18,10 +18,9 @@ import { SoftkeyBar } from '../../../components/SoftkeyBar';
 import { PopupMenu, MenuItem } from '../../../components/PopupMenu';
 import { LOGIN_ASSETS } from './assets';
 
-// ─── Assets ───────────────────────────────────────────────────────────────
-const ASSET_ICON_OK     = LOGIN_ASSETS.iconOk;
+const ASSET_ICON_OK = LOGIN_ASSETS.iconOk;
 const ASSET_ICON_CANCEL = LOGIN_ASSETS.iconCancel;
-const ASSET_RED_SUN     = LOGIN_ASSETS.redSun;
+const ASSET_RED_SUN = LOGIN_ASSETS.redSun;
 
 const MENU_ITEMS: MenuItem[] = [
   { label: 'Đăng nhập', id: 200 },
@@ -79,7 +78,7 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
       console.log('[Login] ← CMD 5 characterRequired → app will switch screen');
       setLoading(false);
       clearError();
-      // App.tsx is also listening to this, so it will switch to 'createCharacter'
+      // App.tsx is also listening to this and currently bypasses character setup.
     };
 
     client.on('authSuccess',       onAuthSuccess);
@@ -136,7 +135,11 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
 
   const handleLeftSoftkey  = () => menuVisible ? handleMenuSelect(MENU_ITEMS[selectedIndex].id as number) : openMenu();
   const handleCenterKey    = () => menuVisible ? setMenuVisible(false) : undefined;
-  const handleRightSoftkey = () => menuVisible ? setMenuVisible(false) : BackHandler.exitApp();
+  const handleRightSoftkey = () => {
+    if (menuVisible) {
+      setMenuVisible(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -225,7 +228,7 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
             width={width}
             onLeftPress={handleLeftSoftkey}
             onCenterPress={handleCenterKey}
-            onRightPress={handleRightSoftkey}
+            onRightPress={menuVisible ? handleRightSoftkey : undefined}
             leftIcon={menuVisible ? ASSET_ICON_OK : ASSET_RED_SUN}
             rightIcon={menuVisible ? ASSET_ICON_CANCEL : undefined}
           />

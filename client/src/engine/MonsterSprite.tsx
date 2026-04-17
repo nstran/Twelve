@@ -30,17 +30,17 @@ const SPECS: Record<MonsterType, SpriteSpec> = {
   fire: {
     totalW: 246, frameW: 41, frameH: 55,
     groundOffset: 12,  // fireball có khoảng trống đáy ~12px
-    source: require('../../assets/monsters/fire.png'),
+    source: require('../../assets/npc_legacy/02_shared_actor_sheets/type_0_monster/monster.png'),
   },
   ice: {
     totalW: 216, frameW: 36, frameH: 52,
     groundOffset: 10,
-    source: require('../../assets/monsters/ice.png'),
+    source: require('../../assets/npc_legacy/02_shared_actor_sheets/type_2_ice/ice.png'),
   },
   zap: {
     totalW: 222, frameW: 37, frameH: 37,
     groundOffset: 6,
-    source: require('../../assets/monsters/zap.png'),
+    source: require('../../assets/npc_legacy/02_shared_actor_sheets/type_1_zap/zap.png'),
   },
 };
 

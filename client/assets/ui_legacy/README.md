@@ -17,8 +17,9 @@ Shared UI chrome asset bundle — the pieces used by the generic panel / HUD / n
 | `08_misc_confirmed/`        | Broken-heart, me-commands, Tay Thuy Tinh | 3 | confirmed |
 | `09_focus_candidate/`       | arrowfocus2 — no literal string ref (paired with arrowfocus1) | 1 | candidate |
 | `10_focus_confirmed/`       | arrowfocus1 + focustab — literal string refs in source | 2 | confirmed |
+| `11_softkey_icons_confirmed/` | Softkey login/menu icon set carried from the restored RN client | 5 | confirmed |
 
-Total: 24 files. 23 confirmed + 1 candidate.
+Total: 29 files. 28 confirmed + 1 candidate.
 
 ## Confirmed paths
 
@@ -47,6 +48,11 @@ Total: 24 files. 23 confirmed + 1 candidate.
 | 08_misc_confirmed/taythuytinh.png     | `/taythuytinh`          | ia.java:33 |
 | 10_focus_confirmed/arrowfocus1.png    | `/arrowfocus1`          | mp.java:400 (`f.b`) |
 | 10_focus_confirmed/focustab.png       | `/focustab`             | fc.java:49 |
+| 11_softkey_icons_confirmed/icon_cancel.png    | `softkey/icon_cancel`   | restored React Native login softkey |
+| 11_softkey_icons_confirmed/icon_fixed_2.png   | `softkey/icon_fixed_2`  | restored React Native softkey icon pack |
+| 11_softkey_icons_confirmed/icon_ok.png        | `softkey/icon_ok`       | restored React Native login softkey |
+| 11_softkey_icons_confirmed/icon_sharpest_1.png| `softkey/icon_sharpest_1` | restored React Native login menu icon |
+| 11_softkey_icons_confirmed/skicon.png         | `softkey/skicon`        | restored React Native softkey sprite sheet |
 
 ## Candidate paths
 

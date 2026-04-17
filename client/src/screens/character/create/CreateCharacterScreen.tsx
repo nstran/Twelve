@@ -28,10 +28,6 @@ import { Dimensions }   from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ─── Assets ───────────────────────────────────────────────────────────────
-const ASSET_ICON_OK     = CREATE_CHARACTER_ASSETS.iconOk;
-const ASSET_ICON_CANCEL = CREATE_CHARACTER_ASSETS.iconCancel;
-const ASSET_RED_SUN     = CREATE_CHARACTER_ASSETS.redSun;
 const ASSET_ARROW       = CREATE_CHARACTER_ASSETS.arrow;
 
 interface CreateCharacterScreenProps {
@@ -216,8 +212,8 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
       <View style={styles.softKeyBarContainer}>
         <SoftkeyBar 
           width={SCREEN_WIDTH}
-          leftIcon={menuVisible ? ASSET_ICON_OK : ASSET_RED_SUN}
-          rightIcon={menuVisible ? ASSET_ICON_CANCEL : undefined}
+          leftLabel={menuVisible ? 'Chọn' : 'Menu'}
+          rightLabel={menuVisible ? 'Đóng' : 'Thoát'}
           onLeftPress={handleLeftSoftkey}
           onRightPress={handleRightSoftkey}
           onCenterPress={menuVisible ? () => setMenuVisible(false) : undefined}
