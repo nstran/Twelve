@@ -8,6 +8,7 @@ import {
   MapSelectionScreen,
   RegisterScreen,
 } from './src/screens';
+import { CreateCharacterScreen } from './src/screens/character/create';
 import { SocketClient }          from './src/network/SocketClient';
 import {
   loadSession,
@@ -18,14 +19,20 @@ import {
 } from './src/storage/SessionStorage';
 
 // ── Screen states ────────────────────────────────────────────────────────────
-type Screen = 'login' | 'register' | 'main' | 'mapSelection' | 'hoaLuMap' | 'battle';
+type Screen = 'login' | 'register' | 'main' | 'createCharacter' | 'mapSelection' | 'hoaLuMap' | 'battle';
 type MonsterTypeNav = 'fire' | 'ice' | 'zap';
 
 const SERVER_URL         = 'ws://localhost:5102/game';
 const RECONNECT_DELAY_MS = 2000;
 
 function normalizeScreen(screen?: string | null): Screen {
-  if (screen === 'hoaLuMap' || screen === 'battle' || screen === 'main' || screen === 'register') {
+  if (
+    screen === 'hoaLuMap' ||
+    screen === 'battle' ||
+    screen === 'main' ||
+    screen === 'register' ||
+    screen === 'createCharacter'
+  ) {
     return screen;
   }
 
@@ -58,16 +65,6 @@ export default function App() {
     console.log(`[App] Connecting (#${attempt}) → ${SERVER_URL}`);
     setConnectMsg(`ĐANG KẾT NỐI CHIẾN TRƯỜNG... (#${attempt})`);
     client.connect(SERVER_URL);
-  };
-
-  // ── Lưu session khi đăng nhập thành công ────────────────────────────────
-  const handleAuthSuccess = ({ token, expiresAt, username }: {
-    token?: string; expiresAt?: number; username?: string;
-  }) => {
-    if (token && expiresAt && username) {
-      saveSession({ token, username, expiresAt });
-    }
-    setScreen('mapSelection');
   };
 
   useEffect(() => {
@@ -120,8 +117,8 @@ export default function App() {
     };
 
     const onCharacterRequired = () => {
-      addLog('[App] CharacterRequired → mapSelection (create disabled)');
-      setScreen('mapSelection');
+      addLog('[App] CharacterRequired → createCharacter');
+      setScreen('createCharacter');
     };
 
     const onAuthFailed = (msg?: string) => {
@@ -218,11 +215,22 @@ export default function App() {
           />
         );
 
+      case 'createCharacter':
+        return (
+          <CreateCharacterScreen
+            onSuccess={() => setScreen('mapSelection')}
+            onCancel={async () => {
+              await clearSession();
+              setScreen('login');
+            }}
+          />
+        );
+
       case 'login':
       default:
         return (
           <LoginScreen
-            onLoginSuccess={() => setScreen('mapSelection')}
+            onLoginSuccess={() => {}}
             onRegister={() => setScreen('register')}
           />
         );

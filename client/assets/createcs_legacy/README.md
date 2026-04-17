@@ -10,7 +10,7 @@ The key rule is:
 
 - organize by `meta family` when possible
 - keep `confirmed runtime pieces` separate from `meta-backed candidate families`
-- separate `appearance candidates` from `headgear/equipment candidates`
+- keep only bare create-character appearance candidates here
 
 ## Folder layout
 
@@ -19,7 +19,7 @@ The key rule is:
 - `01_core_compositor`
   - assets directly proven to participate in the legacy create-character compositor
 - `02_option_meta_families`
-  - candidate option families grouped by legacy `.meta` units
+  - candidate appearance families grouped by legacy `.meta` units
 
 ## Why this structure is better
 
@@ -52,4 +52,5 @@ Use this asset set in the following order:
 2. `01_core_compositor`
 3. `02_option_meta_families`
 
-Do not treat `candidate` groups as final semantic labels yet.
+Headgear and wearable meta families were reclassified into `equipment_legacy/04_helmet_e2`.
+Do not treat the remaining `candidate` groups as final semantic labels yet.

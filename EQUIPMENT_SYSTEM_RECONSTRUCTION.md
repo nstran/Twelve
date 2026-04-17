@@ -371,7 +371,6 @@ client/assets/equipment_legacy/
 
 | Band | Lý do | Thuộc hệ thống |
 |------|-------|----------------|
-| `909xx, 910xx, 912xx` | Tóc/ngoại hình | `createcs_legacy` (appearance) |
 | `911xx, 913xx` | Hiệu ứng đặc biệt | Không phải trang bị mặc |
 | `100xxx` | Thuốc/nguyên liệu | Hệ thống `lm` (GameItem) riêng |
 | `110xxx-140xxx` | Map tiles, NPC icons | Map/NPC system |
