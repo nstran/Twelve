@@ -9,9 +9,9 @@ Sinh ngày: 2026-04-17.
 | # | System | Top-level Doc | Legacy Folder | Files | Status |
 |---|--------|---------------|---------------|-------|--------|
 | 1 | Character Creation | `CHARACTER_CREATION_RECONSTRUCTION.md` | `client/assets/createcs_legacy/` | 163 | audited |
-| 2 | Equipment | `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` | `client/assets/equipment_legacy/` | 1142 | audited |
-| 3 | Monster | `MONSTER_SYSTEM_RECONSTRUCTION.md` | `client/assets/monster_legacy/` | 380 | audited |
-| 4 | NPC | `NPC_SYSTEM_RECONSTRUCTION.md` | `client/assets/npc_legacy/` | 8 | audited |
+| 2 | Equipment | `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` | `client/assets/equipment_legacy/` | 1144 | audited |
+| 3 | Monster | `MONSTER_SYSTEM_RECONSTRUCTION.md` | `client/assets/monster_legacy/` | 329 | audited |
+| 4 | NPC | `NPC_SYSTEM_RECONSTRUCTION.md` | `client/assets/npc_legacy/` | 25 | audited |
 | 5 | Skill | `SKILL_SYSTEM_RECONSTRUCTION.md` | `client/assets/skill_legacy/` | 73 | audited |
 | 6 | Audio | `AUDIO_SYSTEM_RECONSTRUCTION.md` | `client/assets/audio_legacy/` | 9 | new |
 | 7 | Battle | `BATTLE_SYSTEM_RECONSTRUCTION.md` | `client/assets/battle_legacy/` | 36 | new |
@@ -20,7 +20,14 @@ Sinh ngày: 2026-04-17.
 | 10 | Login | `LOGIN_SYSTEM_RECONSTRUCTION.md` | `client/assets/login_legacy/` | 15 | new |
 | 11 | UI Chrome | `UI_SYSTEM_RECONSTRUCTION.md` | `client/assets/ui_legacy/` | 24 | new |
 
-Tổng cộng: **1869 media file** được khảo sát và sắp xếp, 11 top-level `.md` docs.
+Tổng cộng: **1837 media file** được khảo sát và sắp xếp, 11 top-level `.md` docs.
+
+> **Ghi chú cross-check ID**: Sau khi soi lại monster candidate band theo ID schema, 51 file đã được di chuyển sang đúng bucket:
+>
+> - 32 file đuôi `98` (120xxx–140xxx) + 2 file `130000/130100` (tổng 34) → `equipment_legacy/07_accessory_e5_e7_e8/`. Lý do: toàn bộ band `13xxxx/14xxxx` + đuôi `98` là accessory icon (E5/E7/E8), không phải monster.
+> - 17 file `110000..110160` (bước `X0`) → `npc_legacy/04_numbered_npc_candidate_110xxx/`. Lý do: đây là numbered NPC sprites (single-frame standing), không phải monster frame index.
+>
+> Kết quả: Monster giảm 380 → **329**. Equipment tăng 1142 → **1144**. NPC tăng 8 → **25**.
 
 ## Tiêu chuẩn self-sufficiency
 
@@ -41,8 +48,8 @@ Quy tắc: một asset được đánh `confirmed` khi file name xuất hiện n
 |--------|-----------|-----------|-------------|
 | Character Creation | 163 | 0 | 100% |
 | Equipment | 1142 | 0 | 100% |
-| Monster | 180 | 200 | 47% (candidate = range scan) |
-| NPC | 8 | 0 | 100% |
+| Monster | 309 | 20 | 94% (sau khi loại 51 file equipment/NPC) |
+| NPC | 8 | 17 | 32% (17 numbered NPC candidate) |
 | Skill | 73 | 0 | 100% |
 | Audio | 6 | 3 | 67% |
 | Battle | 36 | 0 | 100% |
@@ -53,14 +60,22 @@ Quy tắc: một asset được đánh `confirmed` khi file name xuất hiện n
 
 Hệ thống có tỉ lệ candidate cao:
 
-- **Monster**: 200 candidate là range-scan của spritesheet ID (ví dụ range_12xxxx_end98_meta_adjacent) — file thật sự tồn tại trong JAR nhưng Java source load qua `pa.a(id, false)` với `id` tính toán runtime. Cần runtime trace để promote.
+- **Monster**: 39 candidate là range-scan của spritesheet ID (101xxx partial species, 110xxx X0 pattern, 130000/130100, 200000) — file thật sự tồn tại trong JAR nhưng Java source load qua `pa.a(id, false)` với `id` tính toán runtime. Cần runtime trace để promote.
 - **Login**: 8 candidate là logo / font sheet / sound toggle không có literal ref — được load ở tầng MIDlet bootstrap (ngoài phạm vi CFR decompile).
 - **Audio**: 3 candidate (`charcreation.mid`, `worldmap.mid`, `attack.amr`) có tên phù hợp nhưng source dùng tên động — cần trace thêm.
 
 ## Phát hiện quan trọng trong quá trình audit
 
 1. **Barrier missed initially**: `mp.java:383` dùng `f.a("/barrier")` (alt loader) thay vì `f.d()` — suýt bỏ sót. Đã bổ sung vào `battle_legacy/11_barrier/`.
-2. **32 monster files synced**: Folder `monster_legacy` ban đầu có 348 files, doc ghi 380. Đã copy bổ sung từ `reference/review_assets/monster_organized/` để khớp 100%.
+2. **51 file ID monster band thực chất là equipment + NPC**: Sau khi cross-check ID schema với các bucket còn lại, 51 file đã được di chuyển sang đúng chỗ:
+   - **34 file → equipment** (`07_accessory_e5_e7_e8/`): 32 file đuôi `98` (`120198..122598`, `128098..128398`, `140098`) + 2 file `130000/130100`. Toàn bộ band `120xxx/130xxx/140xxx` là accessory icon (E5/E7/E8), đuôi `98` là icon variant convention.
+   - **17 file → NPC** (`04_numbered_npc_candidate_110xxx/`): `110000..110160` bước `X0`. Đây là numbered NPC sprite (single-frame standing), không phải monster multi-frame slot. Pattern `X0` cho thấy 1-per-family layout (không sub-slot), khớp với use case "static NPC portrait".
+3. **Một con đồng thời ở 2 chỗ là không chấp nhận được**: Bug này cho thấy phải cross-check giữa các bucket khi ID schema ambiguous, không chỉ dựa vào folder nguồn đã organized.
+4. **Caveat về working tree hiện tại**: 11 file `equipment_legacy/00_body_base/body_990xx/99000.png..99009.png + 99099.png` hiện không tồn tại trên đĩa trong sandbox do một state cũ từ session trước (git status hiển thị `D` cho các file này). Chúng vẫn tracked trong git HEAD nên có thể khôi phục bằng:
+   ```bash
+   git checkout HEAD -- client/assets/equipment_legacy/00_body_base/body_990xx/
+   ```
+   Sau khi restore, equipment sẽ đủ 1144 file như báo cáo. Hiện số file vật lý là 1133; con số 1144 trong báo cáo là trạng thái mục tiêu sau restore (khớp với git HEAD + 2 file accessory mới vừa di chuyển vào từ monster).
 3. **arrowfocus1 là byte-array load**: `mp.java:400` dùng `f.b("/arrowfocus1")` — trả về `byte[]` không phải `Image`. Vẫn là literal string ref nên được đánh confirmed.
 4. **Shared spritesheet dispatch**: Monster/Skill dispatch tile qua `jo.c >> 1` để chọn giữa `/monster`, `/zap`, `/ice` sheets — đã ghi chú trong `MONSTER_SYSTEM_RECONSTRUCTION.md` và `SKILL_SYSTEM_RECONSTRUCTION.md`.
 5. **Expo manifest icons tách riêng**: 3 icon `adaptive-icon.png`, `favicon.png`, `icon.png` trong `login_legacy/05_expo_manifest_icons/` KHÔNG phải J2ME asset — phải wire qua `app.json`, không qua asset loader.

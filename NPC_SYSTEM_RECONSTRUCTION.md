@@ -164,6 +164,26 @@ yet deserve a "full NPC" label:
 Do not rename these to final labels like `quest_giver`, `warp_portal`, or
 `shop_entry` until the server packet catalog confirms behavior.
 
+## Numbered NPC Candidate Band — `110xxx`
+
+In addition to the 3 shared actor sheets and the blacksmith, the jar contains
+17 numbered NPC sprites in the `110000..110160` band on an `X0` stride. They
+are relocated from `monster_legacy/02_candidate_unknown_ranges/` after a
+cross-check confirmed the IDs are NPC sprites, not monster frames.
+
+- Bucket: `04_numbered_npc_candidate_110xxx/` — 17 files.
+- Pattern: `110000, 110010, 110020, ..., 110160` (step 10).
+- Confidence: `candidate` — no literal `f.d("/110000")` string in the
+  decompiled source. Likely loaded via `pa.a(id, false)` with the id passed
+  from a server-sent TLV tag.
+- Hypothesis: each ID is a **single-frame standing sprite** for a numbered
+  NPC slot (unlike monsters which come as multi-frame slots under the
+  `AAAABC` schema).
+
+Do NOT assign names / roles to these IDs until the server NPC catalog is
+reconstructed. The `X0` stride suggests a 1-per-family layout (no slot
+sub-indexing) which would match the "static NPC portrait" use case.
+
 ## Folder Reading Order
 
 Use this order when working:
@@ -172,6 +192,7 @@ Use this order when working:
 2. [01_named_npc_confirmed](/d:/Twelve/client/assets/npc_legacy/01_named_npc_confirmed)
 3. [02_shared_actor_sheets](/d:/Twelve/client/assets/npc_legacy/02_shared_actor_sheets)
 4. [03_interactive_map_objects](/d:/Twelve/client/assets/npc_legacy/03_interactive_map_objects)
+5. [04_numbered_npc_candidate_110xxx](/d:/Twelve/client/assets/npc_legacy/04_numbered_npc_candidate_110xxx)
 
 ## Port Order
 

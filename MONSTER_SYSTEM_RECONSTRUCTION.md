@@ -99,16 +99,30 @@ candidate until the server catalog confirms its role.
 | Bucket | Files | Pattern / Heuristic |
 |--------|-------|---------------------|
 | `range_101xxx_partial_species`         | 19 | Same `100XYZ` shape, 9th family with partial slots |
-| `range_110xxx_pattern_X0`              | 17 | All ids end in `0` (`110000`, `110010`, `110020`, ...) |
-| `range_12xxxx_end98_meta_adjacent`     | 25 | All ids end in `98`. Sits next to `XX099.meta`. |
-| `range_128xxx_end98_meta_adjacent`     |  4 | Same end-`98` pattern, different band. |
-| `range_130xxx_candidate`               |  4 | Tiny 130xxx band, unknown role. |
-| `range_140xxx_candidate`               |  1 | Single id `140098`. |
 | `range_200xxx_candidate`               |  1 | Single id `200000`. |
 
-Total candidate: `71 frames across 7 buckets`.
+Total candidate: `20 frames across 2 buckets`.
 
-Grand total reconciled against the jar: `309 + 71 = 380 files`.
+Grand total reconciled against the jar: `309 + 20 = 329 files`.
+
+### Excluded (moved to equipment_legacy / npc_legacy)
+
+After cross-checking IDs against the other bundles, the following ranges
+that were initially staged here were confirmed to belong elsewhere and
+have been MOVED out of `monster_legacy`:
+
+| Former bucket | Files | Correct bundle | Reason |
+|---------------|-------|----------------|--------|
+| `range_12xxxx_end98_meta_adjacent` | 25 | `equipment_legacy/07_accessory_e5_e7_e8/` | End-`98` = accessory-icon convention |
+| `range_128xxx_end98_meta_adjacent` |  4 | `equipment_legacy/07_accessory_e5_e7_e8/` | Same end-`98` pattern |
+| `range_140xxx_candidate`           |  1 | `equipment_legacy/07_accessory_e5_e7_e8/` | `140098` is accessory, not monster |
+| `range_130xxx_candidate`           |  4 | `equipment_legacy/07_accessory_e5_e7_e8/` | Entire `130xxx` band is accessory |
+| `range_110xxx_pattern_X0`          | 17 | `npc_legacy/04_numbered_npc_candidate_110xxx/` | Numbered NPC sprites, `X0` step |
+
+Total relocated: **51 files**. MUST NOT be re-copied into `monster_legacy/`.
+The `98` suffix (for 120xxx-140xxx) is the equipment-icon convention;
+the `X0` step (for 110xxx) is the numbered-NPC stride. Neither is a
+monster frame index.
 
 ## What We Intentionally Do NOT Store
 

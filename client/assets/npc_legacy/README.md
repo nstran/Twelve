@@ -19,6 +19,10 @@ Folder layout:
   - shared spritesheets used by the generic `jo` actor type indexed by `jo.c >> 1`
 - `03_interactive_map_objects`
   - animated map props that participate in NPC-like interaction (talk / enter) but are not talking NPCs
+- `04_numbered_npc_candidate_110xxx`
+  - numbered NPC sprite IDs in the `110000..110160` band, `X0` step (17 files).
+    These came from `/offline/<id>.png`. Role: NPC (not monster, not equipment).
+    Kept as candidate until the server catalog confirms per-ID identity.
 
 Detailed technical reference:
 

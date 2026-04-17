@@ -348,9 +348,19 @@ client/assets/equipment_legacy/
 │   ├── mount_candidate_904xx/
 │   └── mount_candidate_908xx/
 │
-├── 07_accessory_e5_e7_e8/           ← Nhẫn/Bùa — ll.e==5,7,8 (22 files)
+├── 07_accessory_e5_e7_e8/           ← Nhẫn/Bùa — ll.e==5,7,8 (56 files)
 │   ├── aura_candidate_902xx/        visual aura for legendary accessories
-│   └── aura_candidate_903xx/
+│   ├── aura_candidate_903xx/
+│   ├── accessory_candidate_120xxx/   9 files: 120198..120998 (end-98 variant band)
+│   ├── accessory_candidate_121xxx/  10 files: 121098..121998 (end-98 variant band)
+│   ├── accessory_candidate_122xxx/   6 files: 122098..122598 (end-98 variant band)
+│   ├── accessory_candidate_128xxx/   4 files: 128098..128398 (end-98 variant band)
+│   ├── accessory_candidate_130xxx/   4 files: 130000, 130098, 130100, 130198
+│   └── accessory_candidate_140xxx/   1 file:  140098
+│                                    The 12xxxx..14xxxx bands were reclaimed
+│                                    from monster_legacy after ID cross-check.
+│                                    The `98` suffix is the equipment-icon
+│                                    convention, not a monster frame index.
 │
 ├── 08_premium_sets/                 ← Full premium sets (110 files)
 │   ├── premium_01_952xx/            server-assigned slot type
