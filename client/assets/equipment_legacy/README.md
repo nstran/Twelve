@@ -9,13 +9,13 @@ Source: [offline_by_id_or_name](/d:/Twelve/reference/review_assets/verified_sema
 
 ```
 equipment_legacy/
-  00_body_base/         <- mb.java:108 — base body (99000+frame)
   01_default_overlays/  <- mb.java:712-715 — defaults khi khong mac do
-  02_armor_e0/          <- ll.e==0 — Giap/Ao, nArray[0], composited
-  03_weapon_e1/         <- ll.e==1 — Vu Khi, nArray[1], composited
-  04_helmet_e2/         <- ll.e==2 — Mu/Non, nArray[2], composited
-  05_boot_e3/           <- ll.e==3 — Giay (stored, NOT composited)
-  06_mount_e4/          <- ll.e==4 — Ngua/Khien (candidate)
+  02_armor_e0/          <- visual audit + icon check: armor/body overlays 701xx-783xx
+  03_weapon_e1/         <- visual audit + icon check: weapon overlays 800xx-832xx, 890xx-893xx
+  04_helmet_e2/         <- headgear/head-overlay candidates 500xx-609xx, 904xx, 908xx
+                           + meta headgear/visual candidate bands 920/924/925/940/941/942/943/971/974/975/980/981/982/983/999
+  05_boot_e3/           <- hien tai chua co band boot confirmed sau khi audit icon
+  06_mount_e4/          <- hien tai chua co band mount confirmed sau khi audit icon
   07_accessory_e5_e7_e8/ <- ll.e==5,7,8 — Nhan/Bua (no visual)
   08_premium_sets/      <- Full premium sets (server-assigned type)
   09_ui_icons/          <- broken_heart, star, slotlock, blacksmith
@@ -39,8 +39,15 @@ Layer 5: Weapon overlay = ll.e==1 resId band + frame
 
 ## NOT Included (not equipment)
 
+- `990xx` — Base body compositor layer, khong luu trong `equipment_legacy`
 - `909xx, 910xx, 912xx` — Hair/appearance → `createcs_legacy`
 - `911xx, 913xx` — Special effects → not wearable
 - `100xxx` — Consumable items → separate `lm` system
 - `110xxx-140xxx` — Map/NPC → map system
 - `1M/2M/4Mxxxxxxx` — Skill effects → `skill_legacy`
+
+## Audit Notes
+
+- `701xx-783xx` da duoc chuyen tu `03_weapon_e1` sang `02_armor_e0` vi icon `xx98` va frame `xx00` deu cho thay day la outfit/body overlay.
+- `800xx-832xx` va `890xx-893xx` da duoc chuyen vao `03_weapon_e1` vi icon `xx98` la kiem/gay/vu khi.
+- `500xx-609xx`, `904xx`, `908xx` da duoc dua vao `04_helmet_e2` duoi nhan `headgear_candidate_*` vi frame runtime la head overlay, khong phai body armor.

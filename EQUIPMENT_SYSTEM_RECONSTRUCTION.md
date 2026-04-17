@@ -294,59 +294,48 @@ public void a(Graphics g, int x, int y) {
 ```
 client/assets/equipment_legacy/
 │
-├── 00_body_base/                    ← 990xx (11 files)
-│   └── body_990xx/                  base body, 10 frames + meta
-│
 ├── 01_default_overlays/             ← defaults khi không mặc đồ (32 files)
 │   ├── weapon_male_default_799xx/   79900-79909, 79998
 │   ├── weapon_female_default_798xx/ 79800-79809, 79898
 │   └── helmet_default_899xx/        89900-89909
 │
-├── 02_armor_e0/                     ← Giáp/Áo — ll.e==0 (270 files)
-│   ├── heavy_tier01_500xx/          50000-50009
-│   ├── heavy_tier02_501xx/          ...
-│   ├── heavy_tier03_502xx/
-│   ├── heavy_tier04_503xx/
-│   ├── heavy_tier05_504xx/
-│   ├── heavy_tier06_505xx/
-│   ├── light_tier01_600xx/          60000-60009
-│   ├── light_tier02_601xx/          ...
-│   ├── ...                          (10 light tiers total)
-│   ├── meta_armor_920xx/            meta-backed armor candidates
-│   ├── meta_armor_924xx/
-│   ├── meta_armor_925xx/
-│   ├── meta_armor_980xx/
-│   ├── meta_armor_981xx/
-│   ├── meta_armor_982xx/
-│   └── meta_armor_fullbody_999xx/
+├── 02_armor_e0/                     ← Giáp/Áo — icon audit confirms armor (363 files)
+│   ├── armor_701xx/                 70100-70109, 70198
+│   ├── armor_703xx/                 ...
+│   └── armor_783xx/                 (33 armor/body-overlay bands total)
 │
-├── 03_weapon_e1/                    ← Vũ Khí — ll.e==1 (393 files)
-│   ├── weapon_01_701xx/             70100-70109, 70198
-│   ├── weapon_02_703xx/             ...
-│   ├── ...                          (33 weapon sets)
-│   ├── meta_weapon_971xx/           meta-backed weapon candidates
-│   ├── meta_weapon_974xx/
-│   └── meta_weapon_975xx/
+├── 03_weapon_e1/                    ← Vũ Khí — icon audit confirms weapons (220 files)
+│   ├── weapon_800xx/                80000-80009, 80098
+│   ├── weapon_802xx/                ...
+│   ├── weapon_832xx/
+│   ├── weapon_890xx/
+│   └── weapon_893xx/                (20 weapon bands total)
 │
-├── 04_helmet_e2/                    ← Mũ/Nón — ll.e==2 (231 files)
-│   ├── helmet_01_800xx/             80000-80009, 80098
-│   ├── helmet_02_802xx/             ...
-│   ├── ...                          (16 helmet sets)
-│   ├── meta_helmet_940xx/           meta-backed helmet candidates
+├── 04_helmet_e2/                    ← Headgear / head-overlay candidates (347 files)
+│   ├── headgear_candidate_500xx/    50000-50009
+│   ├── headgear_candidate_501xx/    ...
+│   ├── headgear_candidate_609xx/
+│   ├── headgear_candidate_904xx/
+│   ├── headgear_candidate_908xx/
+│   ├── meta_helmet_920xx/           mixed visual candidate, currently kept with head overlays
+│   ├── meta_helmet_924xx/
+│   ├── meta_helmet_925xx/
+│   ├── meta_helmet_940xx/           meta-backed headgear candidates
 │   ├── meta_helmet_941xx/
 │   ├── meta_helmet_942xx/
 │   ├── meta_helmet_943xx/
-│   └── meta_helmet_983xx/
+│   ├── meta_helmet_971xx/
+│   ├── meta_helmet_974xx/
+│   ├── meta_helmet_975xx/
+│   ├── meta_helmet_980xx/
+│   ├── meta_helmet_981xx/
+│   ├── meta_helmet_982xx/
+│   ├── meta_helmet_983xx/
+│   └── meta_helmet_999xx/
 │
-├── 05_boot_e3/                      ← Giày — ll.e==3 (44 files)
-│   ├── boot_01_890xx/               NOTE: stored nhưng KHÔNG composited
-│   ├── boot_02_891xx/
-│   ├── boot_03_892xx/
-│   └── boot_04_893xx/
+├── 05_boot_e3/                      ← Giày — currently no confirmed extracted bands
 │
-├── 06_mount_e4/                     ← Ngựa/Khiên — ll.e==4 (22 files)
-│   ├── mount_candidate_904xx/
-│   └── mount_candidate_908xx/
+├── 06_mount_e4/                     ← Ngựa/Khiên — currently no confirmed extracted bands
 │
 ├── 07_accessory_e5_e7_e8/           ← Nhẫn/Bùa — ll.e==5,7,8 (56 files)
 │   ├── aura_candidate_902xx/        visual aura for legendary accessories

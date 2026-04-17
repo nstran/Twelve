@@ -29,6 +29,15 @@ Tổng cộng: **1837 media file** được khảo sát và sắp xếp, 11 top-
 >
 > Kết quả: Monster giảm 380 → **329**. Equipment tăng 1142 → **1144**. NPC tăng 8 → **25**.
 
+> **Ghi chú cross-check slot-type trong equipment_legacy** (2026-04-17 audit): Sau khi soi `meta_summary.json` của từng band candidate (tại `reference/review_assets/character_creation_organized/02_option_meta_families/headgear_equipment_candidates/`), 4 meta family với tổng **44 file (4 × 11)** đã được di chuyển trong equipment_legacy — không thay đổi tổng file, chỉ đổi slot-type:
+>
+> - `03_weapon_e1/meta_weapon_971xx/` → `04_helmet_e2/meta_helmet_971xx/` (11 file)
+> - `03_weapon_e1/meta_weapon_974xx/` → `04_helmet_e2/meta_helmet_974xx/` (11 file)
+> - `03_weapon_e1/meta_weapon_975xx/` → `04_helmet_e2/meta_helmet_975xx/` (11 file)
+> - `02_armor_e0/meta_armor_fullbody_999xx/` → `04_helmet_e2/meta_helmet_999xx/` (11 file)
+>
+> Lý do: cả 4 `meta_summary.json` ghi rõ `"note": "Meta-backed equipment candidate family; likely headgear rather than bare create-character appearance."` Idle frame dimension (37×39 cho 99900, 42×41 cho 97400, 41×48 cho 97500, 76×50 cho 97100) nằm trong vùng mũ đã confirm (94300=37×27, 98300=44×27, 94500=45×36). Layout 11 file `XX00..XX09 + XX98` đồng nhất với 5 helmet meta đã confirm. Kết quả counts: armor 270→259, weapon 393→360, helmet 231→275 (tổng 1144 vẫn không đổi).
+
 ## Tiêu chuẩn self-sufficiency
 
 Mỗi cặp `.md + legacy folder` đáp ứng đủ 4 tiêu chí:
@@ -79,6 +88,7 @@ Hệ thống có tỉ lệ candidate cao:
 3. **arrowfocus1 là byte-array load**: `mp.java:400` dùng `f.b("/arrowfocus1")` — trả về `byte[]` không phải `Image`. Vẫn là literal string ref nên được đánh confirmed.
 4. **Shared spritesheet dispatch**: Monster/Skill dispatch tile qua `jo.c >> 1` để chọn giữa `/monster`, `/zap`, `/ice` sheets — đã ghi chú trong `MONSTER_SYSTEM_RECONSTRUCTION.md` và `SKILL_SYSTEM_RECONSTRUCTION.md`.
 5. **Expo manifest icons tách riêng**: 3 icon `adaptive-icon.png`, `favicon.png`, `icon.png` trong `login_legacy/05_expo_manifest_icons/` KHÔNG phải J2ME asset — phải wire qua `app.json`, không qua asset loader.
+6. **4 meta family bị gán sai slot-type** (2026-04-17 audit): Phát hiện sau khi đọc `meta_summary.json` rằng `meta_weapon_971xx/974xx/975xx` (nằm trong `03_weapon_e1/`) và `meta_armor_fullbody_999xx` (nằm trong `02_armor_e0/`) thực chất đều là **headgear candidates**. Metadata ghi rõ `"likely headgear rather than bare create-character appearance"`. Đã di chuyển 44 file (4 family × 11 file) sang `04_helmet_e2/` với tên mới `meta_helmet_971xx/974xx/975xx/999xx/`. Bài học: khi cross-organize equipment, LUÔN đọc `meta_summary.json` trước — đừng suy từ ID prefix (70xxx/90xxx không phải một slot-type duy nhất).
 
 ## Code-ready checklist
 
