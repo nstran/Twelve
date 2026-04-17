@@ -1,0 +1,37 @@
+file,bucket,f_d_path,java_ref,confidence,note
+00_board_background/bkboardv.png,board_background,/play/bkboardv,mv.java:21,confirmed,Vertical-orientation match-3 board background
+00_board_background/bkboardh.png,board_background,/play/bkboardh,mv.java:24,confirmed,Horizontal-orientation match-3 board background
+00_board_background/ground.png,board_background,/play/ground,mv.java:27,confirmed,Hit-ground overlay under the board
+01_hud_bars/hpbar.png,hud_bars,/play/hpbar,mx.java:1568,confirmed,HP bar strip
+01_hud_bars/manabar.png,hud_bars,/play/manabar,mx.java:1579,confirmed,Mana (MP) bar strip
+01_hud_bars/powerbar.png,hud_bars,/play/powerbar,mx.java:1580,confirmed,Power (Thanh No / rage) bar strip
+02_chess_pieces/chess0.png,chess_pieces,/chess0,mp.java:390,confirmed,Chess piece 0 (gem type 0)
+02_chess_pieces/chess1.png,chess_pieces,/chess1,mp.java:390,confirmed,Chess piece 1
+02_chess_pieces/chess2.png,chess_pieces,/chess2,mp.java:390,confirmed,Chess piece 2
+02_chess_pieces/chess3.png,chess_pieces,/chess3,mp.java:390,confirmed,Chess piece 3
+02_chess_pieces/chess4.png,chess_pieces,/chess4,mp.java:390,confirmed,Chess piece 4
+02_chess_pieces/chess5.png,chess_pieces,/chess5,mp.java:390,confirmed,Chess piece 5
+02_chess_pieces/chess6.png,chess_pieces,/chess6,mp.java:390,confirmed,Chess piece 6
+02_chess_pieces/chess7.png,chess_pieces,/chess7,mp.java:390,confirmed,Chess piece 7
+02_chess_pieces/chess8.png,chess_pieces,/chess8,mp.java:390,confirmed,Chess piece 8
+03_crystals_casting/chesscrystal.png,crystals_casting,/chesscrystal,mp.java:393,confirmed,Crystal overlay on chess pieces (special match)
+03_crystals_casting/crystalblue.png,crystals_casting,/crystalblue,pc.java:14,confirmed,Blue crystal (team marker)
+03_crystals_casting/crystalred.png,crystals_casting,/crystalred,pc.java (paired),confirmed,Red crystal (team marker)
+03_crystals_casting/castingball.png,crystals_casting,/castingball,mp.java:382 + da.java:420,confirmed,Casting-ball projectile sprite
+04_element_icons/elementsicon.png,element_icons,/elementsicon,pc.java:68,confirmed,Element type icons (Hoa/Loi/Thuy) sprite sheet
+04_element_icons/star.png,element_icons,/star,mp.java:394,confirmed,Generic star marker used on board
+04_element_icons/staricon.png,element_icons,/staricon,fj.java:22,confirmed,Star icon used in stats / rating row
+05_element_vfx/firerage.png,element_vfx,/firerage,mp.java:380,confirmed,Hoa (fire) rage effect sheet
+05_element_vfx/firerageext.png,element_vfx,/firerageext,mp.java:381,confirmed,Extended fire rage sheet (secondary frames)
+05_element_vfx/miniexplosionfire.png,element_vfx,/miniexplosionfire,lp.java:29,confirmed,Small fire explosion on match
+06_auras/aura1.png,auras,/aura1,lc.java:235,confirmed,Aura overlay color variant 1
+06_auras/aura2.png,auras,/aura2,lc.java:247 / lc.java:280,confirmed,Aura overlay color variant 2
+06_auras/aura3.png,auras,/aura3,lc.java:259 / lc.java:271,confirmed,Aura overlay color variant 3
+07_result_splash/strwin.png,result_splash,/strwin,mt.java:710 + hs.java:107,confirmed,Victory splash image
+07_result_splash/strlose.png,result_splash,/strlose,mt.java:714 + hs.java:110,confirmed,Defeat splash image
+08_focus_cursor/focusmovechess1.png,focus_cursor,/focusmovechess1,pc.java:13,confirmed,Move-chess focus / selection cursor
+09_hidden_pieces/hiddendragon.png,hidden_pieces,/hiddendragon,pc.java:19,confirmed,Hidden dragon special tile
+09_hidden_pieces/hiddenphoenix.png,hidden_pieces,/hiddenphoenix,pc.java:66,confirmed,Hidden phoenix special tile
+10_hit_effects/bloodthrowaround.png,hit_effects,/bloodthrowaround,mp.java:395,confirmed,Blood splatter drawn on a hit chess cell
+10_hit_effects/zoomfocus.png,hit_effects,/zoomfocus,mp.java:412,confirmed,Zoom-focus overlay drawn around a highlighted cell on hit
+11_barrier/barrier.png,barrier,/barrier,mp.java:383,confirmed,Barrier shield sprite drawn over a protected target

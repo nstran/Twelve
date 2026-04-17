@@ -1,0 +1,10 @@
+file,kind,bucket,java_call,java_ref,confidence,note
+00_music_confirmed/battle.mid,music,music_confirmed,"co.b().a(""battle"", -1)",com/mg/sq/a.java:102,confirmed,Battle scene background music (loop forever)
+00_music_confirmed/lv1.mid,music,music_confirmed,"co.b().a(""lv1"", -1)",ob.java:292,confirmed,Login + create-character + world map background music
+00_music_confirmed/title.mid,music,music_confirmed,"co.b().a(""title"", 1)",com/mg/sq/a.java:108,confirmed,Title screen music (plays once)
+01_sfx_confirmed/useitem.amr,sfx,sfx_confirmed,"new cp(""useitem"")",com/mg/sq/a.java:985,confirmed,Sound when a consumable item is used
+01_sfx_confirmed/vs.amr,sfx,sfx_confirmed,"new cp(""vs"")",hi.java:27,confirmed,Versus / battle start splash sfx
+01_sfx_confirmed/lvu.amr,sfx,sfx_confirmed,"new cp(""lvu"")",hs.java:104,confirmed,Level-up sfx in battle/stats scene
+02_music_candidate/charcreation.mid,music,music_candidate,,,candidate,Present in jar. No literal string ref; likely played via variable name during character creation
+02_music_candidate/worldmap.mid,music,music_candidate,,,candidate,Present in jar. No literal string ref; likely played via variable name on world map
+03_sfx_candidate/attack.amr,sfx,sfx_candidate,,,candidate,Present in jar. No literal string ref; likely triggered from battle damage step

@@ -1,0 +1,16 @@
+file,bucket,f_d_path,java_ref,confidence,note
+00_login_confirmed/bklogin.png,login_confirmed,/bklogin,ob.java:32,confirmed,Main login screen background
+00_login_confirmed/iconbt.png,login_confirmed,/iconbt,com/mg/sq/a.java:2171,confirmed,Login / continue button icon
+01_download_confirmed/bardownloadscreen.png,download_confirmed,/bardownloadscreen,nx.java:81,confirmed,Progress bar frame on download screen
+01_download_confirmed/fillbardownloadscreen.png,download_confirmed,/fillbardownloadscreen,nx.java:84,confirmed,Progress bar fill clip
+01_download_confirmed/avatardownloadscreen.png,download_confirmed,/offline/avatardownloadscreen,nx.java:78 + oc.java:25,confirmed,Avatar slot shown on download screen (stored under /offline/)
+02_logo_candidate/_mglogo.png,logo_candidate,,,candidate,Publisher logo shown during splash. No literal string ref.
+02_logo_candidate/_partnerLogo.png,logo_candidate,,,candidate,Partner / distributor logo shown alongside. No literal string ref.
+02_logo_candidate/splash-icon.png,logo_candidate,,,candidate,Splash-screen icon (likely Expo manifest).
+03_sound_toggle_candidate/_sound1.png,sound_toggle_candidate,,,candidate,Sound-on icon on intro. No literal string ref.
+03_sound_toggle_candidate/_sound2.png,sound_toggle_candidate,,,candidate,Sound-off icon on intro. No literal string ref.
+04_font_candidate/_blackfont.png,font_candidate,,,candidate,Black bitmap font glyph sheet. No literal string ref.
+04_font_candidate/_fontcap.png,font_candidate,,,candidate,Cap bitmap font glyph sheet. No literal string ref.
+05_expo_manifest_icons/adaptive-icon.png,expo_manifest_icons,,,manifest-only,Android adaptive launcher icon — NOT a J2ME asset
+05_expo_manifest_icons/favicon.png,expo_manifest_icons,,,manifest-only,Web favicon — NOT a J2ME asset
+05_expo_manifest_icons/icon.png,expo_manifest_icons,,,manifest-only,iOS launcher icon — NOT a J2ME asset

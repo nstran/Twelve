@@ -391,6 +391,22 @@ client/assets/equipment_legacy/
 7. **Upgrade panel** — from `id.java` spec (blacksmith UI)
 8. **Network protocol** — equip/unequip/upgrade cmds 51, 96-101, 112
 
+## Reference Skills
+
+When implementing the equipment pipeline, consult these project skills
+(in `.agent/skills/`):
+
+| Skill | Use When |
+|-------|----------|
+| `architecture/`          | Domain entities `Equipment`, `Stats`, `Inventory` in `Twelve.Core` |
+| `binary-protocol/`       | TLV tags 4 / 26 / 27 / 83-85 / 117-144 / 190-204 for equip packets |
+| `database-design/`       | Postgres `Inventories` table with `JSONB` stats block, composite index `(PlayerId, IsEquipped)` |
+| `game-mechanics/`        | Server-side damage / defense / durability validation |
+| `frontend-design/`       | Skia inventory grid, rank color gradient, broken-heart overlay |
+| `clean-code/`            | Naming `EquipmentSlot`, `EquipmentRank`, `EquipmentRef` |
+| `vulnerability-scanner/` | Never trust client on `equip.p` (durability) or `equip.r` (stats) |
+| `api-patterns/`          | REST contract for `/api/inventory`, `/api/upgrade-equip` |
+
 ## Next Step
 
 Xây dựng **equipment asset resolver** module:

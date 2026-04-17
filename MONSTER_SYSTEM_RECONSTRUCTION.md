@@ -1,17 +1,27 @@
 # Monster System Reconstruction
 
-This is the top-level entrypoint for the legacy monster restoration work.
+Tài liệu khôi phục hệ thống quái vật (monster) từ Java client cũ.
 
 If you want the deep technical reference, use:
 
 - [client/assets/monster_legacy/README.md](/d:/Twelve/client/assets/monster_legacy/README.md)
 
+## Source Code Reference
+
+| File | Class | Vai trò |
+|------|-------|---------|
+| [pa.java](/d:/Twelve/reference/redecoded/decompiled/pa.java) | `pa` | Offline loader — `pa.a(id, false)` resolves `/offline/<id>.png` |
+| [ki.java](/d:/Twelve/reference/redecoded/decompiled/ki.java) | `ki` | Actor renderer — 1 row × 6 frame walk strip |
+| [jo.java](/d:/Twelve/reference/redecoded/decompiled/jo.java) | `jo` | Actor data record (`.c` type byte drives sheet choice) |
+| [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java) | `om` | Map dispatcher — decides which sheet a `jo` uses |
+| [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java) | `ky` | Network decoder — parses spawn lists into `jo[]` |
+
+The monster system does not have a dedicated Java class. Monsters are drawn
+through `ki.java`, differentiated by the 6-digit asset ID the server sends.
+
 ## Quick Position
 
-The legacy monster system is the only actor family in the jar where sprites
-are addressed by 6-digit numeric IDs under `/offline/<id>.png`. It sits
-between the character pipeline (which uses `79xxx`..`99xxx` parts) and the
-NPC pipeline (which uses 3 shared spritesheets by `jo.c >> 1`).
+Monster sprites are addressed by 6-digit numeric IDs under `/offline/<id>.png`.
 
 The stable rules are:
 
@@ -39,8 +49,29 @@ Every confirmed 6-digit PNG under `/offline/` follows the shape `AAAABC`:
 Example: `100351.png` → species `1003`, slot `5`, frame `1`.
 
 This schema is inferred from the `/offline/XX099.meta` marker convention
-already used for characters and skills (one meta per 100-id block), and
-confirmed by the per-slot frame bundling visible in the folder listing.
+(one meta per 100-id block), and confirmed by the per-slot frame bundling
+visible in the folder listing.
+
+Monster IDs are always **6 digits**. Any `/offline/` file with a different
+digit length belongs to a different system — see Related Docs.
+
+## Rendering Contract
+
+The sprite is drawn through `ki.java` with a hard-coded 6-frame strip:
+
+```java
+// ki.java line 58-65
+public ki(Image object, int n2, int n3, jo jo2, lh lh2, Image image) {
+    int n4 = 6;                              // 6 frames
+    n3 = 1;                                  // 1 row (overridden from arg)
+    this.k = object;
+    this.o = object.getWidth()  / n4;        // frame width  = w / 6
+    this.p = object.getHeight() / n3;        // frame height = h / 1
+}
+```
+
+Every monster PNG — even candidate ones — MUST be laid out as a single
+horizontal strip of 6 frames.
 
 ## Confirmed Species Families
 
@@ -79,22 +110,6 @@ Total candidate: `71 frames across 7 buckets`.
 
 Grand total reconciled against the jar: `309 + 71 = 380 files`.
 
-## Relationship with the NPC Pipeline
-
-The monster pipeline and the NPC pipeline share the same rendering class
-(`ki.java`) but NOT the same asset surface:
-
-| System  | Asset surface |
-|---------|---------------|
-| Monster | Per-species 6-digit PNGs under `/offline/` |
-| NPC     | 3 shared root sheets (`/monster`, `/zap`, `/ice`) + `/blacksmith` |
-
-Note that the root-level `/monster` sheet loaded by `om.java` is the
-shared NPC `jo.c >> 1 == 0` surface, not a per-species monster frame. See:
-
-- [NPC_SYSTEM_RECONSTRUCTION.md](/d:/Twelve/NPC_SYSTEM_RECONSTRUCTION.md)
-- [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java:84)
-
 ## What We Intentionally Do NOT Store
 
 - monster names
@@ -122,7 +137,7 @@ The script reads from `canonical_from_jar_png/offline/`, classifies every
 
 1. Read in all 8 confirmed species as a dictionary of
    `{species_code: {slot: [frame_path, ...]}}`.
-2. Render one species at its first slot as a smoke test through the generic
+2. Render one species at its first slot as a smoke test through the
    `ki.java`-equivalent walk-cycle renderer.
 3. Wire the server map-state packet so that a monster spawn at `(x, y)`
    with species `AAAA` resolves to the correct `species_AAAA/slot_<dir>/`

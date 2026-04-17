@@ -1,0 +1,8 @@
+file,bucket,f_d_path,java_ref,confidence,note
+00_stat_icons/gold.png,stat_icons,/info/gold,of.java:96 + da.java:274 + hs.java:82,confirmed,Gold (KEN) icon next to gold stat
+00_stat_icons/heart.png,stat_icons,/info/heart,da.java:273 + hs.java:83,confirmed,HP icon (heart-shaped) next to HP stat
+00_stat_icons/expicon.png,stat_icons,/info/expicon,da.java:272 + hs.java:84,confirmed,EXP icon next to exp gauge
+01_button_markers/btinscrease.png,button_markers,/info/btinscrease,da.java:305 + gf.java:13,confirmed,Button-increase plus marker; used on stat rows
+02_gauge_and_chest/gauge.png,gauge_and_chest,/info/gauge,jt.java:24,confirmed,Horizontal EXP gauge bar
+02_gauge_and_chest/itemchest.png,gauge_and_chest,/info/itemchest,om.java:326,confirmed,Inventory / item-chest button (opens item panel)
+03_hidden_marker/hidenobj.png,hidden_marker,/info/hidenobj,hh.java:14,confirmed,Hidden-object marker drawn over blocked content

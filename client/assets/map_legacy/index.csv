@@ -1,0 +1,13 @@
+file,bucket,f_d_path,java_ref,confidence,note
+00_map_tileset/m.png,map_tileset,/m/m,oh.java:53,confirmed,Main overworld tileset / map sheet
+01_location_markers/arena.png,location_markers,/m/arena,fz.java:27,confirmed,Arena POI marker
+01_location_markers/room.png,location_markers,/m/room,fz.java:30,confirmed,Room / chamber POI marker
+01_location_markers/fsw.png,location_markers,/m/fsw,hi.java:13,confirmed,FSW POI marker (role TBD by server catalog)
+01_location_markers/roomicon.png,location_markers,/roomicon,pc.java:67,confirmed,Room icon used in overlays
+02_cursor_pointer/hand.png,cursor_pointer,/m/hand,pc.java:20,confirmed,Hand cursor used to pick a location
+02_cursor_pointer/arrow.png,cursor_pointer,/m/arrow,pc.java:21,confirmed,Arrow pointer used to indicate next location
+03_locked_markers/lock.png,locked_markers,/m/lock,oh.java:55 + fz.java:24,confirmed,Primary locked-location overlay
+03_locked_markers/lock2.png,locked_markers,/m/lock2,fg.java:42,confirmed,Alternative locked-location overlay
+04_map_background_candidate/bgmap_hoa_lu.png,map_background_candidate,,,candidate,Large painted background of Hoa Lu capital. No literal string ref found.
+05_ui_labels_candidate/focusname.png,ui_labels_candidate,,,candidate,Focused location name plate. No literal string ref found.
+05_ui_labels_candidate/l.png,ui_labels_candidate,,,candidate,Tiny l glyph. Unknown role.

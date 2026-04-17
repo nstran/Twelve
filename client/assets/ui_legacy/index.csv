@@ -1,0 +1,25 @@
+file,bucket,f_d_path,java_ref,confidence,note
+00_corner_frames/_corner.png,corner_frames,/_corner,ap.java:12,confirmed,Main 9-slice corner frame used by the generic dialog/panel renderer
+00_corner_frames/1.png,corner_frames,/corner/1,ig.java:19,confirmed,Corner / panel variant 1
+00_corner_frames/2.png,corner_frames,/corner/2,pc.java:18,confirmed,Corner / panel variant 2
+00_corner_frames/3.png,corner_frames,/corner/3,ig.java:13,confirmed,Corner / panel variant 3
+00_corner_frames/4.png,corner_frames,/corner/4,fc.java:38,confirmed,Corner / panel variant 4 used in friend/skill list panel
+00_corner_frames/5.png,corner_frames,/corner/5,fc.java:39,confirmed,Corner / panel variant 5 used in friend/skill list panel
+00_corner_frames/cornerskb.png,corner_frames,/corner/cornerskb,ig.java:18,confirmed,Soft keyboard / input field corner frame
+01_notification_badges/notifygtmicon.png,notification_badges,/notifygtmicon,pc.java:15,confirmed,GTM (Game Master) notification badge
+01_notification_badges/questnotifyicon.png,notification_badges,/questnotifyicon,fc.java:46,confirmed,Quest notification badge on HUD
+01_notification_badges/notificationnewsicon.png,notification_badges,/notificationnewsicon,fc.java:244,confirmed,News notification badge
+02_shop_and_cart/shoppingcarticon.png,shop_and_cart,/shoppingcarticon,fj.java:23,confirmed,Shop / cart icon used in inventory & shop screens
+03_inventory_slot/slotlock.png,inventory_slot,/slotlock,fg.java:41,confirmed,Locked inventory slot overlay (equipment grid)
+04_tabs_and_numbers/tab.png,tabs_and_numbers,/tab,pc.java:16,confirmed,Tab chrome used by multi-tab panels
+04_tabs_and_numbers/tinynumber.png,tabs_and_numbers,/tinynumber,ly.java:34,confirmed,Tiny number font sheet (digits 0-9 for counters / badges)
+05_action_indicator/push.png,action_indicator,/push,ic.java:27,confirmed,Push / tap action indicator overlay
+06_emotes/smileys.png,emotes,/smileys,p.java:116,confirmed,Chat smiley / emoticon sheet
+06_emotes/onions.png,emotes,/onions,oy.java:69,confirmed,Onion-head sticker sheet (chat emote pack)
+07_ola_icons/olaicons.png,ola_icons,/olaicons,pc.java:236,confirmed,OLA (online activity) icon sheet
+08_misc_confirmed/broken_heart.png,misc_confirmed,/broken_heart,dc.java:13,confirmed,Broken-heart icon (lost life / defeat marker)
+08_misc_confirmed/mecommands.png,misc_confirmed,/mecommands,fo.java:22,confirmed,Self-commands menu icon sheet (me-menu)
+08_misc_confirmed/taythuytinh.png,misc_confirmed,/taythuytinh,ia.java:33,confirmed,Tay Thuy Tinh (crystal accessory) icon
+09_focus_candidate/arrowfocus2.png,focus_candidate,,,candidate,Arrow-focus variant 2 — no literal string ref found; paired with arrowfocus1
+10_focus_confirmed/arrowfocus1.png,focus_confirmed,/arrowfocus1,mp.java:400,confirmed,Arrow focus marker (byte-array load f.b)
+10_focus_confirmed/focustab.png,focus_confirmed,/focustab,fc.java:49,confirmed,Focus tab highlight used in tabbed menus
