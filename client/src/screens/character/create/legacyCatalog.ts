@@ -88,14 +88,14 @@ export const ELEMENT_OPTIONS = [
 
 export const HAIR_STYLE_OPTIONS = {
   male: [
-    { key: '501', label: 'Bộ 1', metaId: 50199, baseImageId: 50100, width: 33, height: 26, numColors: 5 },
-    { key: '504', label: 'Bộ 2', metaId: 50499, baseImageId: 50400, width: 33, height: 31, numColors: 5 },
-    { key: '505', label: 'Bộ 3', metaId: 50599, baseImageId: 50500, width: 27, height: 47, numColors: 5 },
+    { key: '501', label: 'Cổ điển', metaId: 50199, baseImageId: 50100, width: 33, height: 26, numColors: 5 },
+    { key: '504', label: 'Vuốt dựng', metaId: 50499, baseImageId: 50400, width: 33, height: 31, numColors: 5 },
+    { key: '505', label: 'Búi xõa', metaId: 50599, baseImageId: 50500, width: 27, height: 47, numColors: 5 },
   ],
   female: [
-    { key: '500', label: 'Bộ 1', metaId: 50099, baseImageId: 50000, width: 38, height: 38, numColors: 5 },
-    { key: '502', label: 'Bộ 2', metaId: 50299, baseImageId: 50200, width: 32, height: 31, numColors: 5 },
-    { key: '503', label: 'Bộ 3', metaId: 50399, baseImageId: 50300, width: 40, height: 24, numColors: 5 },
+    { key: '500', label: 'Búi nơ', metaId: 50099, baseImageId: 50000, width: 38, height: 38, numColors: 5 },
+    { key: '502', label: 'Tóc tém', metaId: 50299, baseImageId: 50200, width: 32, height: 31, numColors: 5 },
+    { key: '503', label: 'Búi hai bên', metaId: 50399, baseImageId: 50300, width: 40, height: 24, numColors: 5 },
   ],
 } as const satisfies Record<'male' | 'female', readonly LegacyVariantStyleOption[]>;
 
@@ -157,18 +157,18 @@ export const HAIR_COLOR_SOURCES: Record<number, readonly ImageSourcePropType[]> 
 
 export const EYE_STYLE_OPTIONS = {
   male: [
-    { key: '605', label: 'Bộ 1', metaId: 60599, baseImageId: 60500, width: 20, height: 13 },
-    { key: '606', label: 'Bộ 2', metaId: 60699, baseImageId: 60600, width: 19, height: 13 },
-    { key: '607', label: 'Bộ 3', metaId: 60799, baseImageId: 60700, width: 20, height: 13 },
-    { key: '603', label: 'Bộ 4', metaId: 60399, baseImageId: 60300, width: 20, height: 13 },
-    { key: '604', label: 'Bộ 5', metaId: 60499, baseImageId: 60400, width: 20, height: 13 },
+    { key: '605', label: 'Kiên định', metaId: 60599, baseImageId: 60500, width: 20, height: 13 },
+    { key: '606', label: 'Giận dữ', metaId: 60699, baseImageId: 60600, width: 19, height: 13 },
+    { key: '607', label: 'Lanh lợi', metaId: 60799, baseImageId: 60700, width: 20, height: 13 },
+    { key: '603', label: 'Ngây ngô', metaId: 60399, baseImageId: 60300, width: 20, height: 13 },
+    { key: '604', label: 'Sắc lạnh', metaId: 60499, baseImageId: 60400, width: 20, height: 13 },
   ],
   female: [
-    { key: '600', label: 'Bộ 1', metaId: 60099, baseImageId: 60000, width: 20, height: 13 },
-    { key: '601', label: 'Bộ 2', metaId: 60199, baseImageId: 60100, width: 20, height: 12 },
-    { key: '602', label: 'Bộ 3', metaId: 60299, baseImageId: 60200, width: 20, height: 12 },
-    { key: '608', label: 'Bộ 4', metaId: 60899, baseImageId: 60800, width: 20, height: 12 },
-    { key: '609', label: 'Bộ 5', metaId: 60999, baseImageId: 60900, width: 19, height: 11 },
+    { key: '600', label: 'Mơ màng', metaId: 60099, baseImageId: 60000, width: 20, height: 13 },
+    { key: '601', label: 'Sắc sảo', metaId: 60199, baseImageId: 60100, width: 20, height: 12 },
+    { key: '602', label: 'Tinh nghịch', metaId: 60299, baseImageId: 60200, width: 20, height: 12 },
+    { key: '608', label: 'Dịu dàng', metaId: 60899, baseImageId: 60800, width: 20, height: 12 },
+    { key: '609', label: 'Nũng nịu', metaId: 60999, baseImageId: 60900, width: 19, height: 11 },
   ],
 } as const satisfies Record<'male' | 'female', readonly LegacyVariantStyleOption[]>;
 
@@ -197,11 +197,11 @@ export const HAIR_PALETTE_FROM: readonly number[] = [
  * Primary: #262640 (default), #DF1A14, #FF718A, #4B68D6, #3DB54E
  */
 export const HAIR_COLOR_OPTIONS: ColorOption[] = [
-  { label: 'Tông 1', swatch: '#262640', toColors: [0x262640, 0x3A3B59, 0x56566C, 0x77778D, 0xBDC2FF] },
-  { label: 'Tông 2', swatch: '#DF1A14', toColors: [0x210303, 0x3E0705, 0x730D0A, 0xDF1A14, 0xF09795] },
-  { label: 'Tông 3', swatch: '#FF718A', toColors: [0x261014, 0x471F26, 0x843A47, 0xFF718A, 0xFFBFCA] },
-  { label: 'Tông 4', swatch: '#4B68D6', toColors: [0x0B0F20, 0x151D3B, 0x27366F, 0x4B68D6, 0xAEBBEC] },
-  { label: 'Tông 5', swatch: '#3DB54E', toColors: [0x091B0B, 0x113215, 0x1F5E28, 0x3DB54E, 0xA7DDAF] },
+  { label: 'Đen',        swatch: '#262640', toColors: [0x262640, 0x3A3B59, 0x56566C, 0x77778D, 0xBDC2FF] },
+  { label: 'Đỏ',         swatch: '#DF1A14', toColors: [0x210303, 0x3E0705, 0x730D0A, 0xDF1A14, 0xF09795] },
+  { label: 'Hồng',       swatch: '#FF718A', toColors: [0x261014, 0x471F26, 0x843A47, 0xFF718A, 0xFFBFCA] },
+  { label: 'Xanh dương', swatch: '#4B68D6', toColors: [0x0B0F20, 0x151D3B, 0x27366F, 0x4B68D6, 0xAEBBEC] },
+  { label: 'Xanh lá',    swatch: '#3DB54E', toColors: [0x091B0B, 0x113215, 0x1F5E28, 0x3DB54E, 0xA7DDAF] },
 ];
 
 /**

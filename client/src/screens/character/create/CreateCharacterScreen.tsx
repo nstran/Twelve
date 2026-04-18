@@ -50,8 +50,7 @@ interface SelectorRowProps {
   onPrev: () => void;
   onNext: () => void;
   onPress: () => void;
-  /** Hex color string để hiển thị swatch (vd: '#DF1A14'). Nếu undefined thì không hiện. */
-  swatchColor?: string;
+
 }
 
 const SelectorRow: React.FC<SelectorRowProps> = ({
@@ -61,7 +60,7 @@ const SelectorRow: React.FC<SelectorRowProps> = ({
   onPrev,
   onNext,
   onPress,
-  swatchColor,
+
 }) => {
   return (
     <TouchableOpacity style={[styles.selectionRow, active && styles.selectionRowActive]} onPress={onPress} activeOpacity={0.8}>
@@ -75,16 +74,7 @@ const SelectorRow: React.FC<SelectorRowProps> = ({
 
         {/* Color swatch + label */}
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'center', gap: 5 }}>
-          {swatchColor ? (
-            <View style={{
-              width: 12,
-              height: 12,
-              borderRadius: 3,
-              backgroundColor: swatchColor,
-              borderWidth: 1,
-              borderColor: 'rgba(0,0,0,0.35)',
-            }} />
-          ) : null}
+
           <Text style={[styles.valueText, active && styles.valueTextActive]} numberOfLines={1}>{value}</Text>
         </View>
 
@@ -207,14 +197,14 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
     {
       key: 'face' as const,
       label: 'Khuôn Mặt',
-      value: `${genderKey === 'male' ? 'Nam' : 'Nữ'} ${EYE_STYLE_OPTIONS[genderKey][faceIdx]?.label ?? 'N/A'}`,
+      value: EYE_STYLE_OPTIONS[genderKey][faceIdx]?.label ?? 'N/A',
       onPrev: () => nextFace(-1),
       onNext: () => nextFace(1),
     },
     {
       key: 'hair' as const,
       label: 'Kiểu Tóc',
-      value: `${genderKey === 'male' ? 'Nam' : 'Nữ'} ${HAIR_STYLE_OPTIONS[genderKey][hairIdx]?.label ?? 'N/A'}`,
+      value: HAIR_STYLE_OPTIONS[genderKey][hairIdx]?.label ?? 'N/A',
       onPrev: () => nextHair(-1),
       onNext: () => nextHair(1),
     },
@@ -222,7 +212,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
       key: 'hairColor' as const,
       label: 'Màu Tóc',
       value: availableHairColors[hairColorIdx]?.label ?? 'N/A',
-      swatchColor: availableHairColors[hairColorIdx]?.swatch,
+
       onPrev: () => nextHairColor(-1),
       onNext: () => nextHairColor(1),
     },
@@ -230,7 +220,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
       key: 'skin' as const,
       label: 'Màu Da',
       value: SKIN_COLOR_OPTIONS[skinColorIdx]?.label ?? 'N/A',
-      swatchColor: SKIN_COLOR_OPTIONS[skinColorIdx]?.swatch,
+
       onPrev: () => nextSkinColor(-1),
       onNext: () => nextSkinColor(1),
     },
@@ -272,7 +262,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
                 onPrev={row.onPrev}
                 onNext={row.onNext}
                 onPress={() => setActiveSelector(row.key)}
-                swatchColor={'swatchColor' in row ? row.swatchColor : undefined}
+
               />
             ))}
             <View style={styles.panelWatermark} />
