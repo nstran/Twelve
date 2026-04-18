@@ -97,7 +97,7 @@ export const HAIR_STYLE_OPTIONS = {
   male: [
     { key: '501', label: 'Bộ 1', metaId: 50199, baseImageId: 50100, width: 33, height: 26, numColors: 5 },
     { key: '504', label: 'Bộ 2', metaId: 50499, baseImageId: 50400, width: 33, height: 31, numColors: 5 },
-    { key: '505', label: 'Bộ 3', metaId: 50599, baseImageId: 50500, width: 27, height: 47, numColors: 3 },
+    { key: '505', label: 'Bộ 3', metaId: 50599, baseImageId: 50500, width: 27, height: 47, numColors: 5 },
   ],
   female: [
     { key: '500', label: 'Bộ 1', metaId: 50099, baseImageId: 50000, width: 38, height: 38, numColors: 5 },
@@ -128,11 +128,13 @@ export const HAIR_COLOR_SOURCES: Record<number, readonly ImageSourcePropType[]> 
     require('../../../../assets/createcs_legacy/03_hair/colored/50400_c3.png'),
     require('../../../../assets/createcs_legacy/03_hair/colored/50400_c4.png'),
   ],
-  // Male set_505 (3 tông)
+  // Male set_505 (5 tông)
   50500: [
     require('../../../../assets/createcs_legacy/03_hair/colored/50500_c0.png'),
     require('../../../../assets/createcs_legacy/03_hair/colored/50500_c1.png'),
     require('../../../../assets/createcs_legacy/03_hair/colored/50500_c2.png'),
+    require('../../../../assets/createcs_legacy/03_hair/colored/50500_c3.png'),
+    require('../../../../assets/createcs_legacy/03_hair/colored/50500_c4.png'),
   ],
   // Female set_500 (5 tông)
   50000: [
