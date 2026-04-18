@@ -49,13 +49,6 @@ export const BODY_SKIN_SHEETS = [
   require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99000.png'),
   require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99001.png'),
   require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99002.png'),
-  require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99003.png'),
-  require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99004.png'),
-  require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99005.png'),
-  require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99006.png'),
-  require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99007.png'),
-  require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99008.png'),
-  require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99009.png'),
 ] as const;
 
 export const GENDER_OPTIONS = [
@@ -224,16 +217,9 @@ export const SKIN_PALETTE_FROM: readonly number[] = [
  * Từ tối → sáng dần.
  */
 export const SKIN_COLOR_OPTIONS: ColorOption[] = [
-  { label: 'Tông 1',  swatch: '#963903', toColors: [0x963903, 0xFD985E, 0xFED3BA, 0xFB650E, 0xFC9255] },
-  { label: 'Tông 2',  swatch: '#A84C10', toColors: [0x9E4817, 0xFDA06A, 0xFED6BF, 0xFB7121, 0xFC9A62] },
-  { label: 'Tông 3',  swatch: '#B05820', toColors: [0xA55628, 0xFDA776, 0xFED9C4, 0xFB7C32, 0xFCA26E] },
-  { label: 'Tông 4',  swatch: '#C07030', toColors: [0xAD643A, 0xFDAE81, 0xFEDCC9, 0xFB8643, 0xFCA97A] },
-  { label: 'Tông 5',  swatch: '#CE8040', toColors: [0xB5744E, 0xFDB68E, 0xFEE0CE, 0xFC9356, 0xFCB288] },
-  { label: 'Tông 6',  swatch: '#D99060', toColors: [0xC08867, 0xFDC19E, 0xFEE4D5, 0xFCA26E, 0xFDBD99] },
-  { label: 'Tông 7',  swatch: '#E4A878', toColors: [0xCA9C81, 0xFECBAE, 0xFEE9DC, 0xFDB286, 0xFDC8AA] },
-  { label: 'Tông 8',  swatch: '#ECC08A', toColors: [0xD5AF9A, 0xFED5BE, 0xFEEDE3, 0xFDC19E, 0xFDD3BB] },
-  { label: 'Tông 9',  swatch: '#F2D0A0', toColors: [0xDFC3B3, 0xFEE0CE, 0xFEF1EA, 0xFDD0B6, 0xFEDECC] },
-  { label: 'Tông 10', swatch: '#F8E0B8', toColors: [0xEAD7CC, 0xFEEADE, 0xFEF6F1, 0xFEE0CE, 0xFEE9DD] },
+  { label: 'Vàng',  swatch: '#963903', toColors: [0x963903, 0xFD985E, 0xFED3BA, 0xFB650E, 0xFC9255] },
+  { label: 'Trắng', swatch: '#FFE0BD', toColors: [0xD59A85, 0xFFCDB2, 0xFFF4EC, 0xF8A89B, 0xFFBFA0] },
+  { label: 'Ngăm',  swatch: '#8D5524', toColors: [0x381C08, 0x754218, 0xB57A4A, 0x5E3111, 0x6B3914] },
 ];
 
 export const SLOT_ZERO_META: Record<number, LegacySlotMeta> = {
