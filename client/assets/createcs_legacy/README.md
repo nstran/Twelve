@@ -8,9 +8,9 @@ Detailed implementation reference:
 
 The key rule is:
 
-- organize by `meta family` when possible
-- keep `confirmed runtime pieces` separate from `meta-backed candidate families`
-- keep only bare create-character appearance candidates here
+- keep `confirmed runtime pieces` separate from default create-character option sets
+- split visible face/hair options by `gender` first, then by `set/band`
+- do not leave duplicate files in the old parent folder after reorganizing
 
 ## Folder layout
 
@@ -18,8 +18,10 @@ The key rule is:
   - direct create-character UI assets from `/createcs/*`
 - `01_core_compositor`
   - assets directly proven to participate in the legacy create-character compositor
-- `02_option_meta_families`
-  - candidate appearance families grouped by legacy `.meta` units
+- `02_eye`
+  - face/eye option families grouped by `male|female/set_xxx`
+- `03_hair`
+  - hair option families grouped by `male|female/set_xxx`
 
 ## Why this structure is better
 
@@ -28,9 +30,13 @@ It builds from:
 
 - metadata families like `79899`, `79999`, `89999`
 - base image sheets such as `99000 + frameGroup`
-- additional option families resolved through server-provided IDs
+- additional option families resolved through server-provided IDs and color offsets
 
-That means the most stable organizational unit is the `.meta` family, not a guessed visual label.
+For the current React Native port, the practical unit is:
+
+- gender bucket
+- style/set band such as `500xx`, `600xx`
+- color/tone offset inside that set
 
 ## Confidence levels
 
@@ -50,7 +56,8 @@ Use this asset set in the following order:
 
 1. `00_ui_confirmed`
 2. `01_core_compositor`
-3. `02_option_meta_families`
+3. `02_eye`
+4. `03_hair`
 
 Headgear and wearable meta families were reclassified into `equipment_legacy/04_helmet_e2`.
-Do not treat the remaining `candidate` groups as final semantic labels yet.
+`02_eye` and `03_hair` are the current working default-option buckets for the recreated create-character screen.

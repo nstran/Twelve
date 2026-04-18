@@ -3,27 +3,33 @@ import {
   View,
   Text,
   Image,
-  ImageBackground,
   TouchableOpacity,
   Alert,
 } from 'react-native';
 import { styles } from './CreateCharacterScreen.styles';
 import { SocketClient } from '../../../network/SocketClient';
 import { SoftkeyBar } from '../../../components/SoftkeyBar';
+import { LegacyCornerFrame } from '../../../components/LegacyCornerFrame';
 import { PopupMenu, MenuItem } from '../../../components/PopupMenu';
 import { MENU_START, MENU_LOGOUT } from '../../../constants/MenuConstants';
 import { CREATE_CHARACTER_ASSETS } from './assets';
 import { Dimensions } from 'react-native';
 import {
+  buildHairColorOptions,
   ELEMENT_OPTIONS,
   GENDER_OPTIONS,
+  HAIR_STYLE_OPTIONS,
+  EYE_STYLE_OPTIONS,
+  SKIN_COLOR_OPTIONS,
 } from './legacyCatalog';
 import { LegacyCreateCharacterPreview } from './LegacyCreateCharacterPreview';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const ASSET_ARROW_LEFT = CREATE_CHARACTER_ASSETS.arrowLeft;
-const ASSET_ARROW_RIGHT = CREATE_CHARACTER_ASSETS.arrowRight;
+const ASSET_ARROW = CREATE_CHARACTER_ASSETS.arrowBlue;
+const ASSET_MENU_ICON = CREATE_CHARACTER_ASSETS.iconMenu;
+const ASSET_OK_ICON = CREATE_CHARACTER_ASSETS.iconOk;
+const ASSET_CANCEL_ICON = CREATE_CHARACTER_ASSETS.iconCancel;
 
 interface CreateCharacterScreenProps {
   onSuccess: () => void;
@@ -35,7 +41,7 @@ const MENU_ITEMS: MenuItem[] = [
   MENU_LOGOUT,
 ];
 
-type SelectorKey = 'gender' | 'element';
+type SelectorKey = 'gender' | 'element' | 'face' | 'hair' | 'hairColor' | 'skin';
 
 interface SelectorRowProps {
   label: string;
@@ -60,13 +66,13 @@ const SelectorRow: React.FC<SelectorRowProps> = ({
       <View style={[styles.valueBox, active && styles.valueBoxActive]}>
         {active ? (
           <TouchableOpacity style={styles.arrowButton} onPress={onPrev} hitSlop={6}>
-            <Image source={ASSET_ARROW_LEFT} style={styles.arrowIcon} resizeMode="contain" />
+            <Image source={ASSET_ARROW} style={[styles.arrowIcon, styles.arrowIconLeft]} resizeMode="contain" />
           </TouchableOpacity>
         ) : <View style={styles.arrowSpacer} />}
         <Text style={[styles.valueText, active && styles.valueTextActive]} numberOfLines={1}>{value}</Text>
         {active ? (
           <TouchableOpacity style={styles.arrowButton} onPress={onNext} hitSlop={6}>
-            <Image source={ASSET_ARROW_RIGHT} style={styles.arrowIcon} resizeMode="contain" />
+            <Image source={ASSET_ARROW} style={styles.arrowIcon} resizeMode="contain" />
           </TouchableOpacity>
         ) : <View style={styles.arrowSpacer} />}
       </View>
@@ -79,7 +85,12 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
 
   const [element, setElement] = useState(0);
   const [genderIdx, setGenderIdx] = useState(0);
-  const [activeSelector, setActiveSelector] = useState<SelectorKey>('gender');
+  const [faceIdx, setFaceIdx] = useState(0);
+  const [hairIdx, setHairIdx] = useState(0);
+  const [hairColorIdx, setHairColorIdx] = useState(0);
+  const [skinColorIdx, setSkinColorIdx] = useState(0);
+
+  const [activeSelector, setActiveSelector] = useState<SelectorKey>('face');
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -96,13 +107,23 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
     };
   }, [client, onSuccess]);
 
+  const genderKey = genderIdx === 0 ? 'male' : 'female';
+  const hairOption = HAIR_STYLE_OPTIONS[genderKey][hairIdx] ?? HAIR_STYLE_OPTIONS[genderKey][0];
+  const hairColorOptions = useMemo(() => buildHairColorOptions(hairOption.previewImageIds.length), [hairOption]);
+
+  React.useEffect(() => {
+    if (hairColorIdx >= hairColorOptions.length) {
+      setHairColorIdx(0);
+    }
+  }, [hairColorIdx, hairColorOptions.length]);
+
   const handleCreate = () => {
     client.createCharacter(
       ELEMENT_OPTIONS[element]?.value ?? 0,
-      0, // Face
-      0, // Hair
-      0, // Hair Color
-      0, // Skin
+      faceIdx,
+      hairIdx,
+      hairColorOptions[hairColorIdx]?.value ?? 0,
+      SKIN_COLOR_OPTIONS[skinColorIdx]?.value ?? 0,
     );
   };
 
@@ -123,8 +144,29 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
     });
   };
 
-  const nextGender = changeIndex(GENDER_OPTIONS.length, setGenderIdx);
+  const nextGender = (delta: number) => {
+    setGenderIdx((current) => {
+      const next = (current + delta + 2) % 2;
+      setFaceIdx(0);
+      setHairIdx(0);
+      setHairColorIdx(0);
+      setSkinColorIdx(0);
+      return next;
+    });
+  };
+
   const nextElement = changeIndex(ELEMENT_OPTIONS.length, setElement);
+  const nextFace = changeIndex(EYE_STYLE_OPTIONS[genderKey].length, setFaceIdx);
+  const nextHair = (delta: number) => {
+    setHairIdx((current) => {
+      const length = HAIR_STYLE_OPTIONS[genderKey].length;
+      const next = (current + delta + length) % length;
+      setHairColorIdx(0);
+      return next;
+    });
+  };
+  const nextHairColor = changeIndex(hairColorOptions.length, setHairColorIdx);
+  const nextSkinColor = changeIndex(SKIN_COLOR_OPTIONS.length, setSkinColorIdx);
 
   const selectorRows = useMemo(() => ([
     {
@@ -141,42 +183,77 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
       onPrev: () => nextElement(-1),
       onNext: () => nextElement(1),
     },
-  ]), [element, genderIdx, nextElement, nextGender]);
+    {
+      key: 'face' as const,
+      label: 'Khuôn Mặt',
+      value: `${genderKey === 'male' ? 'Nam' : 'Nữ'} ${EYE_STYLE_OPTIONS[genderKey][faceIdx]?.label ?? 'N/A'}`,
+      onPrev: () => nextFace(-1),
+      onNext: () => nextFace(1),
+    },
+    {
+      key: 'hair' as const,
+      label: 'Kiểu Tóc',
+      value: `${genderKey === 'male' ? 'Nam' : 'Nữ'} ${HAIR_STYLE_OPTIONS[genderKey][hairIdx]?.label ?? 'N/A'}`,
+      onPrev: () => nextHair(-1),
+      onNext: () => nextHair(1),
+    },
+    {
+      key: 'hairColor' as const,
+      label: 'Màu Tóc',
+      value: hairColorOptions[hairColorIdx]?.label ?? 'N/A',
+      onPrev: () => nextHairColor(-1),
+      onNext: () => nextHairColor(1),
+    },
+    {
+      key: 'skin' as const,
+      label: 'Màu Da',
+      value: SKIN_COLOR_OPTIONS[skinColorIdx]?.label ?? 'N/A',
+      onPrev: () => nextSkinColor(-1),
+      onNext: () => nextSkinColor(1),
+    },
+  ]), [element, genderKey, genderIdx, faceIdx, hairColorIdx, hairColorOptions, hairIdx, skinColorIdx]);
 
   const handleLeftSoftkey  = () => menuVisible ? handleMenuSelect(MENU_ITEMS[selectedIndex].id as number) : setMenuVisible(true);
-  const handleRightSoftkey = () => menuVisible ? setMenuVisible(false) : onCancel();
+  const handleRightSoftkey = () => {
+    if (menuVisible) {
+      setMenuVisible(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <Image source={CREATE_CHARACTER_ASSETS.background} style={styles.background} resizeMode="stretch" />
 
       <View style={styles.legacyScene}>
-        <View style={styles.previewColumn}>
-          <View style={styles.previewStage}>
-            <LegacyCreateCharacterPreview
-              genderIndex={genderIdx}
-              faceIndex={0}
-              hairIndex={0}
-              hairColorIndex={0}
-            />
-            <Image source={CREATE_CHARACTER_ASSETS.stone} style={styles.stonePlatform} resizeMode="contain" />
+        <View style={styles.stageLayout}>
+          <View style={styles.previewColumn}>
+            <View style={styles.previewStage}>
+              <LegacyCreateCharacterPreview
+                genderIndex={genderIdx}
+                faceIndex={faceIdx}
+                hairIndex={hairIdx}
+                hairColorIndex={hairColorIdx}
+                skinColorIndex={skinColorIdx}
+              />
+              <Image source={CREATE_CHARACTER_ASSETS.stone} style={styles.stonePlatform} resizeMode="contain" />
+            </View>
           </View>
-        </View>
 
-        <ImageBackground source={CREATE_CHARACTER_ASSETS.panelBorder} style={styles.selectionPanel} imageStyle={{ resizeMode: 'stretch' }}>
-          {selectorRows.map((row) => (
-            <SelectorRow
-              key={row.key}
-              label={row.label}
-              value={row.value}
-              active={activeSelector === row.key}
-              onPrev={row.onPrev}
-              onNext={row.onNext}
-              onPress={() => setActiveSelector(row.key)}
-            />
-          ))}
-          <View style={styles.panelWatermark} />
-        </ImageBackground>
+          <LegacyCornerFrame style={styles.selectionPanel} contentStyle={styles.selectionPanelInner}>
+            {selectorRows.map((row) => (
+              <SelectorRow
+                key={row.key}
+                label={row.label}
+                value={row.value}
+                active={activeSelector === row.key}
+                onPrev={row.onPrev}
+                onNext={row.onNext}
+                onPress={() => setActiveSelector(row.key)}
+              />
+            ))}
+            <View style={styles.panelWatermark} />
+          </LegacyCornerFrame>
+        </View>
       </View>
 
       <PopupMenu
@@ -191,11 +268,11 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
       <View style={styles.softKeyBarContainer}>
         <SoftkeyBar
           width={SCREEN_WIDTH}
-          leftLabel={menuVisible ? 'Chọn' : 'Menu'}
-          rightLabel={menuVisible ? 'Đóng' : 'Thoát'}
           onLeftPress={handleLeftSoftkey}
-          onRightPress={handleRightSoftkey}
+          onRightPress={menuVisible ? handleRightSoftkey : undefined}
           onCenterPress={menuVisible ? () => setMenuVisible(false) : undefined}
+          leftIcon={menuVisible ? ASSET_OK_ICON : ASSET_MENU_ICON}
+          rightIcon={menuVisible ? ASSET_CANCEL_ICON : undefined}
         />
       </View>
     </View>
