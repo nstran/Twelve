@@ -19,6 +19,8 @@ interface LegacyCornerFrameProps {
   accentColor?: string;
   showTopFill?: boolean;
   showSideFill?: boolean;
+  cornerAsset?: any;
+  backgroundPattern?: any;
 }
 
 export const LegacyCornerFrame: React.FC<LegacyCornerFrameProps> = ({
@@ -31,21 +33,49 @@ export const LegacyCornerFrame: React.FC<LegacyCornerFrameProps> = ({
   accentColor = '#8432FF',
   showTopFill = true,
   showSideFill = true,
+  cornerAsset = ASSET_CORNER,
+  backgroundPattern,
 }) => {
+  const cornerWidth = 9;
+  const cornerHeight = 12;
+
   return (
     <View style={[styles.container, { backgroundColor }, style]}>
-      <View style={styles.frame} pointerEvents="none">
-        <View style={[styles.cornerSlot, styles.cornerTopLeft]}>
-          <Image source={ASSET_CORNER} style={styles.cornerImage} resizeMode="contain" />
+      {backgroundPattern && (
+        <View style={styles.patternContainer} pointerEvents="none">
+           <Image 
+            source={backgroundPattern} 
+            style={styles.patternBackground} 
+            resizeMode="stretch" 
+          />
         </View>
-        <View style={[styles.cornerSlot, styles.cornerTopRight]}>
-          <Image source={ASSET_CORNER} style={[styles.cornerImage, styles.cornerMirrorX]} resizeMode="contain" />
+      )}
+      
+      {/* Frame Layer - Background fill lines */}
+      <View style={styles.frameFill} pointerEvents="none">
+        {showTopFill ? <View style={[styles.topFill, { backgroundColor: innerColor }]} /> : null}
+        {showSideFill ? <View style={[styles.leftFill, { backgroundColor: innerColor }]} /> : null}
+        {showSideFill ? <View style={[styles.rightFill, { backgroundColor: innerColor }]} /> : null}
+      </View>
+
+      {/* Content Layer */}
+      <View style={[styles.content, contentStyle]}>
+        {children}
+      </View>
+
+      {/* Frame Layer - Lines and Corners (On top) */}
+      <View style={styles.frameLines} pointerEvents="none">
+        <View style={[styles.cornerSlot, styles.cornerTopLeft, { width: cornerWidth, height: cornerHeight }]}>
+          <Image source={cornerAsset} style={[styles.cornerImage, { width: cornerWidth, height: cornerHeight }]} resizeMode="contain" />
         </View>
-        <View style={[styles.cornerSlot, styles.cornerBottomLeft]}>
-          <Image source={ASSET_CORNER} style={[styles.cornerImage, styles.cornerMirrorY]} resizeMode="contain" />
+        <View style={[styles.cornerSlot, styles.cornerTopRight, { width: cornerWidth, height: cornerHeight }]}>
+          <Image source={cornerAsset} style={[styles.cornerImage, styles.cornerMirrorX, { width: cornerWidth, height: cornerHeight }]} resizeMode="contain" />
         </View>
-        <View style={[styles.cornerSlot, styles.cornerBottomRight]}>
-          <Image source={ASSET_CORNER} style={[styles.cornerImage, styles.cornerMirrorXY]} resizeMode="contain" />
+        <View style={[styles.cornerSlot, styles.cornerBottomLeft, { width: cornerWidth, height: cornerHeight }]}>
+          <Image source={cornerAsset} style={[styles.cornerImage, styles.cornerMirrorY, { width: cornerWidth, height: cornerHeight }]} resizeMode="contain" />
+        </View>
+        <View style={[styles.cornerSlot, styles.cornerBottomRight, { width: cornerWidth, height: cornerHeight }]}>
+          <Image source={cornerAsset} style={[styles.cornerImage, styles.cornerMirrorXY, { width: cornerWidth, height: cornerHeight }]} resizeMode="contain" />
         </View>
 
         <View style={[styles.lineHorizontal, styles.lineOuterTop, { backgroundColor: outerColor }]} />
@@ -53,23 +83,19 @@ export const LegacyCornerFrame: React.FC<LegacyCornerFrameProps> = ({
         <View style={[styles.lineVertical, styles.lineOuterLeft, { backgroundColor: outerColor }]} />
         <View style={[styles.lineVertical, styles.lineOuterRight, { backgroundColor: outerColor }]} />
 
-        {showTopFill ? <View style={[styles.topFill, { backgroundColor: innerColor }]} /> : null}
-        {showSideFill ? <View style={[styles.leftFill, { backgroundColor: innerColor }]} /> : null}
-        {showSideFill ? <View style={[styles.rightFill, { backgroundColor: innerColor }]} /> : null}
-
         <View style={[styles.lineHorizontal, styles.lineInnerTop, { backgroundColor: innerColor }]} />
         <View style={[styles.lineHorizontal, styles.lineInnerBottom, { backgroundColor: innerColor }]} />
         <View style={[styles.lineVertical, styles.lineInnerLeft, { backgroundColor: innerColor }]} />
         <View style={[styles.lineVertical, styles.lineInnerRight, { backgroundColor: innerColor }]} />
 
+        {/* All sides get the standard Purple accent line */}
         <View style={[styles.lineHorizontal, styles.lineAccentTop, { backgroundColor: accentColor }]} />
         <View style={[styles.lineHorizontal, styles.lineAccentBottom, { backgroundColor: accentColor }]} />
         <View style={[styles.lineVertical, styles.lineAccentLeft, { backgroundColor: accentColor }]} />
         <View style={[styles.lineVertical, styles.lineAccentRight, { backgroundColor: accentColor }]} />
-      </View>
-
-      <View style={[styles.content, { backgroundColor }, contentStyle]}>
-        {children}
+        
+        {/* Additional Full Blue accent for the bottom only */}
+        <View style={[styles.lineHorizontal, styles.lineAccentBottomBlue, { backgroundColor: '#33CCFF' }]} />
       </View>
     </View>
   );
@@ -79,21 +105,37 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative',
     overflow: 'visible',
+    width: '100%',
+    height: '100%',
   },
-  frame: {
+  patternContainer: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1,
+    overflow: 'hidden',
+    alignItems: 'flex-end',
+  },
+  patternBackground: {
+    width: '50%',
+    height: '100%',
+    opacity: 1,
+  },
+  frameFill: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
   },
   content: {
+    flex: 1,
     position: 'relative',
-    zIndex: 2,
+    zIndex: 5,
     overflow: 'hidden',
+  },
+  frameLines: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
   },
   cornerSlot: {
     position: 'absolute',
-    width: 9,
-    height: 12,
-    zIndex: 3,
+    zIndex: 11,
     overflow: 'visible',
   },
   cornerTopLeft: {
@@ -116,8 +158,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
-    width: 9,
-    height: 12,
   },
   cornerMirrorX: {
     transform: [{ scaleX: -1 }],
@@ -208,9 +248,15 @@ const styles = StyleSheet.create({
     right: 3,
   },
   lineAccentBottom: {
-    bottom: 3,
-    left: 2,
-    right: 2,
+    bottom: 3.5,
+    left: 3,
+    right: 3,
+  },
+  lineAccentBottomBlue: {
+    bottom: 1.5,
+    left: 1,
+    right: 1,
+    height: 1.5,
   },
   lineAccentLeft: {
     left: 2,

@@ -5,4 +5,11 @@ export const CREATE_CHARACTER_ASSETS = {
   iconMenu: require('../../../../assets/ui_legacy/11_softkey_icons_confirmed/icon_sharpest_1.png'),
   iconOk: require('../../../../assets/ui_legacy/11_softkey_icons_confirmed/icon_ok.png'),
   iconCancel: require('../../../../assets/ui_legacy/11_softkey_icons_confirmed/icon_cancel.png'),
+  btnBlue: require('../../../../assets/ui_legacy/00_corner_frames/4.png'),
+  star: require('../../../../assets/battle_legacy/04_element_icons/star.png'),
+  dragonPattern: require('../../../../assets/battle_legacy/09_hidden_pieces/hiddendragon.png'),
+  blackFont: require('../../../../assets/login_legacy/04_font_candidate/_blackfont.png'),
+  capFont: require('../../../../assets/login_legacy/04_font_candidate/_fontcap.png'),
+  ornateCorner: require('../../../../assets/ui_legacy/00_corner_frames/1.png'),
+  focustab: require('../../../../assets/ui_legacy/10_focus_confirmed/focustab.png'),
 };

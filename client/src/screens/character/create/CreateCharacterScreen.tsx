@@ -23,6 +23,9 @@ import {
   SKIN_COLOR_OPTIONS,
 } from './legacyCatalog';
 import { LegacyCreateCharacterPreview } from './LegacyCreateCharacterPreview';
+import { LegacyLoadingDialog } from '../../../components/LegacyLoadingDialog';
+import { LegacyConfirmDialog } from '../../../components/LegacyConfirmDialog';
+
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -102,9 +105,20 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  const [loading, setLoading] = useState(false);
+  const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
+
+
   React.useEffect(() => {
-    const onCharSuccess = (msg: string) => Alert.alert('Thành Công', msg, [{ text: 'Bắt đầu', onPress: onSuccess }]);
-    const onCharFailed = (msg: string) => Alert.alert('Thất Bại', msg);
+    const onCharSuccess = (msg: string) => {
+      setLoading(false);
+      Alert.alert('Thành Công', msg, [{ text: 'Bắt đầu', onPress: onSuccess }]);
+    };
+    const onCharFailed = (msg: string) => {
+      setLoading(false);
+      Alert.alert('Thất Bại', msg);
+    };
+
 
     client.on('createCharSuccess', onCharSuccess);
     client.on('createCharFailed', onCharFailed);
@@ -141,10 +155,16 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
   const handleMenuSelect = (id: number) => {
     setMenuVisible(false);
     switch (id) {
-      case 1: handleCreate(); break;
-      case 0: onCancel();     break;
+      case 1: 
+        setLoading(true);
+        handleCreate(); 
+        break;
+      case 0: 
+        setLogoutConfirmVisible(true);
+        break;
     }
   };
+
 
   const changeIndex = (length: number, setter: React.Dispatch<React.SetStateAction<number>>) => (delta: number) => {
     setter((current) => {
@@ -289,6 +309,19 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
           rightIcon={menuVisible ? ASSET_CANCEL_ICON : undefined}
         />
       </View>
+
+      <LegacyLoadingDialog visible={loading} />
+
+      <LegacyConfirmDialog
+        visible={logoutConfirmVisible}
+        title="Chú ý"
+        message="Bạn có muốn đăng xuất không?"
+        onConfirm={() => {
+          setLogoutConfirmVisible(false);
+          onCancel();
+        }}
+        onCancel={() => setLogoutConfirmVisible(false)}
+      />
     </View>
   );
 };
