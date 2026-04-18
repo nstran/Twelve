@@ -1,18 +1,18 @@
 import type { ImageSourcePropType } from 'react-native';
 
-export interface LegacyFrame {
+export interface Frame {
   sourceIndex: number;
   xOffset: number;
   yOffset: number;
 }
 
-export interface LegacySlotMeta {
+export interface SlotMeta {
   frameWidthDivisor: number;
   frameCount: number;
-  frames: LegacyFrame[];
+  frames: Frame[];
 }
 
-export interface LegacyImageOption {
+export interface ImageOption {
   key: string;
   label: string;
   metaId: number;
@@ -22,7 +22,7 @@ export interface LegacyImageOption {
   height: number;
 }
 
-export interface LegacyVariantStyleOption {
+export interface VariantStyleOption {
   key: string;
   label: string;
   metaId: number;
@@ -97,7 +97,7 @@ export const HAIR_STYLE_OPTIONS = {
     { key: '502', label: 'Tóc tém', metaId: 50299, baseImageId: 50200, width: 32, height: 31, numColors: 5 },
     { key: '503', label: 'Búi hai bên', metaId: 50399, baseImageId: 50300, width: 40, height: 24, numColors: 5 },
   ],
-} as const satisfies Record<'male' | 'female', readonly LegacyVariantStyleOption[]>;
+} as const satisfies Record<'male' | 'female', readonly VariantStyleOption[]>;
 
 /**
  * Colored PNG variants của từng kiểu tóc — cùng pose (baseImageId), chỉ đổi màu PLTE.
@@ -170,7 +170,7 @@ export const EYE_STYLE_OPTIONS = {
     { key: '608', label: 'Dịu dàng', metaId: 60899, baseImageId: 60800, width: 20, height: 12 },
     { key: '609', label: 'Nũng nịu', metaId: 60999, baseImageId: 60900, width: 19, height: 11 },
   ],
-} as const satisfies Record<'male' | 'female', readonly LegacyVariantStyleOption[]>;
+} as const satisfies Record<'male' | 'female', readonly VariantStyleOption[]>;
 
 // ---------------------------------------------------------------------------
 // Palette Color Swap — mirror thuật toán h.a(byte[], int[], int[]) từ Java
@@ -222,7 +222,7 @@ export const SKIN_COLOR_OPTIONS: ColorOption[] = [
   { label: 'Ngăm',  swatch: '#8D5524', toColors: [0x381C08, 0x754218, 0xB57A4A, 0x5E3111, 0x6B3914] },
 ];
 
-export const SLOT_ZERO_META: Record<number, LegacySlotMeta> = {
+export const SLOT_ZERO_META: Record<number, SlotMeta> = {
   79899: {
     frameWidthDivisor: 2,
     frameCount: 2,

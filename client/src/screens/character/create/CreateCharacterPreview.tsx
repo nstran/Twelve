@@ -1,5 +1,5 @@
 /**
- * LegacyCreateCharacterPreview.tsx
+ * CreateCharacterPreview.tsx
  *
  * Preview nhân vật trong màn tạo nhân vật.
  * Dùng React Native Image thuần để render từng layer.
@@ -20,15 +20,15 @@ import {
   HAIR_STYLE_OPTIONS,
   HAIR_COLOR_SOURCES,
   EYE_STYLE_OPTIONS,
-  type LegacySlotMeta,
-} from './legacyCatalog';
+  type SlotMeta,
+} from './createCatalog';
 import { ASSET_REGISTRY, type AssetRegistryEntry } from './assetRegistry';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface LegacyCreateCharacterPreviewProps {
+interface CreateCharacterPreviewProps {
   genderIndex: number;
   faceIndex: number;
   hairIndex: number;
@@ -64,7 +64,7 @@ function resolveMetaRect(
   source: ImageSourcePropType,
   sourceWidth: number,
   sourceHeight: number,
-  meta: LegacySlotMeta,
+  meta: SlotMeta,
   frameStep: number,
   zIndex: number,
   preferFirstFrame = false,
@@ -84,7 +84,7 @@ function resolveStaticAssetRect(
   key: string,
   asset: AssetRegistryEntry,
   coloredSource: ImageSourcePropType | undefined,
-  meta: LegacySlotMeta,
+  meta: SlotMeta,
   frameStep: number,
   zIndex: number,
 ): LayerRect {
@@ -116,7 +116,7 @@ const DEFAULT_OVERLAY = {
 // Component
 // ---------------------------------------------------------------------------
 
-export const LegacyCreateCharacterPreview: React.FC<LegacyCreateCharacterPreviewProps> = ({
+export const CreateCharacterPreview: React.FC<CreateCharacterPreviewProps> = ({
   genderIndex,
   faceIndex,
   hairIndex,

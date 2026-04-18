@@ -7,9 +7,9 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { LegacyCornerFrame } from './LegacyCornerFrame';
+import { CornerFrame } from './CornerFrame';
 
-export interface LegacyBaseDialogProps {
+export interface BaseDialogProps {
   visible: boolean;
   onClose?: () => void;
   children?: React.ReactNode;
@@ -23,9 +23,9 @@ export interface LegacyBaseDialogProps {
 
 /**
  * Base component for all legacy-styled dialogs.
- * Provides the dark overlay and the LegacyCornerFrame shell.
+ * Provides the dark overlay and the CornerFrame shell.
  */
-export const LegacyBaseDialog: React.FC<LegacyBaseDialogProps> = ({
+export const BaseDialog: React.FC<BaseDialogProps> = ({
   visible,
   onClose,
   children,
@@ -47,7 +47,7 @@ export const LegacyBaseDialog: React.FC<LegacyBaseDialogProps> = ({
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
             <View style={[styles.dialogWrapper, { width }, style]}>
-              <LegacyCornerFrame 
+              <CornerFrame 
                 style={styles.frame}
                 contentStyle={[styles.content, contentStyle]}
                 cornerAsset={cornerAsset}
@@ -55,7 +55,7 @@ export const LegacyBaseDialog: React.FC<LegacyBaseDialogProps> = ({
                 backgroundColor={backgroundColor}
               >
                 {children}
-              </LegacyCornerFrame>
+              </CornerFrame>
             </View>
           </TouchableWithoutFeedback>
         </View>

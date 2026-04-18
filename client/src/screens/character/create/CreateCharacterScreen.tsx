@@ -9,7 +9,7 @@ import {
 import { styles } from './CreateCharacterScreen.styles';
 import { SocketClient } from '../../../network/SocketClient';
 import { SoftkeyBar } from '../../../components/SoftkeyBar';
-import { LegacyCornerFrame } from '../../../components/LegacyCornerFrame';
+import { CornerFrame } from '../../../components/CornerFrame';
 import { PopupMenu, MenuItem } from '../../../components/PopupMenu';
 import { MENU_START, MENU_LOGOUT } from '../../../constants/MenuConstants';
 import { CREATE_CHARACTER_ASSETS } from './assets';
@@ -21,10 +21,10 @@ import {
   EYE_STYLE_OPTIONS,
   HAIR_COLOR_OPTIONS,
   SKIN_COLOR_OPTIONS,
-} from './legacyCatalog';
-import { LegacyCreateCharacterPreview } from './LegacyCreateCharacterPreview';
-import { LegacyLoadingDialog } from '../../../components/LegacyLoadingDialog';
-import { LegacyConfirmDialog } from '../../../components/LegacyConfirmDialog';
+} from './createCatalog';
+import { CreateCharacterPreview } from './CreateCharacterPreview';
+import { LoadingDialog } from '../../../components/LoadingDialog';
+import { ConfirmDialog } from '../../../components/ConfirmDialog';
 
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -261,7 +261,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
         <View style={styles.stageLayout}>
           <View style={styles.previewColumn}>
             <View style={styles.previewStage}>
-              <LegacyCreateCharacterPreview
+              <CreateCharacterPreview
                 genderIndex={genderIdx}
                 faceIndex={faceIdx}
                 hairIndex={hairIdx}
@@ -272,7 +272,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
             </View>
           </View>
 
-          <LegacyCornerFrame style={styles.selectionPanel} contentStyle={styles.selectionPanelInner}>
+          <CornerFrame style={styles.selectionPanel} contentStyle={styles.selectionPanelInner}>
             {selectorRows.map((row) => (
               <SelectorRow
                 key={row.key}
@@ -286,7 +286,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
               />
             ))}
             <View style={styles.panelWatermark} />
-          </LegacyCornerFrame>
+          </CornerFrame>
         </View>
       </View>
 
@@ -310,12 +310,12 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
         />
       </View>
 
-      <LegacyLoadingDialog visible={loading} />
+      <LoadingDialog visible={loading} />
 
-      <LegacyConfirmDialog
+      <ConfirmDialog
         visible={logoutConfirmVisible}
         title="Chú ý"
-        message="Bạn có muốn đăng xuất không?"
+        message="Bạn muốn đăng xuất không?"
         onConfirm={() => {
           setLogoutConfirmVisible(false);
           onCancel();

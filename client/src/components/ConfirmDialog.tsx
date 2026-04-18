@@ -6,10 +6,11 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import { LegacyBaseDialog } from './LegacyBaseDialog';
+import { BaseDialog } from './BaseDialog';
+import { styles } from './ConfirmDialog.styles';
 import { CREATE_CHARACTER_ASSETS } from '../screens/character/create/assets';
 
-interface LegacyConfirmDialogProps {
+interface ConfirmDialogProps {
   visible: boolean;
   title?: string;
   message: string;
@@ -19,7 +20,7 @@ interface LegacyConfirmDialogProps {
   onCancel: () => void;
 }
 
-export const LegacyConfirmDialog: React.FC<LegacyConfirmDialogProps> = ({
+export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   visible,
   title = 'Chú ý',
   message,
@@ -29,7 +30,7 @@ export const LegacyConfirmDialog: React.FC<LegacyConfirmDialogProps> = ({
   onCancel,
 }) => {
   return (
-    <LegacyBaseDialog 
+    <BaseDialog 
       visible={visible} 
       onClose={onCancel} 
       backgroundPattern={CREATE_CHARACTER_ASSETS.dragonPattern}
@@ -77,70 +78,6 @@ export const LegacyConfirmDialog: React.FC<LegacyConfirmDialogProps> = ({
           </TouchableOpacity>
         </View>
       </View>
-    </LegacyBaseDialog>
+    </BaseDialog>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 12,
-    paddingHorizontal: 25, // Generous horizontal padding
-    minWidth: 280, // Minimum base width
-    maxWidth: 400, // Maximum width before wrapping
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-    textAlign: 'center',
-    letterSpacing: 0.5,
-    marginBottom: 8, // Specific gap after title
-  },
-  message: {
-    fontSize: 16,
-    color: '#000',
-    textAlign: 'center',
-    lineHeight: 22,
-    width: '100%',
-    marginBottom: 15, // Specific gap after message
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 30,
-    width: '100%',
-  },
-  btnWrapper: {
-    width: 90,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  btnBackground: {
-    flexDirection: 'row',
-    ...StyleSheet.absoluteFillObject,
-  },
-  btnPart: {
-    width: 45,
-    height: 32,
-  },
-  btnPartRotated: {
-    transform: [{ scaleX: -1 }],
-  },
-  btnTextOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-    paddingBottom: 2, // Slight adjustment for legacy font alignment
-  },
-  btnText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
-  },
-});

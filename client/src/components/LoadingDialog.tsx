@@ -6,17 +6,17 @@ import {
   Animated,
   Image,
 } from 'react-native';
-import { LegacyBaseDialog } from './LegacyBaseDialog';
+import { BaseDialog } from './BaseDialog';
 import { CREATE_CHARACTER_ASSETS } from '../screens/character/create/assets';
 
-interface LegacyLoadingDialogProps {
+interface LoadingDialogProps {
   visible: boolean;
   message?: string;
 }
 
-export const LegacyLoadingDialog: React.FC<LegacyLoadingDialogProps> = ({
+export const LoadingDialog: React.FC<LoadingDialogProps> = ({
   visible,
-  message = 'Vui lòng chờ...',
+  message = 'Đang tải...',
 }) => {
   const animValue = useRef(new Animated.Value(0)).current;
 
@@ -57,7 +57,7 @@ export const LegacyLoadingDialog: React.FC<LegacyLoadingDialogProps> = ({
   });
 
   return (
-    <LegacyBaseDialog visible={visible} width={220}>
+    <BaseDialog visible={visible} onClose={() => {}}>
       <View style={styles.container}>
         <View style={styles.starsRow}>
           <Animated.Image
@@ -75,7 +75,7 @@ export const LegacyLoadingDialog: React.FC<LegacyLoadingDialogProps> = ({
         </View>
         <Text style={styles.message}>{message}</Text>
       </View>
-    </LegacyBaseDialog>
+    </BaseDialog>
   );
 };
 
