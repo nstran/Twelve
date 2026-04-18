@@ -1,17 +1,32 @@
+/**
+ * LegacyCreateCharacterPreview.tsx
+ *
+ * Preview nhân vật trong màn tạo nhân vật.
+ * Dùng React Native Image thuần để render từng layer.
+ *
+ * Palette color swap được thực hiện tại BUILD TIME (Python script):
+ *   - Hair: HAIR_COLOR_SOURCES[baseImageId][colorIndex] → cùng pose, màu PLTE đã swap
+ *   - Body: BODY_SKIN_SHEETS[skinColorIndex] → spritesheet đã tô màu da sẵn
+ */
+
 import React, { useEffect, useMemo, useState } from 'react';
-import { Image, type ImageSourcePropType, View } from 'react-native';
+import { Image, View, type ImageSourcePropType } from 'react-native';
 import { styles } from './CreateCharacterScreen.styles';
 import {
   BODY_SHEET,
-  DEFAULT_OVERLAY,
+  BODY_SKIN_SHEETS,
   GENDER_OPTIONS,
   SLOT_ZERO_META,
   HAIR_STYLE_OPTIONS,
+  HAIR_COLOR_SOURCES,
   EYE_STYLE_OPTIONS,
-  type LegacyFrame,
   type LegacySlotMeta,
 } from './legacyCatalog';
 import { ASSET_REGISTRY, type AssetRegistryEntry } from './assetRegistry';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface LegacyCreateCharacterPreviewProps {
   genderIndex: number;
@@ -34,11 +49,15 @@ interface LayerRect {
   x: number;
   y: number;
   zIndex: number;
-  tintColor?: string;
 }
 
-const BODY_FRAME_WIDTH = BODY_SHEET.width / 2;
-const BODY_FRAME_HEIGHT = BODY_SHEET.height;
+const SCALE = 2.2;
+const BODY_FRAME_W = (BODY_SHEET.width as number) / 2;
+const BODY_FRAME_H = BODY_SHEET.height as number;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function resolveMetaRect(
   key: string,
@@ -49,52 +68,53 @@ function resolveMetaRect(
   frameStep: number,
   zIndex: number,
   preferFirstFrame = false,
-  tintColor?: string,
 ): LayerRect {
-  const frameWidth = sourceWidth / meta.frameWidthDivisor;
-  const frame: LegacyFrame = meta.frames[frameStep % meta.frames.length];
+  const frameWidth  = sourceWidth / meta.frameWidthDivisor;
+  const frame       = meta.frames[frameStep % meta.frames.length];
   const sourceIndex = preferFirstFrame && meta.frameWidthDivisor > 1 ? 0 : frame.sourceIndex;
-
   return {
-    key,
-    source,
-    sourceWidth,
-    sourceHeight,
-    frameWidth,
-    frameHeight: sourceHeight,
+    key, source, sourceWidth, sourceHeight,
+    frameWidth, frameHeight: sourceHeight,
     sourceIndex,
-    x: frame.xOffset,
-    y: frame.yOffset,
-    zIndex,
-    tintColor,
+    x: frame.xOffset, y: frame.yOffset, zIndex,
   };
 }
 
 function resolveStaticAssetRect(
   key: string,
   asset: AssetRegistryEntry,
-  frameWidth: number,
+  coloredSource: ImageSourcePropType | undefined,
   meta: LegacySlotMeta,
   frameStep: number,
   zIndex: number,
 ): LayerRect {
-  const frame: LegacyFrame = meta.frames[frameStep % meta.frames.length];
-
+  const frame = meta.frames[frameStep % meta.frames.length];
   return {
     key,
-    source: asset.source,
-    sourceWidth: asset.width,
+    source:       coloredSource ?? asset.source,   // dùng colored variant nếu có
+    sourceWidth:  asset.width,
     sourceHeight: asset.height,
-    frameWidth: asset.cropWidth,
-    frameHeight: asset.cropHeight,
-    sourceIndex: 0,
-    cropX: asset.cropX,
-    cropY: asset.cropY,
+    frameWidth:   asset.cropWidth,
+    frameHeight:  asset.cropHeight,
+    sourceIndex:  0,
+    cropX:        asset.cropX,
+    cropY:        asset.cropY,
     x: frame.xOffset,
     y: frame.yOffset,
     zIndex,
   };
 }
+
+const DEFAULT_OVERLAY = {
+  metaId: 89999,
+  source: require('../../../../assets/createcs_legacy/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89900.png'),
+  width: 41,
+  height: 15,
+};
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export const LegacyCreateCharacterPreview: React.FC<LegacyCreateCharacterPreviewProps> = ({
   genderIndex,
@@ -106,57 +126,81 @@ export const LegacyCreateCharacterPreview: React.FC<LegacyCreateCharacterPreview
   const [frameStep, setFrameStep] = useState(0);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setFrameStep((current) => (current + 1) % 2);
-    }, 420);
-
+    const timer = setInterval(() => setFrameStep((s) => (s + 1) % 2), 420);
     return () => clearInterval(timer);
   }, []);
 
   const genderKey = genderIndex === 0 ? 'male' : 'female';
-  const gender = GENDER_OPTIONS[genderIndex] ?? GENDER_OPTIONS[0];
+  const gender    = GENDER_OPTIONS[genderIndex] ?? GENDER_OPTIONS[0];
 
-  const hairOption = HAIR_STYLE_OPTIONS[genderKey][hairIndex] ?? HAIR_STYLE_OPTIONS[genderKey][0];
-  const hairImageId = hairOption.previewImageIds[hairColorIndex] ?? hairOption.previewImageIds[0] ?? hairOption.baseImageId;
-  const hairAsset = ASSET_REGISTRY[hairImageId];
+  // ------ Hair ------
+  // Luôn dùng baseImageId cho kích thước/crop.
+  // Source lấy từ HAIR_COLOR_SOURCES[baseImageId][colorIndex] — cùng pose, khác màu.
+  const hairOption      = HAIR_STYLE_OPTIONS[genderKey][hairIndex] ?? HAIR_STYLE_OPTIONS[genderKey][0];
+  const hairAsset       = ASSET_REGISTRY[hairOption.baseImageId];
+  const hairColoredSources = HAIR_COLOR_SOURCES[hairOption.baseImageId];
+  const hairColoredSource  = hairColoredSources?.[hairColorIndex] ?? hairColoredSources?.[0];
 
+  // ------ Eyes ------
+  // baseImageId là ảnh tĩnh của bộ mắt — KHÔNG cộng skinColorIndex
   const eyeOption = EYE_STYLE_OPTIONS[genderKey][faceIndex] ?? EYE_STYLE_OPTIONS[genderKey][0];
-  const eyeImageId = eyeOption.baseImageId + skinColorIndex;
-  const eyeAsset = ASSET_REGISTRY[eyeImageId];
+  const eyeAsset  = ASSET_REGISTRY[eyeOption.baseImageId];
 
+  // ------ Body skin sheet ------
+  // BODY_SKIN_SHEETS[skinColorIndex] → spritesheet đã tô đúng tông da
+  const bodySource = BODY_SKIN_SHEETS[skinColorIndex] ?? BODY_SKIN_SHEETS[0];
+
+  // ------ Build layer layout ------
   const layout = useMemo(() => {
     const bodyRect: LayerRect = {
-      key: 'body',
-      source: BODY_SHEET.source,
-      sourceWidth: BODY_SHEET.width,
-      sourceHeight: BODY_SHEET.height,
-      frameWidth: BODY_FRAME_WIDTH,
-      frameHeight: BODY_FRAME_HEIGHT,
-      sourceIndex: frameStep,
-      x: 0,
-      y: 0,
-      zIndex: 1,
+      key:          'body',
+      source:       bodySource,
+      sourceWidth:  BODY_SHEET.width as number,
+      sourceHeight: BODY_SHEET.height as number,
+      frameWidth:   BODY_FRAME_W,
+      frameHeight:  BODY_FRAME_H,
+      sourceIndex:  frameStep,
+      x: 0, y: 0, zIndex: 1,
     };
 
     const layers: LayerRect[] = [bodyRect];
 
     if (eyeAsset) {
-      layers.push(resolveMetaRect('eyes', eyeAsset.source, eyeAsset.width, eyeAsset.height, SLOT_ZERO_META[eyeOption.metaId], frameStep, 2, true));
+      layers.push(resolveMetaRect(
+        'eyes',
+        eyeAsset.source,
+        eyeAsset.width,
+        eyeAsset.height,
+        SLOT_ZERO_META[eyeOption.metaId],
+        frameStep, 2, true,
+      ));
     }
 
     if (hairAsset) {
-      layers.push(resolveStaticAssetRect('hair', hairAsset, hairOption.width, SLOT_ZERO_META[hairOption.metaId], frameStep, 3));
+      layers.push(resolveStaticAssetRect(
+        'hair',
+        hairAsset,
+        hairColoredSource,
+        SLOT_ZERO_META[hairOption.metaId],
+        frameStep, 3,
+      ));
     }
 
-    layers.push(resolveMetaRect('gender', gender.source, gender.width, gender.height, SLOT_ZERO_META[gender.metaId], frameStep, 4, true));
+    layers.push(resolveMetaRect(
+      'gender',
+      gender.source, gender.width, gender.height,
+      SLOT_ZERO_META[gender.metaId],
+      frameStep, 4, true,
+    ));
 
-    layers.push(resolveMetaRect('overlay', DEFAULT_OVERLAY.source, DEFAULT_OVERLAY.width, DEFAULT_OVERLAY.height, SLOT_ZERO_META[DEFAULT_OVERLAY.metaId], frameStep, 5, true));
+    layers.push(resolveMetaRect(
+      'overlay',
+      DEFAULT_OVERLAY.source, DEFAULT_OVERLAY.width, DEFAULT_OVERLAY.height,
+      SLOT_ZERO_META[DEFAULT_OVERLAY.metaId],
+      frameStep, 5, true,
+    ));
 
-    let minX = 0;
-    let minY = 0;
-    let maxX: number = BODY_FRAME_WIDTH;
-    let maxY: number = BODY_FRAME_HEIGHT;
-
+    let minX = 0, minY = 0, maxX = BODY_FRAME_W, maxY = BODY_FRAME_H;
     for (const layer of layers) {
       minX = Math.min(minX, layer.x);
       minY = Math.min(minY, layer.y);
@@ -164,28 +208,18 @@ export const LegacyCreateCharacterPreview: React.FC<LegacyCreateCharacterPreview
       maxY = Math.max(maxY, layer.y + layer.frameHeight);
     }
 
-    const width = maxX - minX;
-    const height = maxY - minY;
-
     return {
-      width,
-      height,
-      layers: layers.map((layer) => ({
-        ...layer,
-        x: layer.x - minX,
-        y: layer.y - minY,
-      })),
+      width:  maxX - minX,
+      height: maxY - minY,
+      layers: layers.map((l) => ({ ...l, x: l.x - minX, y: l.y - minY })),
     };
-  }, [eyeAsset, eyeOption.metaId, eyeOption.width, frameStep, gender, hairAsset, hairOption.metaId, hairOption.width]);
+  }, [bodySource, eyeAsset, eyeOption.metaId, hairAsset, hairColoredSource, hairOption.metaId, frameStep, gender]);
 
   return (
     <View
       style={[
         styles.previewSpriteCanvas,
-        {
-          width: layout.width * 2.2,
-          height: layout.height * 2.2,
-        },
+        { width: layout.width * SCALE, height: layout.height * SCALE },
       ]}
     >
       {layout.layers.map((layer) => (
@@ -193,12 +227,12 @@ export const LegacyCreateCharacterPreview: React.FC<LegacyCreateCharacterPreview
           key={layer.key}
           style={{
             position: 'absolute',
-            left: layer.x * 2.2,
-            top: layer.y * 2.2,
-            width: layer.frameWidth * 2.2,
-            height: layer.frameHeight * 2.2,
+            left:     layer.x * SCALE,
+            top:      layer.y * SCALE,
+            width:    layer.frameWidth  * SCALE,
+            height:   layer.frameHeight * SCALE,
             overflow: 'hidden',
-            zIndex: layer.zIndex,
+            zIndex:   layer.zIndex,
           }}
         >
           <Image
@@ -206,11 +240,10 @@ export const LegacyCreateCharacterPreview: React.FC<LegacyCreateCharacterPreview
             resizeMode="stretch"
             style={{
               position: 'absolute',
-              left: -(((layer.cropX ?? 0) + layer.sourceIndex * layer.frameWidth) * 2.2),
-              top: -(layer.cropY ?? 0) * 2.2,
-              width: layer.sourceWidth * 2.2,
-              height: layer.sourceHeight * 2.2,
-              tintColor: layer.tintColor,
+              left: -(((layer.cropX ?? 0) + layer.sourceIndex * layer.frameWidth) * SCALE),
+              top:  -((layer.cropY ?? 0) * SCALE),
+              width:  layer.sourceWidth  * SCALE,
+              height: layer.sourceHeight * SCALE,
             }}
           />
         </View>

@@ -15,11 +15,11 @@ import { MENU_START, MENU_LOGOUT } from '../../../constants/MenuConstants';
 import { CREATE_CHARACTER_ASSETS } from './assets';
 import { Dimensions } from 'react-native';
 import {
-  buildHairColorOptions,
   ELEMENT_OPTIONS,
   GENDER_OPTIONS,
   HAIR_STYLE_OPTIONS,
   EYE_STYLE_OPTIONS,
+  HAIR_COLOR_OPTIONS,
   SKIN_COLOR_OPTIONS,
 } from './legacyCatalog';
 import { LegacyCreateCharacterPreview } from './LegacyCreateCharacterPreview';
@@ -50,6 +50,8 @@ interface SelectorRowProps {
   onPrev: () => void;
   onNext: () => void;
   onPress: () => void;
+  /** Hex color string để hiển thị swatch (vd: '#DF1A14'). Nếu undefined thì không hiện. */
+  swatchColor?: string;
 }
 
 const SelectorRow: React.FC<SelectorRowProps> = ({
@@ -59,6 +61,7 @@ const SelectorRow: React.FC<SelectorRowProps> = ({
   onPrev,
   onNext,
   onPress,
+  swatchColor,
 }) => {
   return (
     <TouchableOpacity style={[styles.selectionRow, active && styles.selectionRowActive]} onPress={onPress} activeOpacity={0.8}>
@@ -69,7 +72,22 @@ const SelectorRow: React.FC<SelectorRowProps> = ({
             <Image source={ASSET_ARROW} style={[styles.arrowIcon, styles.arrowIconLeft]} resizeMode="contain" />
           </TouchableOpacity>
         ) : <View style={styles.arrowSpacer} />}
-        <Text style={[styles.valueText, active && styles.valueTextActive]} numberOfLines={1}>{value}</Text>
+
+        {/* Color swatch + label */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'center', gap: 5 }}>
+          {swatchColor ? (
+            <View style={{
+              width: 12,
+              height: 12,
+              borderRadius: 3,
+              backgroundColor: swatchColor,
+              borderWidth: 1,
+              borderColor: 'rgba(0,0,0,0.35)',
+            }} />
+          ) : null}
+          <Text style={[styles.valueText, active && styles.valueTextActive]} numberOfLines={1}>{value}</Text>
+        </View>
+
         {active ? (
           <TouchableOpacity style={styles.arrowButton} onPress={onNext} hitSlop={6}>
             <Image source={ASSET_ARROW} style={styles.arrowIcon} resizeMode="contain" />
@@ -108,22 +126,25 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
   }, [client, onSuccess]);
 
   const genderKey = genderIdx === 0 ? 'male' : 'female';
-  const hairOption = HAIR_STYLE_OPTIONS[genderKey][hairIdx] ?? HAIR_STYLE_OPTIONS[genderKey][0];
-  const hairColorOptions = useMemo(() => buildHairColorOptions(hairOption.previewImageIds.length), [hairOption]);
+
+  // Số tông màu tóc khả dụng cho kiểu tóc hiện tại
+  // (một số kiểu chỉ có 3 tông, hầu hết có 6 tông)
+  const hairStyleOption = HAIR_STYLE_OPTIONS[genderKey][hairIdx] ?? HAIR_STYLE_OPTIONS[genderKey][0];
+  const availableHairColors = HAIR_COLOR_OPTIONS.slice(0, hairStyleOption.numColors ?? HAIR_COLOR_OPTIONS.length);
 
   React.useEffect(() => {
-    if (hairColorIdx >= hairColorOptions.length) {
+    if (hairColorIdx >= availableHairColors.length) {
       setHairColorIdx(0);
     }
-  }, [hairColorIdx, hairColorOptions.length]);
+  }, [hairColorIdx, availableHairColors.length]);
 
   const handleCreate = () => {
     client.createCharacter(
       ELEMENT_OPTIONS[element]?.value ?? 0,
       faceIdx,
       hairIdx,
-      hairColorOptions[hairColorIdx]?.value ?? 0,
-      SKIN_COLOR_OPTIONS[skinColorIdx]?.value ?? 0,
+      hairColorIdx,
+      skinColorIdx,
     );
   };
 
@@ -165,7 +186,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
       return next;
     });
   };
-  const nextHairColor = changeIndex(hairColorOptions.length, setHairColorIdx);
+  const nextHairColor = changeIndex(availableHairColors.length, setHairColorIdx);
   const nextSkinColor = changeIndex(SKIN_COLOR_OPTIONS.length, setSkinColorIdx);
 
   const selectorRows = useMemo(() => ([
@@ -200,7 +221,8 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
     {
       key: 'hairColor' as const,
       label: 'Màu Tóc',
-      value: hairColorOptions[hairColorIdx]?.label ?? 'N/A',
+      value: availableHairColors[hairColorIdx]?.label ?? 'N/A',
+      swatchColor: availableHairColors[hairColorIdx]?.swatch,
       onPrev: () => nextHairColor(-1),
       onNext: () => nextHairColor(1),
     },
@@ -208,10 +230,11 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
       key: 'skin' as const,
       label: 'Màu Da',
       value: SKIN_COLOR_OPTIONS[skinColorIdx]?.label ?? 'N/A',
+      swatchColor: SKIN_COLOR_OPTIONS[skinColorIdx]?.swatch,
       onPrev: () => nextSkinColor(-1),
       onNext: () => nextSkinColor(1),
     },
-  ]), [element, genderKey, genderIdx, faceIdx, hairColorIdx, hairColorOptions, hairIdx, skinColorIdx]);
+  ]), [element, genderKey, genderIdx, faceIdx, hairColorIdx, availableHairColors, hairIdx, skinColorIdx]);
 
   const handleLeftSoftkey  = () => menuVisible ? handleMenuSelect(MENU_ITEMS[selectedIndex].id as number) : setMenuVisible(true);
   const handleRightSoftkey = () => {
@@ -249,6 +272,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
                 onPrev={row.onPrev}
                 onNext={row.onNext}
                 onPress={() => setActiveSelector(row.key)}
+                swatchColor={'swatchColor' in row ? row.swatchColor : undefined}
               />
             ))}
             <View style={styles.panelWatermark} />
