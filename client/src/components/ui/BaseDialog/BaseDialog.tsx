@@ -7,7 +7,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { CornerFrame } from './CornerFrame';
+import { CornerFrame } from '../CornerFrame/CornerFrame';
 
 export interface BaseDialogProps {
   visible: boolean;

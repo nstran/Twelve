@@ -8,9 +8,9 @@ import {
 } from 'react-native';
 import { styles } from './CreateCharacterScreen.styles';
 import { SocketClient } from '../../../network/SocketClient';
-import { SoftkeyBar } from '../../../components/SoftkeyBar';
-import { CornerFrame } from '../../../components/CornerFrame';
-import { PopupMenu, MenuItem } from '../../../components/PopupMenu';
+import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
+import { CornerFrame } from '../../../components/ui/CornerFrame/CornerFrame';
+import { PopupMenu, MenuItem } from '../../../components/controls/PopupMenu/PopupMenu';
 import { MENU_START, MENU_LOGOUT } from '../../../constants/MenuConstants';
 import { CREATE_CHARACTER_ASSETS } from './assets';
 import { Dimensions } from 'react-native';
@@ -23,8 +23,8 @@ import {
   SKIN_COLOR_OPTIONS,
 } from './createCatalog';
 import { CreateCharacterPreview } from './CreateCharacterPreview';
-import { LoadingDialog } from '../../../components/LoadingDialog';
-import { ConfirmDialog } from '../../../components/ConfirmDialog';
+import { LoadingDialog } from '../../../components/dialogs/LoadingDialog/LoadingDialog';
+import { ConfirmDialog } from '../../../components/dialogs/ConfirmDialog/ConfirmDialog';
 
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

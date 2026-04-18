@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import { BaseDialog } from './BaseDialog';
+import { BaseDialog } from '../../ui/BaseDialog/BaseDialog';
 import { styles } from './ConfirmDialog.styles';
-import { CREATE_CHARACTER_ASSETS } from '../screens/character/create/assets';
+import { CREATE_CHARACTER_ASSETS } from '../../../screens/character/create/assets';
 
 interface ConfirmDialogProps {
   visible: boolean;

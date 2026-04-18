@@ -9,7 +9,7 @@ import {
   Animated
 } from 'react-native';
 import { styles, MAP_WIDTH, MAP_HEIGHT } from './MapSelectionScreen.styles';
-import { SoftkeyBar }     from '../../../components/SoftkeyBar';
+import { SoftkeyBar }     from '../../../components/controls/SoftkeyBar/SoftkeyBar';
 import { MAPS, MapInfo }  from '../../../data/MapData';
 import { MAP_SELECTION_ASSETS } from './assets';
 

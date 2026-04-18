@@ -5,7 +5,7 @@ import {
   Animated, Easing,
   Text,
 } from 'react-native';
-import { PopupMenu, type MenuItem } from '../../components/PopupMenu';
+import { PopupMenu, type MenuItem } from '../../components/controls/PopupMenu/PopupMenu';
 import {
   WALK_FRAMES, ATTACK_FRAMES,
 } from '../../engine/MonsterSprite';

@@ -6,8 +6,8 @@ import {
   Animated,
   Image,
 } from 'react-native';
-import { BaseDialog } from './BaseDialog';
-import { CREATE_CHARACTER_ASSETS } from '../screens/character/create/assets';
+import { BaseDialog } from '../../ui/BaseDialog/BaseDialog';
+import { CREATE_CHARACTER_ASSETS } from '../../../screens/character/create/assets';
 
 interface LoadingDialogProps {
   visible: boolean;

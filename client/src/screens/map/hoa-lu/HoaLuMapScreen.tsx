@@ -14,9 +14,9 @@ import {
 } from '../../../engine/character';
 import { HOA_LU_MAP_ASSETS } from './assets';
 import { BattleIntroScreen } from '../../battle';
-import { MapHUD } from '../../../components/MapHUD';
-import { SoftkeyBar } from '../../../components/SoftkeyBar';
-import { PopupMenu, MenuItem } from '../../../components/PopupMenu';
+import { MapHUD } from '../../../components/game/MapHUD/MapHUD';
+import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
+import { PopupMenu, MenuItem } from '../../../components/controls/PopupMenu/PopupMenu';
 import { clearSession } from '../../../storage/SessionStorage';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');

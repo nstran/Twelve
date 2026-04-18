@@ -12,8 +12,8 @@ import {
 
 import { SocketClient } from '../../../network/SocketClient';
 import { getStyles } from './RegisterScreen.styles';
-import { SoftkeyBar } from '../../../components/SoftkeyBar';
-import { CalendarPicker } from '../../../components/CalendarPicker';
+import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
+import { CalendarPicker } from '../../../components/controls/CalendarPicker/CalendarPicker';
 
 type Gender = 'Nam' | 'Nữ';
 

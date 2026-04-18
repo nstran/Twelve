@@ -1,8 +1,8 @@
 import { Dimensions, View, Text, Image, ScrollView } from 'react-native';
 import React from 'react';
 import { styles } from './CharacterStatusScreen.styles';
-import { SoftkeyBar } from '../../../components/SoftkeyBar';
-import { PopupMenu } from '../../../components/PopupMenu';
+import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
+import { PopupMenu } from '../../../components/controls/PopupMenu/PopupMenu';
 import {
   CHARACTER_BODIES,
   CHARACTER_FACES,

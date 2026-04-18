@@ -14,8 +14,8 @@ import {
 
 import { SocketClient } from '../../../network/SocketClient';
 import { getStyles } from './LoginScreen.styles';
-import { SoftkeyBar } from '../../../components/SoftkeyBar';
-import { PopupMenu, MenuItem } from '../../../components/PopupMenu';
+import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
+import { PopupMenu, MenuItem } from '../../../components/controls/PopupMenu/PopupMenu';
 import { LOGIN_ASSETS } from './assets';
 
 const ASSET_ICON_OK = LOGIN_ASSETS.iconOk;
