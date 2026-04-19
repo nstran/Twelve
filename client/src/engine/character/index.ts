@@ -20,6 +20,7 @@ export type {
   CharacterControllerProps,
   CharacterControllerRef,
   VirtualJumpDirection,
+  GroundSurface,
 } from './character.types';
 export {
   ANIM_FRAMES,

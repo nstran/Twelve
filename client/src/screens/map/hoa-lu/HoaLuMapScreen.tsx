@@ -10,10 +10,12 @@ import {
 import {
   CharacterController,
   type CharacterControllerRef,
+  type GroundSurface,
   type MonsterTarget,
 } from '../../../engine/character';
 import { CharacterRenderer, measureCharacterRenderer } from '../../character';
 import { HOA_LU_MAP_ASSETS } from './assets';
+import { buildHoaLuSurfaces } from './hoaLu.navigation';
 import { BattleIntroScreen } from '../../battle';
 import { MapHUD } from '../../../components/game/MapHUD/MapHUD';
 import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
@@ -44,6 +46,7 @@ const PLATFORM_TOP = Math.round(SCREEN_H * 0.72);
 const CHAR_SCALE  = 1;
 const CHAR_SPEED  = 1.35;
 const CHAR_INIT_X = Math.round(MAP_W * 0.08);
+const HOA_LU_SURFACES: GroundSurface[] = buildHoaLuSurfaces(MAP_SCALE);
 
 // ── Monster dữ liệu tĩnh (loại + patrol range) ────────────────────────────
 interface MonsterDef {
@@ -635,6 +638,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
                 />
               )}
               monsters={monsterTargets}
+              surfaces={HOA_LU_SURFACES}
               minX={0}
               maxX={MAP_W}
               containerWidth={MAP_W}

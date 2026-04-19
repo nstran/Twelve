@@ -26,6 +26,15 @@ export interface MonsterTarget {
   height: number;
 }
 
+export interface GroundSurface {
+  id: string;
+  x1: number;
+  x2: number;
+  y: number;
+  kind?: 'ground' | 'platform';
+  oneWay?: boolean;
+}
+
 // ── Character position & state ────────────────────────────────────────────
 export interface CharacterState {
   x: number;
@@ -78,6 +87,8 @@ export interface CharacterControllerProps {
   scale?: number;
   /** List of monsters to detect proximity & attack */
   monsters?: MonsterTarget[];
+  /** Walkable surface segments for platforming maps */
+  surfaces?: GroundSurface[];
   /** Distance threshold to trigger attack range (px) */
   attackRange?: number;
   /** Called when character position changes */
