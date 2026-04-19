@@ -85,6 +85,15 @@ interface SimpleFamilyAsset {
   height: number;
 }
 
+interface BodyAnchorMetrics {
+  maxBodyWidth: number;
+  maxBodyHeight: number;
+  maxLeftOfBody: number;
+  maxRightOfBody: number;
+  maxAboveBody: number;
+  maxBelowBody: number;
+}
+
 const DEFAULT_SCALE = 2.2;
 const ACTION_FAMILY_SLOTS = [0, 1, 2, 3, 4] as const;
 
@@ -423,11 +432,63 @@ function buildCreateCharacterLayout(
   };
 }
 
+function measureBodyAnchorMetrics(appearance: CharacterPreviewAppearance): BodyAnchorMetrics {
+  const genderKey = appearance.genderIndex === 0 ? 'male' : 'female';
+  const hairOption = HAIR_STYLE_OPTIONS[genderKey][appearance.hairIndex] ?? HAIR_STYLE_OPTIONS[genderKey][0];
+
+  let maxBodyWidth = 0;
+  let maxBodyHeight = 0;
+  let maxLeftOfBody = 0;
+  let maxRightOfBody = 0;
+  let maxAboveBody = 0;
+  let maxBelowBody = 0;
+
+  for (const familySlot of ACTION_FAMILY_SLOTS) {
+    const bodySource = BODY_FAMILY_ASSETS[familySlot].source;
+    const hairSource = getFamilyAsset(ASSET_REGISTRY, hairOption.baseImageId + familySlot).source;
+    const frameCount = BODY_FAMILY_ASSETS[familySlot].frameCount;
+
+    for (let frame = 0; frame < frameCount; frame++) {
+      const layout = buildCreateCharacterLayout(
+        appearance,
+        familySlot,
+        frame,
+        { bodySource, hairSource },
+      );
+      const rightOfBody = layout.width - (layout.bodyX + layout.bodyWidth);
+      const belowBody = layout.height - (layout.bodyY + layout.bodyHeight);
+      maxBodyWidth = Math.max(maxBodyWidth, layout.bodyWidth);
+      maxBodyHeight = Math.max(maxBodyHeight, layout.bodyHeight);
+      maxLeftOfBody = Math.max(maxLeftOfBody, layout.bodyX);
+      maxRightOfBody = Math.max(maxRightOfBody, rightOfBody);
+      maxAboveBody = Math.max(maxAboveBody, layout.bodyY);
+      maxBelowBody = Math.max(maxBelowBody, belowBody);
+    }
+  }
+
+  return {
+    maxBodyWidth,
+    maxBodyHeight,
+    maxLeftOfBody,
+    maxRightOfBody,
+    maxAboveBody,
+    maxBelowBody,
+  };
+}
+
 export function measureCreateCharacterPreview(
   appearance: CharacterPreviewAppearance,
   scale: number = DEFAULT_SCALE,
   anchorToBody = false,
 ) {
+  if (anchorToBody) {
+    const metrics = measureBodyAnchorMetrics(appearance);
+    return {
+      w: (metrics.maxLeftOfBody + metrics.maxBodyWidth + metrics.maxRightOfBody) * scale,
+      h: (metrics.maxAboveBody + metrics.maxBodyHeight + metrics.maxBelowBody) * scale,
+    };
+  }
+
   let maxWidth = 0;
   let maxHeight = 0;
 
@@ -446,7 +507,7 @@ export function measureCreateCharacterPreview(
         frame,
         { bodySource, hairSource },
       );
-      maxWidth = Math.max(maxWidth, anchorToBody ? layout.bodyWidth : layout.width);
+      maxWidth = Math.max(maxWidth, layout.width);
       maxHeight = Math.max(maxHeight, layout.height);
     }
   }
@@ -535,20 +596,42 @@ export const CreateCharacterPreview: React.FC<CreateCharacterPreviewProps> = ({
     hairSource,
     skinColorIndex,
   ]);
+  const bodyAnchorMetrics = useMemo(
+    () => anchorToBody
+      ? measureBodyAnchorMetrics({
+        genderIndex,
+        faceIndex,
+        hairIndex,
+        hairColorIndex,
+        skinColorIndex,
+      })
+      : null,
+    [anchorToBody, faceIndex, genderIndex, hairColorIndex, hairIndex, skinColorIndex],
+  );
 
-  const canvasWidth = layout.width * scale;
-  const bodyAnchorX = anchorToBody ? layout.bodyX : 0;
+  const bodyAnchorShiftX = anchorToBody && bodyAnchorMetrics
+    ? bodyAnchorMetrics.maxLeftOfBody - layout.bodyX
+    : 0;
+  const bodyAnchorY = anchorToBody && bodyAnchorMetrics
+    ? bodyAnchorMetrics.maxAboveBody - layout.bodyY
+    : 0;
+  const canvasWidth = anchorToBody && bodyAnchorMetrics
+    ? (bodyAnchorMetrics.maxLeftOfBody + bodyAnchorMetrics.maxBodyWidth + bodyAnchorMetrics.maxRightOfBody) * scale
+    : layout.width * scale;
+  const canvasHeight = anchorToBody && bodyAnchorMetrics
+    ? (bodyAnchorMetrics.maxAboveBody + bodyAnchorMetrics.maxBodyHeight + bodyAnchorMetrics.maxBelowBody) * scale
+    : layout.height * scale;
 
   return (
     <View
       style={[
         styles.previewSpriteCanvas,
-        { width: canvasWidth, height: layout.height * scale },
+        { width: canvasWidth, height: canvasHeight },
         style,
       ]}
     >
       {layout.layers.map((layer) => {
-        const frameLeft = (layer.x - bodyAnchorX) * scale;
+        const frameLeft = (layer.x + bodyAnchorShiftX) * scale;
         const layerWidth = layer.frameWidth * scale;
         const sourceX = ((layer.cropX ?? 0) + layer.sourceIndex * (layer.frameStride ?? layer.frameWidth)) * scale;
 
@@ -562,7 +645,7 @@ export const CreateCharacterPreview: React.FC<CreateCharacterPreviewProps> = ({
             style={{
               position: 'absolute',
               left: layerLeft,
-              top: layer.y * scale,
+              top: (layer.y + bodyAnchorY) * scale,
               width: layerWidth,
               height: layer.frameHeight * scale,
               overflow: 'hidden',
