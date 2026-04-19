@@ -70,11 +70,17 @@ export const ACTION_FRAME_COUNTS: Record<CharacterAction, number> = {
 export const ANIM_SPEED: Record<CharacterAction, number> = {
   idle: 500,    // slow breathing cycle
   run: 140,     // keep footsteps visible even when map speed is very low
-  attack: 180,  // snappy attack
+  attack: 120,  // faster attack response
+};
+
+export const ACTION_FRAME_DURATIONS: Record<CharacterAction, readonly number[]> = {
+  idle: [420, 420],
+  run: [82, 82, 82, 82, 82, 82],
+  attack: [42, 52, 64, 78],
 };
 
 /** How long the full attack animation lasts before returning to idle */
-export const ATTACK_DURATION = ANIM_SPEED.attack * ANIM_FRAMES.attack.length * 2; // ~720ms (2 loops)
+export const ATTACK_DURATION = ACTION_FRAME_DURATIONS.attack.reduce((sum, duration) => sum + duration, 0); // ~236ms
 
 // ── Movement ──────────────────────────────────────────────────────────────
 /**
@@ -82,7 +88,7 @@ export const ATTACK_DURATION = ANIM_SPEED.attack * ANIM_FRAMES.attack.length * 2
  * Actual per-frame step is scaled by delta-time in the rAF loop so speed
  * stays stable when frame rate dips (e.g. speed * dt / MOVE_TICK_MS).
  */
-export const DEFAULT_SPEED = 3;          // px per reference frame (60fps)
+export const DEFAULT_SPEED = 3.4;        // px per reference frame (60fps)
 export const MOVE_TICK_MS = 16;          // reference frame duration (~60fps)
 export const SWIPE_THRESHOLD = 10;       // min px to register as swipe (not tap)
 export const DEFAULT_ATTACK_RANGE = 60;  // px distance to trigger attack

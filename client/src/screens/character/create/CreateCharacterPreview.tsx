@@ -29,10 +29,16 @@ import {
   SLOT_ZERO_META,
   type SlotMeta,
 } from './createCatalog';
-import { ASSET_REGISTRY, type AssetRegistryEntry } from './assetRegistry';
+import { ASSET_REGISTRY } from './assetRegistry';
 import { usePaletteSwappedImage } from './usePaletteSwappedImage';
 import { ACTION_SLOT_META } from './actionSlotMeta';
-import type { CharacterAppearance } from '../shared';
+import type {
+  CharacterAppearance,
+  CharacterEquipmentLayerConfig,
+  CharacterHairLayerOverride,
+  CharacterLayerAssetFamilyConfig,
+  CharacterLayerFamilySlotAsset,
+} from '../shared';
 
 type PreviewFacing = 'left' | 'right';
 type ActionFamilySlot = CharacterPoseFamilySlot;
@@ -53,6 +59,8 @@ interface CreateCharacterPreviewProps extends CharacterPreviewAppearance {
   anchorToBody?: boolean;
   poseFamilySlotOverride?: CharacterPoseFamilySlot;
   poseFrameIndexOverride?: number;
+  hairLayerOverride?: CharacterHairLayerOverride;
+  equipmentLayers?: readonly CharacterEquipmentLayerConfig[];
 }
 
 interface LayerRect {
@@ -83,6 +91,11 @@ interface SimpleFamilyAsset {
   source: ImageSourcePropType;
   width: number;
   height: number;
+}
+
+interface ResolvedFamilyAsset extends SimpleFamilyAsset {
+  cropX?: number;
+  cropY?: number;
 }
 
 interface BodyAnchorMetrics {
@@ -251,7 +264,7 @@ function useBodySourcesBySlot(
 }
 
 function useHairSourcesBySlot(
-  hairAssets: Record<ActionFamilySlot, AssetRegistryEntry>,
+  hairAssets: Record<ActionFamilySlot, { source: ImageSourcePropType }>,
   palette: readonly number[],
 ): Record<ActionFamilySlot, ImageSourcePropType> {
   const slot0 = usePaletteSwappedImage(hairAssets[0].source, HAIR_PALETTE_FROM, palette);
@@ -269,11 +282,29 @@ function useHairSourcesBySlot(
   }), [slot0, slot1, slot2, slot3, slot4]);
 }
 
+function resolveFamilySlotAsset(
+  family: CharacterLayerAssetFamilyConfig,
+  familySlot: ActionFamilySlot,
+): ResolvedFamilyAsset {
+  const explicitAsset = family.assetsBySlot?.[familySlot] as CharacterLayerFamilySlotAsset | undefined;
+  if (explicitAsset) {
+    return explicitAsset;
+  }
+
+  if (family.baseImageId !== undefined) {
+    return getFamilyAsset(ASSET_REGISTRY, family.baseImageId + familySlot);
+  }
+
+  throw new Error(`Missing family asset for slot=${familySlot}`);
+}
+
 function resolveMetaRect(
   key: string,
   source: ImageSourcePropType,
   sourceWidth: number,
   sourceHeight: number,
+  cropX: number | undefined,
+  cropY: number | undefined,
   meta: SlotMeta,
   frameStep: number,
   zIndex: number,
@@ -289,6 +320,8 @@ function resolveMetaRect(
     frameHeight: sourceHeight,
     frameStride: frameWidth,
     sourceIndex: frame.sourceIndex,
+    cropX,
+    cropY,
     x: frame.xOffset,
     y: frame.yOffset,
     zIndex,
@@ -350,6 +383,8 @@ function buildCreateCharacterLayout(
     bodySource: ImageSourcePropType;
     hairSource: ImageSourcePropType;
   },
+  hairLayerOverride: CharacterHairLayerOverride | undefined,
+  equipmentLayers: readonly CharacterEquipmentLayerConfig[] = [],
 ) {
   const { genderIndex, faceIndex, hairIndex, hairColorIndex, skinColorIndex } = appearance;
   void hairColorIndex;
@@ -362,7 +397,11 @@ function buildCreateCharacterLayout(
   const bodyAsset = BODY_FAMILY_ASSETS[familySlot];
 
   const hairOption = HAIR_STYLE_OPTIONS[genderKey][hairIndex] ?? HAIR_STYLE_OPTIONS[genderKey][0];
-  const hairAsset = getFamilyAsset(ASSET_REGISTRY, hairOption.baseImageId + familySlot);
+  const hairLayer = hairLayerOverride ?? {
+    metaId: hairOption.metaId,
+    baseImageId: hairOption.baseImageId,
+  };
+  const hairAsset = resolveFamilySlotAsset(hairLayer, familySlot);
 
   const eyeOption = EYE_STYLE_OPTIONS[genderKey][faceIndex] ?? EYE_STYLE_OPTIONS[genderKey][0];
   const eyeAsset = getFamilyAsset(ASSET_REGISTRY, eyeOption.baseImageId + familySlot);
@@ -375,7 +414,9 @@ function buildCreateCharacterLayout(
     resolvedSources.hairSource,
     hairAsset.width,
     hairAsset.height,
-    getActionSlotMeta(hairOption.metaId, familySlot),
+    hairAsset.cropX,
+    hairAsset.cropY,
+    getActionSlotMeta(hairLayer.metaId, familySlot),
     frameStep,
     2,
   ));
@@ -385,6 +426,8 @@ function buildCreateCharacterLayout(
     eyeAsset.source,
     eyeAsset.width,
     eyeAsset.height,
+    undefined,
+    undefined,
     getActionSlotMeta(eyeOption.metaId, familySlot),
     frameStep,
     3,
@@ -395,20 +438,41 @@ function buildCreateCharacterLayout(
     genderAsset.source,
     genderAsset.width,
     genderAsset.height,
+    undefined,
+    undefined,
     getActionSlotMeta(genderOption.metaId, familySlot),
     frameStep,
     4,
   ));
+
+  for (const equipmentLayer of equipmentLayers) {
+    const equipmentAsset = resolveFamilySlotAsset(equipmentLayer, familySlot);
+    layers.push(resolveMetaRect(
+      equipmentLayer.key,
+      equipmentAsset.source,
+      equipmentAsset.width,
+      equipmentAsset.height,
+      equipmentAsset.cropX,
+      equipmentAsset.cropY,
+      getActionSlotMeta(equipmentLayer.metaId, familySlot),
+      frameStep,
+      equipmentLayer.zIndex,
+    ));
+  }
 
   layers.push(resolveMetaRect(
     'overlay',
     overlayAsset.source,
     overlayAsset.width,
     overlayAsset.height,
+    undefined,
+    undefined,
     getActionSlotMeta(DEFAULT_OVERLAY.metaId, familySlot),
     frameStep,
-    5,
+    999,
   ));
+
+  layers.sort((a, b) => a.zIndex - b.zIndex);
 
   let minX = 0;
   let minY = 0;
@@ -432,7 +496,11 @@ function buildCreateCharacterLayout(
   };
 }
 
-function measureBodyAnchorMetrics(appearance: CharacterPreviewAppearance): BodyAnchorMetrics {
+function measureBodyAnchorMetrics(
+  appearance: CharacterPreviewAppearance,
+  hairLayerOverride: CharacterHairLayerOverride | undefined,
+  equipmentLayers: readonly CharacterEquipmentLayerConfig[] = [],
+): BodyAnchorMetrics {
   const genderKey = appearance.genderIndex === 0 ? 'male' : 'female';
   const hairOption = HAIR_STYLE_OPTIONS[genderKey][appearance.hairIndex] ?? HAIR_STYLE_OPTIONS[genderKey][0];
 
@@ -445,7 +513,11 @@ function measureBodyAnchorMetrics(appearance: CharacterPreviewAppearance): BodyA
 
   for (const familySlot of ACTION_FAMILY_SLOTS) {
     const bodySource = BODY_FAMILY_ASSETS[familySlot].source;
-    const hairSource = getFamilyAsset(ASSET_REGISTRY, hairOption.baseImageId + familySlot).source;
+    const hairAsset = resolveFamilySlotAsset(hairLayerOverride ?? {
+      metaId: hairOption.metaId,
+      baseImageId: hairOption.baseImageId,
+    }, familySlot);
+    const hairSource = hairAsset.source;
     const frameCount = BODY_FAMILY_ASSETS[familySlot].frameCount;
 
     for (let frame = 0; frame < frameCount; frame++) {
@@ -454,6 +526,8 @@ function measureBodyAnchorMetrics(appearance: CharacterPreviewAppearance): BodyA
         familySlot,
         frame,
         { bodySource, hairSource },
+        hairLayerOverride,
+        equipmentLayers,
       );
       const rightOfBody = layout.width - (layout.bodyX + layout.bodyWidth);
       const belowBody = layout.height - (layout.bodyY + layout.bodyHeight);
@@ -480,9 +554,11 @@ export function measureCreateCharacterPreview(
   appearance: CharacterPreviewAppearance,
   scale: number = DEFAULT_SCALE,
   anchorToBody = false,
+  hairLayerOverride?: CharacterHairLayerOverride,
+  equipmentLayers: readonly CharacterEquipmentLayerConfig[] = [],
 ) {
   if (anchorToBody) {
-    const metrics = measureBodyAnchorMetrics(appearance);
+    const metrics = measureBodyAnchorMetrics(appearance, hairLayerOverride, equipmentLayers);
     return {
       w: (metrics.maxLeftOfBody + metrics.maxBodyWidth + metrics.maxRightOfBody) * scale,
       h: (metrics.maxAboveBody + metrics.maxBodyHeight + metrics.maxBelowBody) * scale,
@@ -497,7 +573,11 @@ export function measureCreateCharacterPreview(
 
   for (const familySlot of ACTION_FAMILY_SLOTS) {
     const bodySource = BODY_FAMILY_ASSETS[familySlot].source;
-    const hairSource = getFamilyAsset(ASSET_REGISTRY, hairOption.baseImageId + familySlot).source;
+    const hairAsset = resolveFamilySlotAsset(hairLayerOverride ?? {
+      metaId: hairOption.metaId,
+      baseImageId: hairOption.baseImageId,
+    }, familySlot);
+    const hairSource = hairAsset.source;
     const frameCount = BODY_FAMILY_ASSETS[familySlot].frameCount;
 
     for (let frame = 0; frame < frameCount; frame++) {
@@ -506,6 +586,8 @@ export function measureCreateCharacterPreview(
         familySlot,
         frame,
         { bodySource, hairSource },
+        hairLayerOverride,
+        equipmentLayers,
       );
       maxWidth = Math.max(maxWidth, layout.width);
       maxHeight = Math.max(maxHeight, layout.height);
@@ -533,6 +615,8 @@ export const CreateCharacterPreview: React.FC<CreateCharacterPreviewProps> = ({
   anchorToBody = false,
   poseFamilySlotOverride,
   poseFrameIndexOverride,
+  hairLayerOverride,
+  equipmentLayers = [],
 }) => {
   const scale = scaleProp ?? DEFAULT_SCALE;
   const [localFrameIndex, setLocalFrameIndex] = useState(0);
@@ -558,19 +642,23 @@ export const CreateCharacterPreview: React.FC<CreateCharacterPreviewProps> = ({
   const hairPalette = HAIR_COLOR_OPTIONS[hairColorIndex] ?? HAIR_COLOR_OPTIONS[0];
 
   const hairOption = HAIR_STYLE_OPTIONS[genderKey][hairIndex] ?? HAIR_STYLE_OPTIONS[genderKey][0];
-  const hairAssetsBySlot = useMemo<Record<ActionFamilySlot, AssetRegistryEntry>>(() => ({
-    0: getFamilyAsset(ASSET_REGISTRY, hairOption.baseImageId + 0),
-    1: getFamilyAsset(ASSET_REGISTRY, hairOption.baseImageId + 1),
-    2: getFamilyAsset(ASSET_REGISTRY, hairOption.baseImageId + 2),
-    3: getFamilyAsset(ASSET_REGISTRY, hairOption.baseImageId + 3),
-    4: getFamilyAsset(ASSET_REGISTRY, hairOption.baseImageId + 4),
-  }), [hairOption.baseImageId]);
+  const effectiveHairLayer = hairLayerOverride ?? {
+    metaId: hairOption.metaId,
+    baseImageId: hairOption.baseImageId,
+  };
+  const hairAssetsBySlot = useMemo<Record<ActionFamilySlot, ResolvedFamilyAsset>>(() => ({
+    0: resolveFamilySlotAsset(effectiveHairLayer, 0),
+    1: resolveFamilySlotAsset(effectiveHairLayer, 1),
+    2: resolveFamilySlotAsset(effectiveHairLayer, 2),
+    3: resolveFamilySlotAsset(effectiveHairLayer, 3),
+    4: resolveFamilySlotAsset(effectiveHairLayer, 4),
+  }), [hairLayerOverride, hairOption.baseImageId, hairOption.metaId]);
 
   const bodySourcesBySlot = useBodySourcesBySlot(bodyPalette.toColors);
   const hairSourcesBySlot = useHairSourcesBySlot(hairAssetsBySlot, hairPalette.toColors);
 
   const bodySource = bodySourcesBySlot[familySlot];
-  const hairSource = familySlot === 0
+  const hairSource = !hairLayerOverride && familySlot === 0
     ? (HAIR_COLOR_SOURCES[hairOption.baseImageId]?.[hairColorIndex] ?? hairSourcesBySlot[0])
     : hairSourcesBySlot[familySlot];
 
@@ -585,14 +673,18 @@ export const CreateCharacterPreview: React.FC<CreateCharacterPreviewProps> = ({
     familySlot,
     currentFrameIndex,
     { bodySource, hairSource },
+    hairLayerOverride,
+    equipmentLayers,
   ), [
     bodySource,
     currentFrameIndex,
+    equipmentLayers,
     faceIndex,
     familySlot,
     genderIndex,
     hairColorIndex,
     hairIndex,
+    hairLayerOverride,
     hairSource,
     skinColorIndex,
   ]);
@@ -604,9 +696,9 @@ export const CreateCharacterPreview: React.FC<CreateCharacterPreviewProps> = ({
         hairIndex,
         hairColorIndex,
         skinColorIndex,
-      })
+      }, hairLayerOverride, equipmentLayers)
       : null,
-    [anchorToBody, faceIndex, genderIndex, hairColorIndex, hairIndex, skinColorIndex],
+    [anchorToBody, equipmentLayers, faceIndex, genderIndex, hairColorIndex, hairIndex, hairLayerOverride, skinColorIndex],
   );
 
   const bodyAnchorShiftX = anchorToBody && bodyAnchorMetrics

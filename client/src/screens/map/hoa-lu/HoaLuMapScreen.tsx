@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Animated, View, Image, ScrollView,
-  StyleSheet, Dimensions,
+  StyleSheet, Dimensions, Platform,
 } from 'react-native';
 import {
   MonsterSprite, MonsterType,
@@ -9,15 +9,17 @@ import {
 } from '../../../engine/MonsterSprite';
 import {
   CharacterController,
+  type CharacterControllerRef,
   type MonsterTarget,
 } from '../../../engine/character';
+import { CharacterRenderer, measureCharacterRenderer } from '../../character';
 import { HOA_LU_MAP_ASSETS } from './assets';
 import { BattleIntroScreen } from '../../battle';
 import { MapHUD } from '../../../components/game/MapHUD/MapHUD';
 import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
 import { PopupMenu, MenuItem } from '../../../components/controls/PopupMenu/PopupMenu';
+import { TouchGamepad } from '../../../components/controls/TouchGamepad';
 import { clearSession } from '../../../storage/SessionStorage';
-import { CreateCharacterPreview, measureCreateCharacterPreview } from '../../character/create/CreateCharacterPreview';
 import type { CharacterAppearance } from '../../character/shared';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -40,7 +42,7 @@ const PLATFORM_TOP = Math.round(SCREEN_H * 0.72);
 
 // ── Player ──────────────────────────────────────────────────────────────────
 const CHAR_SCALE  = 1;
-const CHAR_SPEED  = 1;
+const CHAR_SPEED  = 1.35;
 const CHAR_INIT_X = Math.round(MAP_W * 0.08);
 
 // ── Monster dữ liệu tĩnh (loại + patrol range) ────────────────────────────
@@ -184,6 +186,7 @@ interface EncounterPreviewState {
 // ═══════════════════════════════════════════════════════════════════════════
 export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, onBattle }) => {
   const scrollRef = useRef<ScrollView>(null);
+  const characterControllerRef = useRef<CharacterControllerRef>(null);
   const battleTriggered = useRef(false);
   const charLeftRef = useRef(CHAR_INIT_X);
   const cameraXRef = useRef(0);
@@ -193,6 +196,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
   const pendingScrollXRef = useRef<number | null>(null);
   const scrollRafRef = useRef<number | null>(null);
   const [encounterPreview, setEncounterPreview] = useState<EncounterPreviewState | null>(null);
+  const [activeMoveDirection, setActiveMoveDirection] = useState<'left' | 'right' | null>(null);
 
   // ── Monster runtime (stable identity, mutated in place) ─────────────────
   // Created once; the rAF loop mutates fields directly and drives position
@@ -293,8 +297,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
   ], [handleLogout]);
 
   const isEncounterActive = encounterPreview !== null;
+  const showTouchGamepad = !menuVisible && !isEncounterActive;
   const playerSpriteSize = useMemo(
-    () => measureCreateCharacterPreview(appearance, CHAR_SCALE, true),
+    () => measureCharacterRenderer(appearance, CHAR_SCALE, true),
     [appearance],
   );
   const hudHp = appearance.hp?.cur ?? 800;
@@ -459,6 +464,89 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
     scrollToCharacter(CHAR_INIT_X);
   }, [scrollToCharacter]);
 
+  useEffect(() => {
+    if (showTouchGamepad) return;
+    characterControllerRef.current?.stopMove();
+    setActiveMoveDirection(null);
+  }, [showTouchGamepad]);
+
+  const handleGamepadMoveStart = useCallback((direction: 'left' | 'right') => {
+    setActiveMoveDirection(direction);
+    characterControllerRef.current?.startMove(direction);
+  }, []);
+
+  const handleGamepadMoveStop = useCallback(() => {
+    setActiveMoveDirection(null);
+    characterControllerRef.current?.stopMove();
+  }, []);
+
+  const handleGamepadJump = useCallback(() => {
+    const jumpDirection = activeMoveDirection ?? 'up';
+    characterControllerRef.current?.jump(jumpDirection);
+  }, [activeMoveDirection]);
+
+  const handleGamepadAttack = useCallback(() => {
+    characterControllerRef.current?.attack();
+  }, []);
+
+  const handleGamepadDown = useCallback(() => {
+    // Reserved for ladder / contextual down actions.
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !showTouchGamepad || typeof window === 'undefined') {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat) return;
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        handleGamepadMoveStart('left');
+        return;
+      }
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        handleGamepadMoveStart('right');
+        return;
+      }
+
+      if (event.key === 'ArrowUp' || event.key === ' ' || event.code === 'Space') {
+        event.preventDefault();
+        handleGamepadJump();
+        return;
+      }
+
+      if (event.key.toLowerCase() === 'a' || event.key === 'Enter') {
+        event.preventDefault();
+        handleGamepadAttack();
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        handleGamepadMoveStop();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [
+    handleGamepadAttack,
+    handleGamepadJump,
+    handleGamepadMoveStart,
+    handleGamepadMoveStop,
+    showTouchGamepad,
+  ]);
+
   // ── Render: stone platform ──────────────────────────────────────────────
   const renderGround = () => {
     const tiles = [];
@@ -527,6 +615,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
           {/* Layer 3: Nhân vật */}
           {!isEncounterActive && (
             <CharacterController
+              ref={characterControllerRef}
               initialX={CHAR_INIT_X}
               groundY={PLATFORM_TOP}
               controlMode="tap-to-move"
@@ -534,12 +623,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
               scale={CHAR_SCALE}
               spriteSize={playerSpriteSize}
               renderSprite={({ action, actionFrameIndex, facing, scale, poseFamilySlot, poseFrameIndex }) => (
-                <CreateCharacterPreview
-                  genderIndex={appearance.genderIndex}
-                  faceIndex={appearance.faceIndex}
-                  hairIndex={appearance.hairIndex}
-                  hairColorIndex={appearance.hairColorIndex}
-                  skinColorIndex={appearance.skinColorIndex}
+                <CharacterRenderer
+                  appearance={appearance}
                   scale={scale}
                   action={action}
                   actionFrameIndex={actionFrameIndex}
@@ -572,6 +657,15 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
           )}
         </View>
       </ScrollView>
+
+      <TouchGamepad
+        visible={showTouchGamepad}
+        onMoveStart={handleGamepadMoveStart}
+        onMoveStop={handleGamepadMoveStop}
+        onAttack={handleGamepadAttack}
+        onUpPress={handleGamepadJump}
+        onDownPress={handleGamepadDown}
+      />
 
       {encounterPreview && (
         <BattleIntroScreen

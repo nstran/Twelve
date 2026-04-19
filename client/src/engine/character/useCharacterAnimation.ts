@@ -6,12 +6,12 @@
  *
  * - idle: holds on frame 0
  * - run: holds on frame 1
- * - attack: cycles [2, 3] for ATTACK_DURATION then calls onFinish
+ * - attack: plays a fixed frame timeline, then returns to idle
  */
 
 import { useRef, useEffect, useCallback, useState } from 'react';
 import type { CharacterAction } from './character.types';
-import { ACTION_FRAME_COUNTS, ANIM_FRAMES, ANIM_SPEED, ATTACK_DURATION } from './character.constants';
+import { ACTION_FRAME_DURATIONS, ANIM_FRAMES } from './character.constants';
 
 interface UseCharacterAnimationOptions {
   /** Called when attack animation completes */
@@ -37,70 +37,99 @@ export function useCharacterAnimation(
   const [action, setActionState] = useState<CharacterAction>('idle');
   const [frameIndex, setFrameIndex] = useState(0);
   const [actionFrameIndex, setActionFrameIndex] = useState(0);
-
-  // Track the sequence step within current animation
-  const seqIndex = useRef(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const attackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [attackCycleId, setAttackCycleId] = useState(0);
+  const rafRef = useRef<number | null>(null);
+  const currentStepRef = useRef(0);
 
   // Cleanup all timers
   const cleanup = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    if (attackTimerRef.current) {
-      clearTimeout(attackTimerRef.current);
-      attackTimerRef.current = null;
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     }
   }, []);
 
-  // Start animation loop for a given action
-  const startAnimation = useCallback((act: CharacterAction) => {
-    cleanup();
-    seqIndex.current = 0;
-
+  const commitStep = useCallback((act: CharacterAction, nextStep: number) => {
+    if (currentStepRef.current === nextStep) return;
+    currentStepRef.current = nextStep;
+    setActionFrameIndex(nextStep);
     const frames = ANIM_FRAMES[act];
-    const speed = ANIM_SPEED[act];
-    const actionFrameCount = ACTION_FRAME_COUNTS[act];
+    setFrameIndex(frames[nextStep % frames.length]);
+  }, []);
 
-    // Set initial frame immediately
-    setFrameIndex(frames[0]);
-    setActionFrameIndex(0);
+  const resolveFrameStep = useCallback((elapsedMs: number, durations: readonly number[]) => {
+    let remaining = elapsedMs;
 
-    // If only 1 frame (idle), no need for interval
-    if (frames.length <= 1 && actionFrameCount <= 1) return;
+    for (let i = 0; i < durations.length; i += 1) {
+      if (remaining < durations[i]) {
+        return i;
+      }
+      remaining -= durations[i];
+    }
 
-    intervalRef.current = setInterval(() => {
-      seqIndex.current = (seqIndex.current + 1) % actionFrameCount;
-      setActionFrameIndex(seqIndex.current);
-      setFrameIndex(frames[seqIndex.current % frames.length]);
-    }, speed);
-  }, [cleanup]);
+    return durations.length - 1;
+  }, []);
 
   // Public API: change action
   const setAction = useCallback((newAction: CharacterAction) => {
-    setActionState((prev) => {
-      // Don't interrupt attack unless switching to different action
-      if (prev === 'attack' && newAction === 'attack') return prev;
-      return newAction;
-    });
+    if (newAction === 'attack') {
+      setAttackCycleId((current) => current + 1);
+      setActionState('attack');
+      return;
+    }
+
+    setActionState(newAction);
   }, []);
 
   // React to action changes
   useEffect(() => {
-    startAnimation(action);
+    cleanup();
 
-    // Auto-return to idle after attack finishes
-    if (action === 'attack') {
-      attackTimerRef.current = setTimeout(() => {
-        setActionState('idle');
-        onAttackFinish?.();
-      }, ATTACK_DURATION);
+    const durations = ACTION_FRAME_DURATIONS[action];
+    const totalDuration = durations.reduce((sum, duration) => sum + duration, 0);
+    const initialFrame = ANIM_FRAMES[action][0];
+    currentStepRef.current = 0;
+    setFrameIndex(initialFrame);
+    setActionFrameIndex(0);
+
+    if (durations.length === 0 || totalDuration <= 0) {
+      return cleanup;
     }
 
-    return cleanup;
-  }, [action, startAnimation, cleanup, onAttackFinish]);
+    let startTime: number | null = null;
+    let cancelled = false;
+
+    const tick = (now: number) => {
+      if (cancelled) return;
+
+      if (startTime === null) {
+        startTime = now;
+      }
+
+      const elapsed = now - startTime;
+
+      if (action === 'attack' && elapsed >= totalDuration) {
+        commitStep(action, durations.length - 1);
+        setActionState('idle');
+        onAttackFinish?.();
+        return;
+      }
+
+      const loopElapsed = action === 'attack'
+        ? elapsed
+        : (elapsed % totalDuration);
+      const nextStep = resolveFrameStep(loopElapsed, durations);
+      commitStep(action, nextStep);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      cancelled = true;
+      cleanup();
+    };
+  }, [action, attackCycleId, cleanup, commitStep, onAttackFinish, resolveFrameStep]);
 
   // Cleanup on unmount
   useEffect(() => cleanup, [cleanup]);

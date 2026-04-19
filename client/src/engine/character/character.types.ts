@@ -15,6 +15,7 @@ export type CharacterPlacementPreset = 'default' | 'battle';
 
 // ── Input / Control Mode ──────────────────────────────────────────────────
 export type CharacterControlMode = 'swipe' | 'tap-to-move';
+export type VirtualJumpDirection = FacingDirection | 'up';
 
 // ── Monster info for proximity detection ──────────────────────────────────
 export interface MonsterTarget {
@@ -54,6 +55,13 @@ export interface CharacterRenderSpriteArgs {
   scale: number;
   poseFamilySlot?: CharacterPoseFamilySlot;
   poseFrameIndex?: number;
+}
+
+export interface CharacterControllerRef {
+  startMove: (direction: FacingDirection) => void;
+  stopMove: () => void;
+  jump: (direction?: VirtualJumpDirection) => void;
+  attack: () => void;
 }
 
 // ── CharacterController props ─────────────────────────────────────────────

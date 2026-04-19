@@ -18,13 +18,23 @@
  * - tap-to-move: tap a point or monster to run there, then attack in range
  */
 
-import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  forwardRef,
+  useRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from 'react';
 import { Animated, View, PanResponder, StyleSheet } from 'react-native';
 import type {
   CharacterControllerProps,
+  CharacterControllerRef,
   FacingDirection,
   MonsterTarget,
   CharacterPoseFamilySlot,
+  VirtualJumpDirection,
 } from './character.types';
 import { CharacterSprite, characterDisplaySize } from './CharacterSprite';
 import { useCharacterAnimation } from './useCharacterAnimation';
@@ -46,9 +56,9 @@ const DOUBLE_TAP_MS = 260;
 const DOUBLE_TAP_DIST = 26;
 const JUMP_TRIGGER_RATIO = 0.42;
 // Step-based jump physics (faithful to Java kl.java / km.java)
-const JUMP_INITIAL_SPEED = 5;     // upward px per reference frame
-const JUMP_DECEL = 0.35;          // deceleration per reference frame (ascending)
-const JUMP_GRAVITY = 0.6;         // acceleration per reference frame (falling)
+const JUMP_INITIAL_SPEED = 6.4;   // upward px per reference frame
+const JUMP_DECEL = 0.32;          // deceleration per reference frame (ascending)
+const JUMP_GRAVITY = 0.56;        // acceleration per reference frame (falling)
 const JUMP_MAX_FALL_SPEED = 8;    // terminal velocity
 const JUMP_LANDING_MS = 150;      // landing pose hold duration
 const JUMP_TAKEOFF_HEIGHT_RATIO = 0.14;
@@ -77,7 +87,9 @@ interface JumpPoseState {
   frame: number;
 }
 
-export const CharacterController: React.FC<CharacterControllerProps> = ({
+const DIRECTIONAL_JUMP_DISTANCE_RATIO = 1.25;
+
+export const CharacterController = forwardRef<CharacterControllerRef, CharacterControllerProps>(({
   initialX,
   groundY,
   controlMode = 'swipe',
@@ -96,7 +108,7 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
   disabled = false,
   renderSprite,
   spriteSize,
-}) => {
+}, ref) => {
   // ── Position is animated value (native-driven translateX). ──────────────
   // posXRef keeps the authoritative numeric value for reads (physics, AI).
   const posXRef = useRef(initialX);
@@ -285,9 +297,18 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
         jumpState.elapsedMs += dt;
         const tickScale = dt / MOVE_TICK_MS;
 
-        // Horizontal: linear interpolation toward target
-        const tX = Math.min(1, jumpState.elapsedMs / jumpState.durationMs);
-        const nextX = clampX(jumpState.startX + (jumpState.targetX - jumpState.startX) * tX);
+        // Horizontal:
+        // - default jump keeps the scripted interpolation toward the original target
+        // - if left/right is held mid-air, air-control takes over and horizontal
+        //   movement becomes direct until the player releases the button
+        let nextX: number;
+        if (moveDirection.current) {
+          const airDelta = moveDirection.current === 'right' ? stepPx : -stepPx;
+          nextX = clampX(posXRef.current + airDelta);
+        } else {
+          const tX = Math.min(1, jumpState.elapsedMs / jumpState.durationMs);
+          nextX = clampX(jumpState.startX + (jumpState.targetX - jumpState.startX) * tX);
+        }
 
         // Vertical: step-based physics (Java-faithful)
         if (jumpState.phase === 'up') {
@@ -476,10 +497,38 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     moveTargetX.current = null;
     moveDirection.current = dir;
     setFacingIfChanged(dir);
+
+    if (jumpRef.current) {
+      // Once the player steers in mid-air, cancel the scripted horizontal jump
+      // target so releasing the button doesn't snap back to the old arc.
+      jumpRef.current.startX = posXRef.current;
+      jumpRef.current.targetX = posXRef.current;
+      jumpRef.current.elapsedMs = jumpRef.current.durationMs;
+      startMovementLoop();
+      return;
+    }
+
     actionRef.current = 'run';
     setAction('run');
     startMovementLoop();
   }, [disabled, setAction, setFacingIfChanged, startMovementLoop]);
+
+  const triggerVirtualJump = useCallback((direction: VirtualJumpDirection = 'up') => {
+    const currentCenterX = posXRef.current + charSize.w / 2;
+    const directionalDistance = charSize.w * DIRECTIONAL_JUMP_DISTANCE_RATIO;
+
+    if (direction === 'left') {
+      startJumpToX(currentCenterX - directionalDistance);
+      return;
+    }
+
+    if (direction === 'right') {
+      startJumpToX(currentCenterX + directionalDistance);
+      return;
+    }
+
+    startJumpToX(currentCenterX);
+  }, [charSize.w, startJumpToX]);
 
   const moveToX = useCallback((rawTargetX: number) => {
     if (disabled || actionRef.current === 'attack') return;
@@ -519,6 +568,11 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     pendingAttackMonsterId.current = null;
     moveDirection.current = null;
     moveTargetX.current = null;
+
+    if (jumpRef.current) {
+      return;
+    }
+
     clearJumpState();
     clearMovementLoop();
 
@@ -527,6 +581,21 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
       setAction('idle');
     }
   }, [clearJumpState, clearMovementLoop, setAction]);
+
+  useImperativeHandle(ref, () => ({
+    startMove: (direction) => {
+      startMoving(direction);
+    },
+    stopMove: () => {
+      stopMoving();
+    },
+    jump: (direction = 'up') => {
+      triggerVirtualJump(direction);
+    },
+    attack: () => {
+      performAttack();
+    },
+  }), [performAttack, startMoving, stopMoving, triggerVirtualJump]);
 
   const isPointOnCharacter = useCallback((x: number, y: number) => {
     const top = groundY - charSize.h + jumpYOffsetRef.current;
@@ -695,7 +764,9 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
       </Animated.View>
     </View>
   );
-};
+});
+
+CharacterController.displayName = 'CharacterController';
 
 const styles = StyleSheet.create({
   gestureLayer: {

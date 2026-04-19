@@ -18,11 +18,14 @@ export type {
   CharacterSpriteProps,
   CharacterRenderSpriteArgs,
   CharacterControllerProps,
+  CharacterControllerRef,
+  VirtualJumpDirection,
 } from './character.types';
 export {
   ANIM_FRAMES,
   ACTION_FRAME_COUNTS,
   ANIM_SPEED,
+  ACTION_FRAME_DURATIONS,
   ATTACK_DURATION,
   DEFAULT_SPEED,
   DEFAULT_SCALE,
