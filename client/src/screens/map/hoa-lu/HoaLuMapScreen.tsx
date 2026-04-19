@@ -9,7 +9,6 @@ import {
 } from '../../../engine/MonsterSprite';
 import {
   CharacterController,
-  characterDisplaySize,
   type MonsterTarget,
 } from '../../../engine/character';
 import { HOA_LU_MAP_ASSETS } from './assets';
@@ -18,6 +17,8 @@ import { MapHUD } from '../../../components/game/MapHUD/MapHUD';
 import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
 import { PopupMenu, MenuItem } from '../../../components/controls/PopupMenu/PopupMenu';
 import { clearSession } from '../../../storage/SessionStorage';
+import { CreateCharacterPreview, measureCreateCharacterPreview } from '../../character/create/CreateCharacterPreview';
+import type { CharacterAppearance } from '../../character/shared';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -38,9 +39,8 @@ const GROUND_ROWS  = 1;
 const PLATFORM_TOP = Math.round(SCREEN_H * 0.72);
 
 // ── Player ──────────────────────────────────────────────────────────────────
-const CHAR_SCALE  = 0.7;
-const CHAR_SPEED  = 5;
-const CHAR_SIZE   = characterDisplaySize(CHAR_SCALE);
+const CHAR_SCALE  = 1;
+const CHAR_SPEED  = 1;
 const CHAR_INIT_X = Math.round(MAP_W * 0.08);
 
 // ── Monster dữ liệu tĩnh (loại + patrol range) ────────────────────────────
@@ -169,6 +169,7 @@ MonsterField.displayName = 'MonsterField';
 
 // ── Props ────────────────────────────────────────────────────────────────────
 interface Props {
+  appearance: CharacterAppearance;
   onBack:    () => void;
   onLogout:  () => void;
   onBattle?: (monsterType: MonsterType) => void;
@@ -181,7 +182,7 @@ interface EncounterPreviewState {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) => {
+export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, onBattle }) => {
   const scrollRef = useRef<ScrollView>(null);
   const battleTriggered = useRef(false);
   const charLeftRef = useRef(CHAR_INIT_X);
@@ -291,9 +292,18 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
     },
   ], [handleLogout]);
 
+  const isEncounterActive = encounterPreview !== null;
+  const playerSpriteSize = useMemo(
+    () => measureCreateCharacterPreview(appearance, CHAR_SCALE, true),
+    [appearance],
+  );
+  const hudHp = appearance.hp?.cur ?? 800;
+  const hudMaxHp = appearance.hp?.max ?? 1000;
+  const hudExpPercent = appearance.exp?.cur ?? 45;
+
   const scrollToCharacter = useCallback((charLeft: number) => {
     const maxScrollX = Math.max(0, MAP_W - SCREEN_W);
-    const camTarget = charLeft + CHAR_SIZE.w / 2 - SCREEN_W / 2;
+    const camTarget = charLeft + playerSpriteSize.w / 2 - SCREEN_W / 2;
     const nextScrollX = Math.max(0, Math.min(maxScrollX, camTarget));
 
     // Skip no-op updates (character hugging a map boundary).
@@ -312,7 +322,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
       cameraXRef.current = target;
       scrollRef.current?.scrollTo({ x: target, animated: false });
     });
-  }, []);
+  }, [playerSpriteSize.w]);
 
   // Cancel any pending scroll rAF on unmount to avoid leaks.
   useEffect(() => () => {
@@ -325,8 +335,6 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
   // Stable array identity — CharacterController's useEffect for this prop
   // fires only on mount; contents are mutated live by the game loop.
   const monsterTargets = monsterTargetsRef.current;
-
-  const isEncounterActive = encounterPreview !== null;
 
   const startEncounter = useCallback((snap: { type: MonsterType; x: number }) => {
     if (battleTriggered.current || isEncounterActive) return;
@@ -375,7 +383,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
 
       while (accumulator >= MONSTER_TICK_MS) {
         accumulator -= MONSTER_TICK_MS;
-        const playerCenter = charLeftRef.current + CHAR_SIZE.w / 2;
+        const playerCenter = charLeftRef.current + playerSpriteSize.w / 2;
 
         for (let i = 0; i < monsterRuntimes.length; i++) {
           const m = monsterRuntimes[i];
@@ -445,7 +453,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
       cancelled = true;
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
-  }, [isEncounterActive, monsterRuntimes, startEncounter]);
+  }, [isEncounterActive, monsterRuntimes, playerSpriteSize.w, startEncounter]);
 
   useEffect(() => {
     scrollToCharacter(CHAR_INIT_X);
@@ -482,9 +490,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
 
       {/* ─── MapHUD: HP / EXP bars + Zone name (top-left) ─── */}
       <MapHUD
-        hp={800}
-        maxHp={1000}
-        expPercent={45}
+        hp={hudHp}
+        maxHp={hudMaxHp}
+        expPercent={hudExpPercent}
         zoneName="Khu 1"
         width={SCREEN_W}
       />
@@ -524,6 +532,23 @@ export const HoaLuMapScreen: React.FC<Props> = ({ onBack, onLogout, onBattle }) 
               controlMode="tap-to-move"
               speed={CHAR_SPEED}
               scale={CHAR_SCALE}
+              spriteSize={playerSpriteSize}
+              renderSprite={({ action, actionFrameIndex, facing, scale, poseFamilySlot, poseFrameIndex }) => (
+                <CreateCharacterPreview
+                  genderIndex={appearance.genderIndex}
+                  faceIndex={appearance.faceIndex}
+                  hairIndex={appearance.hairIndex}
+                  hairColorIndex={appearance.hairColorIndex}
+                  skinColorIndex={appearance.skinColorIndex}
+                  scale={scale}
+                  action={action}
+                  actionFrameIndex={actionFrameIndex}
+                  facing={facing}
+                  anchorToBody
+                  poseFamilySlotOverride={poseFamilySlot}
+                  poseFrameIndexOverride={poseFrameIndex}
+                />
+              )}
               monsters={monsterTargets}
               minX={0}
               maxX={MAP_W}

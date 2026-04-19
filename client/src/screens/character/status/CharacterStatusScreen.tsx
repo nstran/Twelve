@@ -7,6 +7,7 @@ import { COMMON_MENU_ITEMS } from '../../../constants/MenuConstants';
 import { CHARACTER_STATUS_ASSETS } from './assets';
 import { CreateCharacterPreview } from '../create/CreateCharacterPreview';
 import { CornerFrame } from '../../../components/ui/CornerFrame/CornerFrame';
+import type { CharacterAppearance as PlayerAppearance } from '../shared';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -21,28 +22,6 @@ const EI_DISP_H  = Math.round(EI_H       * EI_SCALE); // 19.5px
 // ── Primary stat highlight — aI[] trong da.java ───────────────────────────────
 // Hỏa(0)→row0=CườngLực, Lôi(1)→row2=ThânPháp, Thủy(2)→row1=NộiLực
 const PRIMARY_STAT: Record<number, number> = { 0: 0, 1: 2, 2: 1 };
-
-export interface PlayerAppearance {
-  genderIndex:    number;
-  faceIndex:      number;
-  hairIndex:      number;
-  hairColorIndex: number;
-  skinColorIndex: number;
-  elementIndex?:  number;
-  // Stats & Info
-  level?:     number;
-  quanHam?:   string;
-  xepHang?:   string;
-  danhVong?:  number;
-  thangThua?: string;
-  ken?:       string;
-  hp?:    { cur: number; max: number };
-  exp?:   { cur: number; max: number };
-  power?: { cur: number; max: number };
-  stats?: { cuongLuc: number; noiLuc: number; thanPhap: number; theLuc: number };
-  points?: number;
-  combat?: { attack: number; def: number; acc: number; dodge: number; hp: number; crit: string };
-}
 
 interface StatusScreenProps {
   onStart:    () => void;

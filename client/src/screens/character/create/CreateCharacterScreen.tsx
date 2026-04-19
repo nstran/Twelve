@@ -25,6 +25,7 @@ import {
 import { CreateCharacterPreview } from './CreateCharacterPreview';
 import { LoadingDialog } from '../../../components/dialogs/LoadingDialog/LoadingDialog';
 import { ConfirmDialog } from '../../../components/dialogs/ConfirmDialog/ConfirmDialog';
+import type { CharacterAppearance } from '../shared';
 
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -33,15 +34,6 @@ const ASSET_ARROW = CREATE_CHARACTER_ASSETS.arrowBlue;
 const ASSET_MENU_ICON = CREATE_CHARACTER_ASSETS.iconMenu;
 const ASSET_OK_ICON = CREATE_CHARACTER_ASSETS.iconOk;
 const ASSET_CANCEL_ICON = CREATE_CHARACTER_ASSETS.iconCancel;
-
-export interface CharacterAppearance {
-  genderIndex:    number;
-  faceIndex:      number;
-  hairIndex:      number;
-  hairColorIndex: number;
-  skinColorIndex: number;
-  elementIndex:   number;
-}
 
 interface CreateCharacterScreenProps {
   onSuccess: (appearance: CharacterAppearance) => void;

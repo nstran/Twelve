@@ -24,6 +24,7 @@ import type {
   CharacterControllerProps,
   FacingDirection,
   MonsterTarget,
+  CharacterPoseFamilySlot,
 } from './character.types';
 import { CharacterSprite, characterDisplaySize } from './CharacterSprite';
 import { useCharacterAnimation } from './useCharacterAnimation';
@@ -41,6 +42,40 @@ import {
  * work the JS thread does during a long run.
  */
 const ON_MOVE_THROTTLE_PX = 1;
+const DOUBLE_TAP_MS = 260;
+const DOUBLE_TAP_DIST = 26;
+const JUMP_TRIGGER_RATIO = 0.42;
+// Step-based jump physics (faithful to Java kl.java / km.java)
+const JUMP_INITIAL_SPEED = 5;     // upward px per reference frame
+const JUMP_DECEL = 0.35;          // deceleration per reference frame (ascending)
+const JUMP_GRAVITY = 0.6;         // acceleration per reference frame (falling)
+const JUMP_MAX_FALL_SPEED = 8;    // terminal velocity
+const JUMP_LANDING_MS = 150;      // landing pose hold duration
+const JUMP_TAKEOFF_HEIGHT_RATIO = 0.14;
+
+interface JumpState {
+  startX: number;
+  targetX: number;
+  /** Vertical speed: negative = ascending, positive = descending */
+  speedY: number;
+  /** Current Y offset from ground (negative = above ground) */
+  yOffset: number;
+  /** Jump phase matching Java states 5/6/7 */
+  phase: 'up' | 'fall' | 'landing';
+  /** Elapsed ms for horizontal interpolation */
+  elapsedMs: number;
+  /** Estimated total duration for horizontal interpolation */
+  durationMs: number;
+  /** Remaining landing animation time */
+  landingTimer: number;
+  /** Initial upward speed magnitude (for pose calculation) */
+  initialSpeedY: number;
+}
+
+interface JumpPoseState {
+  slot: CharacterPoseFamilySlot;
+  frame: number;
+}
 
 export const CharacterController: React.FC<CharacterControllerProps> = ({
   initialX,
@@ -59,22 +94,29 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
   containerWidth,
   containerHeight,
   disabled = false,
+  renderSprite,
+  spriteSize,
 }) => {
   // ── Position is animated value (native-driven translateX). ──────────────
   // posXRef keeps the authoritative numeric value for reads (physics, AI).
   const posXRef = useRef(initialX);
   const posAnim = useRef(new Animated.Value(initialX)).current;
+  const posYAnim = useRef(new Animated.Value(0)).current;
   const lastEmittedXRef = useRef(initialX);
+  const jumpYOffsetRef = useRef(0);
 
   // Facing is rare state change — keep in React state so sprite flips.
   const [facing, setFacing] = useState<FacingDirection>('right');
   const facingRef = useRef<FacingDirection>('right');
+  const [jumpPoseState, setJumpPoseState] = useState<JumpPoseState | null>(null);
 
   const actionRef = useRef<'idle' | 'run' | 'attack'>('idle');
   const monstersRef = useRef(monsters);
   const moveDirection = useRef<'left' | 'right' | null>(null);
   const moveTargetX = useRef<number | null>(null);
   const pendingAttackMonsterId = useRef<string | null>(null);
+  const jumpRef = useRef<JumpState | null>(null);
+  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
 
   // rAF loop state
   const rafIdRef = useRef<number | null>(null);
@@ -82,13 +124,18 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
 
   const isTap = useRef(true);
 
-  const charSize = useMemo(() => characterDisplaySize(scale), [scale]);
+  const charSize = useMemo(
+    () => spriteSize ?? characterDisplaySize(scale),
+    [scale, spriteSize],
+  );
 
-  const { frameIndex, action, setAction } = useCharacterAnimation({
-    onAttackFinish: () => {
-      actionRef.current = 'idle';
-      onAttackEnd?.();
-    },
+  const handleAttackFinish = useCallback(() => {
+    actionRef.current = 'idle';
+    onAttackEnd?.();
+  }, [onAttackEnd]);
+
+  const { frameIndex, actionFrameIndex, action, setAction } = useCharacterAnimation({
+    onAttackFinish: handleAttackFinish,
   });
 
   useEffect(() => {
@@ -147,6 +194,30 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     setFacing(dir);
   }, []);
 
+  const updateJumpOffset = useCallback((nextOffset: number) => {
+    if (Math.abs(nextOffset - jumpYOffsetRef.current) < 0.1) return;
+    jumpYOffsetRef.current = nextOffset;
+    posYAnim.setValue(nextOffset);
+  }, [posYAnim]);
+
+  const clearJumpState = useCallback((resetOffset = true) => {
+    jumpRef.current = null;
+    setJumpPoseState(null);
+    if (resetOffset) {
+      jumpYOffsetRef.current = 0;
+      posYAnim.setValue(0);
+    }
+  }, [posYAnim]);
+
+  const updateJumpPoseState = useCallback((nextState: JumpPoseState | null) => {
+    setJumpPoseState((current) => {
+      if (current?.slot === nextState?.slot && current?.frame === nextState?.frame) {
+        return current;
+      }
+      return nextState;
+    });
+  }, []);
+
   /**
    * Commits a new position: updates the animated value (native driver),
    * the numeric ref, and throttles the onMove callback to avoid
@@ -168,6 +239,7 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     moveTargetX.current = null;
     pendingAttackMonsterId.current = null;
     clearMovementLoop();
+    clearJumpState();
 
     if (actionRef.current !== 'attack') {
       actionRef.current = 'idle';
@@ -177,24 +249,25 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     lastEmittedXRef.current = x;
     onMove?.(x, facingRef.current);
     onMoveEnd?.(x, facingRef.current);
-  }, [clearMovementLoop, onMove, onMoveEnd, setAction]);
+  }, [clearJumpState, clearMovementLoop, onMove, onMoveEnd, setAction]);
 
-  const performAttack = useCallback((preferredTarget?: MonsterTarget | null) => {
+  const performAttack = useCallback((preferredTarget?: MonsterTarget | null, triggerMonster = true) => {
     moveDirection.current = null;
     moveTargetX.current = null;
     pendingAttackMonsterId.current = null;
     clearMovementLoop();
+    clearJumpState();
     actionRef.current = 'attack';
     setAction('attack');
 
-    const target = preferredTarget ?? findMonsterInRange();
+    const target = triggerMonster ? (preferredTarget ?? findMonsterInRange()) : preferredTarget;
     if (target) {
       const cx = posXRef.current + charSize.w / 2;
       const mx = target.x + target.width / 2;
       setFacingIfChanged(mx > cx ? 'right' : 'left');
       onAttackMonster?.(target.id);
     }
-  }, [charSize.w, clearMovementLoop, findMonsterInRange, onAttackMonster, setAction, setFacingIfChanged]);
+  }, [charSize.w, clearJumpState, clearMovementLoop, findMonsterInRange, onAttackMonster, setAction, setFacingIfChanged]);
 
   const startMovementLoop = useCallback(() => {
     if (rafIdRef.current !== null || disabled) return;
@@ -206,6 +279,78 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
       lastFrameTimeRef.current = now;
 
       const stepPx = speed * (dt / MOVE_TICK_MS);
+      const jumpState = jumpRef.current;
+
+      if (jumpState) {
+        jumpState.elapsedMs += dt;
+        const tickScale = dt / MOVE_TICK_MS;
+
+        // Horizontal: linear interpolation toward target
+        const tX = Math.min(1, jumpState.elapsedMs / jumpState.durationMs);
+        const nextX = clampX(jumpState.startX + (jumpState.targetX - jumpState.startX) * tX);
+
+        // Vertical: step-based physics (Java-faithful)
+        if (jumpState.phase === 'up') {
+          // State 5: ascending — decelerate (speedY goes from -initial toward 0)
+          jumpState.yOffset += jumpState.speedY * tickScale;
+          jumpState.speedY += JUMP_DECEL * tickScale;
+          if (jumpState.speedY >= 0) {
+            jumpState.speedY = 0;
+            jumpState.phase = 'fall';
+          }
+        } else if (jumpState.phase === 'fall') {
+          // State 6: descending — accelerate downward
+          jumpState.yOffset += jumpState.speedY * tickScale;
+          jumpState.speedY += JUMP_GRAVITY * tickScale;
+          if (jumpState.speedY > JUMP_MAX_FALL_SPEED) {
+            jumpState.speedY = JUMP_MAX_FALL_SPEED;
+          }
+          if (jumpState.yOffset >= 0) {
+            jumpState.yOffset = 0;
+            jumpState.phase = 'landing';
+            jumpState.landingTimer = JUMP_LANDING_MS;
+          }
+        } else {
+          // State 7: landing pose hold
+          jumpState.landingTimer -= dt;
+          if (jumpState.landingTimer <= 0) {
+            clearJumpState();
+            finishMovement(nextX);
+            return;
+          }
+        }
+
+        // Pose mapping:
+        // - slot 3: only the takeoff burst from the ground
+        // - slot 4: airborne ascent / apex / descent
+        let poseSlot: CharacterPoseFamilySlot;
+        let poseFrame: number;
+        if (jumpState.phase === 'up') {
+          const takeoffHeight = charSize.h * JUMP_TAKEOFF_HEIGHT_RATIO;
+          if (Math.abs(jumpState.yOffset) < takeoffHeight) {
+            poseSlot = 3;
+            poseFrame = 0;
+          } else {
+            poseSlot = 4;
+            const ascentProgress = Math.min(1, Math.abs(jumpState.yOffset) / (charSize.h * 0.6));
+            poseFrame = ascentProgress < 0.8 ? 0 : 1;
+          }
+        } else if (jumpState.phase === 'fall') {
+          poseSlot = 4;
+          const fallProgress = Math.min(1, jumpState.speedY / JUMP_MAX_FALL_SPEED);
+          poseFrame = fallProgress < 0.45 ? 1 : 2;
+        } else {
+          poseSlot = 4;
+          poseFrame = 2;
+        }
+
+        updatePosition(nextX);
+        updateJumpOffset(jumpState.yOffset);
+        updateJumpPoseState({ slot: poseSlot, frame: poseFrame });
+
+        rafIdRef.current = requestAnimationFrame(tick);
+        return;
+      }
 
       // 1. Attack-on-reach check: if queued monster is now in range, attack.
       const queuedMonsterId = pendingAttackMonsterId.current;
@@ -276,15 +421,53 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
   }, [
     charSize.w,
     clampX,
+    clearJumpState,
     controlMode,
     disabled,
     findMonsterInRange,
     finishMovement,
     performAttack,
-    setFacingIfChanged,
     speed,
+    setFacingIfChanged,
+    updateJumpPoseState,
+    updateJumpOffset,
     updatePosition,
   ]);
+
+  const startJumpToX = useCallback((rawTargetX: number) => {
+    if (disabled || actionRef.current === 'attack') return;
+
+    const currentCenterX = posXRef.current + charSize.w / 2;
+    const targetLeft = clampX(rawTargetX - charSize.w / 2);
+
+    // Scale-aware initial speed
+    const initialSpeed = JUMP_INITIAL_SPEED * scale;
+
+    // Estimate total jump duration from physics for horizontal interpolation
+    const upTicks = initialSpeed / JUMP_DECEL;
+    const peakHeight = initialSpeed * upTicks / 2;
+    const fallTicks = Math.sqrt(2 * peakHeight / JUMP_GRAVITY);
+    const durationMs = Math.max(400, (upTicks + fallTicks) * MOVE_TICK_MS + JUMP_LANDING_MS);
+
+    setFacingIfChanged(rawTargetX >= currentCenterX ? 'right' : 'left');
+    moveDirection.current = null;
+    moveTargetX.current = null;
+    pendingAttackMonsterId.current = null;
+    jumpRef.current = {
+      startX: posXRef.current,
+      targetX: targetLeft,
+      speedY: -initialSpeed,
+      yOffset: 0,
+      phase: 'up',
+      elapsedMs: 0,
+      durationMs,
+      landingTimer: 0,
+      initialSpeedY: initialSpeed,
+    };
+    actionRef.current = 'run';
+    setAction('run');
+    startMovementLoop();
+  }, [charSize.w, clampX, disabled, scale, setAction, setFacingIfChanged, startMovementLoop]);
 
   const startMoving = useCallback((dir: 'left' | 'right') => {
     if (disabled || actionRef.current === 'attack') return;
@@ -301,6 +484,9 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
   const moveToX = useCallback((rawTargetX: number) => {
     if (disabled || actionRef.current === 'attack') return;
 
+    const currentCenterX = posXRef.current + charSize.w / 2;
+    setFacingIfChanged(rawTargetX >= currentCenterX ? 'right' : 'left');
+
     const targetLeft = clampX(rawTargetX - charSize.w / 2);
     const delta = targetLeft - posXRef.current;
 
@@ -313,7 +499,6 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     moveTargetX.current = targetLeft;
     moveDirection.current = null;
     pendingAttackMonsterId.current = null;
-    setFacingIfChanged(delta > 0 ? 'right' : 'left');
     actionRef.current = 'run';
     setAction('run');
     startMovementLoop();
@@ -334,16 +519,49 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     pendingAttackMonsterId.current = null;
     moveDirection.current = null;
     moveTargetX.current = null;
+    clearJumpState();
     clearMovementLoop();
 
     if (actionRef.current !== 'attack') {
       actionRef.current = 'idle';
       setAction('idle');
     }
-  }, [clearMovementLoop, setAction]);
+  }, [clearJumpState, clearMovementLoop, setAction]);
+
+  const isPointOnCharacter = useCallback((x: number, y: number) => {
+    const top = groundY - charSize.h + jumpYOffsetRef.current;
+    return (
+      x >= posXRef.current &&
+      x <= posXRef.current + charSize.w &&
+      y >= top &&
+      y <= top + charSize.h
+    );
+  }, [charSize.h, charSize.w, groundY]);
+
+  const shouldJumpToPoint = useCallback((x: number, y: number) => {
+    const currentTop = groundY - charSize.h + jumpYOffsetRef.current;
+    const jumpLine = currentTop + charSize.h * JUMP_TRIGGER_RATIO;
+    return y < jumpLine && !isPointOnCharacter(x, y);
+  }, [charSize.h, groundY, isPointOnCharacter]);
 
   const handleTapToMove = useCallback((x: number, y: number) => {
     if (disabled) return;
+
+    const now = Date.now();
+    const lastTap = lastTapRef.current;
+    const isDoubleTap = lastTap !== null
+      && now - lastTap.time <= DOUBLE_TAP_MS
+      && Math.abs(lastTap.x - x) <= DOUBLE_TAP_DIST
+      && Math.abs(lastTap.y - y) <= DOUBLE_TAP_DIST;
+    const tappedCharacter = isPointOnCharacter(x, y);
+
+    if (tappedCharacter || isDoubleTap) {
+      lastTapRef.current = null;
+      performAttack(null, false);
+      return;
+    }
+
+    lastTapRef.current = { time: now, x, y };
 
     const tappedMonster = findMonsterAtPoint(x, y);
     if (tappedMonster) {
@@ -356,8 +574,23 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
       return;
     }
 
+    if (shouldJumpToPoint(x, y)) {
+      startJumpToX(x);
+      return;
+    }
+
     moveToX(x);
-  }, [disabled, findMonsterAtPoint, findMonsterInRange, moveToMonster, moveToX, performAttack]);
+  }, [
+    disabled,
+    findMonsterAtPoint,
+    findMonsterInRange,
+    isPointOnCharacter,
+    moveToMonster,
+    moveToX,
+    performAttack,
+    shouldJumpToPoint,
+    startJumpToX,
+  ]);
 
   const panResponder = useMemo(() => (
     PanResponder.create({
@@ -407,7 +640,8 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
     posXRef.current = initialX;
     lastEmittedXRef.current = initialX;
     posAnim.setValue(initialX);
-  }, [initialX, posAnim]);
+    clearJumpState();
+  }, [clearJumpState, initialX, posAnim]);
 
   useEffect(() => {
     if (disabled) {
@@ -430,20 +664,34 @@ export const CharacterController: React.FC<CharacterControllerProps> = ({
       styles.characterWrapper,
       {
         top: charTop,
-        transform: [{ translateX: posAnim }],
+        transform: [{ translateX: posAnim }, { translateY: posYAnim }],
       },
     ],
-    [charTop, posAnim],
+    [charTop, posAnim, posYAnim],
   );
+
+  const spriteNode = renderSprite
+    ? renderSprite({
+      action,
+      actionFrameIndex,
+      frameIndex,
+      facing,
+      scale,
+      poseFamilySlot: jumpPoseState?.slot,
+      poseFrameIndex: jumpPoseState?.frame,
+    })
+    : (
+      <CharacterSprite
+        frameIndex={frameIndex}
+        facing={facing}
+        scale={scale}
+      />
+    );
 
   return (
     <View style={gestureStyle} {...panResponder.panHandlers}>
       <Animated.View style={wrapperStyle} pointerEvents="none">
-        <CharacterSprite
-          frameIndex={frameIndex}
-          facing={facing}
-          scale={scale}
-        />
+        {spriteNode}
       </Animated.View>
     </View>
   );

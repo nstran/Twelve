@@ -11,7 +11,7 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react';
 import type { CharacterAction } from './character.types';
-import { ANIM_FRAMES, ANIM_SPEED, ATTACK_DURATION } from './character.constants';
+import { ACTION_FRAME_COUNTS, ANIM_FRAMES, ANIM_SPEED, ATTACK_DURATION } from './character.constants';
 
 interface UseCharacterAnimationOptions {
   /** Called when attack animation completes */
@@ -21,6 +21,8 @@ interface UseCharacterAnimationOptions {
 interface UseCharacterAnimationReturn {
   /** Current frame index to render (0-3) */
   frameIndex: number;
+  /** Frame index within the active action family (legacy compositor slot frame) */
+  actionFrameIndex: number;
   /** Current action state */
   action: CharacterAction;
   /** Transition to a new action */
@@ -34,6 +36,7 @@ export function useCharacterAnimation(
 
   const [action, setActionState] = useState<CharacterAction>('idle');
   const [frameIndex, setFrameIndex] = useState(0);
+  const [actionFrameIndex, setActionFrameIndex] = useState(0);
 
   // Track the sequence step within current animation
   const seqIndex = useRef(0);
@@ -59,16 +62,19 @@ export function useCharacterAnimation(
 
     const frames = ANIM_FRAMES[act];
     const speed = ANIM_SPEED[act];
+    const actionFrameCount = ACTION_FRAME_COUNTS[act];
 
     // Set initial frame immediately
     setFrameIndex(frames[0]);
+    setActionFrameIndex(0);
 
     // If only 1 frame (idle), no need for interval
-    if (frames.length <= 1) return;
+    if (frames.length <= 1 && actionFrameCount <= 1) return;
 
     intervalRef.current = setInterval(() => {
-      seqIndex.current = (seqIndex.current + 1) % frames.length;
-      setFrameIndex(frames[seqIndex.current]);
+      seqIndex.current = (seqIndex.current + 1) % actionFrameCount;
+      setActionFrameIndex(seqIndex.current);
+      setFrameIndex(frames[seqIndex.current % frames.length]);
     }, speed);
   }, [cleanup]);
 
@@ -99,5 +105,5 @@ export function useCharacterAnimation(
   // Cleanup on unmount
   useEffect(() => cleanup, [cleanup]);
 
-  return { frameIndex, action, setAction };
+  return { frameIndex, actionFrameIndex, action, setAction };
 }

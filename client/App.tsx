@@ -214,6 +214,7 @@ export default function App() {
       case 'hoaLuMap':
         return (
           <HoaLuMapScreen
+            appearance={playerAppearance}
             onBack={() => setScreen('mapSelection')}
             onLogout={async () => {
               await clearSession();

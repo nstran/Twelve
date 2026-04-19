@@ -3,8 +3,11 @@
  * Type definitions for the character sprite system.
  */
 
+import type { ReactNode } from 'react';
+
 // ── Animation States ──────────────────────────────────────────────────────
 export type CharacterAction = 'idle' | 'run' | 'attack';
+export type CharacterPoseFamilySlot = 0 | 1 | 2 | 3 | 4;
 
 // ── Facing Direction ──────────────────────────────────────────────────────
 export type FacingDirection = 'left' | 'right';
@@ -43,6 +46,16 @@ export interface CharacterSpriteProps {
   placementPreset?: CharacterPlacementPreset;
 }
 
+export interface CharacterRenderSpriteArgs {
+  action: CharacterAction;
+  actionFrameIndex: number;
+  frameIndex: number;
+  facing: FacingDirection;
+  scale: number;
+  poseFamilySlot?: CharacterPoseFamilySlot;
+  poseFrameIndex?: number;
+}
+
 // ── CharacterController props ─────────────────────────────────────────────
 export interface CharacterControllerProps {
   /** Initial X position (pixel) */
@@ -77,4 +90,8 @@ export interface CharacterControllerProps {
   containerHeight: number;
   /** Disable movement / attacks temporarily */
   disabled?: boolean;
+  /** Optional custom sprite renderer for modular / skinned characters */
+  renderSprite?: (args: CharacterRenderSpriteArgs) => ReactNode;
+  /** Override the collision / placement size used by the controller */
+  spriteSize?: { w: number; h: number };
 }

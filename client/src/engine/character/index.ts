@@ -10,15 +10,18 @@ export { CharacterController } from './CharacterController';
 export { useCharacterAnimation } from './useCharacterAnimation';
 export type {
   CharacterAction,
+  CharacterPoseFamilySlot,
   FacingDirection,
   CharacterControlMode,
   MonsterTarget,
   CharacterState,
   CharacterSpriteProps,
+  CharacterRenderSpriteArgs,
   CharacterControllerProps,
 } from './character.types';
 export {
   ANIM_FRAMES,
+  ACTION_FRAME_COUNTS,
   ANIM_SPEED,
   ATTACK_DURATION,
   DEFAULT_SPEED,

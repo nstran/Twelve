@@ -20,6 +20,11 @@ import { swapPngPalette, uint8ArrayToBase64 } from './paletteSwap';
 
 const SWAP_CACHE = new Map<string, string>(); // key → "data:image/png;base64,..."
 
+interface SwappedState {
+  key: string;
+  uri: string;
+}
+
 // ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
@@ -64,9 +69,12 @@ export function usePaletteSwappedImage(
   const cacheKey  = assetUri ? `${assetUri}||${paletteKey}` : '';
 
   // ------ State ------
-  const [swappedUri, setSwappedUri] = useState<string | null>(() => {
+  const [swappedState, setSwappedState] = useState<SwappedState | null>(() => {
     // Khởi tạo từ cache nếu đã có sẵn (hot reload / re-mount)
-    return cacheKey && SWAP_CACHE.has(cacheKey) ? SWAP_CACHE.get(cacheKey)! : null;
+    if (cacheKey && SWAP_CACHE.has(cacheKey)) {
+      return { key: cacheKey, uri: SWAP_CACHE.get(cacheKey)! };
+    }
+    return null;
   });
 
   const mountedRef = useRef(true);
@@ -78,13 +86,13 @@ export function usePaletteSwappedImage(
   // Reset khi source hoặc palette thay đổi
   useEffect(() => {
     if (!needsSwap || !assetUri || !cacheKey) {
-      setSwappedUri(null);
+      setSwappedState(null);
       return;
     }
 
     // Cache hit
     if (SWAP_CACHE.has(cacheKey)) {
-      setSwappedUri(SWAP_CACHE.get(cacheKey)!);
+      setSwappedState({ key: cacheKey, uri: SWAP_CACHE.get(cacheKey)! });
       return;
     }
 
@@ -102,7 +110,7 @@ export function usePaletteSwappedImage(
         SWAP_CACHE.set(cacheKey, dataUri);
 
         if (!cancelled && mountedRef.current) {
-          setSwappedUri(dataUri);
+          setSwappedState({ key: cacheKey, uri: dataUri });
         }
       } catch (err) {
         console.warn('[usePaletteSwappedImage] failed:', err);
@@ -114,6 +122,6 @@ export function usePaletteSwappedImage(
   }, [assetUri, cacheKey, needsSwap, fromColors, toColors]);
 
   // Trả về swapped source nếu ready, không thì trả source gốc
-  if (swappedUri) return { uri: swappedUri };
+  if (swappedState?.key === cacheKey) return { uri: swappedState.uri };
   return source;
 }

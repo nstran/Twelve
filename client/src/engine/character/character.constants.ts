@@ -57,10 +57,19 @@ export const ANIM_FRAMES: Record<CharacterAction, readonly number[]> = {
   attack: [2, 3],      // cycle: windup → slash → repeat
 } as const;
 
+/** Legacy create-character compositor exposes 3 main action families:
+ *  slot 0 = idle (2 frames), slot 1 = run (6 frames), slot 2 = attack (4 frames).
+ */
+export const ACTION_FRAME_COUNTS: Record<CharacterAction, number> = {
+  idle: 2,
+  run: 6,
+  attack: 4,
+};
+
 // ── Animation Timing (ms per frame) ──────────────────────────────────────
 export const ANIM_SPEED: Record<CharacterAction, number> = {
   idle: 500,    // slow breathing cycle
-  run: 150,     // fast leg movement
+  run: 140,     // keep footsteps visible even when map speed is very low
   attack: 180,  // snappy attack
 };
 
