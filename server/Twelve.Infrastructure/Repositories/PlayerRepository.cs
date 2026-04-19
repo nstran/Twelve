@@ -27,15 +27,15 @@ namespace Twelve.Infrastructure.Repositories
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
                 INSERT INTO Players (
-                    Username, Level, Gold, Exp, CurrentMap, CurrentRoom, 
-                    Hp, MaxHp, Mp, MaxMp, 
-                    Element, FaceStyle, HairStyle, HairColor, SkinColor,
+                    Username, Level, Gold, Exp, CurrentMap, CurrentRoom,
+                    Hp, MaxHp, Mp, MaxMp,
+                    Gender, Element, FaceStyle, HairStyle, HairColor, SkinColor,
                     CreatedAt, LastSeenAt
                 )
                 VALUES (
-                    @Username, @Level, @Gold, @Exp, @CurrentMap, @CurrentRoom, 
-                    @Hp, @MaxHp, @Mp, @MaxMp, 
-                    @Element, @FaceStyle, @HairStyle, @HairColor, @SkinColor,
+                    @Username, @Level, @Gold, @Exp, @CurrentMap, @CurrentRoom,
+                    @Hp, @MaxHp, @Mp, @MaxMp,
+                    @Gender, @Element, @FaceStyle, @HairStyle, @HairColor, @SkinColor,
                     @CreatedAt, @LastSeenAt
                 )
                 RETURNING Id";
@@ -46,10 +46,10 @@ namespace Twelve.Infrastructure.Repositories
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
-                UPDATE Players 
-                SET Level = @Level, Gold = @Gold, Exp = @Exp, CurrentMap = @CurrentMap, CurrentRoom = @CurrentRoom, 
-                    Hp = @Hp, MaxHp = @MaxHp, Mp = @Mp, MaxMp = @MaxMp, 
-                    Element = @Element, FaceStyle = @FaceStyle, HairStyle = @HairStyle, HairColor = @HairColor, SkinColor = @SkinColor,
+                UPDATE Players
+                SET Level = @Level, Gold = @Gold, Exp = @Exp, CurrentMap = @CurrentMap, CurrentRoom = @CurrentRoom,
+                    Hp = @Hp, MaxHp = @MaxHp, Mp = @Mp, MaxMp = @MaxMp,
+                    Gender = @Gender, Element = @Element, FaceStyle = @FaceStyle, HairStyle = @HairStyle, HairColor = @HairColor, SkinColor = @SkinColor,
                     LastSeenAt = @LastSeenAt
                 WHERE Id = @Id";
             await connection.ExecuteAsync(sql, player);

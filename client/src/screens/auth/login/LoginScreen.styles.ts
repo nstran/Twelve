@@ -55,7 +55,7 @@ export const getStyles = (width: number, height: number) => {
       color: '#2a1a05',
       fontSize: FONT_SIZE,
       fontWeight: 'bold',
-      paddingHorizontal: 8,
+      paddingHorizontal: 2,
       paddingTop: 0,
       borderWidth: 0,
       outlineStyle: 'none',

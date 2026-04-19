@@ -81,12 +81,12 @@ export const styles = StyleSheet.create({
     top: PANEL_TOP,
     right: PANEL_RIGHT - 10,
     width: PANEL_WIDTH,
-    minHeight: PANEL_HEIGHT,
+    height: 'auto',
     paddingHorizontal: 10,
     paddingVertical: 12,
   },
   selectionPanelInner: {
-    minHeight: 294,
+    height: 'auto',
   },
   selectionRow: {
     marginBottom: 5,

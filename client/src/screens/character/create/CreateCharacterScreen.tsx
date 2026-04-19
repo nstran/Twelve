@@ -34,8 +34,17 @@ const ASSET_MENU_ICON = CREATE_CHARACTER_ASSETS.iconMenu;
 const ASSET_OK_ICON = CREATE_CHARACTER_ASSETS.iconOk;
 const ASSET_CANCEL_ICON = CREATE_CHARACTER_ASSETS.iconCancel;
 
+export interface CharacterAppearance {
+  genderIndex:    number;
+  faceIndex:      number;
+  hairIndex:      number;
+  hairColorIndex: number;
+  skinColorIndex: number;
+  elementIndex:   number;
+}
+
 interface CreateCharacterScreenProps {
-  onSuccess: () => void;
+  onSuccess: (appearance: CharacterAppearance) => void;
   onCancel: () => void;
 }
 
@@ -110,9 +119,16 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
 
 
   React.useEffect(() => {
-    const onCharSuccess = (msg: string) => {
+    const onCharSuccess = (_msg: string) => {
       setLoading(false);
-      Alert.alert('Thành Công', msg, [{ text: 'Bắt đầu', onPress: onSuccess }]);
+      onSuccess({
+        genderIndex:    genderIdx,
+        faceIndex:      faceIdx,
+        hairIndex:      hairIdx,
+        hairColorIndex: hairColorIdx,
+        skinColorIndex: skinColorIdx,
+        elementIndex:   element,
+      });
     };
     const onCharFailed = (msg: string) => {
       setLoading(false);
@@ -127,7 +143,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
       client.off('createCharSuccess', onCharSuccess);
       client.off('createCharFailed', onCharFailed);
     };
-  }, [client, onSuccess]);
+  }, [client, onSuccess, genderIdx, faceIdx, hairIdx, hairColorIdx, skinColorIdx]);
 
   const genderKey = genderIdx === 0 ? 'male' : 'female';
 
@@ -144,6 +160,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
 
   const handleCreate = () => {
     client.createCharacter(
+      genderIdx,
       ELEMENT_OPTIONS[element]?.value ?? 0,
       faceIdx,
       hairIdx,

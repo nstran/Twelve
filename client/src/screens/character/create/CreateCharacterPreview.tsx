@@ -10,7 +10,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Image, View, type ImageSourcePropType } from 'react-native';
+import { Image, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
 import { styles } from './CreateCharacterScreen.styles';
 import {
   BODY_SHEET,
@@ -34,6 +34,9 @@ interface CreateCharacterPreviewProps {
   hairIndex: number;
   hairColorIndex: number;
   skinColorIndex: number;
+  /** Override scale — mặc định 2.2 (cho màn tạo nhân vật). Dùng giá trị nhỏ hơn cho avatar nhỏ. */
+  scale?: number;
+  style?: StyleProp<ViewStyle>;
 }
 
 interface LayerRect {
@@ -51,7 +54,7 @@ interface LayerRect {
   zIndex: number;
 }
 
-const SCALE = 2.2;
+const DEFAULT_SCALE = 2.2;
 const BODY_FRAME_W = (BODY_SHEET.width as number) / 2;
 const BODY_FRAME_H = BODY_SHEET.height as number;
 
@@ -122,7 +125,10 @@ export const CreateCharacterPreview: React.FC<CreateCharacterPreviewProps> = ({
   hairIndex,
   hairColorIndex,
   skinColorIndex,
+  scale: scaleProp,
+  style,
 }) => {
+  const SCALE = scaleProp ?? DEFAULT_SCALE;
   const [frameStep, setFrameStep] = useState(0);
 
   useEffect(() => {
@@ -220,6 +226,7 @@ export const CreateCharacterPreview: React.FC<CreateCharacterPreviewProps> = ({
       style={[
         styles.previewSpriteCanvas,
         { width: layout.width * SCALE, height: layout.height * SCALE },
+        style,
       ]}
     >
       {layout.layers.map((layer) => (

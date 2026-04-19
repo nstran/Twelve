@@ -16,6 +16,7 @@ export enum Command {
     // ── Character Creation ───────────────────────────────────────────
     CHARACTER_REQUIRED  = 5,    // Server yêu cầu tạo nhân vật
     CREATE_CHAR_REQUEST = 6,    // Client gửi các lựa chọn nhân vật
+    CHARACTER_INFO      = 7,    // Server trả diện mạo nhân vật sau login
     CREATE_CHAR_RESPONSE= 136,  // Phản hồi kết quả tạo nhân vật
 
     // ── Game Commands ─────────────────────────────────────────────
@@ -41,5 +42,6 @@ export enum Tag {
     FACE            = 21,
     HAIR_STYLE      = 22,
     HAIR_COLOR      = 23,
-    SKIN_COLOR      = 24
+    SKIN_COLOR      = 24,
+    GENDER_STYLE    = 25    // 0=Nam, 1=Nữ (diện mạo nhân vật)
 }

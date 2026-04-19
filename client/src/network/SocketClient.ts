@@ -102,6 +102,20 @@ export class SocketClient extends EventEmitter {
         this.emit('characterRequired');
         break;
 
+      case Command.CHARACTER_INFO: {
+        // CMD 7: Server gửi diện mạo nhân vật sau login thành công
+        const genderIndex    = this.parseIntTag(payload, Tag.GENDER_STYLE);
+        const elementIndex   = this.parseIntTag(payload, Tag.ELEMENT);
+        const faceIndex      = this.parseIntTag(payload, Tag.FACE);
+        const hairIndex      = this.parseIntTag(payload, Tag.HAIR_STYLE);
+        const hairColorIndex = this.parseIntTag(payload, Tag.HAIR_COLOR);
+        const skinColorIndex = this.parseIntTag(payload, Tag.SKIN_COLOR);
+        console.log('[SocketClient] ← CHARACTER_INFO g=%d e=%d f=%d h=%d c=%d s=%d',
+          genderIndex, elementIndex, faceIndex, hairIndex, hairColorIndex, skinColorIndex);
+        this.emit('characterInfo', { genderIndex, elementIndex, faceIndex, hairIndex, hairColorIndex, skinColorIndex });
+        break;
+      }
+
       case Command.LOGIN_FAILED:
         const errorMsg = this.parseStringTag(payload, Tag.MESSAGE);
         console.log('[SocketClient] ← Login Failed:', JSON.stringify(errorMsg));
@@ -186,16 +200,17 @@ export class SocketClient extends EventEmitter {
     this.socket?.send(packet);
   }
 
-  createCharacter(element: number, face: number, hair: number, color: number, skin: number) {
+  createCharacter(gender: number, element: number, face: number, hair: number, color: number, skin: number) {
     const tags: number[] = [
-      ...this.makeIntTag(Tag.ELEMENT,    element),
-      ...this.makeIntTag(Tag.FACE,       face),
-      ...this.makeIntTag(Tag.HAIR_STYLE, hair),
-      ...this.makeIntTag(Tag.HAIR_COLOR, color),
-      ...this.makeIntTag(Tag.SKIN_COLOR, skin),
+      ...this.makeIntTag(Tag.GENDER_STYLE, gender),
+      ...this.makeIntTag(Tag.ELEMENT,      element),
+      ...this.makeIntTag(Tag.FACE,         face),
+      ...this.makeIntTag(Tag.HAIR_STYLE,   hair),
+      ...this.makeIntTag(Tag.HAIR_COLOR,   color),
+      ...this.makeIntTag(Tag.SKIN_COLOR,   skin),
     ];
     const payload = new Uint8Array(tags);
-    const packet = this.wrapPacket(Command.CREATE_CHAR_REQUEST, payload, 5);
+    const packet = this.wrapPacket(Command.CREATE_CHAR_REQUEST, payload, 6);
     this.socket?.send(packet);
   }
 
@@ -304,6 +319,19 @@ export class SocketClient extends EventEmitter {
 
   private readInt(data: Uint8Array, offset: number): number {
     return ((data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3]) >>> 0;
+  }
+
+  private parseIntTag(data: Uint8Array, targetId: number): number {
+    let pos = 0;
+    while (pos <= data.length - 5) {
+      const id  = data[pos];
+      const len = (data[pos + 1] << 24) | (data[pos + 2] << 16) | (data[pos + 3] << 8) | data[pos + 4];
+      if (id === targetId && len === 4) {
+        return this.readInt(data, pos + 5);
+      }
+      pos += 5 + len;
+    }
+    return 0;
   }
 
   // Đọc long 8-byte big-endian từ payload theo tagId (trả về Unix seconds)

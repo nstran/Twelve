@@ -9,6 +9,7 @@ import {
   RegisterScreen,
 } from './src/screens';
 import { CreateCharacterScreen } from './src/screens/character/create';
+import { CharacterStatusScreen, type PlayerAppearance } from './src/screens/character/status';
 import { SocketClient }          from './src/network/SocketClient';
 import {
   loadSession,
@@ -19,7 +20,7 @@ import {
 } from './src/storage/SessionStorage';
 
 // ── Screen states ────────────────────────────────────────────────────────────
-type Screen = 'login' | 'register' | 'main' | 'createCharacter' | 'mapSelection' | 'hoaLuMap' | 'battle';
+type Screen = 'login' | 'register' | 'main' | 'createCharacter' | 'characterStatus' | 'mapSelection' | 'hoaLuMap' | 'battle';
 type MonsterTypeNav = 'fire' | 'ice' | 'zap';
 
 const SERVER_URL         = 'ws://localhost:5102/game';
@@ -27,21 +28,26 @@ const RECONNECT_DELAY_MS = 2000;
 
 function normalizeScreen(screen?: string | null): Screen {
   if (
-    screen === 'hoaLuMap' ||
-    screen === 'battle' ||
-    screen === 'main' ||
-    screen === 'register' ||
-    screen === 'createCharacter'
+    screen === 'hoaLuMap'        ||
+    screen === 'battle'          ||
+    screen === 'main'            ||
+    screen === 'register'        ||
+    screen === 'createCharacter' ||
+    screen === 'characterStatus' ||
+    screen === 'mapSelection'
   ) {
     return screen;
   }
 
-  return 'mapSelection';
+  return 'characterStatus';
 }
 
 export default function App() {
   const [screen, setScreen]           = useState<Screen>('login');
   const [battleMonster, setBattleMonster] = useState<MonsterTypeNav>('fire');
+  const [playerAppearance, setPlayerAppearance] = useState<PlayerAppearance>({
+    genderIndex: 0, faceIndex: 0, hairIndex: 0, hairColorIndex: 0, skinColorIndex: 0, elementIndex: 0,
+  });
   const [isConnected, setIsConnected] = useState(false);
   const [connectMsg, setConnectMsg]   = useState('ĐANG KẾT NỐI CHIẾN TRƯỜNG...');
   const addLog = (msg: string) => console.log(msg);
@@ -103,8 +109,12 @@ export default function App() {
         saveSession({ token: payload.token, expiresAt: payload.expiresAt, username });
         pendingUsername.current = null;
       }
-      setScreen(lastScreen.current || 'mapSelection');
-      lastScreen.current = null; 
+      // Đi đến lastScreen nếu có; không thì chờ CMD 5 (characterRequired) hoặc CMD 7 (characterInfo)
+      // CMD 7 sẽ navigate đến characterStatus, CMD 5 sẽ navigate đến createCharacter
+      const target = lastScreen.current;
+      lastScreen.current = null;
+      if (target) setScreen(target);
+      // Nếu không có lastScreen → KHÔNG navigate ngay, chờ server quyết định
     };
 
     const onAuthSuccessWithUser = ({ token, expiresAt, username }: {
@@ -112,8 +122,9 @@ export default function App() {
     }) => {
       addLog(`[App] authSuccessWithUser → ${username}`);
       saveSession({ token, expiresAt, username });
-      setScreen(lastScreen.current || 'mapSelection');
+      const target = lastScreen.current;
       lastScreen.current = null;
+      if (target) setScreen(target);
     };
 
     const onCharacterRequired = () => {
@@ -121,17 +132,34 @@ export default function App() {
       setScreen('createCharacter');
     };
 
+    const onCharacterInfo = (appearance: {
+      genderIndex: number; elementIndex: number; faceIndex: number;
+      hairIndex: number; hairColorIndex: number; skinColorIndex: number;
+    }) => {
+      addLog(`[App] CharacterInfo → characterStatus (element=${appearance.elementIndex})`);
+      setPlayerAppearance({
+        genderIndex:    appearance.genderIndex,
+        faceIndex:      appearance.faceIndex,
+        hairIndex:      appearance.hairIndex,
+        hairColorIndex: appearance.hairColorIndex,
+        skinColorIndex: appearance.skinColorIndex,
+        elementIndex:   appearance.elementIndex,
+      });
+      setScreen('characterStatus');
+    };
+
     const onAuthFailed = (msg?: string) => {
       addLog(`[App] authFailed: ${msg ?? '?'} → clearSession`);
       clearSession();
     };
 
-    client.on('connected',             onConnected);
-    client.on('disconnected',          onDisconnected);
-    client.on('authSuccess',           onAuthSuccess);
-    client.on('authSuccessWithUser',   onAuthSuccessWithUser);
-    client.on('characterRequired',     onCharacterRequired);
-    client.on('authFailed',            onAuthFailed);
+    client.on('connected',           onConnected);
+    client.on('disconnected',        onDisconnected);
+    client.on('authSuccess',         onAuthSuccess);
+    client.on('authSuccessWithUser', onAuthSuccessWithUser);
+    client.on('characterRequired',   onCharacterRequired);
+    client.on('characterInfo',       onCharacterInfo);
+    client.on('authFailed',          onAuthFailed);
 
     doConnect();
 
@@ -141,6 +169,7 @@ export default function App() {
       client.off('authSuccess',         onAuthSuccess);
       client.off('authSuccessWithUser', onAuthSuccessWithUser);
       client.off('characterRequired',   onCharacterRequired);
+      client.off('characterInfo',       onCharacterInfo);
       client.off('authFailed',          onAuthFailed);
       unsubAppState();
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
@@ -218,8 +247,23 @@ export default function App() {
       case 'createCharacter':
         return (
           <CreateCharacterScreen
-            onSuccess={() => setScreen('mapSelection')}
+            onSuccess={(appearance) => {
+              setPlayerAppearance(appearance);
+              setScreen('characterStatus');
+            }}
             onCancel={async () => {
+              await clearSession();
+              setScreen('login');
+            }}
+          />
+        );
+
+      case 'characterStatus':
+        return (
+          <CharacterStatusScreen
+            appearance={playerAppearance}
+            onStart={() => setScreen('mapSelection')}
+            onLogout={async () => {
               await clearSession();
               setScreen('login');
             }}

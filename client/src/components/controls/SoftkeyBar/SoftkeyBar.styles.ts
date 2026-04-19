@@ -41,7 +41,7 @@ export const styles = StyleSheet.create({
   },
   timeText: {
     color: '#ffffff',
-    fontSize: 14, // Reduced from 18 for sharper look
+    fontSize: 12, 
     fontWeight: 'bold',
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 1, height: 1 },

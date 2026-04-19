@@ -201,7 +201,7 @@ namespace Twelve.Application.Handlers
             _logger.LogInformation("[Login] ✓ '{Username}' → CMD 4 (token={Token})", username, token[..8] + "…");
             await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.LoginSuccess, payload, subCount: 2));
 
-            // Sau đó kiểm tra nhân vật — nếu chưa có thì gửi thêm CMD 5
+            // Sau đó kiểm tra nhân vật — chưa có → CMD 5, đã có → CMD 7 kèm diện mạo
             var player    = await _playerRepository.GetByUsernameAsync(username);
             bool needChar = player == null || player.Element == null;
 
@@ -209,6 +209,22 @@ namespace Twelve.Application.Handlers
             {
                 _logger.LogInformation("[Login] → CharacterRequired cho '{Username}'", username);
                 await session.SendPacketAsync(TlvCodec.BuildEmptyPacket(CommandCode.CharacterRequired));
+            }
+            else
+            {
+                // Gửi CMD 7 (CharacterInfo) với đầy đủ diện mạo để client hiển thị màn thông tin nhân vật
+                _logger.LogInformation("[Login] → CharacterInfo cho '{Username}' (Element={El}, Gender={G})",
+                    username, player!.Element, player.Gender);
+
+                var charPayload = ConcatBytes(
+                    TlvCodec.MakeTag((int)TagCode.GenderStyle, player.Gender),
+                    TlvCodec.MakeTag((int)TagCode.Element,     player.Element!.Value),
+                    TlvCodec.MakeTag((int)TagCode.Face,        player.FaceStyle ?? 0),
+                    TlvCodec.MakeTag((int)TagCode.HairStyle,   player.HairStyle ?? 0),
+                    TlvCodec.MakeTag((int)TagCode.HairColor,   player.HairColor ?? 0),
+                    TlvCodec.MakeTag((int)TagCode.SkinColor,   player.SkinColor ?? 0)
+                );
+                await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.CharacterInfo, charPayload, subCount: 6));
             }
         }
 

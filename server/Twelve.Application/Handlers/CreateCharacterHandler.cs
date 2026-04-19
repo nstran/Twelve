@@ -11,11 +11,12 @@ namespace Twelve.Application.Handlers
     // ═══════════════════════════════════════════════════════════════════════════
     //  CMD 6 — Tạo nhân vật (CreateCharacterRequest)
     //  Tags nhận vào:
-    //    20 = Element   (int)
-    //    21 = FaceStyle (int)
-    //    22 = HairStyle (int)
-    //    23 = HairColor (int)
-    //    24 = SkinColor (int)
+    //    20 = Element     (int)
+    //    21 = FaceStyle   (int)
+    //    22 = HairStyle   (int)
+    //    23 = HairColor   (int)
+    //    24 = SkinColor   (int)
+    //    25 = GenderStyle (int, 0=Nam 1=Nữ)
     // ═══════════════════════════════════════════════════════════════════════════
     public class CreateCharacterHandler : IPacketHandler
     {
@@ -57,14 +58,15 @@ namespace Twelve.Application.Handlers
             }
 
             // ── Đọc các trường đặc tính (Trait tags) ─────────────────────────
-            int element   = request.GetIntTag((int)TagCode.Element)   ?? 0;
-            int faceStyle = request.GetIntTag((int)TagCode.Face)      ?? 0;
-            int hairStyle = request.GetIntTag((int)TagCode.HairStyle) ?? 0;
-            int hairColor = request.GetIntTag((int)TagCode.HairColor) ?? 0;
-            int skinColor = request.GetIntTag((int)TagCode.SkinColor) ?? 0;
+            int gender    = request.GetIntTag((int)TagCode.GenderStyle) ?? 0;
+            int element   = request.GetIntTag((int)TagCode.Element)     ?? 0;
+            int faceStyle = request.GetIntTag((int)TagCode.Face)        ?? 0;
+            int hairStyle = request.GetIntTag((int)TagCode.HairStyle)   ?? 0;
+            int hairColor = request.GetIntTag((int)TagCode.HairColor)   ?? 0;
+            int skinColor = request.GetIntTag((int)TagCode.SkinColor)   ?? 0;
 
-            _logger.LogInformation("[CreateChar] Choices: Element={E}, Face={F}, Hair={H}, Color={C}, Skin={S}",
-                element, faceStyle, hairStyle, hairColor, skinColor);
+            _logger.LogInformation("[CreateChar] Choices: Gender={G}, Element={E}, Face={F}, Hair={H}, Color={C}, Skin={S}",
+                gender, element, faceStyle, hairStyle, hairColor, skinColor);
 
             // ── Khởi tạo hoặc Cập nhật nhân vật trong Database ──────────────────────────
             var player = isNewRecord ? new Player { Username = session.Username } : existing!;
@@ -80,11 +82,12 @@ namespace Twelve.Application.Handlers
             player.MaxMp       = 50;
             
             // Lưu diện mạo
-            player.Element     = element;
-            player.FaceStyle   = faceStyle;
-            player.HairStyle   = hairStyle;
-            player.HairColor   = hairColor;
-            player.SkinColor   = skinColor;
+            player.Gender    = gender;
+            player.Element   = element;
+            player.FaceStyle = faceStyle;
+            player.HairStyle = hairStyle;
+            player.HairColor = hairColor;
+            player.SkinColor = skinColor;
 
             try
             {

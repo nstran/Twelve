@@ -37,7 +37,7 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
   const { width, height } = useWindowDimensions();
   const styles = useMemo(() => getStyles(width, height), [width, height]);
 
-  const [username, setUsername]         = useState('trans');
+  const [username, setUsername]         = useState('tranns');
   const usernameRef = useRef(username); // ref luôn có giá trị mới nhất, tránh stale closure
   const [password, setPassword]         = useState('123456');
   const [rememberMe, setRememberMe]     = useState(true);
@@ -227,7 +227,7 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
           <SoftkeyBar
             width={width}
             onLeftPress={handleLeftSoftkey}
-            onCenterPress={handleCenterKey}
+            onCenterPress={menuVisible ? handleCenterKey : undefined}
             onRightPress={menuVisible ? handleRightSoftkey : undefined}
             leftIcon={menuVisible ? ASSET_ICON_OK : ASSET_RED_SUN}
             rightIcon={menuVisible ? ASSET_ICON_CANCEL : undefined}

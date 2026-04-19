@@ -11,9 +11,10 @@ namespace Twelve.Core.Tlv
         RegisterRequest         = 1,
         RegisterResponse        = 131,
 
-        // ── Character Creation ───────────────────────────────────────
+        // ── Character Creation & Info ────────────────────────────────
         CharacterRequired       = 5,    // Server yêu cầu tạo nhân vật sau login
         CreateCharacterRequest  = 6,    // Client gửi các lựa chọn nhân vật
+        CharacterInfo           = 7,    // Server trả diện mạo nhân vật sau login thành công
         CreateCharacterResponse = 136,  // Phản hồi kết quả tạo nhân vật
 
         // ── Game Commands ─────────────────────────────────────────────
@@ -39,6 +40,7 @@ namespace Twelve.Core.Tlv
         Face            = 21,
         HairStyle       = 22,
         HairColor       = 23,
-        SkinColor       = 24
+        SkinColor       = 24,
+        GenderStyle     = 25    // 0=Nam, 1=Nữ (diện mạo nhân vật)
     }
 }
