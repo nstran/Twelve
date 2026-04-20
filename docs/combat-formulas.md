@@ -200,3 +200,140 @@ const PRIMARY_STAT: Record<number, number> = { 0: 0, 1: 2, 2: 1 };
 3. **Chính xác** (V[1]) dùng `jz.f()`, **không phải** `jz.c()` — `jz.c()` là "internal hit rate" dùng cho equip bonus tính thôi.
 4. **Tất cả giá trị combat stat là integer** (Java int, không float). Division là integer division (truncate).
 5. **Server owns truth**: minDam/maxDam (`lh.x/lh.y`) và Defense (`lh.z`) được server gửi qua packet, client không tự tính.
+
+---
+
+## 10. Chỉ Số Khởi Tạo Khi Tạo Nhân Vật (Level 1)
+
+> **Nguồn gốc:** Hoàn toàn server-side — client chỉ gửi `gender + element(1/2/4) + appearance`.
+> Client code (`nw.java`) không chứa giá trị mặc định nào. Đây là giá trị **thiết kế cho remake**.
+
+### Base Stats theo Element
+
+| Chỉ số | Hỏa (g=1) | Lôi (g=2) | Thủy (g=4) |
+|--------|-----------|-----------|------------|
+| Cường Lực | **15** | 5 | 5 |
+| Thân Pháp | 10 | **15** | 10 |
+| Nội Lực | 5 | 5 | **15** |
+| Thể Lực | 10 | 10 | 10 |
+| Điểm tự do (K) | 5 | 5 | 5 |
+
+> Primary stat của từng loại được boost +5 so với base = 10.
+> Điểm tự do dùng để phân phối ngay lúc tạo nhân vật.
+
+### Combat Stats tính toán tại Level 1 (chưa phân điểm)
+
+| Combat Stat | Hỏa (Warrior) | Lôi (Agility) | Thủy (Mage) |
+|-------------|--------------|--------------|-------------|
+| **Sinh Lực (MaxHP)** | 10×6 = **60** | 10×4 = **40** | 10×5 = **50** |
+| **Tấn Công** | 15 | (15×80+5×16)/100 = **12** | 15×130/100 = **19** |
+| **Chính Xác** | 10×3 = **30** | 15×3 = **45** | 10×2 = **20** |
+| **P.Thủ** | 10/2 = **5** | 15/2 = **7** | 10/2 = **5** |
+| **Né Tránh** | 10×2 = **20** | 15×15/10 = **22** | 10×3 = **30** |
+| **Chí Mạng** | min(5+10/8,30) = **6%** | min(5+15/8,30) = **6%** | min(5+10/8,30) = **6%** |
+
+### Mapping C# Server ↔ Java (TLV tags)
+
+| C# field | Java lh field | TLV Tag | Giá trị mặc định |
+|----------|--------------|---------|-----------------|
+| `CuongLuc` | `lh.h` | Tag 118 | theo type |
+| `ThanPhap` | `lh.j` | Tag 119 | theo type |
+| `NoiLuc` | `lh.i` | Tag 120 | theo type |
+| `TheLuc` | `lh.k` | Tag 121 | 10 |
+| `FreePoints` | `lh.K` | Tag 53 | 5 |
+
+---
+
+## 11. Phân Điểm Tiềm Năng — Cơ Chế và Hiệu Quả
+
+### Cơ chế cốt lõi
+
+```
+Player chọn 1 trong 4 chỉ số → chỉ số đó tăng +1 → toàn bộ combat stats tính lại
+```
+
+**Quan trọng:** Element/hệ chỉ quyết định **công thức tính combat stats**, không quyết định player được phân vào stat nào. Player hoàn toàn tự do phân vào bất kỳ chỉ số nào. Nếu phân "sai" (VD: Hỏa đổ điểm vào Nội Lực) thì chỉ số gốc vẫn tăng nhưng không có combat stat nào thay đổi.
+
+**Flow server khi nhận lệnh phân điểm:**
+```csharp
+// Không check element — cứ tăng stat player chọn, trừ điểm, tính lại
+player.{ChosenStat} += 1;
+player.FreePoints   -= 1;
+RecalculateCombatStats(player);   // áp công thức jq/js/jr theo element
+```
+
+**Flow tính lại combat stats (RecalculateCombatStats):**
+```csharp
+// Xác định công thức theo element (lh.g / 2)
+// Element 0 (Hỏa) → jq formulas
+// Element 1 (Lôi) → js formulas  
+// Element 2 (Thủy) → jr formulas
+// Rồi tính MaxHp, TanCong, ChinhXac, PThu, NeTranh, ChiMang từ 4 chỉ số gốc
+```
+
+---
+
+### Bảng tra: +1 vào chỉ số X → combat stats thay đổi thế nào?
+
+> Source: `jq.java` / `js.java` / `jr.java`. Tất cả là integer division (truncate, không round).
+
+#### Hỏa — jq formulas
+
+| Phân +1 vào | Tấn Công | Chính Xác | P.Thủ | Né Tránh | Chí Mạng | Sinh Lực (MaxHP) |
+|-------------|----------|-----------|-------|----------|----------|-----------------|
+| **Cường Lực** | **+1** | — | — | — | — | — |
+| **Thân Pháp** | — | **+3** | +1 (mỗi 2đ) | **+2** | +1 (mỗi 8đ) | — |
+| **Nội Lực** | — | — | — | — | — | — |
+| **Thể Lực** | — | — | — | — | — | **+6** |
+
+#### Lôi — js formulas
+
+| Phân +1 vào | Tấn Công | Chính Xác | P.Thủ | Né Tránh | Chí Mạng | Sinh Lực (MaxHP) |
+|-------------|----------|-----------|-------|----------|----------|-----------------|
+| **Cường Lực** | +16/100 ≈ **+0** *(cần ~6đ mới +1)* | — | — | — | — | — |
+| **Thân Pháp** | **+1** *(80/100≈+1)* | **+3** | +1 (mỗi 2đ) | +1 (mỗi 2đ) | +1 (mỗi 8đ) | — |
+| **Nội Lực** | — | — | — | — | — | — |
+| **Thể Lực** | — | — | — | — | — | **+4** |
+
+#### Thủy — jr formulas
+
+| Phân +1 vào | Tấn Công | Chính Xác | P.Thủ | Né Tránh | Chí Mạng | Sinh Lực (MaxHP) |
+|-------------|----------|-----------|-------|----------|----------|-----------------|
+| **Cường Lực** | — | — | — | — | — | — |
+| **Thân Pháp** | — | **+2** | +1 (mỗi 2đ) | **+3** | +1 (mỗi 8đ) | — |
+| **Nội Lực** | **+1** *(130/100=+1 mỗi điểm)* | — | — | — | — | — |
+| **Thể Lực** | — | — | — | — | — | **+5** |
+
+---
+
+### Stats "không hiệu quả" theo hệ (dump stat)
+
+| Hệ | Phân vào stat này = lãng phí |
+|----|------------------------------|
+| Hỏa | **Nội Lực** |
+| Lôi | **Nội Lực**, Cường Lực (rất kém — cần ~6đ = 1 Tấn Công) |
+| Thủy | **Cường Lực** |
+
+---
+
+### Ghi chú integer division quan trọng khi implement
+
+```csharp
+// P.Thủ = ThanPhap / 2  (int division)
+// ThanPhap 10 → 5,  ThanPhap 11 → 5,  ThanPhap 12 → 6
+// → Tăng thực sự mỗi 2 điểm Thân Pháp
+
+// Chí Mạng = min(5 + ThanPhap / 8, 30)
+// ThanPhap  8 → 6%,  ThanPhap 16 → 7%,  ThanPhap 200 → 30% (cap)
+// → Tăng thực sự mỗi 8 điểm Thân Pháp
+
+// Né Tránh Lôi = ThanPhap * 15 / 10  (int division)
+// ThanPhap 15 → 22,  ThanPhap 16 → 24  (tăng 2 mỗi 2 điểm)
+
+// Tấn Công Lôi = (ThanPhap * 80 + CuongLuc * 16) / 100
+// +1 ThanPhap: delta = 80/100 → thực tế +1 mỗi điểm (xấp xỉ)
+// +1 CuongLuc: delta = 16/100 → thực tế +1 mỗi ~6 điểm
+
+// Tấn Công Thủy = NoiLuc * 130 / 100
+// +1 NoiLuc: +1 Tấn Công mỗi điểm (13 → 14 → 15...)
+```

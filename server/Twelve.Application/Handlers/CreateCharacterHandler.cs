@@ -76,12 +76,31 @@ namespace Twelve.Application.Handlers
             player.Exp         = 0;
             player.CurrentMap  = "M1"; // Bản đồ tân thủ
             player.CurrentRoom = 1;
-            player.Hp          = 100;
-            player.MaxHp       = 100;
-            player.Mp          = 50;
-            player.MaxMp       = 50;
-            
-            // Lưu diện mạo
+
+            // ── Base stats theo element (combat-formulas.md § 10) ─────────────
+            // Java type mapping: 0=Hỏa(jq), 1=Lôi(js), 2=Thủy(jr)
+            // Primary stat boost +5, Nội/Cường "dump stat" giữ mức 5
+            (player.CuongLuc, player.ThanPhap, player.NoiLuc, player.TheLuc) = element switch
+            {
+                0 => (15, 10,  5, 10),  // Hỏa  — primary Cường Lực
+                1 => ( 5, 15,  5, 10),  // Lôi  — primary Thân Pháp
+                2 => ( 5, 10, 15, 10),  // Thủy — primary Nội Lực
+                _ => (10, 10, 10, 10),  // fallback cân bằng
+            };
+            player.FreePoints = 5;
+
+            // ── HP/Mana tính từ công thức Java (combat-formulas.md § 4) ──────
+            // Sinh Lực (MaxHP) = TheLuc × hệ số theo type (6/4/5)
+            int hpMultiplier = element switch { 0 => 6, 1 => 4, 2 => 5, _ => 5 };
+            player.MaxHp  = player.TheLuc * hpMultiplier;
+            player.Hp     = player.MaxHp;
+            // Mana / Power: server quyết định sau; khởi tạo = 0
+            player.Mp     = 0;
+            player.MaxMp  = 0;
+            player.Power  = 0;
+            player.MaxPower = 0;
+
+            // ── Lưu diện mạo ──────────────────────────────────────────────────
             player.Gender    = gender;
             player.Element   = element;
             player.FaceStyle = faceStyle;

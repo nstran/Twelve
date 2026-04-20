@@ -13,6 +13,7 @@ namespace Twelve.Application
             services.AddSingleton<TokenAuthHandler>();
             services.AddSingleton<RegisterHandler>();
             services.AddSingleton<CreateCharacterHandler>();
+            services.AddSingleton<AllocateStatHandler>();
             services.AddSingleton<MapHandler>();
             services.AddSingleton<MoveHandler>();
 
@@ -20,8 +21,10 @@ namespace Twelve.Application
             // CMD numbers (client → server):
             //   1  = Đăng ký (Register)
             //   2  = Đăng nhập (Login)
+            //   6  = Tạo nhân vật (CreateCharacter)
             //   11 = Yêu cầu Map Info
             //   44 = Di chuyển (Move)
+            //   50 = Phân điểm tiềm năng (AllocateStat)
             services.AddSingleton<PacketDispatcher>(sp =>
             {
                 var dispatcher = new PacketDispatcher();
@@ -30,9 +33,10 @@ namespace Twelve.Application
                 dispatcher.RegisterHandler((int)CommandCode.LoginRequest,           sp.GetRequiredService<AuthHandler>());
                 dispatcher.RegisterHandler((int)CommandCode.TokenLoginRequest,      sp.GetRequiredService<TokenAuthHandler>());
                 dispatcher.RegisterHandler((int)CommandCode.CreateCharacterRequest, sp.GetRequiredService<CreateCharacterHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.AllocateStatRequest,    sp.GetRequiredService<AllocateStatHandler>());
                 dispatcher.RegisterHandler(11, sp.GetRequiredService<MapHandler>()); // To be refactored soon
-                dispatcher.RegisterHandler(13, sp.GetRequiredService<MapHandler>()); 
-                dispatcher.RegisterHandler(29, sp.GetRequiredService<MapHandler>()); 
+                dispatcher.RegisterHandler(13, sp.GetRequiredService<MapHandler>());
+                dispatcher.RegisterHandler(29, sp.GetRequiredService<MapHandler>());
                 dispatcher.RegisterHandler(44, sp.GetRequiredService<MoveHandler>());
 
                 return dispatcher;

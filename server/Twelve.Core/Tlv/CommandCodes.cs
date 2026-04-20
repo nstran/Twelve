@@ -20,7 +20,12 @@ namespace Twelve.Core.Tlv
         // ── Game Commands ─────────────────────────────────────────────
         EnterGame               = 10,
         PlayerInfo              = 11,
-        MapLoad                 = 20
+        MapLoad                 = 20,
+
+        // ── Stat Allocation ───────────────────────────────────────────
+        // Ref: combat-formulas.md § 11
+        AllocateStatRequest     = 50,   // Client → Server: Tag StatChoice (50) = 0/1/2/3
+        AllocateStatResponse    = 180   // Server → Client: updated base stats + combat stats
     }
 
     public enum TagCode : byte
@@ -41,6 +46,25 @@ namespace Twelve.Core.Tlv
         HairStyle       = 22,
         HairColor       = 23,
         SkinColor       = 24,
-        GenderStyle     = 25    // 0=Nam, 1=Nữ (diện mạo nhân vật)
+        GenderStyle     = 25,   // 0=Nam, 1=Nữ (diện mạo nhân vật)
+
+        // Stat Allocation (CMD 50 / 180)
+        StatChoice      = 50,   // 0=CuongLuc, 1=ThanPhap, 2=NoiLuc, 3=TheLuc
+
+        // Base stats — mapped từ Java TLV tags (ky.java)
+        // Ref: combat-formulas.md § 10 — Mapping C# ↔ Java ↔ TLV
+        FreePoints      = 53,   // lh.K  — điểm chưa phân
+        CuongLuc        = 118,  // lh.h  — Strength
+        ThanPhap        = 119,  // lh.j  — Agility
+        NoiLuc          = 120,  // lh.i  — Magic
+        TheLuc          = 121,  // lh.k  — Vitality
+
+        // Combat stats (response tags — server-computed)
+        MaxHp           = 130,
+        TanCong         = 131,  // Attack
+        ChinhXac        = 132,  // Accuracy
+        PThu            = 133,  // Defense
+        NeTranh         = 134,  // Dodge
+        ChiMang         = 135   // Crit %
     }
 }

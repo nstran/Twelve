@@ -28,13 +28,15 @@ namespace Twelve.Infrastructure.Repositories
             const string sql = @"
                 INSERT INTO Players (
                     Username, Level, Gold, Exp, CurrentMap, CurrentRoom,
-                    Hp, MaxHp, Mp, MaxMp,
+                    Hp, MaxHp, Mp, MaxMp, Power, MaxPower,
+                    CuongLuc, ThanPhap, NoiLuc, TheLuc, FreePoints,
                     Gender, Element, FaceStyle, HairStyle, HairColor, SkinColor,
                     CreatedAt, LastSeenAt
                 )
                 VALUES (
                     @Username, @Level, @Gold, @Exp, @CurrentMap, @CurrentRoom,
-                    @Hp, @MaxHp, @Mp, @MaxMp,
+                    @Hp, @MaxHp, @Mp, @MaxMp, @Power, @MaxPower,
+                    @CuongLuc, @ThanPhap, @NoiLuc, @TheLuc, @FreePoints,
                     @Gender, @Element, @FaceStyle, @HairStyle, @HairColor, @SkinColor,
                     @CreatedAt, @LastSeenAt
                 )
@@ -47,9 +49,25 @@ namespace Twelve.Infrastructure.Repositories
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
                 UPDATE Players
-                SET Level = @Level, Gold = @Gold, Exp = @Exp, CurrentMap = @CurrentMap, CurrentRoom = @CurrentRoom,
-                    Hp = @Hp, MaxHp = @MaxHp, Mp = @Mp, MaxMp = @MaxMp,
-                    Gender = @Gender, Element = @Element, FaceStyle = @FaceStyle, HairStyle = @HairStyle, HairColor = @HairColor, SkinColor = @SkinColor,
+                SET Level      = @Level,
+                    Gold       = @Gold,
+                    Exp        = @Exp,
+                    CurrentMap = @CurrentMap,
+                    CurrentRoom= @CurrentRoom,
+                    Hp = @Hp, MaxHp = @MaxHp,
+                    Mp = @Mp, MaxMp = @MaxMp,
+                    Power = @Power, MaxPower = @MaxPower,
+                    CuongLuc   = @CuongLuc,
+                    ThanPhap   = @ThanPhap,
+                    NoiLuc     = @NoiLuc,
+                    TheLuc     = @TheLuc,
+                    FreePoints = @FreePoints,
+                    Gender     = @Gender,
+                    Element    = @Element,
+                    FaceStyle  = @FaceStyle,
+                    HairStyle  = @HairStyle,
+                    HairColor  = @HairColor,
+                    SkinColor  = @SkinColor,
                     LastSeenAt = @LastSeenAt
                 WHERE Id = @Id";
             await connection.ExecuteAsync(sql, player);
