@@ -337,3 +337,80 @@ RecalculateCombatStats(player);   // áp công thức jq/js/jr theo element
 // Tấn Công Thủy = NoiLuc * 130 / 100
 // +1 NoiLuc: +1 Tấn Công mỗi điểm (13 → 14 → 15...)
 ```
+
+---
+
+## 12. Server Implementation — StatCalculator & AllocateStatHandler
+
+> Đây là ánh xạ từ công thức Java sang C# server đã được implement.
+> Files: `Twelve.Core/GameLogic/StatCalculator.cs`, `Twelve.Application/Handlers/AllocateStatHandler.cs`
+
+### StatCalculator.cs (Twelve.Core/GameLogic)
+
+```csharp
+// Hai method public:
+
+// 1. Tính thuần — KHÔNG mutate player
+CombatStats Calculate(Player player)
+
+// 2. Tính rồi áp MaxHp vào player (clamp Hp nếu vượt)
+CombatStats RecalculateAndApply(Player player)
+
+// CombatStats record:
+record CombatStats(int MaxHp, int TanCong, int ChinhXac, int PThu, int NeTranh, int ChiMang)
+```
+
+Gọi `RecalculateAndApply` bất cứ khi nào base stats thay đổi (phân điểm, lên level, equip).
+
+### Packet Protocol — Phân Điểm (CMD 50 / CMD 180)
+
+| Direction | CMD | Mô tả |
+|-----------|-----|-------|
+| Client → Server | **50** `AllocateStatRequest` | Gửi chỉ số muốn tăng |
+| Server → Client | **180** `AllocateStatResponse` | Trả về stats đã cập nhật |
+
+**Request Tags (CMD 50):**
+
+| Tag | Code | Type | Giá trị |
+|-----|------|------|---------|
+| StatChoice | **50** | int | 0=CuongLuc, 1=ThanPhap, 2=NoiLuc, 3=TheLuc |
+
+**Response Tags (CMD 180):**
+
+| Tag | Code | Nội dung |
+|-----|------|---------|
+| CuongLuc | 118 | Giá trị mới sau phân điểm |
+| ThanPhap | 119 | |
+| NoiLuc | 120 | |
+| TheLuc | 121 | |
+| FreePoints | 53 | Điểm còn lại |
+| MaxHp | 130 | Sinh Lực mới (tính lại) |
+| TanCong | 131 | Tấn Công mới |
+| ChinhXac | 132 | Chính Xác mới |
+| PThu | 133 | P.Thủ mới |
+| NeTranh | 134 | Né Tránh mới |
+| ChiMang | 135 | Chí Mạng % mới |
+
+**Server flow (AllocateStatHandler):**
+```
+1. Guard: IsAuthenticated + player.Element != null
+2. Guard: player.FreePoints > 0
+3. Guard: StatChoice in [0, 3]
+4. player.{ChosenStat}++; player.FreePoints--;
+5. combat = StatCalculator.RecalculateAndApply(player)  → player.MaxHp cập nhật
+6. _playerRepository.UpdateAsync(player)                → lưu DB
+7. Gửi CMD 180 với 11 tags (base stats + FreePoints + 6 combat stats)
+```
+
+**Error response:** Gửi CMD 180 với Tag 1 (Message) chứa chuỗi lỗi.
+
+### TLV Tag Reference — Base Stats
+
+| TagCode | ID | Java field | C# field | Ghi chú |
+|---------|----|-----------|----------|---------|
+| `CuongLuc` | 118 | `lh.h` | `Player.CuongLuc` | Cường Lực / Strength |
+| `ThanPhap` | 119 | `lh.j` | `Player.ThanPhap` | Thân Pháp / Agility |
+| `NoiLuc` | 120 | `lh.i` | `Player.NoiLuc` | Nội Lực / Magic |
+| `TheLuc` | 121 | `lh.k` | `Player.TheLuc` | Thể Lực / Vitality |
+| `FreePoints` | 53 | `lh.K` | `Player.FreePoints` | Điểm chưa phân |
+| `StatChoice` | 50 | *(client-side only)* | *(request tag)* | 0-3, chỉ trong CMD 50 |
