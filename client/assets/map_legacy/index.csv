@@ -11,3 +11,6 @@ file,bucket,f_d_path,java_ref,confidence,note
 04_map_background_candidate/bgmap_hoa_lu.png,map_background_candidate,,,candidate,Large painted background of Hoa Lu capital. No literal string ref found.
 05_ui_labels_candidate/focusname.png,ui_labels_candidate,,,candidate,Focused location name plate. No literal string ref found.
 05_ui_labels_candidate/l.png,ui_labels_candidate,,,candidate,Tiny l glyph. Unknown role.
+06_ground_tiles_ai_candidate/hoa_lu_ground_left.png,ground_tiles_ai_candidate,,,candidate,AI-cropped left-end ground tile for Hoa Lu terrain strip tests.
+06_ground_tiles_ai_candidate/hoa_lu_ground_center.png,ground_tiles_ai_candidate,,,candidate,AI-cropped repeatable center ground tile for Hoa Lu terrain strip tests.
+06_ground_tiles_ai_candidate/hoa_lu_ground_right.png,ground_tiles_ai_candidate,,,candidate,AI-cropped right-end ground tile for Hoa Lu terrain strip tests.

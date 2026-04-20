@@ -9,8 +9,9 @@ import {
   View,
 } from 'react-native';
 import type { MonsterType } from '../../engine/MonsterSprite';
-import { MonsterSprite, monsterDisplaySize } from '../../engine/MonsterSprite';
-import { CharacterSprite, characterDisplaySize } from '../../engine/character';
+import { MonsterSprite, monsterDisplaySize, monsterPlacementMetrics } from '../../engine/MonsterSprite';
+import { CharacterRenderer, measureCharacterRenderer } from '../character';
+import type { CharacterAppearance } from '../character/shared';
 import { loadSession } from '../../storage/SessionStorage';
 
 const AUTO_ADVANCE_MS = 5000;
@@ -26,6 +27,7 @@ interface BattleIntroScreenProps {
   monsterLeft: number;
   groundY: number;
   playerScale?: number;
+  appearance: CharacterAppearance;
   onConfirm: () => void;
 }
 
@@ -118,11 +120,13 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
   playerLeft,
   monsterLeft,
   groundY,
-  playerScale = 0.7,
+  playerScale = 1,
+  appearance,
   onConfirm,
 }) => {
   const [username, setUsername] = useState('Lữ khách');
-  const [previewFrameIndex, setPreviewFrameIndex] = useState(0);
+  const [attackFrameIndex, setAttackFrameIndex] = useState(0);
+  const [isAttacking, setIsAttacking] = useState(false);
   const [showCards, setShowCards] = useState(false);
   const handledRef = useRef(false);
   const playerLungeAnim = useRef(new Animated.Value(0)).current;
@@ -131,8 +135,15 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
   const cardsAnim = useRef(new Animated.Value(0)).current;
 
   const monsterInfo = useMemo(() => MONSTER_INFO[monsterType], [monsterType]);
-  const playerSize = useMemo(() => characterDisplaySize(playerScale), [playerScale]);
+  // Cùng thuật toán với HoaLuMapScreen: anchorToBody=true + SPRITE_FOOT_SINK.
+  // Đảm bảo preview trong encounter không bị "nhảy" vị trí so với map screen.
+  const playerSize = useMemo(() => {
+    const measured = measureCharacterRenderer(appearance, playerScale, true);
+    const footSink = Math.round(5 * playerScale / 2.2); // transparent below feet, tại playerScale
+    return { ...measured, groundOffset: measured.groundOffset + footSink };
+  }, [appearance, playerScale]);
   const monsterSize = useMemo(() => monsterDisplaySize(monsterType), [monsterType]);
+  const monsterPlacement = useMemo(() => monsterPlacementMetrics(monsterType), [monsterType]);
 
   const finish = useCallback((next: () => void) => {
     if (handledRef.current) return;
@@ -247,19 +258,22 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
     const runLoop = () => {
       if (!active) return;
 
-      setPreviewFrameIndex(0);
+      setIsAttacking(false);
+      setAttackFrameIndex(0);
       prepTimer = setTimeout(() => {
         if (!active) return;
-        setPreviewFrameIndex(2);
+        setIsAttacking(true);
+        setAttackFrameIndex(0);
 
         slashTimer = setTimeout(() => {
           if (!active) return;
-          setPreviewFrameIndex(3);
+          setAttackFrameIndex(1);
           runImpactAnim();
 
           resetTimer = setTimeout(() => {
             if (!active) return;
-            setPreviewFrameIndex(0);
+            setIsAttacking(false);
+            setAttackFrameIndex(0);
 
             loopTimer = setTimeout(runLoop, ATTACK_LOOP_GAP_MS);
           }, SLASH_HOLD_MS);
@@ -308,7 +322,7 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
             badge={PLAYER_INFO.badge}
           >
             <View style={styles.playerSpriteWrap}>
-              <CharacterSprite frameIndex={0} facing="right" scale={0.42} />
+              <CharacterRenderer appearance={appearance} scale={0.42} action="idle" facing="right" />
             </View>
           </BattleInfoCard>
 
@@ -334,12 +348,19 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
             styles.previewPlayer,
             {
               left: playerLeft,
-              top: groundY - playerSize.h,
+              top: groundY - playerSize.h + (playerSize.groundOffset ?? 0),
               transform: [{ translateX: playerLungeAnim }],
             },
           ]}
         >
-          <CharacterSprite frameIndex={previewFrameIndex} facing="right" scale={playerScale} />
+          <CharacterRenderer
+            appearance={appearance}
+            scale={playerScale}
+            anchorToBody
+            action={isAttacking ? 'attack' : 'idle'}
+            actionFrameIndex={attackFrameIndex}
+            facing="right"
+          />
         </Animated.View>
 
         <Animated.View
@@ -347,7 +368,7 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
             styles.previewMonster,
             {
               left: monsterLeft,
-              top: groundY - monsterSize.h + monsterSize.groundOffset,
+              top: groundY - monsterSize.h + monsterPlacement.groundOffset,
               transform: [{ translateX: monsterShakeAnim }],
             },
           ]}

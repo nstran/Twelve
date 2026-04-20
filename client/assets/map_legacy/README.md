@@ -12,8 +12,9 @@ Legacy world-map asset bundle. Hosts the sprites for the overworld / zone-select
 | `03_locked_markers/`            | Locked-location overlays (primary + alt) | 2 | confirmed |
 | `04_map_background_candidate/`  | Large painted map background (Hoa Lư capital). No literal ref found. | 1 | candidate |
 | `05_ui_labels_candidate/`       | Focus-name plate + small `l` label. No literal ref found. | 2 | candidate |
+| `06_ground_tiles_ai_candidate/` | AI-cropped modular ground tiles used to test a richer Hoa Lư bottom strip | 3 | candidate |
 
-Total: 12 files.
+Total: 15 files.
 
 ## Confirmed asset paths
 
@@ -36,5 +37,8 @@ Total: 12 files.
 | 04_map_background_candidate/bgmap_hoa_lu.png | Large overworld background of Hoa Lư capital. 2.3 MB, added during reconstruction. Likely the base layer `/m/m` is drawn on top of. |
 | 05_ui_labels_candidate/focusname.png | Focused location name plate. |
 | 05_ui_labels_candidate/l.png | Tiny "l" glyph — possibly level marker or legend. |
+| 06_ground_tiles_ai_candidate/hoa_lu_ground_left.png | AI-cropped left-end ground tile for Hoa Lư terrain strip tests. |
+| 06_ground_tiles_ai_candidate/hoa_lu_ground_center.png | AI-cropped repeatable center ground tile for Hoa Lư terrain strip tests. |
+| 06_ground_tiles_ai_candidate/hoa_lu_ground_right.png | AI-cropped right-end ground tile for Hoa Lư terrain strip tests. |
 
 Promote to confirmed only after the map controller (`oh.java` / `fz.java`) is fully ported and the dynamic callsite that loads these is identified.

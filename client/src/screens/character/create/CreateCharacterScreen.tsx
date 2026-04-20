@@ -276,6 +276,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
                 hairIndex={hairIdx}
                 hairColorIndex={hairColorIdx}
                 skinColorIndex={skinColorIdx}
+                style={styles.previewSpriteCanvas}
               />
               <Image source={CREATE_CHARACTER_ASSETS.stone} style={styles.stonePlatform} resizeMode="contain" />
             </View>

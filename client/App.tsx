@@ -22,6 +22,7 @@ import {
 // ── Screen states ────────────────────────────────────────────────────────────
 type Screen = 'login' | 'register' | 'main' | 'createCharacter' | 'characterStatus' | 'mapSelection' | 'hoaLuMap' | 'battle';
 type MonsterTypeNav = 'fire' | 'ice' | 'zap';
+type BattleInitialTurn = 'player' | 'monster';
 
 const SERVER_URL         = 'ws://localhost:5102/game';
 const RECONNECT_DELAY_MS = 2000;
@@ -45,6 +46,7 @@ function normalizeScreen(screen?: string | null): Screen {
 export default function App() {
   const [screen, setScreen]           = useState<Screen>('login');
   const [battleMonster, setBattleMonster] = useState<MonsterTypeNav>('fire');
+  const [battleInitialTurn, setBattleInitialTurn] = useState<BattleInitialTurn>('player');
   const [playerAppearance, setPlayerAppearance] = useState<PlayerAppearance>({
     genderIndex: 0, faceIndex: 0, hairIndex: 0, hairColorIndex: 0, skinColorIndex: 0, elementIndex: 0,
   });
@@ -220,8 +222,9 @@ export default function App() {
               await clearSession();
               setScreen('login');
             }}
-            onBattle={(type) => {
+            onBattle={(type, initialTurn) => {
               setBattleMonster(type as MonsterTypeNav);
+              setBattleInitialTurn(initialTurn);
               setScreen('battle');
             }}
           />
@@ -231,6 +234,7 @@ export default function App() {
         return (
           <BattleScreen
             monsterType={battleMonster}
+            initialTurn={battleInitialTurn}
             onVictory={() => setScreen('hoaLuMap')}
             onDefeat={()  => setScreen('hoaLuMap')}
             onFlee={()    => setScreen('hoaLuMap')}

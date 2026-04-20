@@ -562,6 +562,7 @@ export function measureCreateCharacterPreview(
     return {
       w: (metrics.maxLeftOfBody + metrics.maxBodyWidth + metrics.maxRightOfBody) * scale,
       h: (metrics.maxAboveBody + metrics.maxBodyHeight + metrics.maxBelowBody) * scale,
+      groundOffset: metrics.maxBelowBody * scale,
     };
   }
 
@@ -597,6 +598,7 @@ export function measureCreateCharacterPreview(
   return {
     w: maxWidth * scale,
     h: maxHeight * scale,
+    groundOffset: 0,
   };
 }
 
@@ -717,7 +719,10 @@ export const CreateCharacterPreview: React.FC<CreateCharacterPreviewProps> = ({
   return (
     <View
       style={[
-        styles.previewSpriteCanvas,
+        {
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
         { width: canvasWidth, height: canvasHeight },
         style,
       ]}

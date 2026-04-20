@@ -109,6 +109,8 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
   maxX = 9999,
   containerWidth,
   containerHeight,
+  zIndex,
+  allowPointerInput = true,
   disabled = false,
   renderSprite,
   spriteSize,
@@ -147,6 +149,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     () => spriteSize ?? characterDisplaySize(scale),
     [scale, spriteSize],
   );
+  const charGroundOffset = spriteSize?.groundOffset ?? 0;
 
   const resolvedSurfaces = useMemo<GroundSurface[]>(() => (
     surfaces && surfaces.length > 0
@@ -726,20 +729,20 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
   }), [performAttack, startMoving, stopMoving, triggerVirtualJump]);
 
   const isPointOnCharacter = useCallback((x: number, y: number) => {
-    const top = currentGroundYRef.current - charSize.h + jumpYOffsetRef.current;
+    const top = currentGroundYRef.current - charSize.h + charGroundOffset + jumpYOffsetRef.current;
     return (
       x >= posXRef.current &&
       x <= posXRef.current + charSize.w &&
       y >= top &&
       y <= top + charSize.h
     );
-  }, [charSize.h, charSize.w]);
+  }, [charGroundOffset, charSize.h, charSize.w]);
 
   const shouldJumpToPoint = useCallback((x: number, y: number) => {
-    const currentTop = currentGroundYRef.current - charSize.h + jumpYOffsetRef.current;
+    const currentTop = currentGroundYRef.current - charSize.h + charGroundOffset + jumpYOffsetRef.current;
     const jumpLine = currentTop + charSize.h * JUMP_TRIGGER_RATIO;
     return y < jumpLine && !isPointOnCharacter(x, y);
-  }, [charSize.h, isPointOnCharacter]);
+  }, [charGroundOffset, charSize.h, isPointOnCharacter]);
 
   const handleTapToMove = useCallback((x: number, y: number) => {
     if (disabled) return;
@@ -791,16 +794,16 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
 
   const panResponder = useMemo(() => (
     PanResponder.create({
-      onStartShouldSetPanResponder: () => !disabled,
+      onStartShouldSetPanResponder: () => !disabled && allowPointerInput,
       onMoveShouldSetPanResponder: (_, gesture) =>
-        !disabled && controlMode === 'swipe' && Math.abs(gesture.dx) > SWIPE_THRESHOLD,
+        !disabled && allowPointerInput && controlMode === 'swipe' && Math.abs(gesture.dx) > SWIPE_THRESHOLD,
 
       onPanResponderGrant: () => {
         isTap.current = true;
       },
 
       onPanResponderMove: (_, gesture) => {
-        if (disabled || controlMode !== 'swipe') return;
+        if (disabled || !allowPointerInput || controlMode !== 'swipe') return;
 
         if (Math.abs(gesture.dx) > SWIPE_THRESHOLD) {
           isTap.current = false;
@@ -812,7 +815,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
       },
 
       onPanResponderRelease: (evt) => {
-        if (disabled) return;
+        if (disabled || !allowPointerInput) return;
 
         if (controlMode === 'tap-to-move') {
           handleTapToMove(evt.nativeEvent.locationX, evt.nativeEvent.locationY);
@@ -827,10 +830,11 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
       },
 
       onPanResponderTerminate: () => {
+        if (!allowPointerInput) return;
         stopMoving();
       },
     })
-  ), [controlMode, disabled, handleTapToMove, performAttack, startMoving, stopMoving]);
+  ), [allowPointerInput, controlMode, disabled, handleTapToMove, performAttack, startMoving, stopMoving]);
 
   // External initialX changes (e.g. scene reset) — snap instantly.
   useEffect(() => {
@@ -854,12 +858,12 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
 
   useEffect(() => () => clearMovementLoop(), [clearMovementLoop]);
 
-  const charTop = currentGroundY - charSize.h;
+  const charTop = currentGroundY - charSize.h + charGroundOffset;
 
   // Style objects are memoized to avoid allocating new objects each render.
   const gestureStyle = useMemo(
-    () => [styles.gestureLayer, { width: containerWidth, height: containerHeight }],
-    [containerWidth, containerHeight],
+    () => [styles.gestureLayer, { width: containerWidth, height: containerHeight, zIndex }],
+    [containerHeight, containerWidth, zIndex],
   );
 
   const wrapperStyle = useMemo(

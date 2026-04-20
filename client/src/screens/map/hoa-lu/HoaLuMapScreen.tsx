@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import {
   MonsterSprite, MonsterType,
-  WALK_FRAMES, ATTACK_FRAMES, monsterDisplaySize,
+  WALK_FRAMES, ATTACK_FRAMES, monsterDisplaySize, monsterPlacementMetrics,
 } from '../../../engine/MonsterSprite';
 import {
   CharacterController,
@@ -25,6 +25,9 @@ import { clearSession } from '../../../storage/SessionStorage';
 import type { CharacterAppearance } from '../../character/shared';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+const ASSET_SOFTKEY_MENU = require('../../../../assets/ui_legacy/11_softkey_icons_confirmed/icon_sharpest_1.png');
+const ASSET_SOFTKEY_OK = require('../../../../assets/ui_legacy/11_softkey_icons_confirmed/icon_ok.png');
+const ASSET_SOFTKEY_CANCEL = require('../../../../assets/ui_legacy/11_softkey_icons_confirmed/icon_cancel.png');
 
 // ── Map / Background ────────────────────────────────────────────────────────
 const MAP_NATIVE_W  = 1536;
@@ -32,36 +35,95 @@ const MAP_NATIVE_H  = 1024;
 const MAP_SCALE     = SCREEN_H / MAP_NATIVE_H;
 const MAP_W         = Math.round(MAP_NATIVE_W * MAP_SCALE);
 const MAP_H         = SCREEN_H;
+const MAP_MIN_X     = 0;
+const MAP_MAX_X     = MAP_W;
+const SOFTKEY_BAR_HEIGHT = 26;
+const LAYER_BG = 0;
+const LAYER_GROUND = 1;
+const LAYER_MONSTER = 2;
+const LAYER_CHARACTER = 3;
 
-// ── Stone ground tile ───────────────────────────────────────────────────────
-const TILE_W     = 96;
-const TILE_H     = 32;
-const NUM_TILES  = Math.ceil(MAP_W / (TILE_W - 1)) + 2;
+// ── Ground tile strip ────────────────────────────────────────────────────────
+const GROUND_TILE_W       = 124;
+const GROUND_TILE_H       = 102;
+const GROUND_TILE_OVERLAP = 20;
+const GROUND_TILE_STEP    = GROUND_TILE_W - GROUND_TILE_OVERLAP;
+// Mở rộng ground 1 tile sang TRÁI để nhân vật không nhìn thấy edge khi đứng đầu map
+const GROUND_TILE_LEFT_OFFSET = GROUND_TILE_STEP;
+const NUM_GROUND_TILES    = Math.ceil((MAP_W + GROUND_TILE_LEFT_OFFSET) / GROUND_TILE_STEP) + 2;
+// Tỉ lệ từ đỉnh tile xuống điểm tiếp xúc mặt đất (grass surface).
+// 0.16 × 102px ≈ 16px từ đỉnh tile = vị trí visual grass trong tile image.
+// Đây là giá trị đã được calibrate để nhân vật đứng đúng trên cỏ.
+const GROUND_TILE_CONTACT_RATIO = 0.16;
+const GROUND_TILE_CONTACT_OFFSET = Math.round(GROUND_TILE_H * GROUND_TILE_CONTACT_RATIO);
+// Hạ ground line thêm vài px để character/monster "ăn" xuống thảm cỏ hơn,
+// tránh cảm giác đang lơ lửng trên mép cỏ.
+const GROUND_TILE_CONTACT_VISUAL_DROP = 4;
 
-// ── Platform ────────────────────────────────────────────────────────────────
+// ── Platform ─────────────────────────────────────────────────────────────────
 const GROUND_ROWS  = 1;
-const PLATFORM_TOP = Math.round(SCREEN_H * 0.72);
+// GROUND_SINK: đẩy toàn bộ tile strip xuống. Giảm = đất cao hơn, trông đẹp hơn về mặt visual.
+const GROUND_SINK  = 18;
+const GROUND_STRIP_TOP = SCREEN_H - SOFTKEY_BAR_HEIGHT - (GROUND_ROWS * GROUND_TILE_H) + GROUND_SINK;
 
-// ── Player ──────────────────────────────────────────────────────────────────
-const CHAR_SCALE  = 1;
+// ── Player ────────────────────────────────────────────────────────────────────
+const CHAR_SCALE  = 1.6;   // tăng size nhân vật
 const CHAR_SPEED  = 1.35;
 const CHAR_INIT_X = Math.round(MAP_W * 0.08);
-const HOA_LU_SURFACES: GroundSurface[] = buildHoaLuSurfaces(MAP_SCALE);
+// CreateCharacterScreen đặt canvas bottom 5px DƯỚI stone surface (tại scale 2.2).
+// → Chân nhân vật cách canvas bottom: 5 / 2.2 ≈ 2.27 native px.
+// → Tại CHAR_SCALE: transparent_display = round(5 * CHAR_SCALE / 2.2) = 4px.
+// → Phải bù thêm 4px vào groundOffset để body bottom + 4 = GROUND_MAIN_Y → chân chạm cỏ.
+const CREATE_CHARACTER_DEFAULT_SCALE = 2.2;
+const SPRITE_FOOT_SINK = Math.round(5 * CHAR_SCALE / CREATE_CHARACTER_DEFAULT_SCALE); // = 4
+const HOA_LU_SURFACES_BASE: GroundSurface[] = buildHoaLuSurfaces(MAP_SCALE);
+// GROUND_MAIN_Y = vị trí mặt đất vật lý (y tính từ đỉnh màn hình xuống chỗ chân nhân vật/quái đứng)
+const GROUND_MAIN_Y = GROUND_STRIP_TOP + GROUND_TILE_CONTACT_OFFSET + GROUND_TILE_CONTACT_VISUAL_DROP;
+const HOA_LU_SURFACES: GroundSurface[] = HOA_LU_SURFACES_BASE.map((surface) => (
+  surface.id === 'ground_main'
+    ? { ...surface, x1: -GROUND_TILE_LEFT_OFFSET, y: GROUND_MAIN_Y }
+    : surface
+));
+const GROUND_MAIN_SURFACE = HOA_LU_SURFACES.find((surface) => surface.id === 'ground_main')
+  ?? { id: 'ground_main', x1: -GROUND_TILE_LEFT_OFFSET, x2: MAP_W, y: GROUND_MAIN_Y, kind: 'ground' as const };
+const GROUND_TOP = GROUND_MAIN_SURFACE.y;
 
 // ── Monster dữ liệu tĩnh (loại + patrol range) ────────────────────────────
 interface MonsterDef {
   id: number;
   type: MonsterType;
-  minX: number;   // pixel trái của vùng tuần tra (center)
-  maxX: number;   // pixel phải
-  startX: number;
+  surfaceId: string;
+  patrolInsetLeft: number;
+  patrolInsetRight: number;
+  startRatio: number;
   speed: number;  // px/tick (1 tick = 50ms)
 }
 
+// Patrol zones tính theo tỉ lệ MAP_W — dùng GROUND_TILE_LEFT_OFFSET bù thêm
+// vì surface.x1 = -GROUND_TILE_LEFT_OFFSET (patrol bắt đầu từ bên trái khung hình).
+// Nhân vật spawn tại CHAR_INIT_X ≈ 8% MAP_W → zone đầu bắt đầu từ 25% để an toàn.
+//   Zone 1 (fire): 25% – 48% MAP_W
+//   Zone 2 (ice):  48% – 72% MAP_W
+//   Zone 3 (zap):  70% – 92% MAP_W
 const MONSTER_DEFS: MonsterDef[] = [
-  { id: 1, type: 'fire', startX: MAP_W * 0.28, minX: MAP_W * 0.18, maxX: MAP_W * 0.42, speed: 2.2 },
-  { id: 2, type: 'ice',  startX: MAP_W * 0.55, minX: MAP_W * 0.44, maxX: MAP_W * 0.70, speed: 2.6 },
-  { id: 3, type: 'zap',  startX: MAP_W * 0.82, minX: MAP_W * 0.68, maxX: MAP_W * 0.94, speed: 3.0 },
+  {
+    id: 1, type: 'fire', surfaceId: 'ground_main',
+    patrolInsetLeft:  Math.round(MAP_W * 0.25) + GROUND_TILE_LEFT_OFFSET,
+    patrolInsetRight: Math.round(MAP_W * 0.52),
+    startRatio: 0.4, speed: 2.2,
+  },
+  {
+    id: 2, type: 'ice',  surfaceId: 'ground_main',
+    patrolInsetLeft:  Math.round(MAP_W * 0.48) + GROUND_TILE_LEFT_OFFSET,
+    patrolInsetRight: Math.round(MAP_W * 0.28),
+    startRatio: 0.5, speed: 2.6,
+  },
+  {
+    id: 3, type: 'zap',  surfaceId: 'ground_main',
+    patrolInsetLeft:  Math.round(MAP_W * 0.70) + GROUND_TILE_LEFT_OFFSET,
+    patrolInsetRight: Math.round(MAP_W * 0.08),
+    startRatio: 0.5, speed: 3.0,
+  },
 ];
 
 /**
@@ -75,6 +137,10 @@ interface MonsterRuntime {
   id: number;
   type: MonsterType;
   def: MonsterDef;
+  surfaceId: string;
+  groundY: number;
+  minX: number;
+  maxX: number;
   x: number;              // center X (mutable)
   direction: 1 | -1;
   tickCount: number;
@@ -82,7 +148,7 @@ interface MonsterRuntime {
   frameIndex: number;
   xAnim: Animated.Value;  // drives translateX on native side
   size: ReturnType<typeof monsterDisplaySize>;
-  topY: number;           // precomputed (constant)
+  topY: number;
 }
 
 /** React-state slice — only re-rendered when it actually changes. */
@@ -100,21 +166,34 @@ const FRAME_TICKS = 4;
 const MONSTER_TICK_MS = 50; // 20 logic ticks/sec
 
 function buildMonsterRuntimes(): MonsterRuntime[] {
-  return MONSTER_DEFS.map(def => {
+  return MONSTER_DEFS.map((def) => {
+    const surface = HOA_LU_SURFACES.find((entry) => entry.id === def.surfaceId);
+    if (!surface) {
+      throw new Error(`Surface '${def.surfaceId}' not found in Hoa Lu navigation data.`);
+    }
+
+    const minX = surface.x1 + def.patrolInsetLeft;
+    const maxX = surface.x2 - def.patrolInsetRight;
+    const startX = minX + Math.max(0, maxX - minX) * def.startRatio;
     const size = monsterDisplaySize(def.type);
-    const leftX = def.startX - size.w / 2;
+    const placement = monsterPlacementMetrics(def.type);
+    const leftX = startX - size.w / 2;
     return {
       id: def.id,
       type: def.type,
       def,
-      x: def.startX,
+      surfaceId: surface.id,
+      groundY: surface.y,
+      minX,
+      maxX,
+      x: startX,
       direction: 1,
       tickCount: 0,
       attacking: false,
       frameIndex: WALK_FRAMES[0],
       xAnim: new Animated.Value(leftX),
       size,
-      topY: PLATFORM_TOP - size.h + size.groundOffset,
+      topY: surface.y - size.h + placement.groundOffset,
     };
   });
 }
@@ -126,6 +205,36 @@ function buildInitialVisuals(runtimes: MonsterRuntime[]): MonsterVisual[] {
     direction: m.direction,
     attacking: m.attacking,
   }));
+}
+
+function shouldRebuildMonsterRuntimes(runtimes: MonsterRuntime[]) {
+  if (runtimes.length !== MONSTER_DEFS.length) return true;
+
+  return runtimes.some((m, index) => (
+    m.id !== MONSTER_DEFS[index]?.id
+    || !Number.isFinite(m.topY)
+    || !Number.isFinite(m.groundY)
+    || !Number.isFinite(m.x)
+    || !Number.isFinite(m.minX)
+    || !Number.isFinite(m.maxX)
+  ));
+}
+
+function shouldRebuildMonsterTargets(targets: MonsterTarget[], runtimes: MonsterRuntime[]) {
+  if (targets.length !== runtimes.length) return true;
+
+  return targets.some((target, index) => {
+    const runtime = runtimes[index];
+    if (!runtime) return true;
+    return (
+      target.id !== String(runtime.id)
+      || !Number.isFinite(target.x)
+      || !Number.isFinite(target.y)
+      || target.y !== runtime.topY
+      || target.width !== runtime.size.w
+      || target.height !== runtime.size.h
+    );
+  });
 }
 
 /**
@@ -156,7 +265,7 @@ const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals }) => (
             top: m.topY,
             width: m.size.w,
             height: m.size.h,
-            zIndex: 8,
+            zIndex: LAYER_MONSTER,
             transform: [{ translateX: m.xAnim }],
           }}
         >
@@ -177,13 +286,15 @@ interface Props {
   appearance: CharacterAppearance;
   onBack:    () => void;
   onLogout:  () => void;
-  onBattle?: (monsterType: MonsterType) => void;
+  onBattle?: (monsterType: MonsterType, initialTurn: 'player' | 'monster') => void;
 }
 
 interface EncounterPreviewState {
   monsterType: MonsterType;
   playerLeft: number;
   monsterLeft: number;
+  groundY: number;
+  initialTurn: 'player' | 'monster';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -206,7 +317,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
   // via Animated.Value (native). This avoids 20Hz React re-renders and
   // keeps the `monsters` prop identity stable for CharacterController.
   const monsterRuntimesRef = useRef<MonsterRuntime[]>([]);
-  if (monsterRuntimesRef.current.length === 0) {
+  if (shouldRebuildMonsterRuntimes(monsterRuntimesRef.current)) {
     monsterRuntimesRef.current = buildMonsterRuntimes();
   }
   const monsterRuntimes = monsterRuntimesRef.current;
@@ -217,7 +328,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
    * positions via its internal ref each rAF tick → always fresh.
    */
   const monsterTargetsRef = useRef<MonsterTarget[]>([]);
-  if (monsterTargetsRef.current.length === 0) {
+  if (shouldRebuildMonsterTargets(monsterTargetsRef.current, monsterRuntimes)) {
     monsterTargetsRef.current = monsterRuntimes.map(m => ({
       id: String(m.id),
       x: m.x - m.size.w / 2,
@@ -301,8 +412,25 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
 
   const isEncounterActive = encounterPreview !== null;
   const showTouchGamepad = !menuVisible && !isEncounterActive;
+  const allowMapPointerInput = Platform.OS !== 'web';
   const playerSpriteSize = useMemo(
-    () => measureCharacterRenderer(appearance, CHAR_SCALE, true),
+    () => {
+      // anchorToBody=true: groundOffset = maxBelowBody * CHAR_SCALE
+      // Đảm bảo body bottom (y=53 trong sprite) chạm đúng GROUND_MAIN_Y bất kể overlay.
+      //
+      // + SPRITE_FOOT_SINK = 4px: bù phần canvas kéo dài dưới chân (transparent).
+      // Lý do: CreateCharacterScreen đặt canvas_bottom 5px dưới stone_surface tại scale 2.2
+      //   → transparent_at_bottom = 5/2.2 * CHAR_SCALE ≈ 4px
+      //   → charTop giảm thêm 4px → canvas_bottom = groundY+4 → feet = groundY ✓
+      //
+      // Chứng minh tổng hợp:
+      //   charTop = groundY - (maxAbove+53+maxBelow)*scale + maxBelow*scale + SINK
+      //           = groundY - (maxAbove+53)*scale + SINK
+      //   feet_y  = charTop + (maxAbove+53)*scale - transparent_display
+      //           = groundY + SINK - SINK = groundY ✓
+      const measured = measureCharacterRenderer(appearance, CHAR_SCALE, true);
+      return { ...measured, groundOffset: measured.groundOffset + SPRITE_FOOT_SINK };
+    },
     [appearance],
   );
   const hudHp = appearance.hp?.cur ?? 800;
@@ -344,7 +472,12 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
   // fires only on mount; contents are mutated live by the game loop.
   const monsterTargets = monsterTargetsRef.current;
 
-  const startEncounter = useCallback((snap: { type: MonsterType; x: number }) => {
+  const startEncounter = useCallback((snap: {
+    type: MonsterType;
+    x: number;
+    groundY: number;
+    initialTurn: 'player' | 'monster';
+  }) => {
     if (battleTriggered.current || isEncounterActive) return;
 
     const { w: monsterW } = monsterDisplaySize(snap.type);
@@ -354,12 +487,14 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
       monsterType: snap.type,
       playerLeft: charLeftRef.current - cameraXRef.current,
       monsterLeft: snap.x - monsterW / 2 - cameraXRef.current,
+      groundY: snap.groundY,
+      initialTurn: snap.initialTurn,
     });
   }, [isEncounterActive]);
 
   const confirmEncounter = useCallback(() => {
     if (!encounterPreview || !onBattle) return;
-    onBattle(encounterPreview.monsterType);
+    onBattle(encounterPreview.monsterType, encounterPreview.initialTurn);
   }, [encounterPreview, onBattle]);
 
   const cancelEncounter = useCallback(() => {
@@ -399,13 +534,13 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
           // 1. Move
           let newX  = m.x + m.def.speed * m.direction;
           let newDir: 1 | -1 = m.direction;
-          if (newX >= m.def.maxX) { newX = m.def.maxX; newDir = -1; }
-          if (newX <= m.def.minX) { newX = m.def.minX; newDir =  1; }
+          if (newX >= m.maxX) { newX = m.maxX; newDir = -1; }
+          if (newX <= m.minX) { newX = m.minX; newDir =  1; }
 
           // 2. Collision
           const attacking = Math.abs(newX - playerCenter) < COLLISION_DIST;
           if (attacking && !battleTriggered.current) {
-            const snap = { type: m.type, x: newX };
+            const snap = { type: m.type, x: newX, groundY: m.groundY, initialTurn: 'monster' as const };
             setTimeout(() => startEncounter(snap), 120);
           }
 
@@ -438,6 +573,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
           // 7. Mutate the stable target array read by CharacterController
           const target = monsterTargetsRef.current[i];
           target.x = leftX;
+          target.y = m.topY;
         }
       }
 
@@ -550,24 +686,36 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
     showTouchGamepad,
   ]);
 
-  // ── Render: stone platform ──────────────────────────────────────────────
+  // ── Render: stone platform ───────────────────────────────────────────────
+  // Tile strip bắt đầu từ -GROUND_TILE_LEFT_OFFSET (1 tile sang TRÁI khỏi x=0)
+  // → nhân vật ở gần đầu map không nhìn thấy edge tile → không cảm giác "rớt khỏi map"
   const renderGround = () => {
     const tiles = [];
     for (let row = 0; row < GROUND_ROWS; row++) {
-      for (let col = 0; col < NUM_TILES; col++) {
+      for (let col = 0; col < NUM_GROUND_TILES; col++) {
+        const tileLeft = col * GROUND_TILE_STEP - GROUND_TILE_LEFT_OFFSET;
+        // Edge tiles chỉ dùng cho tile đầu/cuối thực sự ngoài phạm vi map
+        const isFirst = tileLeft <= -GROUND_TILE_LEFT_OFFSET;
+        const isLast  = col === NUM_GROUND_TILES - 1;
+        const source  = isFirst
+          ? HOA_LU_MAP_ASSETS.groundLeft
+          : isLast
+            ? HOA_LU_MAP_ASSETS.groundRight
+            : HOA_LU_MAP_ASSETS.groundCenter;
+
         tiles.push(
           <Image
             key={`t-${row}-${col}`}
-            source={HOA_LU_MAP_ASSETS.stone}
+            source={source}
             style={{
               position: 'absolute',
-              left:   col * (TILE_W - 1),
-              top:    PLATFORM_TOP + row * TILE_H,
-              width:  TILE_W + 1,
-              height: TILE_H,
-              zIndex: NUM_TILES - col,
+              left:   tileLeft,
+              top:    GROUND_STRIP_TOP + row * GROUND_TILE_H,
+              width:  GROUND_TILE_W,
+              height: GROUND_TILE_H,
+              zIndex: LAYER_GROUND,
             }}
-            resizeMode="cover"
+            resizeMode="stretch"
           />
         );
       }
@@ -620,7 +768,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
             <CharacterController
               ref={characterControllerRef}
               initialX={CHAR_INIT_X}
-              groundY={PLATFORM_TOP}
+              groundY={GROUND_TOP}
               controlMode="tap-to-move"
               speed={CHAR_SPEED}
               scale={CHAR_SCALE}
@@ -629,20 +777,24 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
                 <CharacterRenderer
                   appearance={appearance}
                   scale={scale}
+                  anchorToBody
                   action={action}
                   actionFrameIndex={actionFrameIndex}
                   facing={facing}
-                  anchorToBody
                   poseFamilySlotOverride={poseFamilySlot}
                   poseFrameIndexOverride={poseFrameIndex}
                 />
               )}
               monsters={monsterTargets}
               surfaces={HOA_LU_SURFACES}
-              minX={0}
-              maxX={MAP_W}
+              // Cho phép đi sát 2 đầu map nhưng vẫn bị clamp trong biên map,
+              // nên ở điểm đầu/cuối sẽ không bị hụt support rồi rơi xuống.
+              minX={MAP_MIN_X}
+              maxX={MAP_MAX_X}
               containerWidth={MAP_W}
               containerHeight={MAP_H}
+              zIndex={LAYER_CHARACTER}
+              allowPointerInput={allowMapPointerInput}
               disabled={menuVisible}
               onMove={(x) => {
                 charLeftRef.current = x;
@@ -654,7 +806,12 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
                 const targetMonster = monsterRuntimes.find((m) => String(m.id) === monsterId);
                 if (!targetMonster) return;
 
-                const snap = { type: targetMonster.type, x: targetMonster.x };
+                const snap = {
+                  type: targetMonster.type,
+                  x: targetMonster.x,
+                  groundY: targetMonster.groundY,
+                  initialTurn: 'player' as const,
+                };
                 setTimeout(() => startEncounter(snap), 180);
               }}
             />
@@ -676,8 +833,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
           monsterType={encounterPreview.monsterType}
           playerLeft={encounterPreview.playerLeft}
           monsterLeft={encounterPreview.monsterLeft}
-          groundY={PLATFORM_TOP}
+          groundY={encounterPreview.groundY}
           playerScale={CHAR_SCALE}
+          appearance={appearance}
           onConfirm={confirmEncounter}
         />
       )}
@@ -696,24 +854,20 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
       {/* ─── SoftkeyBar (bottom bar) - using icons like login screen ─── */}
       <SoftkeyBar
         width={SCREEN_W}
-        leftLabel={menuVisible ? 'Chọn' : 'Menu'}
         centerLabel={isEncounterActive ? 'Vào ngay' : undefined}
-        rightLabel={isEncounterActive ? 'Hủy' : menuVisible ? 'Đóng' : 'Lùi'}
         onLeftPress={() => {
           if (isEncounterActive) return;
           setMenuVisible(prev => !prev);
         }}
-        onRightPress={() => {
+        onRightPress={menuVisible || isEncounterActive ? () => {
           if (isEncounterActive) {
             cancelEncounter();
             return;
           }
           if (menuVisible) {
             setMenuVisible(false);
-            return;
           }
-          onBack();
-        }}
+        } : undefined}
         onCenterPress={() => {
           if (isEncounterActive) {
             confirmEncounter();
@@ -723,10 +877,17 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
             const previewMonster =
               monsterRuntimes.find((m) => m.type === 'fire') ?? monsterRuntimes[0];
             if (previewMonster) {
-              startEncounter({ type: previewMonster.type, x: previewMonster.x });
+              startEncounter({
+                type: previewMonster.type,
+                x: previewMonster.x,
+                groundY: previewMonster.groundY,
+                initialTurn: 'player',
+              });
             }
           }
         }}
+        leftIcon={menuVisible ? ASSET_SOFTKEY_OK : isEncounterActive ? undefined : ASSET_SOFTKEY_MENU}
+        rightIcon={menuVisible || isEncounterActive ? ASSET_SOFTKEY_CANCEL : undefined}
       />
 
     </View>
@@ -738,5 +899,5 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
 
   scroll: { flex: 1 },
-  bg: { position: 'absolute', top: 0, left: 0, width: MAP_W, height: MAP_H },
+  bg: { position: 'absolute', top: 0, left: 0, width: MAP_W, height: MAP_H, zIndex: LAYER_BG },
 });

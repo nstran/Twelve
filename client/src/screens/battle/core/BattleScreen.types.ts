@@ -2,8 +2,11 @@ import { Animated } from 'react-native';
 import type { MonsterType } from '../../../engine/MonsterSprite';
 import type { FXKind } from './BattleScreen.shared';
 
+export type BattleTurn = 'player' | 'monster';
+
 export interface BattleScreenProps {
   monsterType: MonsterType;
+  initialTurn?: BattleTurn;
   onVictory: () => void;
   onDefeat: () => void;
   onFlee: () => void;
@@ -12,7 +15,6 @@ export interface BattleScreenProps {
 export type BattlePhase = 'idle' | 'busy' | 'over';
 export type BattleResult = 'victory' | 'defeat';
 export type BattleSide = 'player' | 'enemy';
-export type BattleTurn = 'player' | 'monster';
 export type BattleCell = [number, number];
 
 export interface ResultArtMeta {

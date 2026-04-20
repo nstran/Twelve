@@ -57,7 +57,7 @@ interface QueuedAttack {
 }
 
 export const BattleScreen: React.FC<BattleScreenProps> = ({
-  monsterType, onVictory, onDefeat, onFlee,
+  monsterType, initialTurn = 'player', onVictory, onDefeat, onFlee,
 }) => {
   const maxHP  = 100;
   const maxEHP = MONSTER_HP[monsterType] ?? 150;
@@ -83,8 +83,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [menuSelectedIndex, setMenuSelectedIndex] = useState(0);
 
   // ── Turn-based system ──────────────────────────────────────────────────────
-  const [turn, setTurn] = useState<BattleTurn>('player');
-  const turnRef = useRef<BattleTurn>('player');
+  const [turn, setTurn] = useState<BattleTurn>(initialTurn);
+  const turnRef = useRef<BattleTurn>(initialTurn);
 
   // ── Extra turns: match 4+ → bonus lượt ────────────────────────────────────
   const [extraTurns, setExtraTurns] = useState(0);

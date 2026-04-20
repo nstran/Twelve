@@ -107,10 +107,14 @@ export interface CharacterControllerProps {
   containerWidth: number;
   /** Container height for gesture area */
   containerHeight: number;
+  /** Optional visual layer priority for the controller wrapper */
+  zIndex?: number;
+  /** Disable direct pointer/touch gestures on the character layer */
+  allowPointerInput?: boolean;
   /** Disable movement / attacks temporarily */
   disabled?: boolean;
   /** Optional custom sprite renderer for modular / skinned characters */
   renderSprite?: (args: CharacterRenderSpriteArgs) => ReactNode;
   /** Override the collision / placement size used by the controller */
-  spriteSize?: { w: number; h: number };
+  spriteSize?: { w: number; h: number; groundOffset?: number };
 }
