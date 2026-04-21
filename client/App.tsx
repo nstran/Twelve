@@ -234,6 +234,7 @@ export default function App() {
         return (
           <BattleScreen
             monsterType={battleMonster}
+            appearance={playerAppearance}
             initialTurn={battleInitialTurn}
             onVictory={() => setScreen('hoaLuMap')}
             onDefeat={()  => setScreen('hoaLuMap')}

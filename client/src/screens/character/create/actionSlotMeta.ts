@@ -2225,3 +2225,261 @@ export const ACTION_SLOT_META: Record<number, Partial<Record<0 | 1 | 2 | 3 | 4, 
           },
     },
 } as const;
+
+export const ACTION_SLOT_CANONICAL_META: Record<number, Partial<Record<7 | 8 | 9, SlotMeta>>> = {
+  79899: {
+    7: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 26, yOffset: 29 }],
+    },
+    8: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 22, yOffset: 33 }],
+    },
+    9: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 26, yOffset: 28 }],
+    },
+  },
+  79999: {
+    7: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 25, yOffset: 30 }],
+    },
+    8: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 22, yOffset: 33 }],
+    },
+    9: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 25, yOffset: 28 }],
+    },
+  },
+  89999: {
+    7: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 14, yOffset: 37 }],
+    },
+    8: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 7, yOffset: 40 }],
+    },
+    9: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 27, yOffset: 29 }],
+    },
+  },
+  90999: {
+    7: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 21, yOffset: 9 }],
+    },
+    8: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 17, yOffset: 12 }],
+    },
+    9: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 21, yOffset: 8 }],
+    },
+  },
+  91099: {
+    7: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 23, yOffset: 2 }],
+    },
+    8: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 18, yOffset: 6 }],
+    },
+    9: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 22, yOffset: 2 }],
+    },
+  },
+  94399: {
+    7: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 12, yOffset: 5 }],
+    },
+    8: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 12, yOffset: 6 }],
+    },
+    9: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 12, yOffset: 5 }],
+    },
+  },
+  97599: {
+    7: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 21, yOffset: 6 }],
+    },
+    8: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 18, yOffset: 11 }],
+    },
+    9: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 22, yOffset: 5 }],
+    },
+  },
+  98199: {
+    7: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 20, yOffset: 11 }],
+    },
+    8: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 16, yOffset: 11 }],
+    },
+    9: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 22, yOffset: 10 }],
+    },
+  },
+  98299: {
+    7: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 20, yOffset: 12 }],
+    },
+    8: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 16, yOffset: 14 }],
+    },
+    9: {
+      frameWidthDivisor: 1,
+      frameCount: 1,
+      frames: [{ sourceIndex: 0, xOffset: 22, yOffset: 11 }],
+    },
+  },
+};
+
+export const ACTION_SLOT_RUNTIME_CANONICAL_MAP: Record<number, keyof typeof ACTION_SLOT_CANONICAL_META> = {
+  50099: 90999,
+  50199: 97599,
+  50299: 98299,
+  50399: 98199,
+  50499: 91099,
+  50599: 97599,
+  60099: 94399,
+  60199: 94399,
+  60299: 94399,
+  60399: 94399,
+  60499: 94399,
+  60599: 94399,
+  60699: 94399,
+  60799: 94399,
+  60899: 94399,
+  60999: 94399,
+};
+
+export const ACTION_SLOT_RUNTIME_EXTENDED_META: Record<number, Partial<Record<7 | 8 | 9, SlotMeta>>> = {
+  50099: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 23, yOffset: -2 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 8, yOffset: 6 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 7, yOffset: -1 }] },
+  },
+  50199: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 23, yOffset: -2 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 8, yOffset: 6 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 12, yOffset: -1 }] },
+  },
+  50299: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 16, yOffset: 1 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 8, yOffset: 11 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 11, yOffset: 2 }] },
+  },
+  50399: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 12, yOffset: -1 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 8, yOffset: 8 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 10, yOffset: 0 }] },
+  },
+  50499: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 19, yOffset: -2 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 8, yOffset: 4 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 18, yOffset: -3 }] },
+  },
+  50599: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 12, yOffset: -5 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 11, yOffset: 5 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 6, yOffset: -4 }] },
+  },
+  60099: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 29, yOffset: 15 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 13, yOffset: 26 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 21, yOffset: 16 }] },
+  },
+  60199: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 29, yOffset: 15 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 13, yOffset: 26 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 21, yOffset: 17 }] },
+  },
+  60299: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 29, yOffset: 15 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 13, yOffset: 26 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 21, yOffset: 17 }] },
+  },
+  60399: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 29, yOffset: 15 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 13, yOffset: 26 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 21, yOffset: 16 }] },
+  },
+  60499: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 29, yOffset: 15 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 13, yOffset: 26 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 21, yOffset: 16 }] },
+  },
+  60599: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 29, yOffset: 15 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 13, yOffset: 26 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 21, yOffset: 16 }] },
+  },
+  60699: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 29, yOffset: 15 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 15, yOffset: 26 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 22, yOffset: 16 }] },
+  },
+  60799: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 29, yOffset: 15 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 13, yOffset: 26 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 21, yOffset: 16 }] },
+  },
+  60899: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 29, yOffset: 15 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 13, yOffset: 26 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 21, yOffset: 17 }] },
+  },
+  60999: {
+    7: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 29, yOffset: 16 }] },
+    8: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 14, yOffset: 27 }] },
+    9: { frameWidthDivisor: 1, frameCount: 1, frames: [{ sourceIndex: 0, xOffset: 22, yOffset: 18 }] },
+  },
+};

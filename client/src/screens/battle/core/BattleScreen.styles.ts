@@ -12,21 +12,15 @@ export const BOARD_SCALE = BG_W / BG_NATIVE_W;
 // ── Bàn cờ (grid 8 × 8, vùng grid native ≈ 232 × 232 px trong ảnh) ──────────
 export const BOARD_COLS = 8;
 export const BOARD_ROWS = 8;
+const BOARD_NATIVE_LEFT = 8;
+const BOARD_NATIVE_TOP = 4;
 
 // GEM_SIZE: chia đều vùng 232 native px, floor để board không tràn ra ngoài
-const GRID_NATIVE    = 228;
+const GRID_NATIVE    = 224;
 const GRID_PX        = BOARD_SCALE * GRID_NATIVE;
 export const GEM_SIZE          = Math.floor(GRID_PX / BOARD_COLS);
-const BOARD_CENTER_OFFSET = Math.round((BG_W - GEM_SIZE * BOARD_COLS) / 2);
-
-// Fine-tune lưới gem bên trong khung bkboardv theo trục ngang.
-// Âm = dịch sang trái, dương = dịch sang phải.
-const BOARD_LEFT_SHIFT_NATIVE = -4;
-// Căn giữa board trong vùng grid của ảnh nền rồi fine-tune ngang.
-export const BOARD_LEFT_OFFSET = BOARD_CENTER_OFFSET
-  + Math.round(BOARD_LEFT_SHIFT_NATIVE * BOARD_SCALE);
-const BOARD_TOP_SHIFT_NATIVE = 11;
-export const BOARD_TOP_OFFSET  = BOARD_CENTER_OFFSET + Math.round(BOARD_TOP_SHIFT_NATIVE * BOARD_SCALE);
+export const BOARD_LEFT_OFFSET = Math.round(BOARD_NATIVE_LEFT * BOARD_SCALE);
+export const BOARD_TOP_OFFSET = Math.round(BOARD_NATIVE_TOP * BOARD_SCALE);
 
 export const BOARD_POS_LEFT = Math.round((SCREEN_W - BG_W) / 2) + BOARD_LEFT_OFFSET;
 export const BOARD_POS_TOP  = BOARD_TOP_OFFSET;   // background bắt đầu y=0, board ngay trong đó

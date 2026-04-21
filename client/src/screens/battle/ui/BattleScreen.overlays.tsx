@@ -1,7 +1,9 @@
 import React from 'react';
 import { Animated, Image, Text, TouchableOpacity, View } from 'react-native';
 import { MonsterSprite, monsterDisplaySize, type MonsterType } from '../../../engine/MonsterSprite';
-import { CharacterSprite } from '../../../engine/character';
+import type { CharacterAction } from '../../../engine/character';
+import { CharacterRenderer } from '../../character';
+import type { CharacterAppearance } from '../../character/shared';
 import {
   BATTLE_PLAYER_SCALE,
   RESULT_ART_INDEX,
@@ -30,9 +32,14 @@ interface BattleActorsRowProps {
   panelLeft: number;
   charsTop: number;
   charsHeight: number;
+  appearance: CharacterAppearance;
   monsterType: MonsterType;
   monFrame: number;
-  playerFrame: number;
+  playerAction: CharacterAction;
+  playerActionFrameIndex: number | null;
+  playerReactionPose: boolean;
+  playerDefeatPose: boolean;
+  playerRetreatPose: boolean;
   monsterWidth: number;
   monsterHeight: number;
   playerCollectAnim: Animated.Value;
@@ -47,9 +54,14 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
   panelLeft,
   charsTop,
   charsHeight,
+  appearance,
   monsterType,
   monFrame,
-  playerFrame,
+  playerAction,
+  playerActionFrameIndex,
+  playerReactionPose,
+  playerDefeatPose,
+  playerRetreatPose,
   monsterWidth,
   monsterHeight,
   playerCollectAnim,
@@ -60,7 +72,11 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
   enemyHitTranslateX,
 }) => {
   const { groundOffset } = monsterDisplaySize(monsterType);
-  const { stageWidth, playerBaseLeft, monsterBaseLeft } = getBattleActorLayout(monsterType);
+  const { stageWidth, playerBaseLeft, monsterBaseLeft, playerSize } =
+    React.useMemo(() => getBattleActorLayout(monsterType, appearance), [monsterType, appearance]);
+  const playerPoseFamilySlotOverride =
+    playerDefeatPose ? 8 : playerReactionPose ? 7 : playerRetreatPose ? 9 : undefined;
+  const playerPoseFrameIndexOverride = playerPoseFamilySlotOverride !== undefined ? 0 : undefined;
 
   return (
     <View
@@ -68,7 +84,7 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
         s.charsRow,
         {
           top: charsTop,
-          left: panelLeft + 20 + CHARS_ROW_SHIFT_X * BOARD_SCALE,
+          left: panelLeft + CHARS_ROW_SHIFT_X * BOARD_SCALE,
           width: stageWidth,
           height: charsHeight,
         },
@@ -78,7 +94,9 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
         style={{
           position: 'absolute',
           left: playerBaseLeft,
-          bottom: 0,
+          bottom: -(playerSize.groundOffset ?? 0),
+          width: playerSize.w,
+          height: playerSize.h,
           transform: [
             { translateX: Animated.add(playerAttackTranslateX, playerHitTranslateX) },
             {
@@ -98,11 +116,15 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
             ],
           }}
         >
-          <CharacterSprite
-            frameIndex={playerFrame}
-            facing="right"
+          <CharacterRenderer
+            appearance={appearance}
             scale={BATTLE_PLAYER_SCALE}
-            placementPreset="battle"
+            anchorToBody
+            action={playerAction}
+            actionFrameIndex={playerActionFrameIndex ?? undefined}
+            facing="right"
+            poseFamilySlotOverride={playerPoseFamilySlotOverride}
+            poseFrameIndexOverride={playerPoseFrameIndexOverride}
           />
         </View>
       </Animated.View>

@@ -37,6 +37,8 @@ interface UseBattleMatchFlowArgs {
   setResult: Dispatch<SetStateAction<BattleResult | null>>;
   playPlayerSwordAttack: (onImpact: () => void, onComplete: () => void) => void;
   playMonsterSwordAttack: (onImpact: () => void, onComplete: () => void) => void;
+  onPlayerHit: () => void;
+  onPlayerDefeat: () => void;
   showBonusBanner: (msg: string) => void;
   showDamagePopup: (side: 'player' | 'enemy', amount: number) => void;
   spawnCollectFX: (matched: Set<string>, board: Board, collectorSide: 'player' | 'enemy', healAmount: number) => void;
@@ -67,6 +69,8 @@ export const useBattleMatchFlow = ({
   setResult,
   playPlayerSwordAttack,
   playMonsterSwordAttack,
+  onPlayerHit,
+  onPlayerDefeat,
   showBonusBanner,
   showDamagePopup,
   spawnCollectFX,
@@ -195,13 +199,14 @@ export const useBattleMatchFlow = ({
             playMonsterSwordAttack(
               () => {
                 if (!mountedRef.current) return;
+                onPlayerHit();
                 showDamagePopup('player', dmg);
                 setPlayerHP(hp => {
                   const next = Math.max(0, hp - dmg);
                   if (next === 0 && phaseRef.current !== 'over') {
                     phaseRef.current = 'over';
                     setPhase('over');
-                    setResult('defeat');
+                    onPlayerDefeat();
                   }
                   return next;
                 });
@@ -221,6 +226,8 @@ export const useBattleMatchFlow = ({
     maxMP,
     maxPow,
     mountedRef,
+    onPlayerDefeat,
+    onPlayerHit,
     phaseRef,
     playMonsterSwordAttack,
     playPlayerSwordAttack,

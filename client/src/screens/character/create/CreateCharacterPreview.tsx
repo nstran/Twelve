@@ -31,7 +31,12 @@ import {
 } from './createCatalog';
 import { ASSET_REGISTRY } from './assetRegistry';
 import { usePaletteSwappedImage } from './usePaletteSwappedImage';
-import { ACTION_SLOT_META } from './actionSlotMeta';
+import {
+  ACTION_SLOT_CANONICAL_META,
+  ACTION_SLOT_META,
+  ACTION_SLOT_RUNTIME_CANONICAL_MAP,
+  ACTION_SLOT_RUNTIME_EXTENDED_META,
+} from './actionSlotMeta';
 import type {
   CharacterAppearance,
   CharacterEquipmentLayerConfig,
@@ -108,7 +113,7 @@ interface BodyAnchorMetrics {
 }
 
 const DEFAULT_SCALE = 2.2;
-const ACTION_FAMILY_SLOTS = [0, 1, 2, 3, 4] as const;
+const ACTION_FAMILY_SLOTS = [0, 1, 2, 3, 4, 7, 8, 9] as const;
 
 const ACTION_SLOT_BY_ACTION: Record<CharacterAction, ActionFamilySlot> = {
   idle: 0,
@@ -158,6 +163,27 @@ const BODY_FAMILY_ASSETS: Record<ActionFamilySlot, BodyFamilyAsset> = {
     frameWidthDivisor: 3,
     frameCount: 3,
   },
+  7: {
+    source: require('../../../../assets/createcs_runtime/body_pose_family_990xx/99007.png'),
+    width: 55,
+    height: 53,
+    frameWidthDivisor: 1,
+    frameCount: 1,
+  },
+  8: {
+    source: require('../../../../assets/createcs_runtime/body_pose_family_990xx/99008.png'),
+    width: 55,
+    height: 53,
+    frameWidthDivisor: 1,
+    frameCount: 1,
+  },
+  9: {
+    source: require('../../../../assets/createcs_runtime/body_pose_family_990xx/99009.png'),
+    width: 55,
+    height: 53,
+    frameWidthDivisor: 1,
+    frameCount: 1,
+  },
 };
 
 const GENDER_FAMILY_ASSETS = {
@@ -187,6 +213,21 @@ const GENDER_FAMILY_ASSETS = {
       width: 81,
       height: 25,
     },
+    7: {
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79807.png'),
+      width: 23,
+      height: 22,
+    },
+    8: {
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79808.png'),
+      width: 20,
+      height: 20,
+    },
+    9: {
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79809.png'),
+      width: 21,
+      height: 21,
+    },
   },
   female: {
     0: {
@@ -212,6 +253,21 @@ const GENDER_FAMILY_ASSETS = {
     4: {
       source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79904.png'),
       width: 66,
+      height: 23,
+    },
+    7: {
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79907.png'),
+      width: 22,
+      height: 22,
+    },
+    8: {
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79908.png'),
+      width: 18,
+      height: 20,
+    },
+    9: {
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79909.png'),
+      width: 19,
       height: 23,
     },
   },
@@ -243,6 +299,21 @@ const OVERLAY_FAMILY_ASSETS: Record<ActionFamilySlot, SimpleFamilyAsset> = {
     width: 120,
     height: 36,
   },
+  7: {
+    source: require('../../../../assets/createcs/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89907.png'),
+    width: 42,
+    height: 11,
+  },
+  8: {
+    source: require('../../../../assets/createcs/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89908.png'),
+    width: 42,
+    height: 11,
+  },
+  9: {
+    source: require('../../../../assets/createcs/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89909.png'),
+    width: 31,
+    height: 25,
+  },
 };
 
 function useBodySourcesBySlot(
@@ -253,6 +324,9 @@ function useBodySourcesBySlot(
   const slot2 = usePaletteSwappedImage(BODY_FAMILY_ASSETS[2].source, SKIN_PALETTE_FROM, palette);
   const slot3 = usePaletteSwappedImage(BODY_FAMILY_ASSETS[3].source, SKIN_PALETTE_FROM, palette);
   const slot4 = usePaletteSwappedImage(BODY_FAMILY_ASSETS[4].source, SKIN_PALETTE_FROM, palette);
+  const slot7 = usePaletteSwappedImage(BODY_FAMILY_ASSETS[7].source, SKIN_PALETTE_FROM, palette);
+  const slot8 = usePaletteSwappedImage(BODY_FAMILY_ASSETS[8].source, SKIN_PALETTE_FROM, palette);
+  const slot9 = usePaletteSwappedImage(BODY_FAMILY_ASSETS[9].source, SKIN_PALETTE_FROM, palette);
 
   return useMemo(() => ({
     0: slot0,
@@ -260,7 +334,10 @@ function useBodySourcesBySlot(
     2: slot2,
     3: slot3,
     4: slot4,
-  }), [slot0, slot1, slot2, slot3, slot4]);
+    7: slot7,
+    8: slot8,
+    9: slot9,
+  }), [slot0, slot1, slot2, slot3, slot4, slot7, slot8, slot9]);
 }
 
 function useHairSourcesBySlot(
@@ -272,6 +349,9 @@ function useHairSourcesBySlot(
   const slot2 = usePaletteSwappedImage(hairAssets[2].source, HAIR_PALETTE_FROM, palette);
   const slot3 = usePaletteSwappedImage(hairAssets[3].source, HAIR_PALETTE_FROM, palette);
   const slot4 = usePaletteSwappedImage(hairAssets[4].source, HAIR_PALETTE_FROM, palette);
+  const slot7 = usePaletteSwappedImage(hairAssets[7].source, HAIR_PALETTE_FROM, palette);
+  const slot8 = usePaletteSwappedImage(hairAssets[8].source, HAIR_PALETTE_FROM, palette);
+  const slot9 = usePaletteSwappedImage(hairAssets[9].source, HAIR_PALETTE_FROM, palette);
 
   return useMemo(() => ({
     0: slot0,
@@ -279,7 +359,10 @@ function useHairSourcesBySlot(
     2: slot2,
     3: slot3,
     4: slot4,
-  }), [slot0, slot1, slot2, slot3, slot4]);
+    7: slot7,
+    8: slot8,
+    9: slot9,
+  }), [slot0, slot1, slot2, slot3, slot4, slot7, slot8, slot9]);
 }
 
 function resolveFamilySlotAsset(
@@ -354,6 +437,24 @@ function getActionSlotMeta(metaId: number, familySlot: ActionFamilySlot): SlotMe
   const runtimeMeta = actionMetaBySlot?.[familySlot];
   if (runtimeMeta) {
     return runtimeMeta;
+  }
+
+  const runtimeExtendedMeta = ACTION_SLOT_RUNTIME_EXTENDED_META[metaId]?.[familySlot as 7 | 8 | 9];
+  if (runtimeExtendedMeta) {
+    return runtimeExtendedMeta;
+  }
+
+  const canonicalMetaId = ACTION_SLOT_RUNTIME_CANONICAL_MAP[metaId];
+  const canonicalRuntimeMeta = canonicalMetaId
+    ? ACTION_SLOT_CANONICAL_META[canonicalMetaId]?.[familySlot as 7 | 8 | 9]
+    : undefined;
+  if (canonicalRuntimeMeta) {
+    return canonicalRuntimeMeta;
+  }
+
+  const directCanonicalMeta = ACTION_SLOT_CANONICAL_META[metaId]?.[familySlot as 7 | 8 | 9];
+  if (directCanonicalMeta) {
+    return directCanonicalMeta;
   }
 
   const fallbackMeta = SLOT_ZERO_META[metaId];
@@ -654,6 +755,9 @@ export const CreateCharacterPreview: React.FC<CreateCharacterPreviewProps> = ({
     2: resolveFamilySlotAsset(effectiveHairLayer, 2),
     3: resolveFamilySlotAsset(effectiveHairLayer, 3),
     4: resolveFamilySlotAsset(effectiveHairLayer, 4),
+    7: resolveFamilySlotAsset(effectiveHairLayer, 7),
+    8: resolveFamilySlotAsset(effectiveHairLayer, 8),
+    9: resolveFamilySlotAsset(effectiveHairLayer, 9),
   }), [hairLayerOverride, hairOption.baseImageId, hairOption.metaId]);
 
   const bodySourcesBySlot = useBodySourcesBySlot(bodyPalette.toColors);

@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 
 // ── Animation States ──────────────────────────────────────────────────────
 export type CharacterAction = 'idle' | 'run' | 'attack';
-export type CharacterPoseFamilySlot = 0 | 1 | 2 | 3 | 4;
+export type CharacterPoseFamilySlot = 0 | 1 | 2 | 3 | 4 | 7 | 8 | 9;
 
 // ── Facing Direction ──────────────────────────────────────────────────────
 export type FacingDirection = 'left' | 'right';

@@ -5,6 +5,7 @@ import {
   Animated, Easing,
   Text,
 } from 'react-native';
+import type { CharacterAction } from '../../engine/character';
 import { PopupMenu, type MenuItem } from '../../components/controls/PopupMenu/PopupMenu';
 import {
   WALK_FRAMES, ATTACK_FRAMES,
@@ -45,19 +46,62 @@ import {
   useBattleTurnTimer,
 } from './hooks';
 
-const PLAYER_ATTACK_TOTAL_MS = 1500;
-const PLAYER_ATTACK_RUN_MS = 560;
-const PLAYER_ATTACK_PREP_MS = 180;
-const PLAYER_ATTACK_HIT_MS = PLAYER_ATTACK_RUN_MS + PLAYER_ATTACK_PREP_MS;
-const PLAYER_ATTACK_RETURN_MS = PLAYER_ATTACK_TOTAL_MS - PLAYER_ATTACK_HIT_MS;
-const PLAYER_ATTACK_RECOVER_MS = 130;
+const JAVA_BATTLE_TICK_MS = 40;
+const JAVA_ATTACK_MIN_STEP_PX = 5;
+const JAVA_ATTACK_MIN_TRAVEL_TICKS = 7;
+const JAVA_ATTACK_HOLD_TICKS = 15;
+const JAVA_ATTACK_FRAME_2_TICKS = 4;
+const JAVA_ATTACK_IMPACT_TICKS = 8;
+const JAVA_ATTACK_FRAME_4_TICKS = 12;
+const PLAYER_HIT_REACT_TOTAL_MS = 180;
+const PLAYER_DEFEAT_RESULT_DELAY_MS = 360;
 interface QueuedAttack {
   onImpact: () => void;
   onComplete: () => void;
 }
 
+interface SwordAttackTiming {
+  approachMs: number;
+  contactMs: number;
+  frame2Ms: number;
+  impactMs: number;
+  frame4Ms: number;
+  returnStartMs: number;
+  returnMs: number;
+  totalMs: number;
+}
+
+const ticksToMs = (ticks: number) => ticks * JAVA_BATTLE_TICK_MS;
+
+const getSwordAttackTiming = (distancePx: number): SwordAttackTiming => {
+  const safeDistance = Math.max(0, Math.round(distancePx));
+  const stepPxPerTick = Math.max(JAVA_ATTACK_MIN_STEP_PX, Math.floor(safeDistance / 2));
+  const approachTicks = safeDistance > 0
+    ? Math.max(JAVA_ATTACK_MIN_TRAVEL_TICKS, Math.ceil(safeDistance / stepPxPerTick))
+    : JAVA_ATTACK_MIN_TRAVEL_TICKS;
+  const approachMs = ticksToMs(approachTicks);
+  const holdMs = ticksToMs(JAVA_ATTACK_HOLD_TICKS);
+  const contactMs = approachMs;
+  const frame2Ms = contactMs + ticksToMs(JAVA_ATTACK_FRAME_2_TICKS);
+  const impactMs = contactMs + ticksToMs(JAVA_ATTACK_IMPACT_TICKS);
+  const frame4Ms = contactMs + ticksToMs(JAVA_ATTACK_FRAME_4_TICKS);
+  const returnStartMs = contactMs + holdMs;
+  const returnMs = approachMs;
+
+  return {
+    approachMs,
+    contactMs,
+    frame2Ms,
+    impactMs,
+    frame4Ms,
+    returnStartMs,
+    returnMs,
+    totalMs: returnStartMs + returnMs,
+  };
+};
+
 export const BattleScreen: React.FC<BattleScreenProps> = ({
-  monsterType, initialTurn = 'player', onVictory, onDefeat, onFlee,
+  monsterType, appearance, initialTurn = 'player', onVictory, onDefeat, onFlee,
 }) => {
   const maxHP  = 100;
   const maxEHP = MONSTER_HP[monsterType] ?? 150;
@@ -77,7 +121,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [result,    setResult]    = useState<BattleResult | null>(null);
   const [monFrame,  setMonFrame]  = useState<number>(WALK_FRAMES[0]);
   const [monAtk,    setMonAtk]   = useState(false);
-  const [playerFrame, setPlayerFrame] = useState(0);
+  const [playerAction, setPlayerAction] = useState<CharacterAction>('idle');
+  const [playerActionFrameIndex, setPlayerActionFrameIndex] = useState<number | null>(null);
+  const [playerReactionPose, setPlayerReactionPose] = useState(false);
+  const [playerDefeatPose, setPlayerDefeatPose] = useState(false);
+  const [playerRetreatPose, setPlayerRetreatPose] = useState(false);
   const [aiLevel]  = useState<AILevel | null>('linh_canh');
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuSelectedIndex, setMenuSelectedIndex] = useState(0);
@@ -108,10 +156,13 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const powerBlinkLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const playerAttackTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const monsterAttackTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const playerReactionTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const playerResultTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const playerAttackQueueRef = useRef<QueuedAttack[]>([]);
   const monsterAttackQueueRef = useRef<QueuedAttack[]>([]);
   const playerAttackRunningRef = useRef(false);
   const monsterAttackRunningRef = useRef(false);
+  const playerDefeatStartedRef = useRef(false);
   const phaseRef   = useRef<BattlePhase>('idle');
   const mountedRef = useRef(true);
   const boardRef   = useRef<Board>(board);
@@ -132,8 +183,12 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   useEffect(() => () => {
     playerAttackTimersRef.current.forEach(clearTimeout);
     monsterAttackTimersRef.current.forEach(clearTimeout);
+    playerReactionTimersRef.current.forEach(clearTimeout);
+    playerResultTimersRef.current.forEach(clearTimeout);
     playerAttackTimersRef.current = [];
     monsterAttackTimersRef.current = [];
+    playerReactionTimersRef.current = [];
+    playerResultTimersRef.current = [];
     playerAttackQueueRef.current = [];
     monsterAttackQueueRef.current = [];
     playerAttackRunningRef.current = false;
@@ -247,6 +302,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   }, [power, maxPow, result, powerBlinkAnim]);
   useEffect(() => {
     if (result === null) {
+      playerDefeatStartedRef.current = false;
+      setPlayerReactionPose(false);
+      setPlayerDefeatPose(false);
+      setPlayerRetreatPose(false);
+      setPlayerAction('idle');
+      setPlayerActionFrameIndex(null);
+      playerResultTimersRef.current.forEach(clearTimeout);
+      playerResultTimersRef.current = [];
       resultArtAnim.setValue(0);
       return;
     }
@@ -260,9 +323,54 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     }).start();
   }, [result, resultArtAnim]);
 
+  const clearPlayerReactionTimers = useCallback(() => {
+    playerReactionTimersRef.current.forEach(clearTimeout);
+    playerReactionTimersRef.current = [];
+  }, []);
+
+  const startPlayerDefeatSequence = useCallback(() => {
+    if (playerDefeatStartedRef.current) return;
+
+    playerDefeatStartedRef.current = true;
+    clearPlayerReactionTimers();
+    setPlayerReactionPose(false);
+    setPlayerRetreatPose(false);
+    setPlayerDefeatPose(true);
+
+    const resultTimer = setTimeout(() => {
+      if (!mountedRef.current) return;
+      setResult('defeat');
+    }, PLAYER_DEFEAT_RESULT_DELAY_MS);
+
+    playerReactionTimersRef.current = [];
+    playerResultTimersRef.current = [resultTimer];
+  }, [clearPlayerReactionTimers, setResult]);
+
+  const playPlayerHitReaction = useCallback(() => {
+    if (playerDefeatStartedRef.current) return;
+
+    clearPlayerReactionTimers();
+    setPlayerReactionPose(true);
+    setPlayerRetreatPose(false);
+
+    const resetTimer = setTimeout(() => {
+      if (!mountedRef.current || playerDefeatStartedRef.current) return;
+      setPlayerReactionPose(false);
+    }, PLAYER_HIT_REACT_TOTAL_MS);
+
+    playerReactionTimersRef.current = [resetTimer];
+  }, [clearPlayerReactionTimers]);
+
   const { panelLeft, panelTop, charsTop, damagePopupTop, charsRowHeight, monsterSize } =
     getBattleStageLayout(monsterType);
-  const { attackTravelX } = getBattleActorLayout(monsterType);
+  const { attackTravelX } = useMemo(
+    () => getBattleActorLayout(monsterType, appearance),
+    [appearance, monsterType],
+  );
+  const swordAttackTiming = useMemo(
+    () => getSwordAttackTiming(attackTravelX),
+    [attackTravelX],
+  );
   const playerHud = PLAYER_HUD_LAYOUT;
   const enemyHud = ENEMY_HUD_LAYOUT;
   const {
@@ -327,16 +435,24 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     enemyHitTranslateX.stopAnimation();
     playerAttackTranslateX.setValue(0);
     enemyHitTranslateX.setValue(0);
-    setPlayerFrame(1);
+    setPlayerRetreatPose(false);
+    setPlayerAction('run');
+    setPlayerActionFrameIndex(null);
 
-    const prepTimer = setTimeout(() => {
+    const contactTimer = setTimeout(() => {
       if (!mountedRef.current) return;
-      setPlayerFrame(2);
-    }, PLAYER_ATTACK_RUN_MS);
+      setPlayerAction('attack');
+      setPlayerActionFrameIndex(0);
+    }, swordAttackTiming.contactMs);
 
     const hitTimer = setTimeout(() => {
       if (!mountedRef.current) return;
-      setPlayerFrame(3);
+      setPlayerActionFrameIndex(1);
+    }, swordAttackTiming.frame2Ms);
+
+    const impactTimer = setTimeout(() => {
+      if (!mountedRef.current) return;
+      setPlayerActionFrameIndex(2);
       nextAttack.onImpact();
 
       Animated.sequence([
@@ -359,39 +475,54 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           useNativeDriver: true,
         }),
       ]).start();
-    }, PLAYER_ATTACK_HIT_MS);
+    }, swordAttackTiming.impactMs);
 
     const recoverTimer = setTimeout(() => {
       if (!mountedRef.current) return;
-      setPlayerFrame(1);
-    }, Math.min(PLAYER_ATTACK_TOTAL_MS - 80, PLAYER_ATTACK_HIT_MS + PLAYER_ATTACK_RECOVER_MS));
+      setPlayerActionFrameIndex(3);
+    }, swordAttackTiming.frame4Ms);
+
+    const returnTimer = setTimeout(() => {
+      if (!mountedRef.current) return;
+      setPlayerRetreatPose(true);
+      setPlayerAction('run');
+      setPlayerActionFrameIndex(null);
+
+      Animated.timing(playerAttackTranslateX, {
+        toValue: 0,
+        duration: swordAttackTiming.returnMs,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }).start();
+    }, swordAttackTiming.returnStartMs);
 
     const completeTimer = setTimeout(() => {
       if (!mountedRef.current) return;
-      setPlayerFrame(0);
+      setPlayerRetreatPose(false);
+      setPlayerAction('idle');
+      setPlayerActionFrameIndex(null);
       nextAttack.onComplete();
       playerAttackRunningRef.current = false;
       playerAttackTimersRef.current = [];
       runNextPlayerSwordAttack();
-    }, PLAYER_ATTACK_TOTAL_MS);
+    }, swordAttackTiming.totalMs);
 
-    playerAttackTimersRef.current = [prepTimer, hitTimer, recoverTimer, completeTimer];
+    playerAttackTimersRef.current = [
+      contactTimer,
+      hitTimer,
+      impactTimer,
+      recoverTimer,
+      returnTimer,
+      completeTimer,
+    ];
 
-    Animated.sequence([
-      Animated.timing(playerAttackTranslateX, {
-        toValue: attackTravelX,
-        duration: PLAYER_ATTACK_HIT_MS,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(playerAttackTranslateX, {
-        toValue: 0,
-        duration: PLAYER_ATTACK_RETURN_MS,
-        easing: Easing.inOut(Easing.quad),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [attackTravelX, enemyHitTranslateX, mountedRef, playerAttackTranslateX]);
+    Animated.timing(playerAttackTranslateX, {
+      toValue: attackTravelX,
+      duration: swordAttackTiming.approachMs,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    }).start();
+  }, [attackTravelX, enemyHitTranslateX, mountedRef, playerAttackTranslateX, swordAttackTiming]);
   const playPlayerSwordAttack = useCallback((onImpact: () => void, onComplete: () => void) => {
     playerAttackQueueRef.current.push({ onImpact, onComplete });
     runNextPlayerSwordAttack();
@@ -436,7 +567,17 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           useNativeDriver: true,
         }),
       ]).start();
-    }, PLAYER_ATTACK_HIT_MS);
+    }, swordAttackTiming.contactMs);
+
+    const returnTimer = setTimeout(() => {
+      if (!mountedRef.current) return;
+      Animated.timing(enemyAttackTranslateX, {
+        toValue: 0,
+        duration: swordAttackTiming.returnMs,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }).start();
+    }, swordAttackTiming.returnStartMs);
 
     const completeTimer = setTimeout(() => {
       if (!mountedRef.current) return;
@@ -445,25 +586,17 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       monsterAttackRunningRef.current = false;
       monsterAttackTimersRef.current = [];
       runNextMonsterSwordAttack();
-    }, PLAYER_ATTACK_TOTAL_MS);
+    }, swordAttackTiming.totalMs);
 
-    monsterAttackTimersRef.current = [hitTimer, completeTimer];
+    monsterAttackTimersRef.current = [hitTimer, returnTimer, completeTimer];
 
-    Animated.sequence([
-      Animated.timing(enemyAttackTranslateX, {
-        toValue: -attackTravelX,
-        duration: PLAYER_ATTACK_HIT_MS,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(enemyAttackTranslateX, {
-        toValue: 0,
-        duration: PLAYER_ATTACK_RETURN_MS,
-        easing: Easing.inOut(Easing.quad),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [attackTravelX, enemyAttackTranslateX, mountedRef, playerHitTranslateX]);
+    Animated.timing(enemyAttackTranslateX, {
+      toValue: -attackTravelX,
+      duration: swordAttackTiming.approachMs,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    }).start();
+  }, [attackTravelX, enemyAttackTranslateX, mountedRef, playerHitTranslateX, swordAttackTiming]);
   const playMonsterSwordAttack = useCallback((onImpact: () => void, onComplete: () => void) => {
     monsterAttackQueueRef.current.push({ onImpact, onComplete });
     runNextMonsterSwordAttack();
@@ -489,6 +622,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setResult,
     playPlayerSwordAttack,
     playMonsterSwordAttack,
+    onPlayerHit: playPlayerHitReaction,
+    onPlayerDefeat: startPlayerDefeatSequence,
     showBonusBanner,
     showDamagePopup,
     spawnCollectFX,
@@ -668,9 +803,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         panelLeft={panelLeft}
         charsTop={charsTop}
         charsHeight={charsRowHeight}
+        appearance={appearance}
         monsterType={monsterType}
         monFrame={monFrame}
-        playerFrame={playerFrame}
+        playerAction={playerAction}
+        playerActionFrameIndex={playerActionFrameIndex}
+        playerReactionPose={playerReactionPose}
+        playerDefeatPose={playerDefeatPose}
+        playerRetreatPose={playerRetreatPose}
         monsterWidth={mW}
         monsterHeight={mH}
         playerCollectAnim={playerCollectAnim}

@@ -1,11 +1,13 @@
 import { Animated } from 'react-native';
 import type { MonsterType } from '../../../engine/MonsterSprite';
+import type { CharacterAppearance } from '../../character/shared';
 import type { FXKind } from './BattleScreen.shared';
 
 export type BattleTurn = 'player' | 'monster';
 
 export interface BattleScreenProps {
   monsterType: MonsterType;
+  appearance: CharacterAppearance;
   initialTurn?: BattleTurn;
   onVictory: () => void;
   onDefeat: () => void;
