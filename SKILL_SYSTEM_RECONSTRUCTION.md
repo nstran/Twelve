@@ -212,7 +212,92 @@ client/assets/skill/
 └── index.csv
 ```
 
-## 7. What This Doc Intentionally Does NOT Store
+## 7. Battle Runtime Dispatch
+
+Skill cast trong Java cũ không phải một effect duy nhất. Nó chạy qua 3 lớp:
+
+1. `mq.java` xử lý ô bàn cờ nào bị skill đụng vào và delay từng ô
+2. `mt.java` spawn projectile / helper / path / aura của family runtime
+3. `mx.java` phát hit emitter ở actor bị trúng đòn
+
+Nếu chỉ render projectile trên board mà không có hit ở mons thì chưa khớp Java.
+
+### `mq.java` = board-side visual resolution
+
+Entry point:
+
+- [mq.java:1330](/d:/Twelve/reference/redecoded/decompiled/mq.java:1330)
+
+Đây là nơi đọc mảng target do server gửi và quyết định cell nào flash / break / mark / quét cột.
+Client Java không tự suy target list ở bước này.
+
+| Families | Hành vi trong `mq.java` | Ghi chú port |
+|----------|--------------------------|--------------|
+| `1000`, `1006`, `1007`, `2000`, `2003`, `2007`, `2008`, `4000`, `4006`, `4007`, `4008` | loop `a(x, y, -16777215, 1, true, 0)` trên từng cell target | ô bị đánh trực tiếp, cùng family actor-side sẽ còn hit mons |
+| `1001` | `a.a(x, y, 10)` rồi push cell vào `p[]` | dạng mark cell, không cùng visual với break thường |
+| `1008` | chia group, delay bắt đầu ở `16` rồi giảm `2` mỗi đợt | hit theo wave/stage, không nổ cùng lúc |
+| `2006` | sort `byArray3`, sau đó sweep cả cột từ trên xuống hoặc dưới lên | đây là skill quét cột, không phải hit lẻ từng ô |
+| `1002`, `2001`, `2002`, `2004`, `4002` | gọi helper trên board object (`a/c/d/e/b`) | board-side là helper/status, không phải clear loop thường |
+| `1003`, `1005`, `2005`, `4001`, `4004`, `4005` | đặt `bl2 = false`, không có loop clear cell chuẩn | trọng tâm runtime nằm ở actor-side helper / projectile |
+
+Sau phần switch này, `mq` vẫn chuyển nguyên target arrays sang `mt` để render actor-side.
+
+### `mt.java` = projectile path + monster impact hook
+
+Entry point:
+
+- [mt.java:1008](/d:/Twelve/reference/redecoded/decompiled/mt.java:1008)
+
+`mt` quyết định:
+
+- projectile xuất phát từ đâu
+- đi đến tâm mons hay từng ô target nào
+- dùng runtime class nào (`is`, `jg`, `iz`, ...)
+- lúc nào gọi helper hit vào victim
+
+Nhóm hook trúng đòn đã xác nhận:
+
+| Families | Hook trong `mt.java` | Ý nghĩa runtime |
+|----------|-----------------------|-----------------|
+| `1000`, `2008`, `4000`, `4008` | `a(side, 32, 22, false)` | hit mạnh trực tiếp vào victim |
+| `1004`, `4005` | `c(side, 26, 16)` | burst trung bình-nặng |
+| `1005`, `2004`, `4006` | `c(side, 20, 10)` | hit trung bình |
+| `1006`, `2003` | `c(side, 36, 26)` | hit nặng, giữ lâu hơn |
+| `1007` | `c(side, 30, 11)` | pillar hit |
+| `1008` | `c(side, 10, 4)` | hit ngắn và nhẹ |
+| `2000`, `2007`, `4007` | `c(side, n3, n3 - 6)` | hit đồng bộ với multi-point path |
+| `2006` | `c(side, 16, 10)` | quick sweep impact |
+| `4003` | `b.a(side, 10)` + `c(side, 15, 16)` | aura rồi mới hit helper |
+| `1003`, `2005`, `4004` | `d(side)` | đi qua shared `io` elemental helper |
+| `1002`, `2001`, `2002`, `4002` | `a(side, helperKind, ...)` | helper/status style, không cùng nhánh impact thường |
+| `4001` | `b.c(10)` | chỉ đẩy timer helper, không có burst victim riêng kiểu `c(...)` |
+
+Kết luận thực dụng cho battle client:
+
+- `mq` cho biết effect trên board
+- `mt` cho biết đường chưởng và nhịp chạm mục tiêu
+- cả hai cùng phải có thì mới ra cảm giác Java
+
+### `mx.java` = victim hit emitter
+
+Relevant methods:
+
+- [mx.java:1935](/d:/Twelve/reference/redecoded/decompiled/mx.java:1935)
+- [mx.java:1973](/d:/Twelve/reference/redecoded/decompiled/mx.java:1973)
+
+`mx.c(int)` giữ và làm mượt cường độ hit chờ phát.
+
+`mx.a(side, power, bl2)` bắn particle quanh actor bị trúng đòn; nếu `bl2` bật thì còn forward impact vào runtime HUD/state của victim.
+
+Vì vậy khi port skill cần đủ cả:
+
+- visual cell trên board
+- burst / shake / hit feedback ở mons
+- damage popup đúng nhịp impact
+
+Thiếu một trong ba phần trên là sai feel Java.
+
+## 8. What This Doc Intentionally Does NOT Store
 
 - player-facing skill names (e.g. "Hỏa Cầu", "Lôi Chưởng") — server catalog
 - skill MP / rage cost — server formula

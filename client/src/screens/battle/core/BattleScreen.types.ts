@@ -2,6 +2,7 @@ import { Animated } from 'react-native';
 import type { MonsterType } from '../../../engine/MonsterSprite';
 import type { CharacterAppearance } from '../../character/shared';
 import type { FXKind } from './BattleScreen.shared';
+import type { SkillFamilyCode } from './BattleScreen.skills';
 
 export type BattleTurn = 'player' | 'monster';
 
@@ -82,4 +83,24 @@ export interface GainPopupItem {
   side: BattleSide;
   text: string;
   anim: Animated.Value;
+}
+
+export interface SkillTargetPoint {
+  x: number;
+  y: number;
+  row: number;
+  col: number;
+}
+
+export interface ActiveBattleSkillCast {
+  key: string;
+  familyCode: SkillFamilyCode;
+  startedAt: number;
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  boardPoints: SkillTargetPoint[];
+  effectPoints: SkillTargetPoint[];
+  durationMs: number;
 }

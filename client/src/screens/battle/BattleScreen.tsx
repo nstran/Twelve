@@ -13,23 +13,34 @@ import {
   BattlePanel,
   BattleActorsRow,
   BattleEffects,
+  BattleSkillCastOverlay,
+  BattleSkillPanel,
   BattleResultOverlay,
 } from './ui';
 import {
+  BOARD_LEFT,
+  BOARD_TOP,
   EXTRA_TURNS_BADGE_TOTAL_MS,
   RESULT_ART_META,
   ENEMY_HUD_LAYOUT,
+  BATTLE_SKILLS,
+  collapseLogic,
+  clearMatchedCells,
   createJavaBoardEngine,
   getBattleActorLayout,
+  getBattleElement,
   getBattleStageLayout,
+  GEM_SIZE,
   makeBoard,
   MONSTER_HP,
   PLAYER_HUD_LAYOUT,
+  type ActiveBattleSkillCast,
   type AILevel,
   type BattleCell,
   type BattlePhase,
   type BattleResult,
   type BattleScreenProps,
+  type SkillFamilyCode,
   type BattleTurn,
   type Board,
   type MoveSpec,
@@ -54,6 +65,8 @@ const JAVA_ATTACK_FRAME_4_TICKS = 16;
 const MONSTER_ANIM_TICK_MS = 240;
 const PLAYER_HIT_REACT_TOTAL_MS = 320;
 const PLAYER_DEFEAT_RESULT_DELAY_MS = 360;
+const SKILL_MANA_COST = 0;
+const LOCAL_SKILL_DAMAGE = 50;
 const ASSET_SOFTKEY_MENU = require('../../../assets/ui/11_softkey_icons_confirmed/icon_sharpest_1.png');
 const ASSET_SOFTKEY_OK = require('../../../assets/ui/11_softkey_icons_confirmed/icon_ok.png');
 const ASSET_SOFTKEY_CANCEL = require('../../../assets/ui/11_softkey_icons_confirmed/icon_cancel.png');
@@ -134,6 +147,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [aiLevel]  = useState<AILevel | null>('linh_canh');
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuSelectedIndex, setMenuSelectedIndex] = useState(0);
+  const [skillPanelVisible, setSkillPanelVisible] = useState(false);
+  const [selectedSkillFamily, setSelectedSkillFamily] = useState<SkillFamilyCode | null>(null);
+  const [activeSkillCasts, setActiveSkillCasts] = useState<ActiveBattleSkillCast[]>([]);
+  const battleElement = getBattleElement(appearance.elementIndex);
 
   // ── Turn-based system ──────────────────────────────────────────────────────
   const [turn, setTurn] = useState<BattleTurn>(initialTurn);
@@ -163,6 +180,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const playerResultTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const playerAttackQueueRef = useRef<QueuedAttack[]>([]);
   const monsterAttackQueueRef = useRef<QueuedAttack[]>([]);
+  const skillCastTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const playerAttackRunningRef = useRef(false);
   const monsterAttackRunningRef = useRef(false);
   const playerDefeatStartedRef = useRef(false);
@@ -192,6 +210,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     monsterAttackTimersRef.current = [];
     playerReactionTimersRef.current = [];
     playerResultTimersRef.current = [];
+    skillCastTimersRef.current.forEach(clearTimeout);
+    skillCastTimersRef.current = [];
     playerAttackQueueRef.current = [];
     monsterAttackQueueRef.current = [];
     playerAttackRunningRef.current = false;
@@ -363,10 +383,47 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
     playerReactionTimersRef.current = [resetTimer];
   }, [clearPlayerReactionTimers]);
+  const playEnemySkillImpact = useCallback((shakePx: number) => {
+    const amplitude = Math.max(4, shakePx);
+    enemyHitTranslateX.stopAnimation();
+    enemyHitTranslateX.setValue(0);
 
+    Animated.sequence([
+      Animated.timing(enemyHitTranslateX, {
+        toValue: -amplitude,
+        duration: 50,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+      Animated.timing(enemyHitTranslateX, {
+        toValue: amplitude * 0.7,
+        duration: 60,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+      Animated.timing(enemyHitTranslateX, {
+        toValue: -amplitude * 0.4,
+        duration: 50,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+      Animated.timing(enemyHitTranslateX, {
+        toValue: 0,
+        duration: 70,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [enemyHitTranslateX]);
   const { panelLeft, panelTop, charsTop, damagePopupTop, charsRowHeight, monsterSize } =
     getBattleStageLayout(monsterType);
-  const { attackTravelX } = useMemo(
+  const {
+    attackTravelX,
+    playerBaseLeft,
+    monsterBaseLeft,
+    playerSize,
+    monsterGroundOffset,
+  } = useMemo(
     () => getBattleActorLayout(monsterType, appearance),
     [appearance, monsterType],
   );
@@ -409,6 +466,33 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setExplodeFrames,
     onSpawnFX: spawnMatchFX,
   });
+  const applyLocalSkillBoardBreak = useCallback((familyCode: SkillFamilyCode, boardPoints: ActiveBattleSkillCast['boardPoints']) => {
+    if (
+      familyCode !== 1000 &&
+      familyCode !== 1006 &&
+      familyCode !== 2003 &&
+      familyCode !== 4000 &&
+      familyCode !== 4006 &&
+      familyCode !== 4008
+    ) {
+      return;
+    }
+
+    const matched = new Set(
+      boardPoints.map(point => `${point.row},${point.col}`),
+    );
+    if (matched.size === 0) return;
+
+    const currentBoard = boardRef.current;
+    const clearedBoard = clearMatchedCells(currentBoard, matched);
+
+    playExplosion(matched, matched, currentBoard, () => {
+      if (!mountedRef.current) return;
+      const { newBoard, fallMap } = collapseLogic(clearedBoard, matched, boardEngineRef.current);
+      boardRef.current = newBoard;
+      animateFall(newBoard, fallMap, () => {});
+    });
+  }, [animateFall, boardEngineRef, boardRef, mountedRef, playExplosion]);
 
   // ── Monster animation ──────────────────────────────────────────────────────
   const monTick = useRef(0);
@@ -667,24 +751,199 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     doDirectSwapRef.current(sr, sc, row, col);
   }, [selected, phase, turn]);
 
-  // ── Skill ──────────────────────────────────────────────────────────────────
-  const handleSkill = useCallback(() => {
-    if (mana < 30 || phase !== 'idle' || turn !== 'player') return;
+  const getCellCenter = useCallback((row: number, col: number) => ({
+    x: panelLeft + BOARD_LEFT + col * GEM_SIZE + GEM_SIZE / 2,
+    y: panelTop + BOARD_TOP + row * GEM_SIZE + GEM_SIZE / 2,
+  }), [panelLeft, panelTop]);
+
+  const buildLocalSkillCastPoints = useCallback((familyCode: SkillFamilyCode) => {
+    const [cursorRow, cursorCol] = cursorCell;
+    const clampRow = (row: number) => Math.max(0, Math.min(9, row));
+    const clampCol = (col: number) => Math.max(0, Math.min(7, col));
+    const uniqueCells = (cells: BattleCell[]) => Array.from(
+      new Map(
+        cells.map(([row, col]) => [
+          `${clampRow(row)}-${clampCol(col)}`,
+          [clampRow(row), clampCol(col)] as BattleCell,
+        ]),
+      ).values(),
+    );
+    const toPoints = (cells: BattleCell[]) => uniqueCells(cells).map(([row, col]) => {
+      const point = getCellCenter(row, col);
+      return { ...point, row, col };
+    });
+
+    const tileBurstPoints = toPoints([
+      [cursorRow, cursorCol],
+      [cursorRow, cursorCol + 1],
+      [cursorRow + 1, cursorCol],
+      [cursorRow + 1, cursorCol + 1],
+    ]);
+    const singleEffectPoint = toPoints([[cursorRow, cursorCol]]);
+    const pillarPoints = toPoints([
+      [cursorRow, cursorCol],
+      [cursorRow - 1, cursorCol],
+      [cursorRow + 1, cursorCol],
+      [cursorRow, cursorCol + 1],
+    ]);
+    const stagedColumnPoints = toPoints([
+      [0, cursorCol - 1],
+      [0, cursorCol],
+      [0, cursorCol + 1],
+      [0, cursorCol + 2],
+    ]);
+    const sweepColumns = toPoints([
+      [0, cursorCol - 1],
+      [0, cursorCol],
+      [0, cursorCol + 1],
+    ]);
+
+    switch (familyCode) {
+      case 1000:
+      case 1006:
+      case 4000:
+      case 4006:
+      case 4008:
+        return { boardPoints: tileBurstPoints, effectPoints: tileBurstPoints };
+      case 2003:
+        return { boardPoints: tileBurstPoints, effectPoints: [] };
+      case 1001:
+        return { boardPoints: tileBurstPoints, effectPoints: tileBurstPoints };
+      case 2000:
+        return { boardPoints: tileBurstPoints, effectPoints: tileBurstPoints };
+      case 1007:
+      case 2007:
+      case 4007:
+        return { boardPoints: pillarPoints, effectPoints: pillarPoints };
+      case 1008:
+        return {
+          boardPoints: stagedColumnPoints,
+          effectPoints: toPoints([[0, cursorCol]]),
+        };
+      case 2006:
+        return { boardPoints: sweepColumns, effectPoints: sweepColumns };
+      case 2008:
+        return {
+          boardPoints: toPoints([
+            [cursorRow, cursorCol],
+            [cursorRow - 1, cursorCol],
+            [cursorRow + 1, cursorCol],
+            [cursorRow, cursorCol - 1],
+            [cursorRow, cursorCol + 1],
+            [cursorRow - 1, cursorCol - 1],
+            [cursorRow - 1, cursorCol + 1],
+            [cursorRow + 1, cursorCol + 1],
+          ]),
+          effectPoints: toPoints([
+            [cursorRow, cursorCol],
+            [cursorRow - 1, cursorCol],
+            [cursorRow + 1, cursorCol],
+            [cursorRow, cursorCol - 1],
+            [cursorRow, cursorCol + 1],
+          ]),
+        };
+      default:
+        return { boardPoints: singleEffectPoint, effectPoints: singleEffectPoint };
+    }
+  }, [cursorCell, getCellCenter]);
+
+  const handleSkillCast = useCallback((familyCode: SkillFamilyCode) => {
+    const skill = BATTLE_SKILLS[familyCode];
+    if (mana < SKILL_MANA_COST || phase !== 'idle' || turn !== 'player' || result !== null) return;
+
+    setSkillPanelVisible(false);
+    setMenuVisible(false);
+    setSelectedSkillFamily(familyCode);
+    setSelected(null);
     setHintCell(null);
     setHintMove(null);
-    setMana(m => m - 30);
-    const dmg = 40 + Math.floor(Math.random() * 20);
-    showDamagePopup('enemy', dmg);
-    setEnemyHP(hp => {
-      const next = Math.max(0, hp - dmg);
-      if (next === 0 && phaseRef.current !== 'over') {
-        phaseRef.current = 'over'; setPhase('over'); setResult('victory');
-      }
-      return next;
-    });
-    // Skill also ends player turn → switch to monster
-    turnRef.current = 'monster'; setTurn('monster');
-  }, [mana, phase, showDamagePopup, turn]);
+    setMana(current => Math.max(0, current - SKILL_MANA_COST));
+    setPhase('busy');
+    phaseRef.current = 'busy';
+    setPlayerAction('attack');
+    setPlayerActionFrameIndex(0);
+
+    const sourceX = panelLeft + playerBaseLeft + playerSize.w * 0.7;
+    const sourceY = charsTop + charsRowHeight - (playerSize.groundOffset ?? 0) - playerSize.h * 0.6;
+    const targetX = panelLeft + monsterBaseLeft + monsterSize.w * 0.42;
+    const targetY = charsTop + charsRowHeight - monsterGroundOffset - monsterSize.h * 0.52;
+    const castKey = `skill-${familyCode}-${Date.now()}`;
+    const { boardPoints, effectPoints } = buildLocalSkillCastPoints(familyCode);
+    const cast: ActiveBattleSkillCast = {
+      key: castKey,
+      familyCode,
+      startedAt: Date.now(),
+      sourceX,
+      sourceY,
+      targetX,
+      targetY,
+      boardPoints,
+      effectPoints,
+      durationMs: skill.totalMs,
+    };
+
+    setActiveSkillCasts(prev => [...prev, cast]);
+
+    const impactTimer = setTimeout(() => {
+      if (!mountedRef.current) return;
+      applyLocalSkillBoardBreak(familyCode, boardPoints);
+      playEnemySkillImpact(skill.hitShakePx);
+      showDamagePopup('enemy', LOCAL_SKILL_DAMAGE);
+      setEnemyHP(hp => {
+        const next = Math.max(0, hp - LOCAL_SKILL_DAMAGE);
+        if (next === 0 && phaseRef.current !== 'over') {
+          phaseRef.current = 'over';
+          setPhase('over');
+          setResult('victory');
+        }
+        return next;
+      });
+    }, skill.impactDelayMs);
+
+    const finishTimer = setTimeout(() => {
+      if (!mountedRef.current) return;
+      setActiveSkillCasts(prev => prev.filter(item => item.key !== castKey));
+      setPlayerAction('idle');
+      setPlayerActionFrameIndex(null);
+      if (phaseRef.current === 'over') return;
+      turnRef.current = 'monster';
+      setTurn('monster');
+      setTurnCycle(cycle => cycle + 1);
+      phaseRef.current = 'idle';
+      setPhase('idle');
+    }, skill.totalMs);
+
+    skillCastTimersRef.current.push(impactTimer, finishTimer);
+  }, [
+    applyLocalSkillBoardBreak,
+    buildLocalSkillCastPoints,
+    charsRowHeight,
+    charsTop,
+    mana,
+    monsterBaseLeft,
+    monsterGroundOffset,
+    monsterSize.h,
+    monsterSize.w,
+    panelLeft,
+    phase,
+    playerBaseLeft,
+    playerSize.groundOffset,
+    playerSize.h,
+    result,
+    showDamagePopup,
+    playEnemySkillImpact,
+    turn,
+  ]);
+
+  // ── Skill ──────────────────────────────────────────────────────────────────
+  const handleSkill = useCallback(() => {
+    if (mana < SKILL_MANA_COST || phase !== 'idle' || turn !== 'player' || result !== null) return;
+    setHintCell(null);
+    setHintMove(null);
+    setSelectedSkillFamily(prev => prev ?? (battleElement === 0 ? 1000 : battleElement === 1 ? 2000 : 4000));
+    setSkillPanelVisible(true);
+    setMenuVisible(false);
+  }, [battleElement, mana, phase, result, turn]);
 
   const { w: mW, h: mH } = monsterSize;
   const resultMeta = result ? RESULT_ART_META[result] : null;
@@ -725,6 +984,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       setMenuVisible(false);
     }
   }, [menuVisible, result]);
+  useEffect(() => {
+    if (result !== null && skillPanelVisible) {
+      setSkillPanelVisible(false);
+    }
+  }, [result, skillPanelVisible]);
 
   const handleBattleMenuConfirm = useCallback(() => {
     const item = battleMenuItems[menuSelectedIndex];
@@ -810,6 +1074,17 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         damagePopups={damagePopups}
         gainPopups={gainPopups}
         collectFX={collectFX}
+      />
+
+      <BattleSkillCastOverlay casts={activeSkillCasts} />
+
+      <BattleSkillPanel
+        visible={skillPanelVisible}
+        elementIndex={appearance.elementIndex}
+        selectedFamily={selectedSkillFamily}
+        onHighlight={setSelectedSkillFamily}
+        onCast={handleSkillCast}
+        onClose={() => setSkillPanelVisible(false)}
       />
 
       <PopupMenu
