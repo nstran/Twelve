@@ -23,7 +23,7 @@ Tài liệu khôi phục **hệ thống UI chrome dùng chung** — các mảnh 
 
 ## Main Working Folder
 
-- [client/assets/ui_legacy](/d:/Twelve/client/assets/ui_legacy)
+- [client/assets/ui](/d:/Twelve/client/assets/ui)
 
 ## Loader Contract
 

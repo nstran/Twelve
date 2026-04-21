@@ -48,7 +48,7 @@ Upload these 2 images:
 - `reference/raw/images/bx2n6nagkdfvkvha3.jpg`
   Role: old mobile fantasy style, color direction
 
-- `client/assets/createcs_legacy/00_ui_confirmed/stone.png`
+- `client/assets/createcs/00_ui_confirmed/stone.png`
   Role: grassy top strip and simple readable stone material
 
 Optional:

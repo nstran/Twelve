@@ -2,7 +2,7 @@
 // Original character sheets are temporarily removed, so keep this module
 // build-safe with legacy placeholders until the character creator is rebuilt.
 
-const PLACEHOLDER_PART = require('../../../../assets/createcs_legacy/00_ui_confirmed/stone.png');
+const PLACEHOLDER_PART = require('../../../../assets/createcs/00_ui_confirmed/stone.png');
 
 export const CHARACTER_BODIES = [
   PLACEHOLDER_PART,

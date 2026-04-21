@@ -4,7 +4,7 @@ Tài liệu khôi phục hệ thống NPC từ Java client cũ.
 
 If you want the deep technical reference, use:
 
-- [client/assets/npc_legacy/README.md](/d:/Twelve/client/assets/npc_legacy/README.md)
+- [client/assets/npc/README.md](/d:/Twelve/client/assets/npc/README.md)
 
 ## Source Code Reference
 
@@ -25,13 +25,13 @@ The legacy NPC system must be rebuilt from the `jo` actor model and the shared s
 The stable rules are:
 
 - `Java old client = behavior/spec`
-- `client/assets/npc_legacy = working asset input for the new client`
+- `client/assets/npc = working asset input for the new client`
 - NPC identity is server-driven via TLV tags, NOT asset-file-driven
 - organize by `runtime role` (ui / named / shared sheet / map prop), NOT by `/offline/<id>`
 
 ## Main Working Folders
 
-- [client/assets/npc_legacy](/d:/Twelve/client/assets/npc_legacy)
+- [client/assets/npc](/d:/Twelve/client/assets/npc)
 - [reference/review_assets/npc_organized](/d:/Twelve/reference/review_assets/npc_organized) — raw organized source
 
 ## Confirmed Runtime Pieces
@@ -168,7 +168,7 @@ Do not rename these to final labels like `quest_giver`, `warp_portal`, or
 
 In addition to the 3 shared actor sheets and the blacksmith, the jar contains
 17 numbered NPC sprites in the `110000..110160` band on an `X0` stride. They
-are relocated from `monster_legacy/02_candidate_unknown_ranges/` after a
+are relocated from `monster/02_candidate_unknown_ranges/` after a
 cross-check confirmed the IDs are NPC sprites, not monster frames.
 
 - Bucket: `04_numbered_npc_candidate_110xxx/` — 17 files.
@@ -188,11 +188,11 @@ sub-indexing) which would match the "static NPC portrait" use case.
 
 Use this order when working:
 
-1. [00_ui_confirmed](/d:/Twelve/client/assets/npc_legacy/00_ui_confirmed)
-2. [01_named_npc_confirmed](/d:/Twelve/client/assets/npc_legacy/01_named_npc_confirmed)
-3. [02_shared_actor_sheets](/d:/Twelve/client/assets/npc_legacy/02_shared_actor_sheets)
-4. [03_interactive_map_objects](/d:/Twelve/client/assets/npc_legacy/03_interactive_map_objects)
-5. [04_numbered_npc_candidate_110xxx](/d:/Twelve/client/assets/npc_legacy/04_numbered_npc_candidate_110xxx)
+1. [00_ui_confirmed](/d:/Twelve/client/assets/npc/00_ui_confirmed)
+2. [01_named_npc_confirmed](/d:/Twelve/client/assets/npc/01_named_npc_confirmed)
+3. [02_shared_actor_sheets](/d:/Twelve/client/assets/npc/02_shared_actor_sheets)
+4. [03_interactive_map_objects](/d:/Twelve/client/assets/npc/03_interactive_map_objects)
+5. [04_numbered_npc_candidate_110xxx](/d:/Twelve/client/assets/npc/04_numbered_npc_candidate_110xxx)
 
 ## Port Order
 

@@ -1,4 +1,4 @@
-# audio_legacy
+# audio
 
 Legacy audio bundle extracted from the J2ME jar `/audio/` resource folder.
 

@@ -13,12 +13,12 @@ The create-character system must be rebuilt from the old Java runtime model, not
 The stable rules are:
 
 - `Java old client = behavior/spec`
-- `client/assets/createcs_legacy = working asset input for the new client`
+- `client/assets/createcs = working asset input for the new client`
 - organize and port by `.meta family`, not by guessed labels like `hair` or `helmet`
 
 ## Main Working Folders
 
-- [client/assets/createcs_legacy](/d:/Twelve/client/assets/createcs_legacy)
+- [client/assets/createcs](/d:/Twelve/client/assets/createcs)
 - [reference/review_assets/character_creation_organized](/d:/Twelve/reference/review_assets/character_creation_organized)
 - [reference/redecoded/character_meta_parsed.csv](/d:/Twelve/reference/redecoded/character_meta_parsed.csv)
 
@@ -73,9 +73,9 @@ Do not rename these to final labels like `hair`, `face`, or `helmet` until the n
 
 Use this order when working:
 
-1. [00_ui_confirmed](/d:/Twelve/client/assets/createcs_legacy/00_ui_confirmed)
-2. [01_core_compositor](/d:/Twelve/client/assets/createcs_legacy/01_core_compositor)
-3. [02_option_meta_families](/d:/Twelve/client/assets/createcs_legacy/02_option_meta_families)
+1. [00_ui_confirmed](/d:/Twelve/client/assets/createcs/00_ui_confirmed)
+2. [01_core_compositor](/d:/Twelve/client/assets/createcs/01_core_compositor)
+3. [02_option_meta_families](/d:/Twelve/client/assets/createcs/02_option_meta_families)
 
 ## Port Order
 
@@ -87,6 +87,6 @@ Use this order when working:
 
 ## Next Practical Step
 
-The next coding step should be a preview renderer for `createcs_legacy`.
+The next coding step should be a preview renderer for `createcs`.
 
 That is the point where candidate families can start being promoted into final semantic roles.

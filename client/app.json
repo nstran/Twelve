@@ -4,11 +4,11 @@
     "slug": "client",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/login_legacy/05_expo_manifest_icons/icon.png",
+    "icon": "./assets/login/05_expo_manifest_icons/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/login_legacy/02_logo_candidate/splash-icon.png",
+      "image": "./assets/login/02_logo_candidate/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,14 +17,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/login_legacy/05_expo_manifest_icons/adaptive-icon.png",
+        "foregroundImage": "./assets/login/05_expo_manifest_icons/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/login_legacy/05_expo_manifest_icons/favicon.png"
+      "favicon": "./assets/login/05_expo_manifest_icons/favicon.png"
     }
   }
 }

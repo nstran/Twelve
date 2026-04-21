@@ -4,7 +4,7 @@ Tài liệu khôi phục hệ thống quái vật (monster) từ Java client cũ
 
 If you want the deep technical reference, use:
 
-- [client/assets/monster_legacy/README.md](/d:/Twelve/client/assets/monster_legacy/README.md)
+- [client/assets/monster/README.md](/d:/Twelve/client/assets/monster/README.md)
 
 ## Source Code Reference
 
@@ -26,14 +26,14 @@ Monster sprites are addressed by 6-digit numeric IDs under `/offline/<id>.png`.
 The stable rules are:
 
 - `Java old client = behavior/spec`
-- `client/assets/monster_legacy = working asset input for the new client`
+- `client/assets/monster = working asset input for the new client`
 - monster identity (species id + map placement) is server-driven via the
   map-state packet, NOT driven by jar filenames
 - organize by `numeric family` (species code + slot), NOT by guessed names
 
 ## Main Working Folders
 
-- [client/assets/monster_legacy](/d:/Twelve/client/assets/monster_legacy)
+- [client/assets/monster](/d:/Twelve/client/assets/monster)
 - [reference/review_assets/monster_organized](/d:/Twelve/reference/review_assets/monster_organized) — raw organized source
 
 ## ID Schema
@@ -105,21 +105,21 @@ Total candidate: `20 frames across 2 buckets`.
 
 Grand total reconciled against the jar: `309 + 20 = 329 files`.
 
-### Excluded (moved to equipment_legacy / npc_legacy)
+### Excluded (moved to equipment / npc)
 
 After cross-checking IDs against the other bundles, the following ranges
 that were initially staged here were confirmed to belong elsewhere and
-have been MOVED out of `monster_legacy`:
+have been MOVED out of `monster`:
 
 | Former bucket | Files | Correct bundle | Reason |
 |---------------|-------|----------------|--------|
-| `range_12xxxx_end98_meta_adjacent` | 25 | `equipment_legacy/07_accessory_e5_e7_e8/` | End-`98` = accessory-icon convention |
-| `range_128xxx_end98_meta_adjacent` |  4 | `equipment_legacy/07_accessory_e5_e7_e8/` | Same end-`98` pattern |
-| `range_140xxx_candidate`           |  1 | `equipment_legacy/07_accessory_e5_e7_e8/` | `140098` is accessory, not monster |
-| `range_130xxx_candidate`           |  4 | `equipment_legacy/07_accessory_e5_e7_e8/` | Entire `130xxx` band is accessory |
-| `range_110xxx_pattern_X0`          | 17 | `npc_legacy/04_numbered_npc_candidate_110xxx/` | Numbered NPC sprites, `X0` step |
+| `range_12xxxx_end98_meta_adjacent` | 25 | `equipment/07_accessory_e5_e7_e8/` | End-`98` = accessory-icon convention |
+| `range_128xxx_end98_meta_adjacent` |  4 | `equipment/07_accessory_e5_e7_e8/` | Same end-`98` pattern |
+| `range_140xxx_candidate`           |  1 | `equipment/07_accessory_e5_e7_e8/` | `140098` is accessory, not monster |
+| `range_130xxx_candidate`           |  4 | `equipment/07_accessory_e5_e7_e8/` | Entire `130xxx` band is accessory |
+| `range_110xxx_pattern_X0`          | 17 | `npc/04_numbered_npc_candidate_110xxx/` | Numbered NPC sprites, `X0` step |
 
-Total relocated: **51 files**. MUST NOT be re-copied into `monster_legacy/`.
+Total relocated: **51 files**. MUST NOT be re-copied into `monster/`.
 The `98` suffix (for 120xxx-140xxx) is the equipment-icon convention;
 the `X0` step (for 110xxx) is the numbered-NPC stride. Neither is a
 monster frame index.
@@ -184,7 +184,7 @@ server-catalog data and must NOT be invented at the client / asset layer.
 
 The next coding step should be a monster asset loader that:
 
-- reads `client/assets/monster_legacy/index.csv`,
+- reads `client/assets/monster/index.csv`,
 - builds an in-memory map `species_code -> slot -> [frame_path]`,
 - exposes a `GetFrames(species, slot)` API for the renderer,
 - and returns `null` for any id that is still in

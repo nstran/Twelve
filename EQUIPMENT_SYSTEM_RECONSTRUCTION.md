@@ -18,7 +18,7 @@ Tài liệu khôi phục hệ thống trang bị (equipment) từ Java client c�
 
 ## Working Folders
 
-- [client/assets/equipment_legacy](file:///d:/Twelve/client/assets/equipment_legacy) — trang bị đã tổ chức theo slot type
+- [client/assets/equipment](file:///d:/Twelve/client/assets/equipment) — trang bị đã tổ chức theo slot type
 - [reference/review_assets/verified_semantic/offline_by_id_or_name](file:///d:/Twelve/reference/review_assets/verified_semantic/offline_by_id_or_name) — flat source (1605 PNG)
 - [reference/redecoded/character_meta_parsed.csv](file:///d:/Twelve/reference/redecoded/character_meta_parsed.csv) — meta family map
 
@@ -292,7 +292,7 @@ public void a(Graphics g, int x, int y) {
 ## 5. Organized Asset Folder Structure
 
 ```
-client/assets/equipment_legacy/
+client/assets/equipment/
 │
 ├── 01_default_overlays/             ← defaults khi không mặc đồ (32 files)
 │   ├── weapon_male_default_799xx/   79900-79909, 79998
@@ -347,7 +347,7 @@ client/assets/equipment_legacy/
 │   ├── accessory_candidate_130xxx/   4 files: 130000, 130098, 130100, 130198
 │   └── accessory_candidate_140xxx/   1 file:  140098
 │                                    The 12xxxx..14xxxx bands were reclaimed
-│                                    from monster_legacy after ID cross-check.
+│                                    from monster after ID cross-check.
 │                                    The `98` suffix is the equipment-icon
 │                                    convention, not a monster frame index.
 │
@@ -374,14 +374,14 @@ client/assets/equipment_legacy/
 | `911xx, 913xx` | Hiệu ứng đặc biệt | Không phải trang bị mặc |
 | `100xxx` | Thuốc/nguyên liệu | Hệ thống `lm` (GameItem) riêng |
 | `110xxx-140xxx` | Map tiles, NPC icons | Map/NPC system |
-| `1M/2M/4Mxxxxxxx` | Skill effects | `skill_legacy` |
+| `1M/2M/4Mxxxxxxx` | Skill effects | `skill` |
 
 ---
 
 ## Port Order
 
 1. **Equipment data model** — class `Equipment` matching `ll.java` fields
-2. **Icon resolver** — `resId → band + 98 → equipment_legacy/{folder}/{id}.png`
+2. **Icon resolver** — `resId → band + 98 → equipment/{folder}/{id}.png`
 3. **Equipment detail dialog** — from `hg.java` spec
 4. **Item cell renderer** — from `dc.java` spec (rank color, broken overlay, star)
 5. **Character compositor** — overlay body layers theo `mb.a(lh)` logic
@@ -414,7 +414,7 @@ Xây dựng **equipment asset resolver** module:
 function getEquipIcon(resId) {
     const band = resId - (resId % 10);
     const iconId = band + 98;
-    return `equipment_legacy/{folder}/${iconId}.png`;
+    return `equipment/{folder}/${iconId}.png`;
 }
 
 function getEquipFrames(resId) {

@@ -26,9 +26,9 @@ import { clearSession } from '../../../storage/SessionStorage';
 import type { CharacterAppearance } from '../../character/shared';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-const ASSET_SOFTKEY_MENU = require('../../../../assets/ui_legacy/11_softkey_icons_confirmed/icon_sharpest_1.png');
-const ASSET_SOFTKEY_OK = require('../../../../assets/ui_legacy/11_softkey_icons_confirmed/icon_ok.png');
-const ASSET_SOFTKEY_CANCEL = require('../../../../assets/ui_legacy/11_softkey_icons_confirmed/icon_cancel.png');
+const ASSET_SOFTKEY_MENU = require('../../../../assets/ui/11_softkey_icons_confirmed/icon_sharpest_1.png');
+const ASSET_SOFTKEY_OK = require('../../../../assets/ui/11_softkey_icons_confirmed/icon_ok.png');
+const ASSET_SOFTKEY_CANCEL = require('../../../../assets/ui/11_softkey_icons_confirmed/icon_cancel.png');
 
 // ── Map / Background ────────────────────────────────────────────────────────
 const MAP_NATIVE_W  = 1536;

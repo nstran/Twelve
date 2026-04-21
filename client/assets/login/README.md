@@ -1,4 +1,4 @@
-# login_legacy
+# login
 
 Legacy login / boot / download-screen asset bundle. Everything the player sees from app-start up until the first scene (world map or title).
 

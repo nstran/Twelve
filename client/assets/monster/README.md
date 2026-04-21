@@ -21,11 +21,11 @@ Folder layout:
   - partial / non-standard 6-digit ranges grouped by prefix or end-pattern
   - **Exclusions applied after cross-check**:
     - IDs ending in `98` from `120xxx..140xxx` (32 files) → accessory
-      equipment (E5/E7/E8). Live in `equipment_legacy/07_accessory_e5_e7_e8/`.
+      equipment (E5/E7/E8). Live in `equipment/07_accessory_e5_e7_e8/`.
     - `130000`, `130100` (2 files) → also accessory equipment in the same
-      `130xxx` band. Live in `equipment_legacy/07_accessory_e5_e7_e8/`.
+      `130xxx` band. Live in `equipment/07_accessory_e5_e7_e8/`.
     - `110000..110160` pattern-X0 (17 files) → numbered NPC sprites.
-      Live in `npc_legacy/04_numbered_npc_candidate_110xxx/`.
+      Live in `npc/04_numbered_npc_candidate_110xxx/`.
 
 Detailed technical reference:
 
@@ -86,7 +86,7 @@ server catalog is re-authored.
 | Column     | Meaning |
 |------------|---------|
 | source     | path under `canonical_from_jar_png/offline/` |
-| target     | path under `client/assets/monster_legacy/` |
+| target     | path under `client/assets/monster/` |
 | confidence | `confirmed_monster_family` or `candidate_unknown` |
 | note       | schema / pattern rationale for the bucket |
 

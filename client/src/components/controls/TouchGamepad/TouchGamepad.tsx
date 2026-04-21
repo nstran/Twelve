@@ -5,7 +5,7 @@ import { styles } from './TouchGamepad.styles';
 type HorizontalDirection = 'left' | 'right';
 type DirectionGlyph = 'up' | 'left' | 'right' | 'down';
 
-const ARROW_ICON = require('../../../../assets/ui_legacy/10_focus_confirmed/arrowfocus1.png');
+const ARROW_ICON = require('../../../../assets/ui/10_focus_confirmed/arrowfocus1.png');
 
 interface TouchGamepadProps {
   visible?: boolean;

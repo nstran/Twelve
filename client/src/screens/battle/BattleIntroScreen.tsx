@@ -19,7 +19,7 @@ const SHOW_CARDS_AFTER_MS = 1500;
 const ATTACK_PREP_MS = 80;
 const SLASH_HOLD_MS = 110;
 const ATTACK_LOOP_GAP_MS = 140;
-const ASSET_HIDDEN_DRAGON = require('../../../assets/battle_legacy/09_hidden_pieces/hiddendragon.png');
+const ASSET_HIDDEN_DRAGON = require('../../../assets/battle/09_hidden_pieces/hiddendragon.png');
 
 interface BattleIntroScreenProps {
   monsterType: MonsterType;

@@ -1,4 +1,4 @@
-# battle_legacy
+# battle
 
 Legacy battle-scene asset bundle. All assets here are referenced by literal string in the decompiled Java source.
 

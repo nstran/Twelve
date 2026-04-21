@@ -21,13 +21,13 @@ The HUD bundle is the set of small icons that appear next to stat values across 
 Stable rules:
 
 - `Java old client = behavior/spec`
-- `client/assets/hud_legacy = working asset input for the new client`
+- `client/assets/hud = working asset input for the new client`
 - HUD assets are scene-agnostic — the SAME `/info/gold` sprite is drawn in character panel, post-battle screen, and shop.
-- Skill-tree UI (`/info/skilltree`, `/info/increase`, `/info/decrease`) is NOT here — it lives under `skill_legacy/` because the callsite is the skill-tree panel, not the generic HUD.
+- Skill-tree UI (`/info/skilltree`, `/info/increase`, `/info/decrease`) is NOT here — it lives under `skill/` because the callsite is the skill-tree panel, not the generic HUD.
 
 ## Main Working Folder
 
-- [client/assets/hud_legacy](/d:/Twelve/client/assets/hud_legacy)
+- [client/assets/hud](/d:/Twelve/client/assets/hud)
 
 ## Asset Contract
 

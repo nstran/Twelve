@@ -18,14 +18,14 @@ The legacy audio system is tiny — 2 Java classes, 9 media files, 2 formats.
 Stable rules:
 
 - `Java old client = behavior/spec`
-- `client/assets/audio_legacy = working audio input for the new client`
+- `client/assets/audio = working audio input for the new client`
 - Music = `.mid`, played via `co.b().a(name, loopCount)`. `loopCount = -1` = infinite loop, positive = play N times.
 - Sfx = `.amr`, played via `new cp(name)`. Always plays once.
 - Volume level is clamped via `javax.microedition.media.control.VolumeControl` to `v.Q`.
 
 ## Main Working Folder
 
-- [client/assets/audio_legacy](/d:/Twelve/client/assets/audio_legacy)
+- [client/assets/audio](/d:/Twelve/client/assets/audio)
 
 ## Music Runtime Contract (`co.java`)
 
@@ -159,5 +159,5 @@ The next coding step should be a single `AudioService` in the React Native clien
 
 - exposes `playBgm(name, loop)`, `stopBgm()`, `playSfx(name)`
 - reads audio config flags from a Zustand store mirroring `v.N / v.O / v.S / v.Q`
-- loads files from `audio_legacy/00_music_confirmed/` and `audio_legacy/01_sfx_confirmed/` first
+- loads files from `audio/00_music_confirmed/` and `audio/01_sfx_confirmed/` first
 - falls back gracefully if a candidate track is requested and not yet confirmed

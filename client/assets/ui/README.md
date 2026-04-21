@@ -1,4 +1,4 @@
-# ui_legacy
+# ui
 
 Shared UI chrome asset bundle — the pieces used by the generic panel / HUD / notification layer across every screen. Every asset here is referenced by a literal `f.d("/name")` (or `f.b(...)`) call in the decompiled Java source unless marked candidate.
 

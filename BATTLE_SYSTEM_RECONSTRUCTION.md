@@ -25,13 +25,13 @@ The battle scene is the core gameplay loop of L12SQ: a turn-based match-3 grid w
 Stable rules:
 
 - `Java old client = behavior/spec`
-- `client/assets/battle_legacy = working asset input for the new client`
+- `client/assets/battle = working asset input for the new client`
 - organize by `runtime role` (board / hud / pieces / crystals / icons / vfx / auras / result / cursor / hidden), NOT by filename prefix
 - every asset in this folder is literal-string confirmed against the decompiled source
 
 ## Main Working Folder
 
-- [client/assets/battle_legacy](/d:/Twelve/client/assets/battle_legacy)
+- [client/assets/battle](/d:/Twelve/client/assets/battle)
 
 ## Asset Group Contract
 
@@ -190,7 +190,7 @@ When implementing the battle pipeline, consult these project skills (in `.agent/
 
 The next coding step should be a React Native + Skia `BattleScene` that:
 
-- loads all 33 assets from `battle_legacy/` via an in-memory registry
+- loads all 33 assets from `battle/` via an in-memory registry
 - draws the board background according to a single `orientation` Zustand atom
 - renders an 8×8 grid of `chess0..chess8` pieces with focus cursor overlay
 - shows HP / MP / Power bars fed by server-broadcast state

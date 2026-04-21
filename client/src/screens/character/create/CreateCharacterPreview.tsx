@@ -163,54 +163,54 @@ const BODY_FAMILY_ASSETS: Record<ActionFamilySlot, BodyFamilyAsset> = {
 const GENDER_FAMILY_ASSETS = {
   male: {
     0: {
-      source: require('../../../../assets/createcs_legacy/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79800.png'),
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79800.png'),
       width: 38,
       height: 23,
     },
     1: {
-      source: require('../../../../assets/createcs_legacy/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79801.png'),
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79801.png'),
       width: 138,
       height: 23,
     },
     2: {
-      source: require('../../../../assets/createcs_legacy/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79802.png'),
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79802.png'),
       width: 124,
       height: 30,
     },
     3: {
-      source: require('../../../../assets/createcs_legacy/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79803.png'),
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79803.png'),
       width: 48,
       height: 22,
     },
     4: {
-      source: require('../../../../assets/createcs_legacy/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79804.png'),
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79804.png'),
       width: 81,
       height: 25,
     },
   },
   female: {
     0: {
-      source: require('../../../../assets/createcs_legacy/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79900.png'),
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79900.png'),
       width: 32,
       height: 23,
     },
     1: {
-      source: require('../../../../assets/createcs_legacy/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79901.png'),
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79901.png'),
       width: 115,
       height: 26,
     },
     2: {
-      source: require('../../../../assets/createcs_legacy/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79902.png'),
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79902.png'),
       width: 100,
       height: 22,
     },
     3: {
-      source: require('../../../../assets/createcs_legacy/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79903.png'),
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79903.png'),
       width: 36,
       height: 25,
     },
     4: {
-      source: require('../../../../assets/createcs_legacy/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79904.png'),
+      source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79904.png'),
       width: 66,
       height: 23,
     },
@@ -219,27 +219,27 @@ const GENDER_FAMILY_ASSETS = {
 
 const OVERLAY_FAMILY_ASSETS: Record<ActionFamilySlot, SimpleFamilyAsset> = {
   0: {
-    source: require('../../../../assets/createcs_legacy/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89900.png'),
+    source: require('../../../../assets/createcs/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89900.png'),
     width: 41,
     height: 15,
   },
   1: {
-    source: require('../../../../assets/createcs_legacy/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89901.png'),
+    source: require('../../../../assets/createcs/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89901.png'),
     width: 26,
     height: 11,
   },
   2: {
-    source: require('../../../../assets/createcs_legacy/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89902.png'),
+    source: require('../../../../assets/createcs/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89902.png'),
     width: 180,
     height: 56,
   },
   3: {
-    source: require('../../../../assets/createcs_legacy/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89903.png'),
+    source: require('../../../../assets/createcs/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89903.png'),
     width: 80,
     height: 21,
   },
   4: {
-    source: require('../../../../assets/createcs_legacy/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89904.png'),
+    source: require('../../../../assets/createcs/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89904.png'),
     width: 120,
     height: 36,
   },

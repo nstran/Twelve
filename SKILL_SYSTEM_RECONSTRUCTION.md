@@ -21,7 +21,7 @@ If you want the deep technical reference, use:
 
 ## Working Folders
 
-- [client/assets/skill_legacy](/d:/Twelve/client/assets/skill_legacy)
+- [client/assets/skill](/d:/Twelve/client/assets/skill)
 - [reference/review_assets/skill_system_organized](/d:/Twelve/reference/review_assets/skill_system_organized)
 - [reference/redecoded/skill_runtime_manifest.csv](/d:/Twelve/reference/redecoded/skill_runtime_manifest.csv)
 
@@ -173,7 +173,7 @@ Loaded via `/info/<name>` string paths:
 ## 6. Asset Folder Structure
 
 ```
-client/assets/skill_legacy/
+client/assets/skill/
 │
 ├── 00_skill_tree_ui_confirmed/
 │   └── skill_tree_board/
@@ -249,7 +249,7 @@ When implementing the skill pipeline, consult these project skills
 ## Next Practical Step
 
 Build a **client-side skill asset resolver** that reads
-`client/assets/skill_legacy/index.csv`, exposes a
+`client/assets/skill/index.csv`, exposes a
 `GetFrames(familyCode) → [assetId…]` API, and refuses to serve any
 family code not present in the confirmed table above. This forces any
 new family (from future server catalog) through an explicit promotion

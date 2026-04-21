@@ -1,4 +1,4 @@
-# map_legacy
+# map
 
 Legacy world-map asset bundle. Hosts the sprites for the overworld / zone-select map that sits between login and battle.
 

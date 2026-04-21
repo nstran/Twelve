@@ -59,5 +59,5 @@ Use this asset set in the following order:
 3. `02_eye`
 4. `03_hair`
 
-Headgear and wearable meta families were reclassified into `equipment_legacy/04_helmet_e2`.
+Headgear and wearable meta families were reclassified into `equipment/04_helmet_e2`.
 `02_eye` and `03_hair` are the current working default-option buckets for the recreated create-character screen.

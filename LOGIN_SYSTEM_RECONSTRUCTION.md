@@ -23,13 +23,13 @@ The login / boot flow is:
 Stable rules:
 
 - `Java old client = behavior/spec`
-- `client/assets/login_legacy = working asset input for the new client`
+- `client/assets/login = working asset input for the new client`
 - `/bklogin` is the ONLY background explicitly loaded for login. No separate "welcome" background exists.
 - `avatardownloadscreen` is stored under `/offline/` (not root), yet its semantic role is login-adjacent — include it in this bundle anyway.
 
 ## Main Working Folder
 
-- [client/assets/login_legacy](/d:/Twelve/client/assets/login_legacy)
+- [client/assets/login](/d:/Twelve/client/assets/login)
 
 ## Loader Contract
 
@@ -115,7 +115,7 @@ These are React Native / Expo launcher icons, NOT J2ME assets. Kept in `05_expo_
 1. Port `02_logo_candidate/` as a 3-second splash that transitions to the download screen.
 2. Port `01_download_confirmed/` — draw frame + clipped fill based on a 0..1 `progress` value; draw avatar slot to the left.
 3. Port `00_login_confirmed/` — draw `bklogin` fullscreen, `iconbt` centered-bottom. Fire a login TLV command (CMD 1) on tap.
-4. Start `lv1` music on login scene mount (uses `audio_legacy/00_music_confirmed/lv1.mid`).
+4. Start `lv1` music on login scene mount (uses `audio/00_music_confirmed/lv1.mid`).
 5. Promote the 7 candidate assets once a runtime trace reveals where they are used.
 
 ## Reference Skills
@@ -133,6 +133,6 @@ The next coding step should be a React Native `LoginFlowController` that:
 
 - shows `02_logo_candidate/` for ~3s
 - mounts `DownloadScreen` using `01_download_confirmed/` + a real progress value from the asset preloader
-- mounts `LoginScene` using `00_login_confirmed/` + plays `audio_legacy/00_music_confirmed/lv1.mid`
+- mounts `LoginScene` using `00_login_confirmed/` + plays `audio/00_music_confirmed/lv1.mid`
 - fires TLV CMD 1 on `iconbt` tap
 - on server ACK, routes to the next scene (world map or title)

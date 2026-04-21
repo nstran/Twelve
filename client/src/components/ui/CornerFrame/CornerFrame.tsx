@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { styles } from './CornerFrame.styles';
 
-const ASSET_CORNER = require('../../../../assets/ui_legacy/00_corner_frames/2.png');
+const ASSET_CORNER = require('../../../../assets/ui/00_corner_frames/2.png');
 
 interface CornerFrameProps {
   children?: React.ReactNode;

@@ -38,7 +38,7 @@ Primary evidence:
 Operational rule:
 
 - `Java old client = behavior/spec`
-- `skill_system_organized` and `skill_legacy` = implementation input
+- `skill_system_organized` and `skill` = implementation input
 - `TypeScript/React Native` = production runtime we will ship
 
 ## What The Old Client Actually Does
@@ -153,7 +153,7 @@ Reference:
 The canonical working sets are:
 
 - [reference/review_assets/skill_system_organized](/d:/Twelve/reference/review_assets/skill_system_organized)
-- [client/assets/skill_legacy](/d:/Twelve/client/assets/skill_legacy)
+- [client/assets/skill](/d:/Twelve/client/assets/skill)
 
 Both folders share the same layout:
 
@@ -361,7 +361,7 @@ Do not:
 
 The next practical coding steps are:
 
-1. build a skill asset resolver in the client around `client/assets/skill_legacy`
+1. build a skill asset resolver in the client around `client/assets/skill`
 2. implement a preview/debug view for skill families by code
 3. verify one representative effect from each code group
 4. then connect skill runtime to the current battle system

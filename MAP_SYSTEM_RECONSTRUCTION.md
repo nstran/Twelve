@@ -47,7 +47,7 @@ Phần này là map chọn khu từ Java cũ.
 
 ### Working Folder
 
-- [client/assets/map_legacy](/e:/Twelve/client/assets/map_legacy)
+- [client/assets/map](/e:/Twelve/client/assets/map)
 
 ## Side-Scrolling Map
 

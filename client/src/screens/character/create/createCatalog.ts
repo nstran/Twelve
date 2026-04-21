@@ -36,7 +36,7 @@ export interface VariantStyleOption {
 export const PREVIEW_SLOT = 0;
 
 export const BODY_SHEET = {
-  source: require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99000.png'),
+  source: require('../../../../assets/createcs/01_core_compositor/body_sheet_family_990xx_confirmed/99000.png'),
   width: 110,
   height: 53,
 } as const;
@@ -46,9 +46,9 @@ export const BODY_SHEET = {
  * Index tương ứng với SKIN_COLOR_OPTIONS index.
  */
 export const BODY_SKIN_SHEETS = [
-  require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99000.png'),
-  require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99001.png'),
-  require('../../../../assets/createcs_legacy/01_core_compositor/body_sheet_family_990xx_confirmed/99002.png'),
+  require('../../../../assets/createcs/01_core_compositor/body_sheet_family_990xx_confirmed/99000.png'),
+  require('../../../../assets/createcs/01_core_compositor/body_sheet_family_990xx_confirmed/99001.png'),
+  require('../../../../assets/createcs/01_core_compositor/body_sheet_family_990xx_confirmed/99002.png'),
 ] as const;
 
 export const GENDER_OPTIONS = [
@@ -57,7 +57,7 @@ export const GENDER_OPTIONS = [
     label: 'Nam',
     metaId: 79899,
     imageId: 79800,
-    source: require('../../../../assets/createcs_legacy/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79800.png'),
+    source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79899_base_79800_candidate/images/79800.png'),
     width: 38,
     height: 23,
   },
@@ -66,7 +66,7 @@ export const GENDER_OPTIONS = [
     label: 'Nữ',
     metaId: 79999,
     imageId: 79900,
-    source: require('../../../../assets/createcs_legacy/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79900.png'),
+    source: require('../../../../assets/createcs/01_core_compositor/gender_base_candidates/meta_79999_base_79900_candidate/images/79900.png'),
     width: 32,
     height: 23,
   },
@@ -75,7 +75,7 @@ export const GENDER_OPTIONS = [
 export const DEFAULT_OVERLAY = {
   metaId: 89999,
   imageId: 89900,
-  source: require('../../../../assets/createcs_legacy/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89900.png'),
+  source: require('../../../../assets/createcs/01_core_compositor/default_overlay_candidates/meta_89999_base_89900_candidate/images/89900.png'),
   width: 41,
   height: 15,
 } as const;
@@ -107,57 +107,57 @@ export const HAIR_STYLE_OPTIONS = {
 export const HAIR_COLOR_SOURCES: Record<number, readonly ImageSourcePropType[]> = {
   // Male set_501 (6 tông: default + DF1A14 + FF718A + 4B68D6 + 3DB54E + bạch kim)
   50100: [
-    require('../../../../assets/createcs_legacy/03_hair/colored/50100_c0.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50100_c1.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50100_c2.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50100_c3.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50100_c4.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50100_c5.png'),
+    require('../../../../assets/createcs/03_hair/colored/50100_c0.png'),
+    require('../../../../assets/createcs/03_hair/colored/50100_c1.png'),
+    require('../../../../assets/createcs/03_hair/colored/50100_c2.png'),
+    require('../../../../assets/createcs/03_hair/colored/50100_c3.png'),
+    require('../../../../assets/createcs/03_hair/colored/50100_c4.png'),
+    require('../../../../assets/createcs/03_hair/colored/50100_c5.png'),
   ],
   // Male set_504 (6 tông)
   50400: [
-    require('../../../../assets/createcs_legacy/03_hair/colored/50400_c0.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50400_c1.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50400_c2.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50400_c3.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50400_c4.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50400_c5.png'),
+    require('../../../../assets/createcs/03_hair/colored/50400_c0.png'),
+    require('../../../../assets/createcs/03_hair/colored/50400_c1.png'),
+    require('../../../../assets/createcs/03_hair/colored/50400_c2.png'),
+    require('../../../../assets/createcs/03_hair/colored/50400_c3.png'),
+    require('../../../../assets/createcs/03_hair/colored/50400_c4.png'),
+    require('../../../../assets/createcs/03_hair/colored/50400_c5.png'),
   ],
   // Male set_505 (6 tông)
   50500: [
-    require('../../../../assets/createcs_legacy/03_hair/colored/50500_c0.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50500_c1.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50500_c2.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50500_c3.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50500_c4.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50500_c5.png'),
+    require('../../../../assets/createcs/03_hair/colored/50500_c0.png'),
+    require('../../../../assets/createcs/03_hair/colored/50500_c1.png'),
+    require('../../../../assets/createcs/03_hair/colored/50500_c2.png'),
+    require('../../../../assets/createcs/03_hair/colored/50500_c3.png'),
+    require('../../../../assets/createcs/03_hair/colored/50500_c4.png'),
+    require('../../../../assets/createcs/03_hair/colored/50500_c5.png'),
   ],
   // Female set_500 (6 tông)
   50000: [
-    require('../../../../assets/createcs_legacy/03_hair/colored/50000_c0.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50000_c1.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50000_c2.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50000_c3.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50000_c4.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50000_c5.png'),
+    require('../../../../assets/createcs/03_hair/colored/50000_c0.png'),
+    require('../../../../assets/createcs/03_hair/colored/50000_c1.png'),
+    require('../../../../assets/createcs/03_hair/colored/50000_c2.png'),
+    require('../../../../assets/createcs/03_hair/colored/50000_c3.png'),
+    require('../../../../assets/createcs/03_hair/colored/50000_c4.png'),
+    require('../../../../assets/createcs/03_hair/colored/50000_c5.png'),
   ],
   // Female set_502 (6 tông)
   50200: [
-    require('../../../../assets/createcs_legacy/03_hair/colored/50200_c0.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50200_c1.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50200_c2.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50200_c3.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50200_c4.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50200_c5.png'),
+    require('../../../../assets/createcs/03_hair/colored/50200_c0.png'),
+    require('../../../../assets/createcs/03_hair/colored/50200_c1.png'),
+    require('../../../../assets/createcs/03_hair/colored/50200_c2.png'),
+    require('../../../../assets/createcs/03_hair/colored/50200_c3.png'),
+    require('../../../../assets/createcs/03_hair/colored/50200_c4.png'),
+    require('../../../../assets/createcs/03_hair/colored/50200_c5.png'),
   ],
   // Female set_503 (6 tông)
   50300: [
-    require('../../../../assets/createcs_legacy/03_hair/colored/50300_c0.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50300_c1.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50300_c2.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50300_c3.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50300_c4.png'),
-    require('../../../../assets/createcs_legacy/03_hair/colored/50300_c5.png'),
+    require('../../../../assets/createcs/03_hair/colored/50300_c0.png'),
+    require('../../../../assets/createcs/03_hair/colored/50300_c1.png'),
+    require('../../../../assets/createcs/03_hair/colored/50300_c2.png'),
+    require('../../../../assets/createcs/03_hair/colored/50300_c3.png'),
+    require('../../../../assets/createcs/03_hair/colored/50300_c4.png'),
+    require('../../../../assets/createcs/03_hair/colored/50300_c5.png'),
   ],
 };
 

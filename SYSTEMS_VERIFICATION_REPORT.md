@@ -1,6 +1,6 @@
 # Systems Verification Report
 
-Báo cáo cuối phase tổ chức asset + tài liệu reconstruction. Mỗi dòng dưới là một **cặp độc lập `<doc>.md + client/assets/<bucket>_legacy/`** đủ để viết code tính năng end-to-end mà không cần tham khảo file khác.
+Báo cáo cuối phase tổ chức asset + tài liệu reconstruction. Mỗi dòng dưới là một **cặp độc lập `<doc>.md + client/assets/<bucket>/`** đủ để viết code tính năng end-to-end mà không cần tham khảo file khác.
 
 Sinh ngày: 2026-04-17.
 
@@ -8,28 +8,28 @@ Sinh ngày: 2026-04-17.
 
 | # | System | Top-level Doc | Legacy Folder | Files | Status |
 |---|--------|---------------|---------------|-------|--------|
-| 1 | Character Creation | `CHARACTER_CREATION_RECONSTRUCTION.md` | `client/assets/createcs_legacy/` | 163 | audited |
-| 2 | Equipment | `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` | `client/assets/equipment_legacy/` | 1144 | audited |
-| 3 | Monster | `MONSTER_SYSTEM_RECONSTRUCTION.md` | `client/assets/monster_legacy/` | 329 | audited |
-| 4 | NPC | `NPC_SYSTEM_RECONSTRUCTION.md` | `client/assets/npc_legacy/` | 25 | audited |
-| 5 | Skill | `SKILL_SYSTEM_RECONSTRUCTION.md` | `client/assets/skill_legacy/` | 73 | audited |
-| 6 | Audio | `AUDIO_SYSTEM_RECONSTRUCTION.md` | `client/assets/audio_legacy/` | 9 | new |
-| 7 | Battle | `BATTLE_SYSTEM_RECONSTRUCTION.md` | `client/assets/battle_legacy/` | 36 | new |
-| 8 | Map | `MAP_SYSTEM_RECONSTRUCTION.md` | `client/assets/map_legacy/` | 12 | new |
-| 9 | HUD | `HUD_SYSTEM_RECONSTRUCTION.md` | `client/assets/hud_legacy/` | 7 | new |
-| 10 | Login | `LOGIN_SYSTEM_RECONSTRUCTION.md` | `client/assets/login_legacy/` | 15 | new |
-| 11 | UI Chrome | `UI_SYSTEM_RECONSTRUCTION.md` | `client/assets/ui_legacy/` | 24 | new |
+| 1 | Character Creation | `CHARACTER_CREATION_RECONSTRUCTION.md` | `client/assets/createcs/` | 163 | audited |
+| 2 | Equipment | `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` | `client/assets/equipment/` | 1144 | audited |
+| 3 | Monster | `MONSTER_SYSTEM_RECONSTRUCTION.md` | `client/assets/monster/` | 329 | audited |
+| 4 | NPC | `NPC_SYSTEM_RECONSTRUCTION.md` | `client/assets/npc/` | 25 | audited |
+| 5 | Skill | `SKILL_SYSTEM_RECONSTRUCTION.md` | `client/assets/skill/` | 73 | audited |
+| 6 | Audio | `AUDIO_SYSTEM_RECONSTRUCTION.md` | `client/assets/audio/` | 9 | new |
+| 7 | Battle | `BATTLE_SYSTEM_RECONSTRUCTION.md` | `client/assets/battle/` | 36 | new |
+| 8 | Map | `MAP_SYSTEM_RECONSTRUCTION.md` | `client/assets/map/` | 12 | new |
+| 9 | HUD | `HUD_SYSTEM_RECONSTRUCTION.md` | `client/assets/hud/` | 7 | new |
+| 10 | Login | `LOGIN_SYSTEM_RECONSTRUCTION.md` | `client/assets/login/` | 15 | new |
+| 11 | UI Chrome | `UI_SYSTEM_RECONSTRUCTION.md` | `client/assets/ui/` | 24 | new |
 
 Tổng cộng: **1837 media file** được khảo sát và sắp xếp, 11 top-level `.md` docs.
 
 > **Ghi chú cross-check ID**: Sau khi soi lại monster candidate band theo ID schema, 51 file đã được di chuyển sang đúng bucket:
 >
-> - 32 file đuôi `98` (120xxx–140xxx) + 2 file `130000/130100` (tổng 34) → `equipment_legacy/07_accessory_e5_e7_e8/`. Lý do: toàn bộ band `13xxxx/14xxxx` + đuôi `98` là accessory icon (E5/E7/E8), không phải monster.
-> - 17 file `110000..110160` (bước `X0`) → `npc_legacy/04_numbered_npc_candidate_110xxx/`. Lý do: đây là numbered NPC sprites (single-frame standing), không phải monster frame index.
+> - 32 file đuôi `98` (120xxx–140xxx) + 2 file `130000/130100` (tổng 34) → `equipment/07_accessory_e5_e7_e8/`. Lý do: toàn bộ band `13xxxx/14xxxx` + đuôi `98` là accessory icon (E5/E7/E8), không phải monster.
+> - 17 file `110000..110160` (bước `X0`) → `npc/04_numbered_npc_candidate_110xxx/`. Lý do: đây là numbered NPC sprites (single-frame standing), không phải monster frame index.
 >
 > Kết quả: Monster giảm 380 → **329**. Equipment tăng 1142 → **1144**. NPC tăng 8 → **25**.
 
-> **Ghi chú cross-check slot-type trong equipment_legacy** (2026-04-17 audit): Sau khi soi `meta_summary.json` của từng band candidate (tại `reference/review_assets/character_creation_organized/02_option_meta_families/headgear_equipment_candidates/`), 4 meta family với tổng **44 file (4 × 11)** đã được di chuyển trong equipment_legacy — không thay đổi tổng file, chỉ đổi slot-type:
+> **Ghi chú cross-check slot-type trong equipment** (2026-04-17 audit): Sau khi soi `meta_summary.json` của từng band candidate (tại `reference/review_assets/character_creation_organized/02_option_meta_families/headgear_equipment_candidates/`), 4 meta family với tổng **44 file (4 × 11)** đã được di chuyển trong equipment — không thay đổi tổng file, chỉ đổi slot-type:
 >
 > - `03_weapon_e1/meta_weapon_971xx/` → `04_helmet_e2/meta_helmet_971xx/` (11 file)
 > - `03_weapon_e1/meta_weapon_974xx/` → `04_helmet_e2/meta_helmet_974xx/` (11 file)
@@ -75,19 +75,19 @@ Hệ thống có tỉ lệ candidate cao:
 
 ## Phát hiện quan trọng trong quá trình audit
 
-1. **Barrier missed initially**: `mp.java:383` dùng `f.a("/barrier")` (alt loader) thay vì `f.d()` — suýt bỏ sót. Đã bổ sung vào `battle_legacy/11_barrier/`.
+1. **Barrier missed initially**: `mp.java:383` dùng `f.a("/barrier")` (alt loader) thay vì `f.d()` — suýt bỏ sót. Đã bổ sung vào `battle/11_barrier/`.
 2. **51 file ID monster band thực chất là equipment + NPC**: Sau khi cross-check ID schema với các bucket còn lại, 51 file đã được di chuyển sang đúng chỗ:
    - **34 file → equipment** (`07_accessory_e5_e7_e8/`): 32 file đuôi `98` (`120198..122598`, `128098..128398`, `140098`) + 2 file `130000/130100`. Toàn bộ band `120xxx/130xxx/140xxx` là accessory icon (E5/E7/E8), đuôi `98` là icon variant convention.
    - **17 file → NPC** (`04_numbered_npc_candidate_110xxx/`): `110000..110160` bước `X0`. Đây là numbered NPC sprite (single-frame standing), không phải monster multi-frame slot. Pattern `X0` cho thấy 1-per-family layout (không sub-slot), khớp với use case "static NPC portrait".
 3. **Một con đồng thời ở 2 chỗ là không chấp nhận được**: Bug này cho thấy phải cross-check giữa các bucket khi ID schema ambiguous, không chỉ dựa vào folder nguồn đã organized.
-4. **Caveat về working tree hiện tại**: 11 file `equipment_legacy/00_body_base/body_990xx/99000.png..99009.png + 99099.png` hiện không tồn tại trên đĩa trong sandbox do một state cũ từ session trước (git status hiển thị `D` cho các file này). Chúng vẫn tracked trong git HEAD nên có thể khôi phục bằng:
+4. **Caveat về working tree hiện tại**: 11 file `equipment/00_body_base/body_990xx/99000.png..99009.png + 99099.png` hiện không tồn tại trên đĩa trong sandbox do một state cũ từ session trước (git status hiển thị `D` cho các file này). Chúng vẫn tracked trong git HEAD nên có thể khôi phục bằng:
    ```bash
-   git checkout HEAD -- client/assets/equipment_legacy/00_body_base/body_990xx/
+   git checkout HEAD -- client/assets/equipment/00_body_base/body_990xx/
    ```
    Sau khi restore, equipment sẽ đủ 1144 file như báo cáo. Hiện số file vật lý là 1133; con số 1144 trong báo cáo là trạng thái mục tiêu sau restore (khớp với git HEAD + 2 file accessory mới vừa di chuyển vào từ monster).
 3. **arrowfocus1 là byte-array load**: `mp.java:400` dùng `f.b("/arrowfocus1")` — trả về `byte[]` không phải `Image`. Vẫn là literal string ref nên được đánh confirmed.
 4. **Shared spritesheet dispatch**: Monster/Skill dispatch tile qua `jo.c >> 1` để chọn giữa `/monster`, `/zap`, `/ice` sheets — đã ghi chú trong `MONSTER_SYSTEM_RECONSTRUCTION.md` và `SKILL_SYSTEM_RECONSTRUCTION.md`.
-5. **Expo manifest icons tách riêng**: 3 icon `adaptive-icon.png`, `favicon.png`, `icon.png` trong `login_legacy/05_expo_manifest_icons/` KHÔNG phải J2ME asset — phải wire qua `app.json`, không qua asset loader.
+5. **Expo manifest icons tách riêng**: 3 icon `adaptive-icon.png`, `favicon.png`, `icon.png` trong `login/05_expo_manifest_icons/` KHÔNG phải J2ME asset — phải wire qua `app.json`, không qua asset loader.
 6. **4 meta family bị gán sai slot-type** (2026-04-17 audit): Phát hiện sau khi đọc `meta_summary.json` rằng `meta_weapon_971xx/974xx/975xx` (nằm trong `03_weapon_e1/`) và `meta_armor_fullbody_999xx` (nằm trong `02_armor_e0/`) thực chất đều là **headgear candidates**. Metadata ghi rõ `"likely headgear rather than bare create-character appearance"`. Đã di chuyển 44 file (4 family × 11 file) sang `04_helmet_e2/` với tên mới `meta_helmet_971xx/974xx/975xx/999xx/`. Bài học: khi cross-organize equipment, LUÔN đọc `meta_summary.json` trước — đừng suy từ ID prefix (70xxx/90xxx không phải một slot-type duy nhất).
 
 ## Code-ready checklist
@@ -97,7 +97,7 @@ Hệ thống có tỉ lệ candidate cao:
 | Step | Tool | Input | Output |
 |------|------|-------|--------|
 | 1. Đọc doc | editor | `<SYSTEM>_RECONSTRUCTION.md` | Hiểu loader contract + port order |
-| 2. Import assets | Expo asset resolver | file trong `<system>_legacy/` | React Native Image sources |
+| 2. Import assets | Expo asset resolver | file trong `<system>/` | React Native Image sources |
 | 3. Viết component | Skia + Zustand | loader contract section | Functional component |
 | 4. Validate | So sánh với Java source | line numbers từ doc | Behavior khớp bản cũ |
 | 5. Server protocol | TLV codec + tag IDs | doc "Reference Skills → binary-protocol" | Server-authoritative validation |

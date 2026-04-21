@@ -8,7 +8,7 @@ Source: [offline_by_id_or_name](/d:/Twelve/reference/review_assets/verified_sema
 ## Folder Layout (theo ll.e slot type)
 
 ```
-equipment_legacy/
+equipment/
   01_default_overlays/  <- mb.java:712-715 — defaults khi khong mac do
   02_armor_e0/          <- visual audit + icon check: armor/body overlays 701xx-783xx
   03_weapon_e1/         <- visual audit + icon check: weapon overlays 800xx-832xx, 890xx-893xx
@@ -39,12 +39,12 @@ Layer 5: Weapon overlay = ll.e==1 resId band + frame
 
 ## NOT Included (not equipment)
 
-- `990xx` — Base body compositor layer, khong luu trong `equipment_legacy`
-- `909xx, 910xx, 912xx` — Hair/appearance → `createcs_legacy`
+- `990xx` — Base body compositor layer, khong luu trong `equipment`
+- `909xx, 910xx, 912xx` — Hair/appearance → `createcs`
 - `911xx, 913xx` — Special effects → not wearable
 - `100xxx` — Consumable items → separate `lm` system
 - `110xxx-140xxx` — Map/NPC → map system
-- `1M/2M/4Mxxxxxxx` — Skill effects → `skill_legacy`
+- `1M/2M/4Mxxxxxxx` — Skill effects → `skill`
 
 ## Audit Notes
 

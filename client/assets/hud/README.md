@@ -1,4 +1,4 @@
-# hud_legacy
+# hud
 
 Legacy HUD / info-panel asset bundle. Hosts the small stat icons + stat-editor widgets that appear across battle, world map, and character screens.
 
@@ -27,6 +27,6 @@ Total: 7 files. All are literal-string confirmed.
 
 ## Notes
 
-- `/info/skilltree`, `/info/increase`, `/info/decrease` are NOT here — they live in `skill_legacy/00_skill_tree_ui_confirmed/` because their callsites are in the skill-tree panel (`de.java`, `gu.java`, `gg.java`), not the generic HUD.
+- `/info/skilltree`, `/info/increase`, `/info/decrease` are NOT here — they live in `skill/00_skill_tree_ui_confirmed/` because their callsites are in the skill-tree panel (`de.java`, `gu.java`, `gg.java`), not the generic HUD.
 - `heart` = HP icon, not actual heart rate. Named after the sprite shape.
 - `gauge` is a horizontal EXP bar; `expicon` is the small badge next to it.
