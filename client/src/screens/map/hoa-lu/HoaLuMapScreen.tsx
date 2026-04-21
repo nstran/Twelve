@@ -12,6 +12,7 @@ import {
   type CharacterControllerRef,
   type GroundSurface,
   type MonsterTarget,
+  getSurfaceStartY,
 } from '../../../engine/character';
 import { CharacterRenderer, measureCharacterRenderer } from '../../character';
 import { HOA_LU_MAP_ASSETS } from './assets';
@@ -86,7 +87,7 @@ const HOA_LU_SURFACES: GroundSurface[] = HOA_LU_SURFACES_BASE.map((surface) => (
 ));
 const GROUND_MAIN_SURFACE = HOA_LU_SURFACES.find((surface) => surface.id === 'ground_main')
   ?? { id: 'ground_main', x1: -GROUND_TILE_LEFT_OFFSET, x2: MAP_W, y: GROUND_MAIN_Y, kind: 'ground' as const };
-const GROUND_TOP = GROUND_MAIN_SURFACE.y;
+const GROUND_TOP = getSurfaceStartY(GROUND_MAIN_SURFACE);
 
 // ── Monster dữ liệu tĩnh (loại + patrol range) ────────────────────────────
 interface MonsterDef {
@@ -178,12 +179,13 @@ function buildMonsterRuntimes(): MonsterRuntime[] {
     const size = monsterDisplaySize(def.type);
     const placement = monsterPlacementMetrics(def.type);
     const leftX = startX - size.w / 2;
+    const surfaceGroundY = getSurfaceStartY(surface);
     return {
       id: def.id,
       type: def.type,
       def,
       surfaceId: surface.id,
-      groundY: surface.y,
+      groundY: surfaceGroundY,
       minX,
       maxX,
       x: startX,
@@ -193,7 +195,7 @@ function buildMonsterRuntimes(): MonsterRuntime[] {
       frameIndex: WALK_FRAMES[0],
       xAnim: new Animated.Value(leftX),
       size,
-      topY: surface.y - size.h + placement.groundOffset,
+      topY: surfaceGroundY - size.h + placement.groundOffset,
     };
   });
 }

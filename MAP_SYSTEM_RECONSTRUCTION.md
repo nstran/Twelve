@@ -1,132 +1,223 @@
 # Map System Reconstruction
 
-Tài liệu khôi phục hệ thống bản đồ thế giới (world map / zone-select) từ Java client cũ.
+Tài liệu khôi phục và chuẩn hóa hệ thống map.
 
-## Source Code Reference
+Mục tiêu hiện tại không còn chỉ là phục dựng `world map / zone-select` từ Java cũ, mà là chốt một kiến trúc map dùng lại được cho nhiều scene:
+
+- `world map`: màn chọn khu / chọn địa danh
+- `side-scrolling map`: map chạy ngang có quái, nhiều tầng, platform, dốc
+- `navigation layer`: dữ liệu va chạm tách khỏi art để có thể tái sử dụng
+
+## Phạm Vi
+
+Quy ước ổn định:
+
+- `Java old client = behavior/spec` khi có mâu thuẫn
+- `art` và `navigation` là 2 lớp khác nhau
+- không hard-code `groundY` cho cả map
+- mọi map mới nên được author bằng `surface data`, không viết lại controller
+
+## Legacy World Map
+
+Phần này là map chọn khu từ Java cũ.
+
+### Source Code Reference
 
 | File | Class | Vai trò |
 |------|-------|---------|
-| [oh.java](/d:/Twelve/reference/redecoded/decompiled/oh.java) | `oh` | Map scene controller — loads `/m/m` (main sheet) and `/m/lock` (lock overlay) |
-| [fz.java](/d:/Twelve/reference/redecoded/decompiled/fz.java) | `fz` | Map location sub-renderer — loads `/m/lock`, `/m/arena`, `/m/room` |
-| [fg.java](/d:/Twelve/reference/redecoded/decompiled/fg.java) | `fg` | Secondary map overlay — loads `/m/lock2` |
-| [hi.java](/d:/Twelve/reference/redecoded/decompiled/hi.java) | `hi` | Versus / battle-start splash — loads `/m/fsw` |
-| [pc.java](/d:/Twelve/reference/redecoded/decompiled/pc.java) | `pc` | Shared UI sprites — loads `/m/hand`, `/m/arrow`, `/roomicon` |
+| [oh.java](/e:/Twelve/reference/redecoded/decompiled/oh.java) | `oh` | World map scene controller, load `/m/m` và `/m/lock` |
+| [fz.java](/e:/Twelve/reference/redecoded/decompiled/fz.java) | `fz` | Render marker con, load `/m/arena`, `/m/room`, `/m/lock` |
+| [fg.java](/e:/Twelve/reference/redecoded/decompiled/fg.java) | `fg` | Overlay phụ, load `/m/lock2` |
+| [hi.java](/e:/Twelve/reference/redecoded/decompiled/hi.java) | `hi` | Splash / marker `/m/fsw` |
+| [pc.java](/e:/Twelve/reference/redecoded/decompiled/pc.java) | `pc` | UI cursor `/m/hand`, `/m/arrow`, `/roomicon` |
 
-## Quick Position
+### Asset Contract
 
-The world map lets the player pick a scene (arena, room, fsw, etc.) to enter. It sits between login and battle in the scene graph.
+| Asset | Vai trò |
+|-------|---------|
+| `/m/m` | Main overworld sheet |
+| `/m/arena` | Marker arena |
+| `/m/room` | Marker room |
+| `/m/fsw` | Marker fsw / forest |
+| `/m/lock` | Overlay khu khóa |
+| `/m/lock2` | Overlay khóa cấp khác |
+| `/m/hand` | Cursor focus |
+| `/m/arrow` | Gợi ý khu tiếp theo |
+| `/roomicon` | Icon room dùng chung |
 
-Stable rules:
+### Working Folder
 
-- `Java old client = behavior/spec`
-- `client/assets/map_legacy = working asset input for the new client`
-- the main map tileset is `/m/m`. POIs are loaded individually and drawn at map coordinates.
-- `/roomicon` is shared with the battle/room entry flow and lives at root (`f.d("/roomicon")`, not `/m/roomicon`).
-- 9 literal-string-confirmed assets. 3 candidate assets (background painting + labels).
+- [client/assets/map_legacy](/e:/Twelve/client/assets/map_legacy)
 
-## Main Working Folder
+## Side-Scrolling Map
 
-- [client/assets/map_legacy](/d:/Twelve/client/assets/map_legacy)
+Đây là hướng triển khai mới cho Hoa Lư và các map chạy ngang sau này.
 
-## Map Scene Loader Contract
+### Kiến Trúc
 
-### Main sheet (`oh.java`)
+Map được chia thành 3 lớp:
 
-```java
-// oh.java line 53-55
-this.l = f.d("/m/m");       // main overworld sheet
-this.r = f.d("/m/lock");    // locked location overlay
+- `art layer`: background, đất, đá, cây, nhà, props
+- `navigation layer`: các đoạn có thể đứng / chạy / nhảy / rơi
+- `entity layer`: player, quái, NPC bám theo `surface`
+
+Điểm quan trọng:
+
+- controller không biết hình đá cụ thể
+- controller chỉ biết `surface`
+- map khác chỉ cần thay data, không thay engine
+
+### Reusable Engine
+
+Các file nền tảng:
+
+- [character.types.ts](/e:/Twelve/client/src/engine/character/character.types.ts)
+- [surface.ts](/e:/Twelve/client/src/engine/character/surface.ts)
+- [CharacterController.tsx](/e:/Twelve/client/src/engine/character/CharacterController.tsx)
+- [HoaLuMapScreen.tsx](/e:/Twelve/client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx)
+
+### Navigation Contract
+
+Kiểu dữ liệu chuẩn:
+
+```ts
+type GroundSurface = {
+  id: string;
+  x1: number;
+  x2: number;
+  y?: number;
+  y1?: number;
+  y2?: number;
+  ceilingOffset?: number;
+  kind?: 'ground' | 'platform';
+  oneWay?: boolean;
+}
 ```
 
-### Sub-renderer (`fz.java`)
+Ý nghĩa:
 
-```java
-// fz.java line 24-30
-j = f.d("/m/lock");   // duplicate load (per-instance cache)
-l = f.d("/m/arena");
-k = f.d("/m/room");
+- `y`: mặt phẳng ngang
+- `y1`, `y2`: đoạn dốc, nội suy tuyến tính từ `x1 -> x2`
+- `oneWay`: sàn mỏng, nhảy từ dưới lên xuyên qua được, rơi từ trên xuống thì đáp
+- `ceilingOffset`: độ dày khối rắn tính từ mặt đứng xuống mặt dưới để chặn đầu khi nhảy
+
+### Runtime Rules
+
+#### 1. Đứng trên mặt nào
+
+- lấy `footX = charLeft + charWidth / 2`
+- tìm mọi `surface` chứa `footX`
+- chọn `surface` có độ cao gần `currentFootY` nhất
+
+#### 2. Chạy ngang
+
+- `groundY = yAt(footX)`
+- map phẳng và map dốc dùng chung một thuật toán
+
+#### 3. Rơi / đáp
+
+- khi đang rơi, kiểm tra đoạn `fromFootY -> toFootY`
+- nếu có `surface` cắt qua đoạn rơi thì đáp xuống đó
+- `oneWay` chỉ đỡ khi đang rơi từ trên xuống
+
+#### 4. Va đầu
+
+- surface không phải `oneWay` có thể có mặt dưới
+- nếu đầu nhân vật chạm `ceilingY`, pha bay lên dừng và chuyển sang rơi
+
+### Helper Functions
+
+Các hàm dùng chung nằm ở [surface.ts](/e:/Twelve/client/src/engine/character/surface.ts):
+
+- `surfaceContainsX`
+- `getSurfaceStartY`
+- `getSurfaceEndY`
+- `getSurfaceYAtX`
+- `getSurfaceYAtFootX`
+- `getSurfaceCeilingYAtX`
+- `getSurfaceCeilingYAtFootX`
+
+### Character Controller Rules
+
+`CharacterController` hiện đã hỗ trợ:
+
+- nhiều mặt phẳng
+- platform rời nhau
+- dốc lên / dốc xuống
+- `oneWay platform`
+- va đầu vào khối rắn
+- nhảy và đáp sang tảng đá khác nếu quỹ đạo rơi cắt đúng `surface`
+
+Tham chiếu:
+
+- chọn mặt đứng theo `footX`: [CharacterController.tsx](/e:/Twelve/client/src/engine/character/CharacterController.tsx:194)
+- support `oneWay`: [CharacterController.tsx](/e:/Twelve/client/src/engine/character/CharacterController.tsx:216)
+- tìm mặt đáp khi rơi: [CharacterController.tsx](/e:/Twelve/client/src/engine/character/CharacterController.tsx:226)
+- chặn đầu khi nhảy: [CharacterController.tsx](/e:/Twelve/client/src/engine/character/CharacterController.tsx:245)
+
+## Hoa Lư
+
+Hoa Lư là map side-scrolling đầu tiên đang dùng contract mới.
+
+Các file:
+
+- [HoaLuMapScreen.tsx](/e:/Twelve/client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx)
+- [hoaLu.navigation.ts](/e:/Twelve/client/src/screens/map/hoa-lu/hoaLu.navigation.ts)
+
+Nguyên tắc authoring:
+
+- chỉ đánh dấu phần cỏ / mép đá mà chân có thể đứng
+- không lấy full sprite đá làm hitbox
+- nếu mặt cong, cắt thành nhiều `surface` ngắn
+- nếu là dốc, ưu tiên `y1/y2`
+
+Ví dụ:
+
+```ts
+[
+  { id: 'ground', x1: 0, x2: 900, y: 720, kind: 'ground' },
+  { id: 'slope_a', x1: 900, x2: 1080, y1: 720, y2: 660, kind: 'ground' },
+  { id: 'rock_1', x1: 1120, x2: 1250, y: 610, kind: 'platform', oneWay: true },
+  { id: 'rock_2', x1: 1320, x2: 1450, y: 540, kind: 'ground', ceilingOffset: 40 },
+]
 ```
 
-### Secondary overlay (`fg.java`)
+## Cách Dùng Cho Map Mới
 
-```java
-// fg.java line 41-42
-this.k  = f.d("/slotlock");
-this.C  = f.d("/m/lock2");
-```
+Khi thêm map khác, không copy logic Hoa Lư. Chỉ cần:
 
-### FSW splash (`hi.java`)
+1. thêm background / art riêng của map
+2. tạo file `navigation.ts` chứa danh sách `GroundSurface`
+3. đặt vị trí spawn player, quái, NPC theo `surface`
+4. dùng lại `CharacterController`
 
-```java
-// hi.java line 13
-private Image a = f.d("/m/fsw");
-```
+Điều này áp dụng cho:
 
-### Shared UI cursors (`pc.java`)
+- map đá khác nhau
+- địa hình khác nhau
+- nhiều tầng
+- platform rời nhau
+- dốc
+- map có trần cứng hoặc sàn mỏng
 
-```java
-// pc.java line 20-21, 67
-public static final Image e = f.d("/m/hand");
-public static final Image f = f.d("/m/arrow");
-r = f.d("/roomicon");
-```
+## Chưa Làm
 
-## Asset Roles
+Các phần chưa chốt hẳn:
 
-| Asset | Role |
-|-------|------|
-| `/m/m`            | Main overworld sheet. Probably the tiled ground layer drawn first. |
-| `/m/arena`        | POI marker for the arena (combat location). |
-| `/m/room`         | POI marker for a generic room / chamber. |
-| `/m/fsw`          | POI marker loaded by the versus splash — likely the "Forest / FSW" zone. |
-| `/m/lock`         | Overlay drawn on a locked POI. Primary variant. |
-| `/m/lock2`        | Overlay drawn on a locked POI. Secondary variant (e.g., a higher lock tier). |
-| `/m/hand`         | Cursor drawn on the currently-focused POI. |
-| `/m/arrow`        | Arrow hint pointing to the next available POI. |
-| `/roomicon`       | Room icon used as a badge in overlays and lists. |
+- format dữ liệu map dùng chung ở cấp project, ví dụ `client/src/maps/<map-id>/navigation.ts`
+- công cụ author surface trực quan
+- `jump links` cho AI / auto path giữa các platform
+- ceiling authoring chi tiết cho những khối có underside phức tạp
 
-## Candidate Assets
+## Kết Luận
 
-These are present in the jar cache but no literal string reference was found in the decompiled source. They likely reach the runtime through a dynamic callsite.
+Map system nên xem như 2 bài toán riêng:
 
-| Asset | Hypothesis |
-|-------|------------|
-| `bgmap_hoa_lu.png`  | 2.3 MB painted background of Hoa Lư capital. Likely drawn as the bottom layer before `/m/m` tiles. |
-| `focusname.png`     | Name plate drawn near the focused POI. |
-| `l.png`             | Tiny `l` glyph — possibly a level-indicator or legend marker. |
+- `world map` cũ: phục dựng asset + marker + select flow
+- `side-scrolling map` mới: dùng `surface navigation` làm nền tảng
 
-Do NOT promote these until a runtime trace or a decompiled dynamic-string callsite confirms their role.
+Phần quan trọng nhất đã chốt:
 
-## Port Order
-
-1. Render `04_map_background_candidate/bgmap_hoa_lu.png` full-screen as the base layer (if the new client is oriented to use it).
-2. Render `00_map_tileset/m.png` on top as the overworld sheet.
-3. Draw POI markers from `01_location_markers/` at server-provided coordinates.
-4. Draw `03_locked_markers/lock.png` or `lock2.png` over a POI when the server flags the zone as locked.
-5. Add the focus cursor: `02_cursor_pointer/hand.png` on the selected POI, `arrow.png` as a "go here next" hint.
-6. Wire tap → zone-select TLV command; on server ACK, transition to the battle / room scene.
-7. Promote the three candidates (`bgmap_hoa_lu`, `focusname`, `l`) once their dynamic callsites are identified.
-
-## Reference Skills
-
-When implementing the map pipeline, consult these project skills (in `.agent/skills/`):
-
-| Skill | Use When |
-|-------|----------|
-| `architecture/`     | Domain entity `WorldZone`, `MapLocation` in `Twelve.Core` |
-| `binary-protocol/`  | TLV CMD 11 (MapInfo) + CMD 13 (SelectMap) + tags 55/56/57/60/61 |
-| `database-design/`  | Postgres `MapCatalog`, zone unlocks per player |
-| `game-mechanics/`   | Zone gating rules (lock / lock2 tiers) |
-| `frontend-design/`  | Skia map renderer, touch pick-handling, 60 FPS overlay draws |
-| `clean-code/`       | Naming `WorldMapRenderer`, `LocationMarker`, `ZoneGateService` |
-
-## Next Practical Step
-
-The next coding step should be a React Native + Skia `WorldMapScene` that:
-
-- loads all 12 assets from `map_legacy/`
-- draws the base map layer (candidate `bgmap_hoa_lu` OR confirmed `m/m`)
-- places POI markers at server-supplied `(x, y)` coordinates from CMD 11 (MapInfo)
-- overlays `lock` / `lock2` per-POI when the zone is locked
-- handles touch to pick a POI and fires CMD 13 (SelectMap)
-- on successful server ACK, transitions to the appropriate scene (battle / room / fsw)
+- engine hiện tại là dùng chung
+- không phụ thuộc riêng Hoa Lư
+- map mới chỉ cần thay `surface data` và art

@@ -30,7 +30,21 @@ export interface GroundSurface {
   id: string;
   x1: number;
   x2: number;
-  y: number;
+  /**
+   * Flat surface height. Use this for horizontal ground/platform segments.
+   */
+  y?: number;
+  /**
+   * Optional sloped segment endpoints. When either value is provided, the
+   * controller linearly interpolates the foot Y from x1->x2.
+   */
+  y1?: number;
+  y2?: number;
+  /**
+   * Optional thickness below the walkable line.
+   * Used for head collision while jumping under solid surfaces.
+   */
+  ceilingOffset?: number;
   kind?: 'ground' | 'platform';
   oneWay?: boolean;
 }

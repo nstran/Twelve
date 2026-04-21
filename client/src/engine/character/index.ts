@@ -8,6 +8,15 @@
 export { CharacterSprite, characterDisplaySize } from './CharacterSprite';
 export { CharacterController } from './CharacterController';
 export { useCharacterAnimation } from './useCharacterAnimation';
+export {
+  surfaceContainsX,
+  getSurfaceStartY,
+  getSurfaceEndY,
+  getSurfaceYAtX,
+  getSurfaceYAtFootX,
+  getSurfaceCeilingYAtX,
+  getSurfaceCeilingYAtFootX,
+} from './surface';
 export type {
   CharacterAction,
   CharacterPoseFamilySlot,

@@ -38,6 +38,11 @@ import type {
   VirtualJumpDirection,
 } from './character.types';
 import { CharacterSprite, characterDisplaySize } from './CharacterSprite';
+import {
+  getSurfaceCeilingYAtFootX,
+  getSurfaceYAtFootX,
+  surfaceContainsX,
+} from './surface';
 import { useCharacterAnimation } from './useCharacterAnimation';
 import {
   DEFAULT_SPEED,
@@ -64,6 +69,7 @@ const JUMP_MAX_FALL_SPEED = 8;    // terminal velocity
 const JUMP_LANDING_MS = 150;      // landing pose hold duration
 const JUMP_TAKEOFF_HEIGHT_RATIO = 0.14;
 const SURFACE_SNAP_TOLERANCE = 10;
+const ONE_WAY_LANDING_TOLERANCE = 2;
 
 interface JumpState {
   baseGroundY: number;
@@ -119,6 +125,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
   // posXRef keeps the authoritative numeric value for reads (physics, AI).
   const posXRef = useRef(initialX);
   const posAnim = useRef(new Animated.Value(initialX)).current;
+  const groundOffsetAnim = useRef(new Animated.Value(0)).current;
   const posYAnim = useRef(new Animated.Value(0)).current;
   const lastEmittedXRef = useRef(initialX);
   const jumpYOffsetRef = useRef(0);
@@ -128,7 +135,6 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
   const [facing, setFacing] = useState<FacingDirection>('right');
   const facingRef = useRef<FacingDirection>('right');
   const [jumpPoseState, setJumpPoseState] = useState<JumpPoseState | null>(null);
-  const [currentGroundY, setCurrentGroundY] = useState(groundY);
   const currentGroundYRef = useRef(groundY);
 
   const actionRef = useRef<'idle' | 'run' | 'attack'>('idle');
@@ -181,8 +187,8 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
   const setGroundYIfChanged = useCallback((nextGroundY: number) => {
     if (Math.abs(nextGroundY - currentGroundYRef.current) < 0.1) return;
     currentGroundYRef.current = nextGroundY;
-    setCurrentGroundY(nextGroundY);
-  }, []);
+    groundOffsetAnim.setValue(nextGroundY - groundY);
+  }, [groundOffsetAnim, groundY]);
 
   const clampX = useCallback((x: number) => (
     Math.max(minX, Math.min(maxX - charSize.w, x))
@@ -191,13 +197,13 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
   const getFootCenterX = useCallback((leftX: number) => leftX + charSize.w / 2, [charSize.w]);
 
   const findSurfaceAtX = useCallback((leftX: number, preferredY?: number) => {
-    const centerX = getFootCenterX(leftX);
     let best: GroundSurface | null = null;
     let bestScore = Number.POSITIVE_INFINITY;
 
     for (const surface of surfacesRef.current) {
-      if (centerX < surface.x1 || centerX > surface.x2) continue;
-      const score = preferredY === undefined ? surface.y : Math.abs(surface.y - preferredY);
+      if (!surfaceContainsX(surface, getFootCenterX(leftX))) continue;
+      const surfaceY = getSurfaceYAtFootX(surface, leftX, charSize.w);
+      const score = preferredY === undefined ? surfaceY : Math.abs(surfaceY - preferredY);
       if (score < bestScore) {
         best = surface;
         bestScore = score;
@@ -210,29 +216,55 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
   const findSupportingSurface = useCallback((leftX: number, currentY: number) => {
     const candidate = findSurfaceAtX(leftX, currentY);
     if (!candidate) return null;
-    return Math.abs(candidate.y - currentY) <= SURFACE_SNAP_TOLERANCE ? candidate : null;
-  }, [findSurfaceAtX]);
+    const surfaceY = getSurfaceYAtFootX(candidate, leftX, charSize.w);
+    if (candidate.oneWay && currentY > surfaceY + ONE_WAY_LANDING_TOLERANCE) {
+      return null;
+    }
+    return Math.abs(surfaceY - currentY) <= SURFACE_SNAP_TOLERANCE ? candidate : null;
+  }, [charSize.w, findSurfaceAtX]);
 
   const findLandingSurface = useCallback((leftX: number, fromFootY: number, toFootY: number) => {
-    const centerX = getFootCenterX(leftX);
     let landingSurface: GroundSurface | null = null;
+    let landingSurfaceY = Number.POSITIVE_INFINITY;
 
     for (const surface of surfacesRef.current) {
-      if (centerX < surface.x1 || centerX > surface.x2) continue;
-      if (surface.y < fromFootY - 0.1 || surface.y > toFootY + 0.1) continue;
+      if (!surfaceContainsX(surface, getFootCenterX(leftX))) continue;
+      const surfaceY = getSurfaceYAtFootX(surface, leftX, charSize.w);
+      if (surfaceY < fromFootY - 0.1 || surfaceY > toFootY + 0.1) continue;
+      if (surface.oneWay && fromFootY > surfaceY + ONE_WAY_LANDING_TOLERANCE) continue;
 
-      if (!landingSurface || surface.y < landingSurface.y) {
+      if (!landingSurface || surfaceY < landingSurfaceY) {
         landingSurface = surface;
+        landingSurfaceY = surfaceY;
       }
     }
 
     return landingSurface;
-  }, [getFootCenterX]);
+  }, [charSize.w, getFootCenterX]);
+
+  const findCeilingSurface = useCallback((leftX: number, fromHeadY: number, toHeadY: number) => {
+    let ceilingSurface: GroundSurface | null = null;
+    let ceilingY = Number.NEGATIVE_INFINITY;
+
+    for (const surface of surfacesRef.current) {
+      if (surface.oneWay) continue;
+      if (!surfaceContainsX(surface, getFootCenterX(leftX))) continue;
+      const candidateCeilingY = getSurfaceCeilingYAtFootX(surface, leftX, charSize.w);
+      if (candidateCeilingY > fromHeadY + 0.1 || candidateCeilingY < toHeadY - 0.1) continue;
+
+      if (!ceilingSurface || candidateCeilingY > ceilingY) {
+        ceilingSurface = surface;
+        ceilingY = candidateCeilingY;
+      }
+    }
+
+    return ceilingSurface ? { surface: ceilingSurface, y: ceilingY } : null;
+  }, [charSize.w, getFootCenterX]);
 
   const syncGroundFromX = useCallback((leftX: number, fallbackY: number = groundY) => {
     const surface = findSurfaceAtX(leftX, currentGroundYRef.current);
-    setGroundYIfChanged(surface?.y ?? fallbackY);
-  }, [findSurfaceAtX, groundY, setGroundYIfChanged]);
+    setGroundYIfChanged(surface ? getSurfaceYAtFootX(surface, leftX, charSize.w) : fallbackY);
+  }, [charSize.w, findSurfaceAtX, groundY, setGroundYIfChanged]);
 
   const findMonsterInRange = useCallback((monsterId?: string): MonsterTarget | null => {
     const cx = posXRef.current + charSize.w / 2;
@@ -408,11 +440,19 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
         }
 
         const previousFootY = jumpState.baseGroundY + jumpState.yOffset;
+        const previousHeadY = previousFootY - charSize.h + charGroundOffset;
 
         // Vertical: step-based physics (Java-faithful)
         if (jumpState.phase === 'up') {
           // State 5: ascending — decelerate (speedY goes from -initial toward 0)
           jumpState.yOffset += jumpState.speedY * tickScale;
+          const nextHeadY = jumpState.baseGroundY + jumpState.yOffset - charSize.h + charGroundOffset;
+          const ceilingHit = findCeilingSurface(nextX, previousHeadY, nextHeadY);
+          if (ceilingHit) {
+            jumpState.yOffset = ceilingHit.y - jumpState.baseGroundY + charSize.h - charGroundOffset;
+            jumpState.speedY = 0;
+            jumpState.phase = 'fall';
+          }
           jumpState.speedY += JUMP_DECEL * tickScale;
           if (jumpState.speedY >= 0) {
             jumpState.speedY = 0;
@@ -428,8 +468,9 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
           const projectedFootY = jumpState.baseGroundY + jumpState.yOffset;
           const landingSurface = findLandingSurface(nextX, previousFootY, projectedFootY);
           if (landingSurface) {
-            jumpState.baseGroundY = landingSurface.y;
-            setGroundYIfChanged(landingSurface.y);
+            const landingY = getSurfaceYAtFootX(landingSurface, nextX, charSize.w);
+            jumpState.baseGroundY = landingY;
+            setGroundYIfChanged(landingY);
             jumpState.yOffset = 0;
             jumpState.phase = 'landing';
             jumpState.landingTimer = JUMP_LANDING_MS;
@@ -523,7 +564,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
           return;
         }
 
-        setGroundYIfChanged(supportSurface.y);
+        setGroundYIfChanged(getSurfaceYAtFootX(supportSurface, nextX, charSize.w));
 
         if (nextX === currentX) {
           finishMovement(nextX);
@@ -554,7 +595,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
           return;
         }
 
-        setGroundYIfChanged(supportSurface.y);
+        setGroundYIfChanged(getSurfaceYAtFootX(supportSurface, nextX, charSize.w));
         rafIdRef.current = requestAnimationFrame(tick);
         return;
       }
@@ -571,6 +612,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     clearJumpState,
     controlMode,
     disabled,
+    findCeilingSurface,
     findLandingSurface,
     findMonsterInRange,
     findSupportingSurface,
@@ -841,9 +883,11 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     posXRef.current = initialX;
     lastEmittedXRef.current = initialX;
     posAnim.setValue(initialX);
+    currentGroundYRef.current = groundY;
+    groundOffsetAnim.setValue(0);
     clearJumpState();
     syncGroundFromX(initialX);
-  }, [clearJumpState, initialX, posAnim, syncGroundFromX]);
+  }, [clearJumpState, groundOffsetAnim, groundY, initialX, posAnim, syncGroundFromX]);
 
   useEffect(() => {
     if (jumpRef.current) return;
@@ -858,7 +902,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
 
   useEffect(() => () => clearMovementLoop(), [clearMovementLoop]);
 
-  const charTop = currentGroundY - charSize.h + charGroundOffset;
+  const charTop = groundY - charSize.h + charGroundOffset;
 
   // Style objects are memoized to avoid allocating new objects each render.
   const gestureStyle = useMemo(
@@ -871,10 +915,10 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
       styles.characterWrapper,
       {
         top: charTop,
-        transform: [{ translateX: posAnim }, { translateY: posYAnim }],
+        transform: [{ translateX: posAnim }, { translateY: Animated.add(groundOffsetAnim, posYAnim) }],
       },
     ],
-    [charTop, posAnim, posYAnim],
+    [charTop, groundOffsetAnim, posAnim, posYAnim],
   );
 
   const spriteNode = renderSprite
