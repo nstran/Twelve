@@ -148,8 +148,6 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const powerBlinkAnim = useRef(new Animated.Value(1)).current;
   const playerHPBarAnim = useRef(new Animated.Value(maxHP)).current;
   const enemyHPBarAnim = useRef(new Animated.Value(maxEHP)).current;
-  const playerCollectAnim = useRef(new Animated.Value(0)).current;
-  const enemyCollectAnim = useRef(new Animated.Value(0)).current;
   const playerAttackTranslateX = useRef(new Animated.Value(0)).current;
   const playerHitTranslateX = useRef(new Animated.Value(0)).current;
   const enemyAttackTranslateX = useRef(new Animated.Value(0)).current;
@@ -389,8 +387,6 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     charsTop,
     playerHud,
     enemyHud,
-    playerCollectAnim,
-    enemyCollectAnim,
   });
   const {
     offsets,
@@ -772,8 +768,6 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         playerRetreatPose={playerRetreatPose}
         monsterWidth={mW}
         monsterHeight={mH}
-        playerCollectAnim={playerCollectAnim}
-        enemyCollectAnim={enemyCollectAnim}
         playerAttackTranslateX={playerAttackTranslateX}
         playerHitTranslateX={playerHitTranslateX}
         enemyAttackTranslateX={enemyAttackTranslateX}

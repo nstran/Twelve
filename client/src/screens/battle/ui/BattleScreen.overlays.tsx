@@ -42,8 +42,6 @@ interface BattleActorsRowProps {
   playerRetreatPose: boolean;
   monsterWidth: number;
   monsterHeight: number;
-  playerCollectAnim: Animated.Value;
-  enemyCollectAnim: Animated.Value;
   playerAttackTranslateX: Animated.Value;
   playerHitTranslateX: Animated.Value;
   enemyAttackTranslateX: Animated.Value;
@@ -64,8 +62,6 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
   playerRetreatPose,
   monsterWidth,
   monsterHeight,
-  playerCollectAnim,
-  enemyCollectAnim,
   playerAttackTranslateX,
   playerHitTranslateX,
   enemyAttackTranslateX,
@@ -99,12 +95,6 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
           height: playerSize.h,
           transform: [
             { translateX: Animated.add(playerAttackTranslateX, playerHitTranslateX) },
-            {
-              scale: playerCollectAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [1, 1.08],
-              }),
-            },
           ],
         }}
       >
@@ -136,12 +126,6 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
           width: monsterWidth,
           height: monsterHeight,
           transform: [
-            {
-              scale: enemyCollectAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [1, 1.08],
-              }),
-            },
             { translateX: Animated.add(enemyAttackTranslateX, enemyHitTranslateX) },
             { translateX: ENEMY_SPRITE_SHIFT_X * BOARD_SCALE },
             { translateY: ENEMY_SPRITE_SHIFT_Y * BOARD_SCALE },
@@ -420,12 +404,9 @@ export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
   if (result === null || resultMeta === null) return null;
 
   return (
-    <TouchableOpacity
-      activeOpacity={1}
-      style={s.overlay}
-      onPress={result === 'victory' ? onVictory : onDefeat}
-    >
-      <Animated.View
+    <View pointerEvents="box-none" style={s.resultBannerLayer}>
+      <TouchableOpacity
+        activeOpacity={1}
         style={[
           s.resultBannerStage,
           {
@@ -438,6 +419,7 @@ export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
             ],
           },
         ]}
+        onPress={result === 'victory' ? onVictory : onDefeat}
       >
         <View
           style={{
@@ -456,7 +438,7 @@ export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
             }}
           />
         </View>
-      </Animated.View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
   );
 };
