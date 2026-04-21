@@ -46,7 +46,7 @@ export const BaseDialog: React.FC<BaseDialogProps> = ({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={[styles.dialogWrapper, { width }, style]}>
+            <View style={[styles.dialogWrapper, style]}>
               <CornerFrame 
                 style={styles.frame}
                 contentStyle={[styles.content, contentStyle]}

@@ -1,19 +1,23 @@
 import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import {
   MATCH_HOLD_BEFORE_EXPLODE_MS,
+  buildAffectedScanFromSwap,
   calcSwordDamage,
   clearMatchedCells,
   collapseLogic,
   expandSword,
   findMatches,
-  GEM_FX,
+  findMatchesFromAffected,
+  getGemFX,
   getAllValidMoves,
   hasBonusTurn,
+  type JavaBoardEngine,
   type BattlePhase,
   type BattleResult,
   type BattleTurn,
   type Board,
   type GemType,
+  validateSwap,
 } from '../core';
 
 interface UseBattleMatchFlowArgs {
@@ -22,6 +26,7 @@ interface UseBattleMatchFlowArgs {
   turnRef: MutableRefObject<BattleTurn>;
   extraTurnsRef: MutableRefObject<number>;
   boardRef: MutableRefObject<Board>;
+  boardEngineRef: MutableRefObject<JavaBoardEngine>;
   maxHP: number;
   maxEHP: number;
   maxMP: number;
@@ -30,6 +35,7 @@ interface UseBattleMatchFlowArgs {
   setPhase: Dispatch<SetStateAction<BattlePhase>>;
   setTurn: Dispatch<SetStateAction<BattleTurn>>;
   setExtraTurns: Dispatch<SetStateAction<number>>;
+  setTurnCycle: Dispatch<SetStateAction<number>>;
   setEnemyHP: Dispatch<SetStateAction<number>>;
   setPlayerHP: Dispatch<SetStateAction<number>>;
   setMana: Dispatch<SetStateAction<number>>;
@@ -54,6 +60,7 @@ export const useBattleMatchFlow = ({
   turnRef,
   extraTurnsRef,
   boardRef,
+  boardEngineRef,
   maxHP,
   maxEHP,
   maxMP,
@@ -62,6 +69,7 @@ export const useBattleMatchFlow = ({
   setPhase,
   setTurn,
   setExtraTurns,
+  setTurnCycle,
   setEnemyHP,
   setPlayerHP,
   setMana,
@@ -79,10 +87,10 @@ export const useBattleMatchFlow = ({
   animateInvalidSwapBounce,
   resetBoardAnim,
 }: UseBattleMatchFlowArgs) => {
-  const processMatches = useCallback((board: Board, chain: number) => {
+  const processMatches = useCallback((board: Board, chain: number, scanTargets?: Iterable<string | [number, number]>) => {
     if (!mountedRef.current) return;
 
-    const raw = findMatches(board);
+    const raw = scanTargets ? findMatchesFromAffected(board, scanTargets) : findMatches(board);
     if (raw.size === 0) {
       setBoard(board);
 
@@ -90,6 +98,7 @@ export const useBattleMatchFlow = ({
         showBonusBanner('🔀 Hết nước! Bàn cờ mới!');
         resetBoardAnim(() => {
           if (!mountedRef.current) return;
+          setTurnCycle(v => v + 1);
           phaseRef.current = 'idle';
           setPhase('idle');
         });
@@ -102,6 +111,7 @@ export const useBattleMatchFlow = ({
         setExtraTurns(remaining);
         const who = turnRef.current === 'player' ? 'Bạn' : 'Quái';
         showBonusBanner(`🔄 ${who} được thêm lượt! ${remaining > 0 ? `Còn ${remaining} lượt` : ''}`);
+        setTurnCycle(v => v + 1);
         phaseRef.current = 'idle';
         setPhase('idle');
       } else {
@@ -137,7 +147,7 @@ export const useBattleMatchFlow = ({
 
     Object.entries(counts).forEach(([gemKey, count]) => {
       const gem = Number(gemKey) as GemType;
-      const fx = GEM_FX[gem];
+      const fx = getGemFX(gem);
       const mul = 1 + chain * 0.4;
       heal += Math.round(fx.heal * (count! / 3) * mul);
       mp += Math.round(fx.mana * count!);
@@ -154,11 +164,11 @@ export const useBattleMatchFlow = ({
         if (!mountedRef.current) return;
 
         const clearedBoard = clearMatchedCells(board, matched);
-        const { newBoard, fallMap } = collapseLogic(board, matched);
+        const { newBoard, fallMap, affectedKeys } = collapseLogic(board, matched, boardEngineRef.current);
         setBoard(clearedBoard);
         const continueAfterFall = () => {
           if (!mountedRef.current) return;
-          setTimeout(() => processMatches(newBoard, chain + 1), 80);
+          setTimeout(() => processMatches(newBoard, chain + 1, affectedKeys), 80);
         };
         animateFall(newBoard, fallMap, continueAfterFall);
 
@@ -234,6 +244,7 @@ export const useBattleMatchFlow = ({
     playExplosion,
     resetBoardAnim,
     setBoard,
+    boardEngineRef,
     setEnemyHP,
     setExtraTurns,
     setMana,
@@ -245,15 +256,14 @@ export const useBattleMatchFlow = ({
     showBonusBanner,
     showDamagePopup,
     spawnCollectFX,
+    setTurnCycle,
     turnRef,
   ]);
 
   const doDirectSwap = useCallback((r1: number, c1: number, r2: number, c2: number) => {
     const board = boardRef.current;
-    const nextBoard: Board = board.map(row => [...row]);
-    [nextBoard[r1][c1], nextBoard[r2][c2]] = [nextBoard[r2][c2], nextBoard[r1][c1]];
-
-    if (findMatches(nextBoard).size === 0) {
+    const swap = validateSwap(board, r1, c1, r2, c2);
+    if (swap === null) {
       phaseRef.current = 'busy';
       setPhase('busy');
       animateInvalidSwapBounce(r1, c1, r2, c2, () => {
@@ -268,10 +278,12 @@ export const useBattleMatchFlow = ({
       return;
     }
 
+    const nextBoard: Board = board.map(row => [...row]);
+    [nextBoard[r1][c1], nextBoard[r2][c2]] = [nextBoard[r2][c2], nextBoard[r1][c1]];
     phaseRef.current = 'busy';
     setPhase('busy');
     setBoard(nextBoard);
-    processMatches(nextBoard, 0);
+    processMatches(nextBoard, 0, buildAffectedScanFromSwap({ r1, c1, r2, c2 }));
   }, [animateInvalidSwapBounce, boardRef, mountedRef, phaseRef, processMatches, setBoard, setPhase, setTurn, turnRef]);
 
   return { doDirectSwap, processMatches };

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import { Animated, Easing } from 'react-native';
-import { EXPLODE_END, EXPLODE_START, makeBoard, type Board, type FallEntry, BOARD_COLS, BOARD_ROWS, GEM_SIZE } from '../core';
+import { EXPLODE_END, EXPLODE_START, makeBoard, type Board, type FallEntry, type JavaBoardEngine, BOARD_COLS, BOARD_ROWS, GEM_SIZE } from '../core';
 
 interface UseBattleBoardAnimationsArgs {
   mountedRef: MutableRefObject<boolean>;
   boardRef: MutableRefObject<Board>;
+  boardEngineRef: MutableRefObject<JavaBoardEngine>;
   setBoard: Dispatch<SetStateAction<Board>>;
   setExplodeFrames: Dispatch<SetStateAction<Record<string, number>>>;
   onSpawnFX: (matched: Set<string>, board: Board, expanded: Set<string>) => void;
@@ -13,6 +14,7 @@ interface UseBattleBoardAnimationsArgs {
 export const useBattleBoardAnimations = ({
   mountedRef,
   boardRef,
+  boardEngineRef,
   setBoard,
   setExplodeFrames,
   onSpawnFX,
@@ -203,7 +205,7 @@ export const useBattleBoardAnimations = ({
   }, [mountedRef, swapOffsetsX, swapOffsetsY]);
 
   const resetBoardAnim = useCallback((onDone: () => void) => {
-    const nextBoard = makeBoard();
+    const nextBoard = makeBoard(boardEngineRef.current);
     boardRef.current = nextBoard;
     setBoard(nextBoard);
 
@@ -232,7 +234,7 @@ export const useBattleBoardAnimations = ({
     Animated.parallel(anims).start(() => {
       if (mountedRef.current) onDone();
     });
-  }, [boardRef, mountedRef, offsets, setBoard]);
+  }, [boardEngineRef, boardRef, mountedRef, offsets, setBoard]);
 
   return {
     offsets,

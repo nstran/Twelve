@@ -12,10 +12,10 @@ import {
   AURA3_IMG,
   CRYS_BLUE,
   CRYS_RED,
-  GEM_CATEGORY,
-  GEM_FX,
-  GEM_FX_KIND,
   SWORD_CAT,
+  getGemCategory,
+  getGemFX,
+  getGemFXKind,
 } from './BattleScreen.shared';
 import type { Board, FXKind } from './BattleScreen.shared';
 import type { BattleSide, CollectFXItem, MatchFXItem } from './BattleScreen.types';
@@ -85,7 +85,7 @@ export const buildMatchFXItems = (
     const [r, c] = key.split(',').map(Number);
     const gem = board[r][c];
     if (gem === null) return;
-    const kind = GEM_FX_KIND[gem];
+    const kind = getGemFXKind(gem);
     if (kind !== 'sword') {
       pushBurst(r, c, kind, 5, 1.1, [0.24, 0.62]);
     }
@@ -95,7 +95,7 @@ export const buildMatchFXItems = (
     matched.forEach(key => {
       const [r, c] = key.split(',').map(Number);
       const gem = board[r][c];
-      if (gem !== null && GEM_CATEGORY[gem] === SWORD_CAT) {
+      if (gem !== null && getGemCategory(gem) === SWORD_CAT) {
         pushBurst(r, c, 'sword', 9, 1.35, [0.32, 0.78]);
       }
     });
@@ -273,7 +273,7 @@ export const buildCollectFXItems = ({
     const [r, c] = key.split(',').map(Number);
     const gem = board[r][c];
     if (gem === null) return;
-    const fx = GEM_FX[gem];
+    const fx = getGemFX(gem);
     const startX = panelLeft + BOARD_LEFT + c * GEM_SIZE + GEM_SIZE / 2;
     const startY = panelTop + BOARD_TOP + r * GEM_SIZE + GEM_SIZE / 2;
 

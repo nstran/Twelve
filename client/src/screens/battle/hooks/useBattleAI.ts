@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
-import { AI_CONFIGS, getAllValidMoves, pickAIMove, type AILevel, type BattleCell, type BattlePhase, type BattleResult, type BattleTurn, type Board, type MoveSpec } from '../core';
+import { AI_CONFIGS, getAllValidMoves, pickAIMove, type AILevel, type BattleCell, type BattlePhase, type BattleResult, type BattleTurn, type Board, type JavaBoardEngine, type MoveSpec } from '../core';
 
 interface UseBattleAIArgs {
   phase: BattlePhase;
@@ -11,9 +11,11 @@ interface UseBattleAIArgs {
   phaseRef: MutableRefObject<BattlePhase>;
   turnRef: MutableRefObject<BattleTurn>;
   boardRef: MutableRefObject<Board>;
+  boardEngineRef: MutableRefObject<JavaBoardEngine>;
   playerHPRef: MutableRefObject<number>;
   enemyHPRef: MutableRefObject<number>;
   doDirectSwapRef: MutableRefObject<(r1: number, c1: number, r2: number, c2: number) => void>;
+  setCursorCell: Dispatch<SetStateAction<BattleCell>>;
   setSelected: Dispatch<SetStateAction<BattleCell | null>>;
   setHintCell: Dispatch<SetStateAction<BattleCell | null>>;
   setHintMove: Dispatch<SetStateAction<MoveSpec | null>>;
@@ -30,9 +32,11 @@ export const useBattleAI = ({
   phaseRef,
   turnRef,
   boardRef,
+  boardEngineRef,
   playerHPRef,
   enemyHPRef,
   doDirectSwapRef,
+  setCursorCell,
   setSelected,
   setHintCell,
   setHintMove,
@@ -60,10 +64,12 @@ export const useBattleAI = ({
     setHintCell(null);
     setHintMove(null);
     setAiStep(null);
+    setCursorCell([move.r1, move.c1]);
     setSelected([move.r1, move.c1]);
 
     const t1 = setTimeout(() => {
       if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'player') return;
+      setCursorCell([move.r2, move.c2]);
       setSelected([move.r2, move.c2]);
 
       const t2 = setTimeout(() => {
@@ -74,7 +80,7 @@ export const useBattleAI = ({
       aiTimers.current.push(t2);
     }, 350);
     aiTimers.current.push(t1);
-  }, [clearAiTimers, doDirectSwapRef, mountedRef, phaseRef, setHintCell, setHintMove, setSelected, turnRef]);
+  }, [clearAiTimers, doDirectSwapRef, mountedRef, phaseRef, setCursorCell, setHintCell, setHintMove, setSelected, turnRef]);
 
   useEffect(() => {
     if (phase !== 'idle' || turn !== 'monster' || aiLevel === null || result !== null) return;
@@ -89,7 +95,7 @@ export const useBattleAI = ({
     const t1 = setTimeout(() => {
       if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') return;
 
-      const move = pickAIMove(boardRef.current, aiLevel, playerHPRef.current, enemyHPRef.current);
+      const move = pickAIMove(boardRef.current, boardEngineRef.current, aiLevel, playerHPRef.current, enemyHPRef.current);
       if (!move) {
         setAiStep(null);
         turnRef.current = 'player';
@@ -98,11 +104,13 @@ export const useBattleAI = ({
       }
 
       setAiStep('pick1');
+      setCursorCell([move.r1, move.c1]);
       setSelected([move.r1, move.c1]);
 
       const t2 = setTimeout(() => {
         if (!mountedRef.current) return;
         setAiStep('pick2');
+        setCursorCell([move.r2, move.c2]);
         setSelected([move.r2, move.c2]);
 
         const t3 = setTimeout(() => {
@@ -121,6 +129,7 @@ export const useBattleAI = ({
   }, [
     aiLevel,
     boardRef,
+    boardEngineRef,
     clearAiTimers,
     doDirectSwapRef,
     enemyHPRef,
@@ -129,6 +138,7 @@ export const useBattleAI = ({
     phaseRef,
     playerHPRef,
     result,
+    setCursorCell,
     setHintCell,
     setHintMove,
     setSelected,

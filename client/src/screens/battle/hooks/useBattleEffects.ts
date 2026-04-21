@@ -120,6 +120,7 @@ export const useBattleEffects = ({
     collectFX,
     gainPopups,
     showDamagePopup,
+    showGainPopup,
     spawnMatchFX,
     spawnCollectFX,
   };

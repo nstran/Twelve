@@ -11,9 +11,15 @@ import {
   ARROW_ENEMY_IMG,
   ARROW_PLAYER_IMG,
   FOCUS_IMG,
-  GEM_SHEETS,
+  GEM_CRYSTAL_OVERLAY,
   GemType,
+  getHiddenGemAsset,
   TOTAL_FRAMES,
+  VisibleGemType,
+  getGemRenderType,
+  getGemSheet,
+  isCrystalGem,
+  isHiddenGem,
 } from '../core';
 
 const GEM_NATIVE_SIZE = 28;
@@ -28,7 +34,7 @@ const ARROW_RIGHT_INSET = 6;
 // These sprites were authored on 28x28 frames, but some visible pixels are not
 // perfectly centered inside the transparent frame. Nudge them by their native
 // delta so they sit optically centered in each board cell like the Java client.
-const GEM_VISUAL_OFFSETS: Record<GemType, { x: number; y: number }> = {
+const GEM_VISUAL_OFFSETS: Record<VisibleGemType, { x: number; y: number }> = {
   0: { x: 1, y: -1 },
   1: { x: 0, y: -0.5 },
   2: { x: 0, y: 0 },
@@ -175,7 +181,8 @@ export const GemCell = React.memo(({
   focusVariant?: 'player' | 'enemy';
   onPress: () => void;
 }) => {
-  const visualOffset = GEM_VISUAL_OFFSETS[gemType];
+  const renderType = getGemRenderType(gemType);
+  const visualOffset = GEM_VISUAL_OFFSETS[renderType];
   const spriteOffsetX = Math.round(visualOffset.x * size / GEM_NATIVE_SIZE);
   const spriteOffsetY = Math.round(visualOffset.y * size / GEM_NATIVE_SIZE);
   const focusSize = Math.round(size * FOCUS_RENDER_SCALE);
@@ -197,8 +204,20 @@ export const GemCell = React.memo(({
         top: spriteOffsetY,
         left: spriteOffsetX,
       }}>
+        {isHiddenGem(gemType) && (
+          <Image
+            source={getHiddenGemAsset(gemType)}
+            style={{
+              position: 'absolute',
+              width: size,
+              height: size,
+              opacity: 0.9,
+            }}
+            resizeMode="contain"
+          />
+        )}
         <Image
-          source={GEM_SHEETS[gemType]}
+          source={getGemSheet(gemType)}
           style={{
             width: size * TOTAL_FRAMES,
             height: size,
@@ -206,6 +225,18 @@ export const GemCell = React.memo(({
           }}
           resizeMode="stretch"
         />
+        {isCrystalGem(gemType) && (
+          <Image
+            source={GEM_CRYSTAL_OVERLAY}
+            style={{
+              position: 'absolute',
+              width: size,
+              height: size,
+              opacity: 0.92,
+            }}
+            resizeMode="stretch"
+          />
+        )}
       </View>
 
       {selected && (

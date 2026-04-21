@@ -29,6 +29,7 @@ interface BattlePanelProps {
   panelLeft: number;
   panelTop: number;
   board: Board;
+  cursorCell: BattleCell | null;
   selected: BattleCell | null;
   hintCell: BattleCell | null;
   explodeFrames: Record<string, number>;
@@ -57,6 +58,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   panelLeft,
   panelTop,
   board,
+  cursorCell,
   selected,
   hintCell,
   explodeFrames,
@@ -212,7 +214,8 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                   height: GEM_SIZE,
                   zIndex:
                     (selected?.[0] === r && selected?.[1] === c) ||
-                    (hintCell?.[0] === r && hintCell?.[1] === c)
+                    (hintCell?.[0] === r && hintCell?.[1] === c) ||
+                    (cursorCell?.[0] === r && cursorCell?.[1] === c)
                       ? 120
                       : 1,
                   transform: [
@@ -228,7 +231,13 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                   size={GEM_SIZE}
                   selected={
                     (selected?.[0] === r && selected?.[1] === c) ||
-                    (hintCell?.[0] === r && hintCell?.[1] === c)
+                    (hintCell?.[0] === r && hintCell?.[1] === c) ||
+                    (
+                      selected === null &&
+                      hintCell === null &&
+                      cursorCell?.[0] === r &&
+                      cursorCell?.[1] === c
+                    )
                   }
                   focusVariant={turn === 'monster' ? 'enemy' : 'player'}
                   onPress={() => onGemPress(r, c)}

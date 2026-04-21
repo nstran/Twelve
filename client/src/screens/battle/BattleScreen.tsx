@@ -19,6 +19,7 @@ import {
   EXTRA_TURNS_BADGE_TOTAL_MS,
   RESULT_ART_META,
   ENEMY_HUD_LAYOUT,
+  createJavaBoardEngine,
   getBattleActorLayout,
   getBattleStageLayout,
   makeBoard,
@@ -56,6 +57,7 @@ const PLAYER_DEFEAT_RESULT_DELAY_MS = 360;
 const ASSET_SOFTKEY_MENU = require('../../../assets/ui/11_softkey_icons_confirmed/icon_sharpest_1.png');
 const ASSET_SOFTKEY_OK = require('../../../assets/ui/11_softkey_icons_confirmed/icon_ok.png');
 const ASSET_SOFTKEY_CANCEL = require('../../../assets/ui/11_softkey_icons_confirmed/icon_cancel.png');
+const JAVA_DEFAULT_CURSOR_CELL: BattleCell = [3, 4];
 interface QueuedAttack {
   onImpact: () => void;
   onComplete: () => void;
@@ -109,7 +111,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const maxMP  = 100;
   const maxPow = 100;
 
-  const [board,         setBoard]         = useState<Board>(makeBoard);
+  const boardEngineRef = useRef(createJavaBoardEngine());
+  const [board,         setBoard]         = useState<Board>(() => makeBoard(boardEngineRef.current));
+  const [cursorCell,    setCursorCell]    = useState<BattleCell>(JAVA_DEFAULT_CURSOR_CELL);
   const [selected,      setSelected]      = useState<BattleCell | null>(null);
   const [hintCell,      setHintCell]      = useState<BattleCell | null>(null);
   const [hintMove,      setHintMove]      = useState<MoveSpec | null>(null);
@@ -378,6 +382,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     collectFX,
     gainPopups,
     showDamagePopup,
+    showGainPopup,
     spawnMatchFX,
     spawnCollectFX,
   } = useBattleEffects({
@@ -399,6 +404,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   } = useBattleBoardAnimations({
     mountedRef,
     boardRef,
+    boardEngineRef,
     setBoard,
     setExplodeFrames,
     onSpawnFX: spawnMatchFX,
@@ -417,7 +423,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   }, [monAtk]);
 
   // ── Enemy auto-attack REMOVED — monster now plays turn-based on the board ──
-  const showBonusBanner = useCallback((_msg: string) => {}, []);
+  const showBonusBanner = useCallback((msg: string) => {
+    showGainPopup('player', msg);
+  }, [showGainPopup]);
   const runNextPlayerSwordAttack = useCallback(() => {
     if (playerAttackRunningRef.current) return;
 
@@ -562,6 +570,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     turnRef,
     extraTurnsRef,
     boardRef,
+    boardEngineRef,
     maxHP,
     maxEHP,
     maxMP,
@@ -570,6 +579,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setPhase,
     setTurn,
     setExtraTurns,
+    setTurnCycle,
     setEnemyHP,
     setPlayerHP,
     setMana,
@@ -606,9 +616,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     phaseRef,
     turnRef,
     boardRef,
+    boardEngineRef,
     playerHPRef,
     enemyHPRef,
     doDirectSwapRef,
+    setCursorCell,
     setSelected,
     setHintCell,
     setHintMove,
@@ -642,6 +654,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   // ── Human tap ─────────────────────────────────────────────────────────────
   const handleGemPress = useCallback((row: number, col: number) => {
     if (phase !== 'idle' || turn !== 'player') return; // Chỉ cho tap khi lượt player
+    setCursorCell([row, col]);
     setHintCell(null);
     setHintMove(null);
     if (!selected) { setSelected([row, col]); return; }
@@ -691,11 +704,21 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const enemyDamageLeft = panelLeft + BG_W - 84;
   const battleMenuItems = useMemo<MenuItem[]>(() => [
     {
-      id: 'battle-exit',
-      label: 'Thoát trận',
+      id: 'battle-skill',
+      label: 'Tuyệt Chiêu',
+      onPress: handleSkill,
+    },
+    {
+      id: 'battle-bag',
+      label: 'Túi đồ',
+      onPress: () => showBonusBanner('Túi đồ chưa phục dựng'),
+    },
+    {
+      id: 'battle-surrender',
+      label: 'Đầu hàng',
       onPress: onFlee,
     },
-  ], [onFlee]);
+  ], [handleSkill, onFlee, showBonusBanner]);
 
   useEffect(() => {
     if (result !== null && menuVisible) {
@@ -732,6 +755,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         panelLeft={panelLeft}
         panelTop={panelTop}
         board={board}
+        cursorCell={turn === 'player' && result === null ? cursorCell : null}
         selected={selected}
         hintCell={hintCell}
         explodeFrames={explodeFrames}
