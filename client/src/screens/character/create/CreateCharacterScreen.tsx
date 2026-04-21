@@ -139,8 +139,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
 
   const genderKey = genderIdx === 0 ? 'male' : 'female';
 
-  // Số tông màu tóc khả dụng cho kiểu tóc hiện tại
-  // (một số kiểu chỉ có 3 tông, hầu hết có 6 tông)
+  // Tạm thời khóa hệ tóc về 1 màu mặc định.
   const hairStyleOption = HAIR_STYLE_OPTIONS[genderKey][hairIdx] ?? HAIR_STYLE_OPTIONS[genderKey][0];
   const availableHairColors = HAIR_COLOR_OPTIONS.slice(0, hairStyleOption.numColors ?? HAIR_COLOR_OPTIONS.length);
 

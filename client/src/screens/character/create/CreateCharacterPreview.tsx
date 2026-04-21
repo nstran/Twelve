@@ -20,7 +20,6 @@ import {
   DEFAULT_OVERLAY,
   EYE_STYLE_OPTIONS,
   GENDER_OPTIONS,
-  HAIR_COLOR_SOURCES,
   HAIR_COLOR_OPTIONS,
   HAIR_PALETTE_FROM,
   HAIR_STYLE_OPTIONS,
@@ -764,9 +763,7 @@ export const CreateCharacterPreview: React.FC<CreateCharacterPreviewProps> = ({
   const hairSourcesBySlot = useHairSourcesBySlot(hairAssetsBySlot, hairPalette.toColors);
 
   const bodySource = bodySourcesBySlot[familySlot];
-  const hairSource = !hairLayerOverride && familySlot === 0
-    ? (HAIR_COLOR_SOURCES[hairOption.baseImageId]?.[hairColorIndex] ?? hairSourcesBySlot[0])
-    : hairSourcesBySlot[familySlot];
+  const hairSource = hairSourcesBySlot[familySlot];
 
   const layout = useMemo(() => buildCreateCharacterLayout(
     {

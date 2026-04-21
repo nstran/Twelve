@@ -48,12 +48,13 @@ import {
 
 const JAVA_BATTLE_TICK_MS = 40;
 const JAVA_ATTACK_MIN_STEP_PX = 5;
-const JAVA_ATTACK_MIN_TRAVEL_TICKS = 7;
-const JAVA_ATTACK_HOLD_TICKS = 15;
-const JAVA_ATTACK_FRAME_2_TICKS = 4;
-const JAVA_ATTACK_IMPACT_TICKS = 8;
-const JAVA_ATTACK_FRAME_4_TICKS = 12;
-const PLAYER_HIT_REACT_TOTAL_MS = 180;
+const JAVA_ATTACK_MIN_TRAVEL_TICKS = 10;
+const JAVA_ATTACK_HOLD_TICKS = 20;
+const JAVA_ATTACK_FRAME_2_TICKS = 6;
+const JAVA_ATTACK_IMPACT_TICKS = 11;
+const JAVA_ATTACK_FRAME_4_TICKS = 16;
+const MONSTER_ANIM_TICK_MS = 240;
+const PLAYER_HIT_REACT_TOTAL_MS = 320;
 const PLAYER_DEFEAT_RESULT_DELAY_MS = 360;
 interface QueuedAttack {
   onImpact: () => void;
@@ -415,7 +416,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       monTick.current++;
       const frames = monAtk ? ATTACK_FRAMES : WALK_FRAMES;
       setMonFrame(frames[monTick.current % frames.length]);
-    }, 200);
+    }, MONSTER_ANIM_TICK_MS);
     return () => clearInterval(t);
   }, [monAtk]);
 
@@ -454,27 +455,6 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       if (!mountedRef.current) return;
       setPlayerActionFrameIndex(2);
       nextAttack.onImpact();
-
-      Animated.sequence([
-        Animated.timing(enemyHitTranslateX, {
-          toValue: 14,
-          duration: 70,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(enemyHitTranslateX, {
-          toValue: -8,
-          duration: 90,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(enemyHitTranslateX, {
-          toValue: 0,
-          duration: 110,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]).start();
     }, swordAttackTiming.impactMs);
 
     const recoverTimer = setTimeout(() => {
@@ -546,27 +526,6 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     const hitTimer = setTimeout(() => {
       if (!mountedRef.current) return;
       nextAttack.onImpact();
-
-      Animated.sequence([
-        Animated.timing(playerHitTranslateX, {
-          toValue: -14,
-          duration: 70,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(playerHitTranslateX, {
-          toValue: 8,
-          duration: 90,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(playerHitTranslateX, {
-          toValue: 0,
-          duration: 110,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]).start();
     }, swordAttackTiming.contactMs);
 
     const returnTimer = setTimeout(() => {
