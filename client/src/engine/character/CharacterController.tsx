@@ -68,6 +68,7 @@ const JUMP_GRAVITY = 0.56;        // acceleration per reference frame (falling)
 const JUMP_MAX_FALL_SPEED = 8;    // terminal velocity
 const JUMP_LANDING_MS = 150;      // landing pose hold duration
 const JUMP_TAKEOFF_HEIGHT_RATIO = 0.14;
+const JUMP_TAKEOFF_FRAME_SPLIT = 0.5;
 const SURFACE_SNAP_TOLERANCE = 10;
 const ONE_WAY_LANDING_TOLERANCE = 2;
 
@@ -490,25 +491,28 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
           }
         }
 
-        // Pose mapping:
-        // - slot 3: only the takeoff burst from the ground
-        // - slot 4: airborne ascent / apex / descent
+        // Pose mapping follows the Java state flow:
+        // - state 5 / slot 3: takeoff burst from the ground
+        // - state 6 / slot 4 frame 0: airborne ascent and apex
+        // - state 6 / slot 4 frame 1: actual descent
+        // - state 7 / slot 4 frame 2: landing hold
         let poseSlot: CharacterPoseFamilySlot;
         let poseFrame: number;
         if (jumpState.phase === 'up') {
           const takeoffHeight = charSize.h * JUMP_TAKEOFF_HEIGHT_RATIO;
           if (Math.abs(jumpState.yOffset) < takeoffHeight) {
             poseSlot = 3;
-            poseFrame = 0;
+            const takeoffProgress = takeoffHeight <= 0
+              ? 1
+              : Math.abs(jumpState.yOffset) / takeoffHeight;
+            poseFrame = takeoffProgress < JUMP_TAKEOFF_FRAME_SPLIT ? 0 : 1;
           } else {
             poseSlot = 4;
-            const ascentProgress = Math.min(1, Math.abs(jumpState.yOffset) / (charSize.h * 0.6));
-            poseFrame = ascentProgress < 0.8 ? 0 : 1;
+            poseFrame = 0;
           }
         } else if (jumpState.phase === 'fall') {
           poseSlot = 4;
-          const fallProgress = Math.min(1, jumpState.speedY / JUMP_MAX_FALL_SPEED);
-          poseFrame = fallProgress < 0.45 ? 1 : 2;
+          poseFrame = jumpState.speedY > 0 ? 1 : 0;
         } else {
           poseSlot = 4;
           poseFrame = 2;
