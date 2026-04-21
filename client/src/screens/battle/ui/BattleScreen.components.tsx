@@ -16,7 +16,7 @@ import {
   TOTAL_FRAMES,
 } from '../core';
 
-const GEM_RENDER_SCALE = 0.9;
+const GEM_NATIVE_SIZE = 28;
 const FOCUS_RENDER_SCALE = 1.24;
 const FOCUS_OFFSET_X = -1;
 const FOCUS_OFFSET_Y = 1;
@@ -24,6 +24,20 @@ const ARROW_TOP_INSET = 1.1;
 const ARROW_BOTTOM_INSET = 1.1;
 const ARROW_LEFT_INSET = 0.5;
 const ARROW_RIGHT_INSET = 6;
+
+// These sprites were authored on 28x28 frames, but some visible pixels are not
+// perfectly centered inside the transparent frame. Nudge them by their native
+// delta so they sit optically centered in each board cell like the Java client.
+const GEM_VISUAL_OFFSETS: Record<GemType, { x: number; y: number }> = {
+  0: { x: 1, y: -1 },
+  1: { x: 0, y: -0.5 },
+  2: { x: 0, y: 0 },
+  3: { x: 0, y: -0.5 },
+  4: { x: 0.5, y: -0.5 },
+  5: { x: 0, y: 0 },
+  6: { x: 0, y: -0.5 },
+  8: { x: 0, y: 0 },
+};
 
 const ArrowSet: React.FC<{ size: number; variant?: 'player' | 'enemy' }> = ({
   size,
@@ -161,8 +175,9 @@ export const GemCell = React.memo(({
   focusVariant?: 'player' | 'enemy';
   onPress: () => void;
 }) => {
-  const spriteSize = Math.round(size * GEM_RENDER_SCALE);
-  const inset = Math.floor((size - spriteSize) / 2);
+  const visualOffset = GEM_VISUAL_OFFSETS[gemType];
+  const spriteOffsetX = Math.round(visualOffset.x * size / GEM_NATIVE_SIZE);
+  const spriteOffsetY = Math.round(visualOffset.y * size / GEM_NATIVE_SIZE);
   const focusSize = Math.round(size * FOCUS_RENDER_SCALE);
   const focusInset = Math.floor((size - focusSize) / 2);
   const focusLeft = focusInset + Math.round(FOCUS_OFFSET_X * size / 28);
@@ -175,19 +190,19 @@ export const GemCell = React.memo(({
       style={[styles.base, { width: size, height: size }]}
     >
       <View style={{
-        width: spriteSize,
-        height: spriteSize,
+        width: size,
+        height: size,
         overflow: 'hidden',
         position: 'absolute',
-        top: inset,
-        left: inset,
+        top: spriteOffsetY,
+        left: spriteOffsetX,
       }}>
         <Image
           source={GEM_SHEETS[gemType]}
           style={{
-            width: spriteSize * TOTAL_FRAMES,
-            height: spriteSize,
-            transform: [{ translateX: -frameIndex * spriteSize }],
+            width: size * TOTAL_FRAMES,
+            height: size,
+            transform: [{ translateX: -frameIndex * size }],
           }}
           resizeMode="stretch"
         />

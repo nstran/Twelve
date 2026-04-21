@@ -6,7 +6,7 @@ export const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 export const BG_NATIVE_W = 240;
 export const BG_NATIVE_H = 320;
 export const BG_W        = SCREEN_W;
-export const BG_H        = Math.round(BG_W * BG_NATIVE_H / BG_NATIVE_W);
+export const BG_H        = BG_W * BG_NATIVE_H / BG_NATIVE_W;
 export const BOARD_SCALE = BG_W / BG_NATIVE_W;
 
 // ── Bàn cờ (grid 8 × 8, vùng grid native ≈ 232 × 232 px trong ảnh) ──────────
@@ -15,14 +15,16 @@ export const BOARD_ROWS = 8;
 const BOARD_NATIVE_LEFT = 8;
 const BOARD_NATIVE_TOP = 4;
 
-// GEM_SIZE: chia đều vùng 232 native px, floor để board không tràn ra ngoài
+// Java client dùng board 224x224 với cell 28x28, rồi scale toàn bộ scene.
+// Không floor/round từng cell; nếu làm vậy thì mỗi ô nhỏ đi một chút và cả
+// board sẽ drift dần về trên-trái so với background gốc.
 const GRID_NATIVE    = 224;
 const GRID_PX        = BOARD_SCALE * GRID_NATIVE;
-export const GEM_SIZE          = Math.floor(GRID_PX / BOARD_COLS);
-export const BOARD_LEFT_OFFSET = Math.round(BOARD_NATIVE_LEFT * BOARD_SCALE);
-export const BOARD_TOP_OFFSET = Math.round(BOARD_NATIVE_TOP * BOARD_SCALE);
+export const GEM_SIZE          = GRID_PX / BOARD_COLS;
+export const BOARD_LEFT_OFFSET = BOARD_NATIVE_LEFT * BOARD_SCALE;
+export const BOARD_TOP_OFFSET  = BOARD_NATIVE_TOP * BOARD_SCALE;
 
-export const BOARD_POS_LEFT = Math.round((SCREEN_W - BG_W) / 2) + BOARD_LEFT_OFFSET;
+export const BOARD_POS_LEFT = (SCREEN_W - BG_W) / 2 + BOARD_LEFT_OFFSET;
 export const BOARD_POS_TOP  = BOARD_TOP_OFFSET;   // background bắt đầu y=0, board ngay trong đó
 
 // ── Styles ────────────────────────────────────────────────────────────────────
