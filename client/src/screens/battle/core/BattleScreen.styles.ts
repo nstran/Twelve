@@ -76,15 +76,6 @@ export const s = StyleSheet.create({
     width: 26,
     height: 24,
   },
-  fleeTextBtn: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    textShadowColor: 'rgba(0,0,0,0.75)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
 
   btnRow: {
     position: 'absolute', left: 0, right: 0, height: 44,

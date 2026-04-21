@@ -1,6 +1,6 @@
 import React from 'react';
 import { Animated, Image, Text, TouchableOpacity, View } from 'react-native';
-import { MonsterSprite, monsterDisplaySize, type MonsterType } from '../../../engine/MonsterSprite';
+import { MonsterSprite, type MonsterType } from '../../../engine/MonsterSprite';
 import type { CharacterAction } from '../../../engine/character';
 import { CharacterRenderer } from '../../character';
 import type { CharacterAppearance } from '../../character/shared';
@@ -67,8 +67,7 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
   enemyAttackTranslateX,
   enemyHitTranslateX,
 }) => {
-  const { groundOffset } = monsterDisplaySize(monsterType);
-  const { stageWidth, playerBaseLeft, monsterBaseLeft, playerSize } =
+  const { stageWidth, playerBaseLeft, monsterBaseLeft, monsterGroundOffset, playerSize } =
     React.useMemo(() => getBattleActorLayout(monsterType, appearance), [monsterType, appearance]);
   const playerPoseFamilySlotOverride =
     playerDefeatPose ? 8 : playerReactionPose ? 7 : playerRetreatPose ? 9 : undefined;
@@ -122,7 +121,7 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
         style={{
           position: 'absolute',
           left: monsterBaseLeft,
-          bottom: -groundOffset,
+          bottom: -monsterGroundOffset,
           width: monsterWidth,
           height: monsterHeight,
           transform: [

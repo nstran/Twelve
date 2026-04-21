@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
-  TouchableOpacity,
   Animated, Easing,
-  Text,
 } from 'react-native';
 import type { CharacterAction } from '../../engine/character';
+import { SoftkeyBar } from '../../components/controls/SoftkeyBar/SoftkeyBar';
 import { PopupMenu, type MenuItem } from '../../components/controls/PopupMenu/PopupMenu';
 import {
   WALK_FRAMES, ATTACK_FRAMES,
@@ -34,9 +33,7 @@ import {
   type Board,
   type MoveSpec,
   s,
-  BG_H,
   BG_W,
-  SCREEN_H,
 } from './core';
 import {
   useBattleAI,
@@ -56,6 +53,9 @@ const JAVA_ATTACK_FRAME_4_TICKS = 16;
 const MONSTER_ANIM_TICK_MS = 240;
 const PLAYER_HIT_REACT_TOTAL_MS = 320;
 const PLAYER_DEFEAT_RESULT_DELAY_MS = 360;
+const ASSET_SOFTKEY_MENU = require('../../../assets/ui/11_softkey_icons_confirmed/icon_sharpest_1.png');
+const ASSET_SOFTKEY_OK = require('../../../assets/ui/11_softkey_icons_confirmed/icon_ok.png');
+const ASSET_SOFTKEY_CANCEL = require('../../../assets/ui/11_softkey_icons_confirmed/icon_cancel.png');
 interface QueuedAttack {
   onImpact: () => void;
   onComplete: () => void;
@@ -689,8 +689,6 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   });
   const playerDamageLeft = panelLeft + 4;
   const enemyDamageLeft = panelLeft + BG_W - 84;
-  const battleBottomGap = Math.max(0, SCREEN_H - (panelTop + BG_H));
-  const battleMenuBottomOffset = battleBottomGap + 23;
   const battleMenuItems = useMemo<MenuItem[]>(() => [
     {
       id: 'battle-exit',
@@ -705,27 +703,31 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     }
   }, [menuVisible, result]);
 
+  const handleBattleMenuConfirm = useCallback(() => {
+    const item = battleMenuItems[menuSelectedIndex];
+    if (!item) return;
+    item.onPress?.();
+    setMenuVisible(false);
+  }, [battleMenuItems, menuSelectedIndex]);
+
+  const handleLeftSoftkey = useCallback(() => {
+    if (result !== null) return;
+    if (menuVisible) {
+      handleBattleMenuConfirm();
+      return;
+    }
+    setMenuSelectedIndex(0);
+    setMenuVisible(true);
+  }, [handleBattleMenuConfirm, menuVisible, result]);
+
+  const handleRightSoftkey = useCallback(() => {
+    if (menuVisible) {
+      setMenuVisible(false);
+    }
+  }, [menuVisible]);
+
   return (
     <View style={s.root}>
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={() => {
-          if (result !== null) return;
-          setMenuVisible((prev) => !prev);
-        }}
-        disabled={result !== null}
-        style={[
-          s.fleeIconBtn,
-          {
-            left: panelLeft + 4,
-            top: panelTop + BG_H - 26,
-          },
-          result !== null && s.fleeIconBtnDisabled,
-        ]}
-      >
-        <Text style={s.fleeTextBtn}>Menu</Text>
-      </TouchableOpacity>
-
       <BattlePanel
         panelLeft={panelLeft}
         panelTop={panelTop}
@@ -793,7 +795,15 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         onIndexChange={setMenuSelectedIndex}
         onSelect={() => {}}
         onClose={() => setMenuVisible(false)}
-        bottomOffset={battleMenuBottomOffset}
+        bottomOffset={27}
+      />
+
+      <SoftkeyBar
+        width={BG_W}
+        onLeftPress={handleLeftSoftkey}
+        onRightPress={menuVisible ? handleRightSoftkey : undefined}
+        leftIcon={menuVisible ? ASSET_SOFTKEY_OK : ASSET_SOFTKEY_MENU}
+        rightIcon={menuVisible ? ASSET_SOFTKEY_CANCEL : undefined}
       />
 
       <BattleResultOverlay

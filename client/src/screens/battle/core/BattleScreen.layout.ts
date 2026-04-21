@@ -1,4 +1,4 @@
-import { monsterDisplaySize, type MonsterType } from '../../../engine/MonsterSprite';
+import { monsterDisplaySize, monsterPlacementMetrics, type MonsterType } from '../../../engine/MonsterSprite';
 import { measureCharacterRenderer } from '../../character';
 import type { CharacterAppearance } from '../../character/shared';
 import {
@@ -89,21 +89,22 @@ const CHARS_ROW_H = 104;
 const BATTLE_PANEL_LEFT_SHIFT = 0;
 const ACTOR_BASELINE_NATIVE_Y = 316;
 const ACTOR_STAGE_W = BG_W;
-const PLAYER_BASE_LEFT = 0;
-const MONSTER_BASE_RIGHT = 0;
+const PLAYER_BASE_LEFT = 8 * BOARD_SCALE;
+const MONSTER_BASE_RIGHT = 8 * BOARD_SCALE;
 const ATTACK_CONTACT_OVERLAP = Math.round(18 * BOARD_SCALE);
 
 export const measureBattlePlayerSize = (appearance: CharacterAppearance) => {
   const measured = measureCharacterRenderer(appearance, BATTLE_PLAYER_SCALE, true);
   return {
     ...measured,
-    groundOffset: measured.groundOffset + Math.round(5 * BATTLE_PLAYER_SCALE / CREATE_CHARACTER_DEFAULT_SCALE),
+    groundOffset: measured.groundOffset + Math.round(3 * BATTLE_PLAYER_SCALE / CREATE_CHARACTER_DEFAULT_SCALE),
   };
 };
 
 export const getBattleActorLayout = (monsterType: MonsterType, appearance: CharacterAppearance) => {
   const playerSize = measureBattlePlayerSize(appearance);
   const monsterSize = monsterDisplaySize(monsterType);
+  const monsterPlacement = monsterPlacementMetrics(monsterType);
   const monsterBaseLeft = ACTOR_STAGE_W - monsterSize.w - MONSTER_BASE_RIGHT;
   const attackStopLeft = monsterBaseLeft - playerSize.w + ATTACK_CONTACT_OVERLAP;
   const attackTravelX = Math.max(0, attackStopLeft - PLAYER_BASE_LEFT);
@@ -112,6 +113,7 @@ export const getBattleActorLayout = (monsterType: MonsterType, appearance: Chara
     stageWidth: ACTOR_STAGE_W,
     playerSize,
     monsterSize,
+    monsterGroundOffset: monsterPlacement.groundOffset,
     playerBaseLeft: PLAYER_BASE_LEFT,
     monsterBaseLeft,
     attackTravelX,
