@@ -466,7 +466,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setExplodeFrames,
     onSpawnFX: spawnMatchFX,
   });
-  const applyLocalSkillBoardBreak = useCallback((familyCode: SkillFamilyCode, boardPoints: ActiveBattleSkillCast['boardPoints']) => {
+  const applyLocalSkillBoardBreak = useCallback((familyCode: SkillFamilyCode, boardPoints: ActiveBattleSkillCast['boardClearTargets']) => {
     if (
       familyCode !== 1000 &&
       familyCode !== 1006 &&
@@ -756,7 +756,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     y: panelTop + BOARD_TOP + row * GEM_SIZE + GEM_SIZE / 2,
   }), [panelLeft, panelTop]);
 
-  const buildLocalSkillCastPoints = useCallback((familyCode: SkillFamilyCode) => {
+  const buildLocalSkillCastFixture = useCallback((familyCode: SkillFamilyCode) => {
     const [cursorRow, cursorCol] = cursorCell;
     const clampRow = (row: number) => Math.max(0, Math.min(9, row));
     const clampCol = (col: number) => Math.max(0, Math.min(7, col));
@@ -772,6 +772,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       const point = getCellCenter(row, col);
       return { ...point, row, col };
     });
+    const actorCenterTarget = {
+      x: panelLeft + monsterBaseLeft + monsterSize.w * 0.42,
+      y: charsTop + charsRowHeight - monsterGroundOffset - monsterSize.h * 0.52,
+    };
+    const actorBottomTarget = {
+      x: actorCenterTarget.x,
+      y: charsTop + charsRowHeight - monsterGroundOffset,
+    };
 
     const tileBurstPoints = toPoints([
       [cursorRow, cursorCol],
@@ -800,31 +808,35 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
     switch (familyCode) {
       case 1000:
-      case 1006:
       case 4000:
-      case 4006:
       case 4008:
-        return { boardPoints: tileBurstPoints, effectPoints: tileBurstPoints };
+        return { actorTarget: actorCenterTarget, boardClearTargets: tileBurstPoints, cellTargets: tileBurstPoints };
+      case 1006:
+        return { actorTarget: actorBottomTarget, boardClearTargets: tileBurstPoints, cellTargets: tileBurstPoints };
+      case 4006:
+        return { actorTarget: actorCenterTarget, boardClearTargets: tileBurstPoints, cellTargets: tileBurstPoints };
       case 2003:
-        return { boardPoints: tileBurstPoints, effectPoints: [] };
+        return { actorTarget: actorCenterTarget, boardClearTargets: tileBurstPoints, cellTargets: [] };
       case 1001:
-        return { boardPoints: tileBurstPoints, effectPoints: tileBurstPoints };
+        return { actorTarget: null, boardClearTargets: tileBurstPoints, cellTargets: tileBurstPoints };
       case 2000:
-        return { boardPoints: tileBurstPoints, effectPoints: tileBurstPoints };
+        return { actorTarget: actorCenterTarget, boardClearTargets: tileBurstPoints, cellTargets: tileBurstPoints };
       case 1007:
       case 2007:
       case 4007:
-        return { boardPoints: pillarPoints, effectPoints: pillarPoints };
+        return { actorTarget: actorBottomTarget, boardClearTargets: pillarPoints, cellTargets: pillarPoints };
       case 1008:
         return {
-          boardPoints: stagedColumnPoints,
-          effectPoints: toPoints([[0, cursorCol]]),
+          actorTarget: null,
+          boardClearTargets: stagedColumnPoints,
+          cellTargets: toPoints([[0, cursorCol]]),
         };
       case 2006:
-        return { boardPoints: sweepColumns, effectPoints: sweepColumns };
+        return { actorTarget: actorCenterTarget, boardClearTargets: sweepColumns, cellTargets: sweepColumns };
       case 2008:
         return {
-          boardPoints: toPoints([
+          actorTarget: actorCenterTarget,
+          boardClearTargets: toPoints([
             [cursorRow, cursorCol],
             [cursorRow - 1, cursorCol],
             [cursorRow + 1, cursorCol],
@@ -834,7 +846,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             [cursorRow - 1, cursorCol + 1],
             [cursorRow + 1, cursorCol + 1],
           ]),
-          effectPoints: toPoints([
+          cellTargets: toPoints([
             [cursorRow, cursorCol],
             [cursorRow - 1, cursorCol],
             [cursorRow + 1, cursorCol],
@@ -843,9 +855,19 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
           ]),
         };
       default:
-        return { boardPoints: singleEffectPoint, effectPoints: singleEffectPoint };
+        return { actorTarget: null, boardClearTargets: singleEffectPoint, cellTargets: singleEffectPoint };
     }
-  }, [cursorCell, getCellCenter]);
+  }, [
+    charsRowHeight,
+    charsTop,
+    cursorCell,
+    getCellCenter,
+    monsterBaseLeft,
+    monsterGroundOffset,
+    monsterSize.h,
+    monsterSize.w,
+    panelLeft,
+  ]);
 
   const handleSkillCast = useCallback((familyCode: SkillFamilyCode) => {
     const skill = BATTLE_SKILLS[familyCode];
@@ -865,20 +887,17 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
     const sourceX = panelLeft + playerBaseLeft + playerSize.w * 0.7;
     const sourceY = charsTop + charsRowHeight - (playerSize.groundOffset ?? 0) - playerSize.h * 0.6;
-    const targetX = panelLeft + monsterBaseLeft + monsterSize.w * 0.42;
-    const targetY = charsTop + charsRowHeight - monsterGroundOffset - monsterSize.h * 0.52;
     const castKey = `skill-${familyCode}-${Date.now()}`;
-    const { boardPoints, effectPoints } = buildLocalSkillCastPoints(familyCode);
+    const { actorTarget, boardClearTargets, cellTargets } = buildLocalSkillCastFixture(familyCode);
     const cast: ActiveBattleSkillCast = {
       key: castKey,
       familyCode,
       startedAt: Date.now(),
       sourceX,
       sourceY,
-      targetX,
-      targetY,
-      boardPoints,
-      effectPoints,
+      actorTarget,
+      boardClearTargets,
+      cellTargets,
       durationMs: skill.totalMs,
     };
 
@@ -886,7 +905,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
     const impactTimer = setTimeout(() => {
       if (!mountedRef.current) return;
-      applyLocalSkillBoardBreak(familyCode, boardPoints);
+      applyLocalSkillBoardBreak(familyCode, boardClearTargets);
       playEnemySkillImpact(skill.hitShakePx);
       showDamagePopup('enemy', LOCAL_SKILL_DAMAGE);
       setEnemyHP(hp => {
@@ -916,7 +935,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     skillCastTimersRef.current.push(impactTimer, finishTimer);
   }, [
     applyLocalSkillBoardBreak,
-    buildLocalSkillCastPoints,
+    buildLocalSkillCastFixture,
     charsRowHeight,
     charsTop,
     mana,

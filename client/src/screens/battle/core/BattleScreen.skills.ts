@@ -31,11 +31,15 @@ export type SkillBoardMode =
   | 'helper'
   | 'none';
 
+export type SkillRuntimeAssetMode = 'dedicated' | 'icon_only' | 'reuse';
+
 export interface BattleSkillDefinition {
   familyCode: SkillFamilyCode;
   elementIndex: BattleElementIndex;
   elementLabel: string;
   javaClass: string;
+  runtimeAssetFamilyCode: SkillFamilyCode;
+  runtimeAssetMode: SkillRuntimeAssetMode;
   title: string;
   summary: string;
   serverNote: string;
@@ -47,6 +51,42 @@ export interface BattleSkillDefinition {
   impactDelayMs: number;
   totalMs: number;
 }
+
+const SKILL_RUNTIME_ASSET_META: Record<
+  SkillFamilyCode,
+  {
+    runtimeAssetFamilyCode: SkillFamilyCode;
+    runtimeAssetMode: SkillRuntimeAssetMode;
+  }
+> = {
+  1000: { runtimeAssetFamilyCode: 1000, runtimeAssetMode: 'dedicated' },
+  1001: { runtimeAssetFamilyCode: 1001, runtimeAssetMode: 'dedicated' },
+  1002: { runtimeAssetFamilyCode: 1002, runtimeAssetMode: 'icon_only' },
+  1003: { runtimeAssetFamilyCode: 1003, runtimeAssetMode: 'dedicated' },
+  1004: { runtimeAssetFamilyCode: 1004, runtimeAssetMode: 'dedicated' },
+  1005: { runtimeAssetFamilyCode: 1005, runtimeAssetMode: 'dedicated' },
+  1006: { runtimeAssetFamilyCode: 1006, runtimeAssetMode: 'dedicated' },
+  1007: { runtimeAssetFamilyCode: 1007, runtimeAssetMode: 'dedicated' },
+  1008: { runtimeAssetFamilyCode: 1008, runtimeAssetMode: 'dedicated' },
+  2000: { runtimeAssetFamilyCode: 2000, runtimeAssetMode: 'dedicated' },
+  2001: { runtimeAssetFamilyCode: 2001, runtimeAssetMode: 'icon_only' },
+  2002: { runtimeAssetFamilyCode: 2002, runtimeAssetMode: 'icon_only' },
+  2003: { runtimeAssetFamilyCode: 2003, runtimeAssetMode: 'dedicated' },
+  2004: { runtimeAssetFamilyCode: 2004, runtimeAssetMode: 'dedicated' },
+  2005: { runtimeAssetFamilyCode: 2005, runtimeAssetMode: 'dedicated' },
+  2006: { runtimeAssetFamilyCode: 2006, runtimeAssetMode: 'dedicated' },
+  2007: { runtimeAssetFamilyCode: 2007, runtimeAssetMode: 'dedicated' },
+  2008: { runtimeAssetFamilyCode: 2008, runtimeAssetMode: 'dedicated' },
+  4000: { runtimeAssetFamilyCode: 4000, runtimeAssetMode: 'dedicated' },
+  4001: { runtimeAssetFamilyCode: 4001, runtimeAssetMode: 'dedicated' },
+  4002: { runtimeAssetFamilyCode: 4002, runtimeAssetMode: 'dedicated' },
+  4003: { runtimeAssetFamilyCode: 4003, runtimeAssetMode: 'dedicated' },
+  4004: { runtimeAssetFamilyCode: 4004, runtimeAssetMode: 'dedicated' },
+  4005: { runtimeAssetFamilyCode: 4005, runtimeAssetMode: 'dedicated' },
+  4006: { runtimeAssetFamilyCode: 4006, runtimeAssetMode: 'dedicated' },
+  4007: { runtimeAssetFamilyCode: 4007, runtimeAssetMode: 'dedicated' },
+  4008: { runtimeAssetFamilyCode: 4000, runtimeAssetMode: 'reuse' },
+};
 
 const frames = (...assets: any[]) => assets;
 
@@ -67,6 +107,7 @@ const family = (
   elementIndex,
   elementLabel,
   javaClass,
+  ...SKILL_RUNTIME_ASSET_META[familyCode],
   title: `${familyCode} / ${javaClass}`,
   summary,
   serverNote,
@@ -240,3 +281,9 @@ export const getBattleElement = (elementIndex?: number): BattleElementIndex =>
 
 export const getSkillFamiliesForElement = (elementIndex?: number): BattleSkillDefinition[] =>
   SKILL_FAMILIES_BY_ELEMENT[getBattleElement(elementIndex)].map(code => BATTLE_SKILLS[code]);
+
+export const hasDedicatedSkillRuntimeFrames = (familyCode: SkillFamilyCode): boolean =>
+  BATTLE_SKILLS[familyCode].runtimeAssetMode === 'dedicated';
+
+export const reusesSkillRuntimeFrames = (familyCode: SkillFamilyCode): boolean =>
+  BATTLE_SKILLS[familyCode].runtimeAssetMode === 'reuse';

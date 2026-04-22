@@ -1,0 +1,117 @@
+Summary for reference/twelvefull.jar
+Decompiled with CFR 0.152
+
+
+a
+----------------------------
+
+c(java.lang.Object )
+  Handled impossible loop by duplicating code
+
+
+com.mg.sq.a
+----------------------------
+
+d(int int )
+  Unable to fully structure code
+  Could not resolve type clashes
+
+
+em
+----------------------------
+
+a(dy )
+  Unable to fully structure code
+  Could not resolve type clashes
+
+
+f
+----------------------------
+
+a(java.lang.String boolean )
+  Unable to fully structure code
+
+
+fc
+----------------------------
+
+j(int )
+  Unable to fully structure code
+
+
+fd
+----------------------------
+
+a(javax.microedition.lcdui.Graphics int int )
+  Unable to fully structure code
+
+
+ff
+----------------------------
+
+v()
+  Unable to fully structure code
+f(int )
+  Unable to fully structure code
+  Could not resolve type clashes
+
+
+g
+----------------------------
+
+a(a int int boolean )
+  Unable to fully structure code
+
+
+km
+----------------------------
+
+a(at kh )
+  Unable to fully structure code
+a(int kl )
+  Unable to fully structure code
+
+
+ks
+----------------------------
+
+run()
+  Unable to fully structure code
+
+
+mq
+----------------------------
+
+b()
+  Unable to fully structure code
+b(nj[][] int )
+  Unable to fully structure code
+
+
+mx
+----------------------------
+
+a(javax.microedition.lcdui.Graphics int int )
+  Unable to fully structure code
+
+
+od
+----------------------------
+
+d(int int )
+  Unable to fully structure code
+
+
+om
+----------------------------
+
+<init>(int ol oa )
+  Unable to fully structure code
+
+
+on
+----------------------------
+
+b(aq int )
+  Unable to fully structure code
+  Could not resolve type clashes

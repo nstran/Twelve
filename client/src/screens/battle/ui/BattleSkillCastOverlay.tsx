@@ -12,7 +12,8 @@ const ASSET_BLOOD_THROW = require('../../../../assets/battle/10_hit_effects/bloo
 const FRAME_TICK_MS = 40;
 
 type VolleyRenderConfig = {
-  extraEffectTargets: boolean;
+  includeActorTarget: boolean;
+  includeCellTargets: boolean;
   twinImpact: boolean;
   startDx: number;
   startDy: number;
@@ -20,12 +21,12 @@ type VolleyRenderConfig = {
 };
 
 const VOLLEY_CONFIG: Partial<Record<SkillFamilyCode, VolleyRenderConfig>> = {
-  1000: { extraEffectTargets: true, twinImpact: false, startDx: -180, startDy: -180, volleyDelayMs: 72 },
-  1006: { extraEffectTargets: true, twinImpact: true, startDx: -180, startDy: -180, volleyDelayMs: 52 },
-  2003: { extraEffectTargets: false, twinImpact: false, startDx: -180, startDy: -180, volleyDelayMs: 0 },
-  4000: { extraEffectTargets: true, twinImpact: false, startDx: -180, startDy: -180, volleyDelayMs: 72 },
-  4006: { extraEffectTargets: true, twinImpact: false, startDx: 0, startDy: -180, volleyDelayMs: 80 },
-  4008: { extraEffectTargets: true, twinImpact: false, startDx: -180, startDy: -180, volleyDelayMs: 96 },
+  1000: { includeActorTarget: true, includeCellTargets: true, twinImpact: false, startDx: -180, startDy: -180, volleyDelayMs: 72 },
+  1006: { includeActorTarget: true, includeCellTargets: true, twinImpact: true, startDx: -180, startDy: -180, volleyDelayMs: 52 },
+  2003: { includeActorTarget: true, includeCellTargets: false, twinImpact: false, startDx: -180, startDy: -180, volleyDelayMs: 0 },
+  4000: { includeActorTarget: true, includeCellTargets: true, twinImpact: false, startDx: -180, startDy: -180, volleyDelayMs: 72 },
+  4006: { includeActorTarget: true, includeCellTargets: true, twinImpact: false, startDx: 0, startDy: -180, volleyDelayMs: 80 },
+  4008: { includeActorTarget: true, includeCellTargets: true, twinImpact: false, startDx: -180, startDy: -180, volleyDelayMs: 96 },
 };
 
 const IMPACT_FRAME_COUNTS: Partial<Record<SkillFamilyCode, number>> = {
@@ -146,11 +147,7 @@ const renderVolleyFamily = (
   const projectileSource = runtimePrimary(skill);
   const impactSource = runtimeSecondary(skill);
   const projectileSize = intrinsicSize(projectileSource);
-  const extraTargets = config.extraEffectTargets ? cast.effectPoints : [];
-  const targets = [{ x: cast.targetX, y: cast.targetY }, ...extraTargets];
-
-  return targets.map((point, index) => {
-    const localElapsedMs = elapsedMs - index * config.volleyDelayMs;
+  const renderSingleVolley = (key: string, point: { x: number; y: number }, localElapsedMs: number) => {
     const flightT = clamp01(localElapsedMs / 520);
     if (flightT <= 0 || flightT >= 1.2) return null;
 
@@ -163,7 +160,7 @@ const renderVolleyFamily = (
     const impactFrameIndex = frameAt(impactT, impactFrameCount);
 
     return (
-      <React.Fragment key={`${cast.key}-volley-${index}`}>
+      <React.Fragment key={key}>
         {flightT < 0.82 && (
           <Sprite
             source={projectileSource}
@@ -209,10 +206,37 @@ const renderVolleyFamily = (
         )}
       </React.Fragment>
     );
-  });
+  };
+
+  const layers: React.ReactNode[] = [];
+
+  if (config.includeActorTarget && cast.actorTarget) {
+    const actorVolley = renderSingleVolley(
+      `${cast.key}-volley-actor`,
+      cast.actorTarget,
+      elapsedMs,
+    );
+    if (actorVolley) layers.push(actorVolley);
+  }
+
+  if (config.includeCellTargets) {
+    cast.cellTargets.forEach((point, index) => {
+      const localElapsedMs = elapsedMs - config.volleyDelayMs * (index + 1);
+      const cellVolley = renderSingleVolley(
+        `${cast.key}-volley-cell-${index}-${point.row}-${point.col}`,
+        point,
+        localElapsedMs,
+      );
+      if (cellVolley) layers.push(cellVolley);
+    });
+  }
+
+  return layers;
 };
 
 const renderMonsterBurst = (cast: ActiveBattleSkillCast, elapsedMs: number) => {
+  if (!VOLLEY_CONFIG[cast.familyCode]) return null;
+  if (!cast.actorTarget) return null;
   const impactT = clamp01((elapsedMs - 380) / 220);
   if (impactT <= 0 || impactT >= 1) return null;
 
@@ -224,8 +248,8 @@ const renderMonsterBurst = (cast: ActiveBattleSkillCast, elapsedMs: number) => {
       resizeMode="contain"
       style={{
         position: 'absolute',
-        left: cast.targetX - size / 2,
-        top: cast.targetY - size / 2,
+        left: cast.actorTarget.x - size / 2,
+        top: cast.actorTarget.y - size / 2,
         width: size,
         height: size,
         opacity: 0.86 - impactT * 0.6,

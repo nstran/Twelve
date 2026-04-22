@@ -92,15 +92,19 @@ export interface SkillTargetPoint {
   col: number;
 }
 
+export interface ScreenPoint {
+  x: number;
+  y: number;
+}
+
 export interface ActiveBattleSkillCast {
   key: string;
   familyCode: SkillFamilyCode;
   startedAt: number;
   sourceX: number;
   sourceY: number;
-  targetX: number;
-  targetY: number;
-  boardPoints: SkillTargetPoint[];
-  effectPoints: SkillTargetPoint[];
+  actorTarget: ScreenPoint | null;
+  boardClearTargets: SkillTargetPoint[];
+  cellTargets: SkillTargetPoint[];
   durationMs: number;
 }
