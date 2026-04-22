@@ -1,7 +1,7 @@
 import { Animated } from 'react-native';
 import type { MonsterType } from '../../../engine/MonsterSprite';
 import type { CharacterAppearance } from '../../character/shared';
-import type { FXKind } from './BattleScreen.shared';
+import type { Board, FXKind } from './BattleScreen.shared';
 import type { SkillFamilyCode } from './BattleScreen.skills';
 
 export type BattleTurn = 'player' | 'monster';
@@ -13,6 +13,7 @@ export interface BattleScreenProps {
   onVictory: () => void;
   onDefeat: () => void;
   onFlee: () => void;
+  resolveSkillPacket?: ResolveBattleSkillPacket;
 }
 
 export type BattlePhase = 'idle' | 'busy' | 'over';
@@ -97,14 +98,72 @@ export interface ScreenPoint {
   y: number;
 }
 
+export type BattleSkillRuntimeSource = 'server_packet';
+export type BattleSkillActorAnchor = 'center' | 'bottom';
+export type BattleSkillBoardMutationKind = 'clear' | 'mark' | 'helper' | 'none';
+
+export interface BattleSkillActorPacketTarget {
+  side: BattleSide;
+  anchor: BattleSkillActorAnchor;
+}
+
+export interface BattleSkillBoardMutation {
+  kind: BattleSkillBoardMutationKind;
+  cells: BattleCell[];
+  stateId?: number | null;
+}
+
+export interface BattleSkillPacketImpact {
+  hitsActor: boolean;
+  damage: number | null;
+  hitShakePx?: number | null;
+}
+
+export interface BattleSkillRuntimePacket {
+  // Java packet arrays are normalized to 0..7 board coordinates before they reach
+  // this client contract. Server adapters should convert Java row 2..9 -> client 0..7.
+  castId: string;
+  familyCode: SkillFamilyCode;
+  runtimeSource: 'server_packet';
+  casterSide: BattleSide;
+  actorTarget: BattleSkillActorPacketTarget | null;
+  boardMutation: BattleSkillBoardMutation;
+  cellTargets: BattleCell[];
+  impact: BattleSkillPacketImpact;
+  impactDelayMs?: number | null;
+  durationMs?: number | null;
+}
+
+export interface BattleSkillPacketRequest {
+  familyCode: SkillFamilyCode;
+  casterSide: BattleSide;
+  board: Board;
+  selectedCell: BattleCell;
+}
+
+export type ResolveBattleSkillPacket =
+  (request: BattleSkillPacketRequest) =>
+    BattleSkillRuntimePacket | Promise<BattleSkillRuntimePacket | null> | null;
+
+export interface BattleSkillRuntimePayload {
+  actorTarget: ScreenPoint | null;
+  boardClearTargets: SkillTargetPoint[];
+  cellTargets: SkillTargetPoint[];
+  runtimeSource: BattleSkillRuntimeSource;
+  hitsActor: boolean;
+}
+
 export interface ActiveBattleSkillCast {
   key: string;
   familyCode: SkillFamilyCode;
   startedAt: number;
   sourceX: number;
   sourceY: number;
-  actorTarget: ScreenPoint | null;
-  boardClearTargets: SkillTargetPoint[];
-  cellTargets: SkillTargetPoint[];
+  actorTarget: BattleSkillRuntimePayload['actorTarget'];
+  boardClearTargets: BattleSkillRuntimePayload['boardClearTargets'];
+  cellTargets: BattleSkillRuntimePayload['cellTargets'];
+  runtimeSource: BattleSkillRuntimeSource;
+  hitsActor: boolean;
+  impactDelayMs: number;
   durationMs: number;
 }

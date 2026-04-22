@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using Twelve.Application.Battle;
 using Twelve.Application.Handlers;
+using Twelve.Core.Interfaces;
 using Twelve.Core.Tlv;
 
 namespace Twelve.Application
@@ -8,6 +10,9 @@ namespace Twelve.Application
     {
         public static IServiceCollection AddTwelveApplication(this IServiceCollection services)
         {
+            services.AddSingleton<IBattleSkillPacketFactory, BattleSkillPacketFactory>();
+            services.AddSingleton<IBattleSkillCastPacketService, BattleSkillCastPacketService>();
+
             // ── Đăng ký Handlers ───────────────────────────────────────────────
             services.AddSingleton<AuthHandler>();
             services.AddSingleton<TokenAuthHandler>();

@@ -18,19 +18,21 @@ import {
   BattleResultOverlay,
 } from './ui';
 import {
-  BOARD_LEFT,
-  BOARD_TOP,
   EXTRA_TURNS_BADGE_TOTAL_MS,
   RESULT_ART_META,
   ENEMY_HUD_LAYOUT,
   BATTLE_SKILLS,
-  collapseLogic,
+  buildActiveBattleSkillCastFromPacket,
   clearMatchedCells,
+  collapseLogic,
+  collectSkillPacketBoardKeys,
   createJavaBoardEngine,
+  findMatchesFromAffected,
+  getFirstBattleSkillServerPacketReadyFamily,
   getBattleActorLayout,
   getBattleElement,
   getBattleStageLayout,
-  GEM_SIZE,
+  isBattleSkillServerPacketReady,
   makeBoard,
   MONSTER_HP,
   PLAYER_HUD_LAYOUT,
@@ -40,6 +42,7 @@ import {
   type BattlePhase,
   type BattleResult,
   type BattleScreenProps,
+  type BattleSkillRuntimePacket,
   type SkillFamilyCode,
   type BattleTurn,
   type Board,
@@ -65,8 +68,6 @@ const JAVA_ATTACK_FRAME_4_TICKS = 16;
 const MONSTER_ANIM_TICK_MS = 240;
 const PLAYER_HIT_REACT_TOTAL_MS = 320;
 const PLAYER_DEFEAT_RESULT_DELAY_MS = 360;
-const SKILL_MANA_COST = 0;
-const LOCAL_SKILL_DAMAGE = 50;
 const ASSET_SOFTKEY_MENU = require('../../../assets/ui/11_softkey_icons_confirmed/icon_sharpest_1.png');
 const ASSET_SOFTKEY_OK = require('../../../assets/ui/11_softkey_icons_confirmed/icon_ok.png');
 const ASSET_SOFTKEY_CANCEL = require('../../../assets/ui/11_softkey_icons_confirmed/icon_cancel.png');
@@ -117,7 +118,7 @@ const getSwordAttackTiming = (distancePx: number): SwordAttackTiming => {
 };
 
 export const BattleScreen: React.FC<BattleScreenProps> = ({
-  monsterType, appearance, initialTurn = 'player', onVictory, onDefeat, onFlee,
+  monsterType, appearance, initialTurn = 'player', onVictory, onDefeat, onFlee, resolveSkillPacket,
 }) => {
   const maxHP  = 100;
   const maxEHP = MONSTER_HP[monsterType] ?? 150;
@@ -181,6 +182,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const playerAttackQueueRef = useRef<QueuedAttack[]>([]);
   const monsterAttackQueueRef = useRef<QueuedAttack[]>([]);
   const skillCastTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const skillPacketRequestRef = useRef(false);
   const playerAttackRunningRef = useRef(false);
   const monsterAttackRunningRef = useRef(false);
   const playerDefeatStartedRef = useRef(false);
@@ -466,33 +468,48 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setExplodeFrames,
     onSpawnFX: spawnMatchFX,
   });
-  const applyLocalSkillBoardBreak = useCallback((familyCode: SkillFamilyCode, boardPoints: ActiveBattleSkillCast['boardClearTargets']) => {
-    if (
-      familyCode !== 1000 &&
-      familyCode !== 1006 &&
-      familyCode !== 2003 &&
-      familyCode !== 4000 &&
-      familyCode !== 4006 &&
-      familyCode !== 4008
-    ) {
-      return;
+  const processMatchesRef = useRef<ReturnType<typeof useBattleMatchFlow>['processMatches'] | null>(null);
+  const applyServerPacketBoardMutation = useCallback((packet: BattleSkillRuntimePacket) => {
+    switch (packet.boardMutation.kind) {
+      case 'clear': {
+        const matched = collectSkillPacketBoardKeys(packet);
+        if (matched.size === 0) return;
+
+        const currentBoard = boardRef.current;
+        const clearedBoard = clearMatchedCells(currentBoard, matched);
+
+        playExplosion(matched, matched, currentBoard, () => {
+          if (!mountedRef.current) return;
+          const { newBoard, fallMap, affectedKeys } = collapseLogic(clearedBoard, matched, boardEngineRef.current);
+          boardRef.current = newBoard;
+          animateFall(newBoard, fallMap, () => {
+            if (!mountedRef.current || !processMatchesRef.current) return;
+            if (findMatchesFromAffected(newBoard, affectedKeys).size === 0) return;
+            processMatchesRef.current(newBoard, 0, affectedKeys);
+          });
+        });
+        return;
+      }
+      case 'mark': {
+        const stateId = packet.boardMutation.stateId ?? 10;
+        if (packet.boardMutation.cells.length === 0) return;
+        setBoard(currentBoard => {
+          const nextBoard = currentBoard.map(row => [...row]);
+          for (const [row, col] of packet.boardMutation.cells) {
+            if (row < 0 || row >= nextBoard.length || col < 0 || col >= nextBoard[row].length) continue;
+            nextBoard[row][col] = stateId as Board[number][number];
+          }
+          boardRef.current = nextBoard;
+          return nextBoard;
+        });
+        return;
+      }
+      case 'helper':
+      case 'none':
+      default:
+        return;
     }
-
-    const matched = new Set(
-      boardPoints.map(point => `${point.row},${point.col}`),
-    );
-    if (matched.size === 0) return;
-
-    const currentBoard = boardRef.current;
-    const clearedBoard = clearMatchedCells(currentBoard, matched);
-
-    playExplosion(matched, matched, currentBoard, () => {
-      if (!mountedRef.current) return;
-      const { newBoard, fallMap } = collapseLogic(clearedBoard, matched, boardEngineRef.current);
-      boardRef.current = newBoard;
-      animateFall(newBoard, fallMap, () => {});
-    });
-  }, [animateFall, boardEngineRef, boardRef, mountedRef, playExplosion]);
+  }, [animateFall, boardEngineRef, mountedRef, playExplosion, setBoard]);
 
   // ── Monster animation ──────────────────────────────────────────────────────
   const monTick = useRef(0);
@@ -648,7 +665,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     monsterAttackQueueRef.current.push({ onImpact, onComplete });
     runNextMonsterSwordAttack();
   }, [runNextMonsterSwordAttack]);
-  const { doDirectSwap } = useBattleMatchFlow({
+  const { doDirectSwap, processMatches } = useBattleMatchFlow({
     mountedRef,
     phaseRef,
     turnRef,
@@ -684,6 +701,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
   const doDirectSwapRef = useRef(doDirectSwap);
   useEffect(() => { doDirectSwapRef.current = doDirectSwap; }, [doDirectSwap]);
+  useEffect(() => { processMatchesRef.current = processMatches; }, [processMatches]);
 
   const {
     clearAiTimers,
@@ -751,218 +769,138 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     doDirectSwapRef.current(sr, sc, row, col);
   }, [selected, phase, turn]);
 
-  const getCellCenter = useCallback((row: number, col: number) => ({
-    x: panelLeft + BOARD_LEFT + col * GEM_SIZE + GEM_SIZE / 2,
-    y: panelTop + BOARD_TOP + row * GEM_SIZE + GEM_SIZE / 2,
-  }), [panelLeft, panelTop]);
+  const handleSkillCast = useCallback(async (familyCode: SkillFamilyCode) => {
+    const skill = BATTLE_SKILLS[familyCode];
+    if (phase !== 'idle' || turn !== 'player' || result !== null || skillPacketRequestRef.current) return;
 
-  const buildLocalSkillCastFixture = useCallback((familyCode: SkillFamilyCode) => {
-    const [cursorRow, cursorCol] = cursorCell;
-    const clampRow = (row: number) => Math.max(0, Math.min(9, row));
-    const clampCol = (col: number) => Math.max(0, Math.min(7, col));
-    const uniqueCells = (cells: BattleCell[]) => Array.from(
-      new Map(
-        cells.map(([row, col]) => [
-          `${clampRow(row)}-${clampCol(col)}`,
-          [clampRow(row), clampCol(col)] as BattleCell,
-        ]),
-      ).values(),
-    );
-    const toPoints = (cells: BattleCell[]) => uniqueCells(cells).map(([row, col]) => {
-      const point = getCellCenter(row, col);
-      return { ...point, row, col };
-    });
-    const actorCenterTarget = {
-      x: panelLeft + monsterBaseLeft + monsterSize.w * 0.42,
-      y: charsTop + charsRowHeight - monsterGroundOffset - monsterSize.h * 0.52,
-    };
-    const actorBottomTarget = {
-      x: actorCenterTarget.x,
-      y: charsTop + charsRowHeight - monsterGroundOffset,
-    };
+    setSelectedSkillFamily(familyCode);
+    if (!resolveSkillPacket) {
+      showBonusBanner(`Skill ${skill.familyCode} tạm khóa: chờ packet server để render đúng Java`);
+      return;
+    }
 
-    const tileBurstPoints = toPoints([
-      [cursorRow, cursorCol],
-      [cursorRow, cursorCol + 1],
-      [cursorRow + 1, cursorCol],
-      [cursorRow + 1, cursorCol + 1],
-    ]);
-    const singleEffectPoint = toPoints([[cursorRow, cursorCol]]);
-    const pillarPoints = toPoints([
-      [cursorRow, cursorCol],
-      [cursorRow - 1, cursorCol],
-      [cursorRow + 1, cursorCol],
-      [cursorRow, cursorCol + 1],
-    ]);
-    const stagedColumnPoints = toPoints([
-      [0, cursorCol - 1],
-      [0, cursorCol],
-      [0, cursorCol + 1],
-      [0, cursorCol + 2],
-    ]);
-    const sweepColumns = toPoints([
-      [0, cursorCol - 1],
-      [0, cursorCol],
-      [0, cursorCol + 1],
-    ]);
+    skillPacketRequestRef.current = true;
 
-    switch (familyCode) {
-      case 1000:
-      case 4000:
-      case 4008:
-        return { actorTarget: actorCenterTarget, boardClearTargets: tileBurstPoints, cellTargets: tileBurstPoints };
-      case 1006:
-        return { actorTarget: actorBottomTarget, boardClearTargets: tileBurstPoints, cellTargets: tileBurstPoints };
-      case 4006:
-        return { actorTarget: actorCenterTarget, boardClearTargets: tileBurstPoints, cellTargets: tileBurstPoints };
-      case 2003:
-        return { actorTarget: actorCenterTarget, boardClearTargets: tileBurstPoints, cellTargets: [] };
-      case 1001:
-        return { actorTarget: null, boardClearTargets: tileBurstPoints, cellTargets: tileBurstPoints };
-      case 2000:
-        return { actorTarget: actorCenterTarget, boardClearTargets: tileBurstPoints, cellTargets: tileBurstPoints };
-      case 1007:
-      case 2007:
-      case 4007:
-        return { actorTarget: actorBottomTarget, boardClearTargets: pillarPoints, cellTargets: pillarPoints };
-      case 1008:
-        return {
-          actorTarget: null,
-          boardClearTargets: stagedColumnPoints,
-          cellTargets: toPoints([[0, cursorCol]]),
-        };
-      case 2006:
-        return { actorTarget: actorCenterTarget, boardClearTargets: sweepColumns, cellTargets: sweepColumns };
-      case 2008:
-        return {
-          actorTarget: actorCenterTarget,
-          boardClearTargets: toPoints([
-            [cursorRow, cursorCol],
-            [cursorRow - 1, cursorCol],
-            [cursorRow + 1, cursorCol],
-            [cursorRow, cursorCol - 1],
-            [cursorRow, cursorCol + 1],
-            [cursorRow - 1, cursorCol - 1],
-            [cursorRow - 1, cursorCol + 1],
-            [cursorRow + 1, cursorCol + 1],
-          ]),
-          cellTargets: toPoints([
-            [cursorRow, cursorCol],
-            [cursorRow - 1, cursorCol],
-            [cursorRow + 1, cursorCol],
-            [cursorRow, cursorCol - 1],
-            [cursorRow, cursorCol + 1],
-          ]),
-        };
-      default:
-        return { actorTarget: null, boardClearTargets: singleEffectPoint, cellTargets: singleEffectPoint };
+    try {
+      const packet = await resolveSkillPacket({
+        familyCode,
+        casterSide: 'player',
+        board: boardRef.current,
+        selectedCell: cursorCell,
+      });
+
+      if (!mountedRef.current) return;
+      if (!packet || packet.runtimeSource !== 'server_packet' || packet.familyCode !== familyCode) {
+        showBonusBanner(`Skill ${skill.familyCode} chưa có packet hợp lệ từ server`);
+        return;
+      }
+
+      setSkillPanelVisible(false);
+      setMenuVisible(false);
+      setSelected(null);
+      setHintCell(null);
+      setHintMove(null);
+      setPhase('busy');
+      phaseRef.current = 'busy';
+      setPlayerAction('attack');
+      setPlayerActionFrameIndex(0);
+
+      const cast = buildActiveBattleSkillCastFromPacket(packet, {
+        panelLeft,
+        panelTop,
+        charsTop,
+        charsRowHeight,
+        playerBaseLeft,
+        monsterBaseLeft,
+        playerSize,
+        monsterSize,
+        monsterGroundOffset,
+      });
+
+      setActiveSkillCasts(prev => [...prev, cast]);
+
+      const impactTimer = setTimeout(() => {
+        if (!mountedRef.current) return;
+        applyServerPacketBoardMutation(packet);
+
+        if (packet.impact.hitsActor) {
+          playEnemySkillImpact(packet.impact.hitShakePx ?? skill.hitShakePx);
+        }
+
+        if ((packet.impact.damage ?? 0) > 0) {
+          showDamagePopup('enemy', packet.impact.damage ?? 0);
+          setEnemyHP(hp => {
+            const next = Math.max(0, hp - (packet.impact.damage ?? 0));
+            if (next === 0 && phaseRef.current !== 'over') {
+              phaseRef.current = 'over';
+              setPhase('over');
+              setResult('victory');
+            }
+            return next;
+          });
+        }
+      }, cast.impactDelayMs);
+
+      const finishTimer = setTimeout(() => {
+        if (!mountedRef.current) return;
+        setActiveSkillCasts(prev => prev.filter(item => item.key !== cast.key));
+        setPlayerAction('idle');
+        setPlayerActionFrameIndex(null);
+        if (phaseRef.current === 'over') return;
+        if (phaseRef.current !== 'busy') return;
+        turnRef.current = 'monster';
+        setTurn('monster');
+        setTurnCycle(cycle => cycle + 1);
+        phaseRef.current = 'idle';
+        setPhase('idle');
+      }, cast.durationMs);
+
+      skillCastTimersRef.current.push(impactTimer, finishTimer);
+    } catch (error) {
+      console.warn('[BattleScreen] resolveSkillPacket failed', error);
+      if (mountedRef.current) {
+        showBonusBanner(`Skill ${skill.familyCode} lỗi packet runtime`);
+      }
+    } finally {
+      skillPacketRequestRef.current = false;
     }
   }, [
+    applyServerPacketBoardMutation,
     charsRowHeight,
     charsTop,
     cursorCell,
-    getCellCenter,
     monsterBaseLeft,
     monsterGroundOffset,
-    monsterSize.h,
-    monsterSize.w,
+    monsterSize,
+    mountedRef,
     panelLeft,
-  ]);
-
-  const handleSkillCast = useCallback((familyCode: SkillFamilyCode) => {
-    const skill = BATTLE_SKILLS[familyCode];
-    if (mana < SKILL_MANA_COST || phase !== 'idle' || turn !== 'player' || result !== null) return;
-
-    setSkillPanelVisible(false);
-    setMenuVisible(false);
-    setSelectedSkillFamily(familyCode);
-    setSelected(null);
-    setHintCell(null);
-    setHintMove(null);
-    setMana(current => Math.max(0, current - SKILL_MANA_COST));
-    setPhase('busy');
-    phaseRef.current = 'busy';
-    setPlayerAction('attack');
-    setPlayerActionFrameIndex(0);
-
-    const sourceX = panelLeft + playerBaseLeft + playerSize.w * 0.7;
-    const sourceY = charsTop + charsRowHeight - (playerSize.groundOffset ?? 0) - playerSize.h * 0.6;
-    const castKey = `skill-${familyCode}-${Date.now()}`;
-    const { actorTarget, boardClearTargets, cellTargets } = buildLocalSkillCastFixture(familyCode);
-    const cast: ActiveBattleSkillCast = {
-      key: castKey,
-      familyCode,
-      startedAt: Date.now(),
-      sourceX,
-      sourceY,
-      actorTarget,
-      boardClearTargets,
-      cellTargets,
-      durationMs: skill.totalMs,
-    };
-
-    setActiveSkillCasts(prev => [...prev, cast]);
-
-    const impactTimer = setTimeout(() => {
-      if (!mountedRef.current) return;
-      applyLocalSkillBoardBreak(familyCode, boardClearTargets);
-      playEnemySkillImpact(skill.hitShakePx);
-      showDamagePopup('enemy', LOCAL_SKILL_DAMAGE);
-      setEnemyHP(hp => {
-        const next = Math.max(0, hp - LOCAL_SKILL_DAMAGE);
-        if (next === 0 && phaseRef.current !== 'over') {
-          phaseRef.current = 'over';
-          setPhase('over');
-          setResult('victory');
-        }
-        return next;
-      });
-    }, skill.impactDelayMs);
-
-    const finishTimer = setTimeout(() => {
-      if (!mountedRef.current) return;
-      setActiveSkillCasts(prev => prev.filter(item => item.key !== castKey));
-      setPlayerAction('idle');
-      setPlayerActionFrameIndex(null);
-      if (phaseRef.current === 'over') return;
-      turnRef.current = 'monster';
-      setTurn('monster');
-      setTurnCycle(cycle => cycle + 1);
-      phaseRef.current = 'idle';
-      setPhase('idle');
-    }, skill.totalMs);
-
-    skillCastTimersRef.current.push(impactTimer, finishTimer);
-  }, [
-    applyLocalSkillBoardBreak,
-    buildLocalSkillCastFixture,
-    charsRowHeight,
-    charsTop,
-    mana,
-    monsterBaseLeft,
-    monsterGroundOffset,
-    monsterSize.h,
-    monsterSize.w,
-    panelLeft,
+    panelTop,
     phase,
-    playerBaseLeft,
-    playerSize.groundOffset,
-    playerSize.h,
-    result,
-    showDamagePopup,
     playEnemySkillImpact,
+    playerBaseLeft,
+    playerSize,
+    result,
+    resolveSkillPacket,
+    showDamagePopup,
+    showBonusBanner,
     turn,
   ]);
 
   // ── Skill ──────────────────────────────────────────────────────────────────
   const handleSkill = useCallback(() => {
-    if (mana < SKILL_MANA_COST || phase !== 'idle' || turn !== 'player' || result !== null) return;
+    if (phase !== 'idle' || turn !== 'player' || result !== null) return;
     setHintCell(null);
     setHintMove(null);
-    setSelectedSkillFamily(prev => prev ?? (battleElement === 0 ? 1000 : battleElement === 1 ? 2000 : 4000));
+    setSelectedSkillFamily(prev => {
+      if (prev && isBattleSkillServerPacketReady(prev)) {
+        return prev;
+      }
+      return getFirstBattleSkillServerPacketReadyFamily(battleElement)
+        ?? (battleElement === 0 ? 1000 : battleElement === 1 ? 2000 : 4000);
+    });
     setSkillPanelVisible(true);
     setMenuVisible(false);
-  }, [battleElement, mana, phase, result, turn]);
+  }, [battleElement, phase, result, turn]);
 
   const { w: mW, h: mH } = monsterSize;
   const resultMeta = result ? RESULT_ART_META[result] : null;

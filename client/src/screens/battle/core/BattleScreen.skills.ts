@@ -276,14 +276,53 @@ export const BATTLE_SKILLS: Record<SkillFamilyCode, BattleSkillDefinition> = {
   4008: family(4008, 2, 'Thủy', 'iz(reuse)', 'Không có class riêng; Java route lại sang `iz` và dùng asset 4000.', 'Client phải reuse runtime family 4000 thay vì dựng family mới.', 'projectile_pair', 'tiles', 16, 540, 1340),
 };
 
+const SERVER_PACKET_READY_SKILL_FAMILIES = new Set<SkillFamilyCode>([
+  1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008,
+  2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+  4000, 4001, 4002, 4003, 4004, 4005, 4006, 4007, 4008,
+]);
+
 export const getBattleElement = (elementIndex?: number): BattleElementIndex =>
   elementIndex === 1 ? 1 : elementIndex === 2 ? 2 : 0;
 
 export const getSkillFamiliesForElement = (elementIndex?: number): BattleSkillDefinition[] =>
   SKILL_FAMILIES_BY_ELEMENT[getBattleElement(elementIndex)].map(code => BATTLE_SKILLS[code]);
 
+export const isBattleSkillServerPacketReady = (familyCode: SkillFamilyCode): boolean =>
+  SERVER_PACKET_READY_SKILL_FAMILIES.has(familyCode);
+
+export const getFirstBattleSkillServerPacketReadyFamily = (
+  elementIndex?: number,
+): SkillFamilyCode | null =>
+  SKILL_FAMILIES_BY_ELEMENT[getBattleElement(elementIndex)]
+    .find(isBattleSkillServerPacketReady) ?? null;
+
 export const hasDedicatedSkillRuntimeFrames = (familyCode: SkillFamilyCode): boolean =>
   BATTLE_SKILLS[familyCode].runtimeAssetMode === 'dedicated';
 
 export const reusesSkillRuntimeFrames = (familyCode: SkillFamilyCode): boolean =>
   BATTLE_SKILLS[familyCode].runtimeAssetMode === 'reuse';
+
+export const doesSkillHitActor = (familyCode: SkillFamilyCode): boolean => {
+  switch (familyCode) {
+    case 1000:
+    case 1004:
+    case 1005:
+    case 1006:
+    case 1007:
+    case 1008:
+    case 2000:
+    case 2003:
+    case 2006:
+    case 2007:
+    case 4000:
+    case 4003:
+    case 4005:
+    case 4006:
+    case 4007:
+    case 4008:
+      return true;
+    default:
+      return false;
+  }
+};

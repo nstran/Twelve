@@ -5,6 +5,7 @@ import {
   type BattleSkillDefinition,
   type SkillFamilyCode,
   getSkillFamiliesForElement,
+  isBattleSkillServerPacketReady,
 } from '../core';
 
 const PANEL_CORNER = require('../../../../assets/ui/00_corner_frames/4.png');
@@ -22,7 +23,10 @@ const SkillTile: React.FC<{
   skill: BattleSkillDefinition;
   selected: boolean;
   onPress: () => void;
-}> = ({ skill, selected, onPress }) => (
+}> = ({ skill, selected, onPress }) => {
+  const packetReady = isBattleSkillServerPacketReady(skill.familyCode);
+
+  return (
   <TouchableOpacity
     activeOpacity={0.9}
     onPress={onPress}
@@ -35,6 +39,7 @@ const SkillTile: React.FC<{
       backgroundColor: selected ? '#f4fbff' : '#f1f1f1',
       alignItems: 'center',
       justifyContent: 'center',
+      opacity: packetReady ? 1 : 0.55,
     }}
   >
     <Image
@@ -52,11 +57,26 @@ const SkillTile: React.FC<{
         color: selected ? '#004a86' : '#555',
         fontSize: 8,
       }}
-    >
-      {skill.familyCode}
-    </Text>
+      >
+        {skill.familyCode}
+      </Text>
+      {!packetReady && (
+        <Text
+          style={{
+            position: 'absolute',
+            top: 3,
+            right: 4,
+            color: '#7a2a2a',
+            fontSize: 7,
+            fontWeight: '700',
+          }}
+        >
+          LOCK
+        </Text>
+      )}
   </TouchableOpacity>
-);
+  );
+};
 
 export const BattleSkillPanel: React.FC<BattleSkillPanelProps> = ({
   visible,
@@ -71,6 +91,9 @@ export const BattleSkillPanel: React.FC<BattleSkillPanelProps> = ({
     () => skills.find(skill => skill.familyCode === selectedFamily) ?? skills[0] ?? null,
     [selectedFamily, skills],
   );
+  const selectedSkillPacketReady = selectedSkill
+    ? isBattleSkillServerPacketReady(selectedSkill.familyCode)
+    : false;
 
   return (
     <BaseDialog
@@ -138,6 +161,11 @@ export const BattleSkillPanel: React.FC<BattleSkillPanelProps> = ({
             <Text style={{ color: '#6d6d6d', fontSize: 12, lineHeight: 17 }}>
               {selectedSkill.serverNote}
             </Text>
+            {!selectedSkillPacketReady && (
+              <Text style={{ color: '#8b2d2d', fontSize: 12, lineHeight: 17, marginTop: 8 }}>
+                Skill này đang khóa ở runtime hiện tại vì server chưa có target arrays battle thật cho family này.
+              </Text>
+            )}
           </ScrollView>
         )}
       </View>

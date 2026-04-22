@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, View, Text } from 'react-native';
 import {
   BattleScreen,
+  createBattleSkillPacketResolver,
   HoaLuMapScreen,
   LoginScreen,
   MainScreen,
@@ -53,6 +54,10 @@ export default function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [connectMsg, setConnectMsg]   = useState('ĐANG KẾT NỐI CHIẾN TRƯỜNG...');
   const addLog = (msg: string) => console.log(msg);
+  const resolveSkillPacket = React.useMemo(
+    () => createBattleSkillPacketResolver(SERVER_URL),
+    [],
+  );
 
   const client         = SocketClient.getInstance();
   const reconnectTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -236,6 +241,7 @@ export default function App() {
             monsterType={battleMonster}
             appearance={playerAppearance}
             initialTurn={battleInitialTurn}
+            resolveSkillPacket={resolveSkillPacket}
             onVictory={() => setScreen('hoaLuMap')}
             onDefeat={()  => setScreen('hoaLuMap')}
             onFlee={()    => setScreen('hoaLuMap')}
