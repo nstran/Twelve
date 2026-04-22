@@ -139,6 +139,7 @@ export interface BattleSkillPacketRequest {
   casterSide: BattleSide;
   board: Board;
   selectedCell: BattleCell;
+  skillLevel?: number | null;
 }
 
 export type ResolveBattleSkillPacket =
@@ -157,6 +158,7 @@ export interface ActiveBattleSkillCast {
   key: string;
   familyCode: SkillFamilyCode;
   startedAt: number;
+  casterSide: BattleSide;
   sourceX: number;
   sourceY: number;
   actorTarget: BattleSkillRuntimePayload['actorTarget'];
@@ -165,5 +167,6 @@ export interface ActiveBattleSkillCast {
   runtimeSource: BattleSkillRuntimeSource;
   hitsActor: boolean;
   impactDelayMs: number;
+  boardMutationDelayMs: number;
   durationMs: number;
 }

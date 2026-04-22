@@ -54,7 +54,11 @@ export const GEM_CRYSTAL_OVERLAY = require('../../../../assets/battle/03_crystal
 export const GEM_HIDDEN_DRAGON = require('../../../../assets/battle/09_hidden_pieces/hiddendragon.png');
 export const GEM_HIDDEN_PHOENIX = require('../../../../assets/battle/09_hidden_pieces/hiddenphoenix.png');
 
-export const GEM_TYPES: readonly GemType[] = GEM_RENDER_TYPES;
+// Java `nj` node ids only generate the base board pieces `0..6` plus stateful
+// overlays such as `10..15` and `20..25`. `8` exists as an image index
+// (`chess8`), not as a normal board node id, so it must not appear in random
+// refills or fresh board generation.
+export const GEM_TYPES: readonly GemType[] = [0, 1, 2, 3, 4, 5, 6];
 
 const GEM_RENDER_MAP: Record<GemType, VisibleGemType> = {
   0: 0,
@@ -65,7 +69,7 @@ const GEM_RENDER_MAP: Record<GemType, VisibleGemType> = {
   5: 5,
   6: 6,
   8: 8,
-  10: 0,
+  10: 8,
   11: 1,
   12: 2,
   13: 3,
@@ -189,7 +193,8 @@ export const getGemFXKind = (gem: GemType): FXKind => GEM_FX_KIND_BASE[getGemRen
 export const isSwordGem = (gem: GemType): gem is typeof WHITE_SWORD_GEM | typeof RED_SWORD_GEM | 10 | 20 =>
   getGemCategory(gem) === SWORD_CAT;
 
-export const isRedSwordGem = (gem: GemType): gem is typeof RED_SWORD_GEM => gem === RED_SWORD_GEM;
+export const isRedSwordGem = (gem: GemType): gem is typeof RED_SWORD_GEM | 10 =>
+  getGemCategory(gem) === SWORD_CAT && getGemRenderType(gem) === RED_SWORD_GEM;
 
 export const isCrystalGem = (gem: GemType): boolean => getGemStateClass(gem) === 2;
 

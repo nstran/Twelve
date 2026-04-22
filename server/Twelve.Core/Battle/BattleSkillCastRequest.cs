@@ -7,6 +7,7 @@ namespace Twelve.Core.Battle
         BattleSide CasterSide,
         int SelectedRow,
         int SelectedCol,
+        int? SkillLevel,
         IReadOnlyList<IReadOnlyList<int?>>? Board
     );
 }

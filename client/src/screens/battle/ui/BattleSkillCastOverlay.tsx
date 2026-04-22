@@ -28,6 +28,8 @@ type VolleyRenderConfig = {
   startDx: number;
   startDy: number;
   volleyDelayMs: number;
+  flightPath?: 'straight' | 'fireball_drop';
+  cellStartMode?: 'parallel' | 'after_actor_impact';
 };
 
 type HelperRenderConfig = {
@@ -37,7 +39,16 @@ type HelperRenderConfig = {
 };
 
 const VOLLEY_CONFIG: Partial<Record<SkillFamilyCode, VolleyRenderConfig>> = {
-  1000: { includeActorTarget: true, includeCellTargets: true, twinImpact: false, startDx: -180, startDy: -180, volleyDelayMs: 72 },
+  1000: {
+    includeActorTarget: true,
+    includeCellTargets: true,
+    twinImpact: false,
+    startDx: -180,
+    startDy: -180,
+    volleyDelayMs: 72,
+    flightPath: 'fireball_drop',
+    cellStartMode: 'after_actor_impact',
+  },
   1006: { includeActorTarget: true, includeCellTargets: true, twinImpact: true, startDx: -180, startDy: -180, volleyDelayMs: 52 },
   2003: { includeActorTarget: true, includeCellTargets: false, twinImpact: false, startDx: -180, startDy: -180, volleyDelayMs: 0 },
   4000: { includeActorTarget: true, includeCellTargets: true, twinImpact: false, startDx: -180, startDy: -180, volleyDelayMs: 72 },
@@ -65,10 +76,13 @@ const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const easeOutQuad = (t: number) => 1 - (1 - t) * (1 - t);
 const easeInOutQuad = (t: number) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2);
+const smoothStep = (t: number) => t * t * (3 - 2 * t);
 
 const runtimePrimary = (skill: BattleSkillDefinition) => skill.runtimeFrames[0] ?? skill.icon;
 const runtimeSecondary = (skill: BattleSkillDefinition) => skill.runtimeFrames[1] ?? skill.runtimeFrames[0] ?? skill.icon;
 const runtimeTertiary = (skill: BattleSkillDefinition) => skill.runtimeFrames[2] ?? skill.runtimeFrames[1] ?? skill.runtimeFrames[0] ?? skill.icon;
+const volleyStartDxForCast = (cast: ActiveBattleSkillCast, config: VolleyRenderConfig) =>
+  cast.casterSide === 'player' ? config.startDx : -config.startDx;
 
 const sheetMetrics = (source: any, frameCount: number) => {
   const safeFrameCount = Math.max(1, frameCount);
@@ -132,6 +146,50 @@ const arcPoint = (start: ScreenPoint, end: ScreenPoint, t: number, lift: number)
   return {
     x: lerp(start.x, end.x, t),
     y: invT * invT * start.y + 2 * invT * t * controlY + t * t * end.y,
+  };
+};
+
+const quadraticPoint = (
+  start: ScreenPoint,
+  control: ScreenPoint,
+  end: ScreenPoint,
+  t: number,
+): ScreenPoint => {
+  const invT = 1 - t;
+  return {
+    x: invT * invT * start.x + 2 * invT * t * control.x + t * t * end.x,
+    y: invT * invT * start.y + 2 * invT * t * control.y + t * t * end.y,
+  };
+};
+
+const volleyProjectilePoint = (
+  cast: ActiveBattleSkillCast,
+  config: VolleyRenderConfig,
+  point: ScreenPoint,
+  flightT: number,
+): ScreenPoint => {
+  const startDx = volleyStartDxForCast(cast, config);
+  const start = {
+    x: point.x + startDx,
+    y: point.y + config.startDy,
+  };
+
+  if (config.flightPath === 'fireball_drop') {
+    const easedT = smoothStep(flightT);
+    return quadraticPoint(
+      start,
+      {
+        x: lerp(start.x, point.x, 0.26),
+        y: lerp(start.y, point.y, 0.12),
+      },
+      point,
+      easedT,
+    );
+  }
+
+  return {
+    x: lerp(start.x, point.x, flightT),
+    y: lerp(start.y, point.y, easeOutQuad(flightT)),
   };
 };
 
@@ -282,12 +340,10 @@ const renderVolleyFamily = (
   const renderSingleVolley = (key: string, point: ScreenPoint, localElapsedMs: number) => {
     if (localElapsedMs < 0 || localElapsedMs > flightDurationMs + impactDurationMs) return null;
     const flightT = clamp01(localElapsedMs / flightDurationMs);
-
-    const startX = point.x + config.startDx;
-    const startY = point.y + config.startDy;
+    const startDx = volleyStartDxForCast(cast, config);
+    const startX = point.x + startDx;
     const flipX = startX < point.x;
-    const projectileX = lerp(startX, point.x, flightT);
-    const projectileY = lerp(startY, point.y, easeOutQuad(flightT));
+    const projectilePoint = volleyProjectilePoint(cast, config, point, flightT);
     const impactT = clamp01((localElapsedMs - flightDurationMs) / impactDurationMs);
     const impactFrameIndex = frameAt(impactT, impactFrameCount);
 
@@ -296,8 +352,8 @@ const renderVolleyFamily = (
         {localElapsedMs < flightDurationMs && (
           <Sprite
             source={projectileSource}
-            left={projectileX - projectileSize.width / 2}
-            top={projectileY - projectileSize.height}
+            left={projectilePoint.x - projectileSize.width / 2}
+            top={projectilePoint.y - projectileSize.height}
             width={projectileSize.width}
             height={projectileSize.height}
             flipX={flipX}
@@ -352,8 +408,9 @@ const renderVolleyFamily = (
   }
 
   if (config.includeCellTargets) {
+    const cellStartOffsetMs = config.cellStartMode === 'after_actor_impact' ? flightDurationMs : config.volleyDelayMs;
     cast.cellTargets.forEach((point, index) => {
-      const localElapsedMs = elapsedMs - config.volleyDelayMs * (index + 1);
+      const localElapsedMs = elapsedMs - cellStartOffsetMs - config.volleyDelayMs * index;
       const cellVolley = renderSingleVolley(
         `${cast.key}-volley-cell-${index}-${point.row}-${point.col}`,
         point,
@@ -912,9 +969,10 @@ const renderActorHitOverlay = (
 ) => {
   if (!cast.actorTarget || !cast.hitsActor) return null;
   if (skill.pattern === 'projectile_pair') {
-    const impactT = clamp01((elapsedMs - 380) / 220);
+    const impactStartMs = cast.impactDelayMs;
+    const impactT = clamp01((elapsedMs - impactStartMs) / 220);
     if (impactT <= 0 || impactT >= 1) return null;
-    return renderActorBurst(`${cast.key}-projectile-hit`, cast.actorTarget, elapsedMs, 380, 220);
+    return renderActorBurst(`${cast.key}-projectile-hit`, cast.actorTarget, elapsedMs, impactStartMs, 220);
   }
   return null;
 };

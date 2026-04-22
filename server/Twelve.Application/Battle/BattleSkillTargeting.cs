@@ -66,6 +66,108 @@ namespace Twelve.Application.Battle
                 .ToArray();
         }
 
+        public static IReadOnlyList<BattleSkillJavaCell> SelectNearestCellsBySelectedCategory(
+            BattleSkillCastRequest request,
+            int maxCells)
+        {
+            if (maxCells <= 0)
+            {
+                return Array.Empty<BattleSkillJavaCell>();
+            }
+
+            var ordered = SelectCellsBySelectedCategory(request);
+            if (ordered.Count <= maxCells)
+            {
+                return ordered;
+            }
+
+            return ordered
+                .Take(maxCells)
+                .ToArray();
+        }
+
+        public static IReadOnlyList<BattleSkillJavaCell> SelectRandomTwoByTwoRegionAnchors(
+            int maxRegions)
+        {
+            if (maxRegions <= 0)
+            {
+                return Array.Empty<BattleSkillJavaCell>();
+            }
+
+            var candidates = new List<(int TopRow, int TopCol)>(49);
+            for (var topRow = 0; topRow <= 6; topRow++)
+            {
+                for (var topCol = 0; topCol <= 6; topCol++)
+                {
+                    candidates.Add((topRow, topCol));
+                }
+            }
+
+            ShuffleInPlace(candidates);
+
+            var selected = new List<(int TopRow, int TopCol)>(maxRegions);
+            foreach (var candidate in candidates)
+            {
+                if (selected.Any(existing => RegionsOverlap(existing.TopRow, existing.TopCol, candidate.TopRow, candidate.TopCol)))
+                {
+                    continue;
+                }
+
+                selected.Add((candidate.TopRow, candidate.TopCol));
+                if (selected.Count >= maxRegions)
+                {
+                    break;
+                }
+            }
+
+            if (selected.Count == 0)
+            {
+                var fallback = candidates.Count > 0 ? candidates[0] : (TopRow: 0, TopCol: 0);
+                return new[] { ToJavaCell(fallback.TopRow, fallback.TopCol) };
+            }
+
+            return selected
+                .Select(candidate => ToJavaCell(candidate.TopRow, candidate.TopCol))
+                .ToArray();
+        }
+
+        public static IReadOnlyList<BattleSkillJavaCell> ExpandTwoByTwoRegionAnchors(
+            IReadOnlyList<BattleSkillJavaCell> anchors)
+        {
+            if (anchors is null || anchors.Count == 0)
+            {
+                return Array.Empty<BattleSkillJavaCell>();
+            }
+
+            var cells = new List<BattleSkillJavaCell>(anchors.Count * 4);
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (var anchor in anchors)
+            {
+                for (var rowOffset = 0; rowOffset <= 1; rowOffset++)
+                {
+                    for (var colOffset = 0; colOffset <= 1; colOffset++)
+                    {
+                        var cell = new BattleSkillJavaCell(anchor.Row + rowOffset, anchor.Col + colOffset);
+                        if (cell.Row < 2 || cell.Row > 9 || cell.Col < 2 || cell.Col > 9)
+                        {
+                            continue;
+                        }
+
+                        var key = $"{cell.Row},{cell.Col}";
+                        if (!seen.Add(key))
+                        {
+                            continue;
+                        }
+
+                        cells.Add(cell);
+                    }
+                }
+            }
+
+            return cells;
+        }
+
         public static BattleSkillJavaCell ToJavaCell(int clientRow, int clientCol) =>
             new(clientRow + 2, clientCol + 2);
 
@@ -101,6 +203,23 @@ namespace Twelve.Application.Battle
                 6 or 70 => 6,
                 _ => null,
             };
+        }
+
+        private static bool RegionsOverlap(
+            int leftTopRow,
+            int leftTopCol,
+            int rightTopRow,
+            int rightTopCol) =>
+            Math.Abs(leftTopRow - rightTopRow) <= 1 &&
+            Math.Abs(leftTopCol - rightTopCol) <= 1;
+
+        private static void ShuffleInPlace<T>(IList<T> items)
+        {
+            for (var index = items.Count - 1; index > 0; index--)
+            {
+                var swapIndex = Random.Shared.Next(index + 1);
+                (items[index], items[swapIndex]) = (items[swapIndex], items[index]);
+            }
         }
     }
 }

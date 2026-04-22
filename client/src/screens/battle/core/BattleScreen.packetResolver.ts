@@ -93,6 +93,7 @@ export const createBattleSkillPacketResolver = (
           casterSide: request.casterSide === 'enemy' ? 'Enemy' : 'Player',
           selectedRow: request.selectedCell[0],
           selectedCol: request.selectedCell[1],
+          skillLevel: request.skillLevel ?? null,
           board: request.board,
         }),
         signal: controller.signal,

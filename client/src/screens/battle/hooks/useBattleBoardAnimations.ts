@@ -204,10 +204,10 @@ export const useBattleBoardAnimations = ({
     });
   }, [mountedRef, swapOffsetsX, swapOffsetsY]);
 
-  const resetBoardAnim = useCallback((onDone: () => void) => {
-    const nextBoard = makeBoard(boardEngineRef.current);
-    boardRef.current = nextBoard;
-    setBoard(nextBoard);
+  const resetBoardAnim = useCallback((nextBoard: Board | undefined, onDone: () => void) => {
+    const boardToRender = nextBoard ?? makeBoard(boardEngineRef.current);
+    boardRef.current = boardToRender;
+    setBoard(boardToRender);
 
     const topOffset = -(BOARD_ROWS + 2) * GEM_SIZE;
     for (let r = 0; r < BOARD_ROWS; r++) {

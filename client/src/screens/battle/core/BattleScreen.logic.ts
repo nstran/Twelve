@@ -11,7 +11,9 @@ import {
   WHITE_SWORD_GEM,
   getGemCategory,
   getGemFX,
+  getGemRenderType,
   getGemMatchMask,
+  getGemStateClass,
   isRedSwordGem,
 } from './BattleScreen.shared';
 
@@ -39,11 +41,44 @@ export interface CollapseResult {
   affectedKeys: string[];
 }
 
+interface JavaAxisLine {
+  gem: GemType;
+  category: number;
+  row: number;
+  startCol: number;
+  hLen: number;
+  startRow: number;
+  col: number;
+  vLen: number;
+  spawnRow: number;
+  spawnCol: number;
+}
+
+export interface JavaBoardResolveResult {
+  triggerKeys: Set<string>;
+  clearedKeys: Set<string>;
+  boardAfterClear: Board;
+  spawnedSpecials: Array<{ r: number; c: number; gem: GemType }>;
+  bonusTurnCandidate: boolean;
+}
+
 const REFILL_BATCH_SIZE = 96;
 const randomSeed = () => ((Date.now() ^ Math.floor(Math.random() * 0x100000000)) >>> 0);
 const MATCH_LEN_MASK = 0xff;
 const MATCH_NEG_SHIFT = 16;
 const MATCH_POS_SHIFT = 8;
+const TYPE2_SPECIAL_BY_BASE: readonly GemType[] = [10, 11, 12, 13, 14, 15];
+const TYPE4_SPECIAL_BY_BASE: readonly GemType[] = [20, 21, 22, 23, 24, 25];
+const TYPE2_OFFSETS: readonly BattleCell[] = [
+  [-1, -1],
+  [-1, 0],
+  [-1, 1],
+  [0, 1],
+  [1, 1],
+  [1, 0],
+  [1, -1],
+  [0, -1],
+] as const;
 
 const keyOf = (r: number, c: number) => `${r},${c}`;
 
@@ -317,6 +352,264 @@ const scanTargetsToCells = (targets: Iterable<string | BattleCell>): BattleCell[
   return cells;
 };
 
+const addHorizontalKeys = (out: Set<string>, row: number, startCol: number, len: number) => {
+  for (let c = startCol; c < startCol + len; c++) out.add(keyOf(row, c));
+};
+
+const addVerticalKeys = (out: Set<string>, startRow: number, col: number, len: number) => {
+  for (let r = startRow; r < startRow + len; r++) out.add(keyOf(r, col));
+};
+
+const makeHorizontalLine = (board: Board, r: number, c: number, span: PackedSpan): JavaAxisLine | null => {
+  const len = unpackLen(span);
+  if (len < 3) return null;
+
+  const gem = board[r]?.[c];
+  if (gem === null || gem === undefined) return null;
+
+  const left = unpackNeg(span);
+  const startCol = c - left;
+  return {
+    gem,
+    category: getGemCategory(gem),
+    row: r,
+    startCol,
+    hLen: len,
+    startRow: r,
+    col: c,
+    vLen: 1,
+    spawnRow: r,
+    spawnCol: startCol + ((len - 1) >> 1),
+  };
+};
+
+const makeVerticalLine = (board: Board, r: number, c: number, span: PackedSpan): JavaAxisLine | null => {
+  const len = unpackLen(span);
+  if (len < 3) return null;
+
+  const gem = board[r]?.[c];
+  if (gem === null || gem === undefined) return null;
+
+  const up = unpackNeg(span);
+  const startRow = r - up;
+  return {
+    gem,
+    category: getGemCategory(gem),
+    row: r,
+    startCol: c,
+    hLen: 1,
+    startRow,
+    col: c,
+    vLen: len,
+    spawnRow: startRow + ((len - 1) >> 1),
+    spawnCol: c,
+  };
+};
+
+const collectJavaAxisLines = (
+  board: Board,
+  scanTargets?: Iterable<string | BattleCell>,
+): { horizontal: JavaAxisLine[]; vertical: JavaAxisLine[]; triggerKeys: Set<string> } => {
+  const horizontal = new Map<string, JavaAxisLine>();
+  const vertical = new Map<string, JavaAxisLine>();
+  const triggerKeys = new Set<string>();
+  const cells = scanTargets ? scanTargetsToCells(scanTargets) : Array.from(allBoardCells());
+
+  for (const [r, c] of cells) {
+    if (!inBounds(r, c)) continue;
+    if (board[r]?.[c] === null || board[r]?.[c] === undefined) continue;
+
+    const horizontalSpan = getSpanHorizontal(board, r, c);
+    if (unpackLen(horizontalSpan) >= 3) {
+      const line = makeHorizontalLine(board, r, c, horizontalSpan);
+      if (line) {
+        horizontal.set(
+          `${line.category}:h:${line.row}:${line.startCol}:${line.hLen}`,
+          line,
+        );
+        addHorizontalKeys(triggerKeys, line.row, line.startCol, line.hLen);
+      }
+    }
+
+    const verticalSpan = getSpanVertical(board, r, c);
+    if (unpackLen(verticalSpan) >= 3) {
+      const line = makeVerticalLine(board, r, c, verticalSpan);
+      if (line) {
+        vertical.set(
+          `${line.category}:v:${line.startRow}:${line.col}:${line.vLen}`,
+          line,
+        );
+        addVerticalKeys(triggerKeys, line.startRow, line.col, line.vLen);
+      }
+    }
+  }
+
+  return {
+    horizontal: [...horizontal.values()].sort((left, right) => right.hLen - left.hLen),
+    vertical: [...vertical.values()].sort((left, right) => right.vLen - left.vLen),
+    triggerKeys,
+  };
+};
+
+const mergeJavaAxisLines = (
+  horizontal: JavaAxisLine[],
+  vertical: JavaAxisLine[],
+): JavaAxisLine[] => {
+  const merged: JavaAxisLine[] = [];
+  const usedVertical = new Set<number>();
+
+  horizontal.forEach(horizontalLine => {
+    let consumed = false;
+    for (let index = 0; index < vertical.length; index++) {
+      if (usedVertical.has(index)) continue;
+      const verticalLine = vertical[index];
+      if (horizontalLine.category !== verticalLine.category) continue;
+
+      const intersectsHorizontally =
+        verticalLine.col >= horizontalLine.startCol &&
+        verticalLine.col < horizontalLine.startCol + horizontalLine.hLen;
+      const intersectsVertically =
+        horizontalLine.row >= verticalLine.startRow &&
+        horizontalLine.row < verticalLine.startRow + verticalLine.vLen;
+
+      if (!intersectsHorizontally || !intersectsVertically) continue;
+
+      merged.push({
+        gem: horizontalLine.gem,
+        category: horizontalLine.category,
+        row: horizontalLine.row,
+        startCol: horizontalLine.startCol,
+        hLen: horizontalLine.hLen,
+        startRow: verticalLine.startRow,
+        col: verticalLine.col,
+        vLen: verticalLine.vLen,
+        spawnRow: horizontalLine.row,
+        spawnCol: verticalLine.col,
+      });
+      usedVertical.add(index);
+      consumed = true;
+      break;
+    }
+
+    if (!consumed) merged.push(horizontalLine);
+  });
+
+  vertical.forEach((verticalLine, index) => {
+    if (!usedVertical.has(index)) merged.push(verticalLine);
+  });
+
+  return merged;
+};
+
+const addSpecialClearTarget = (
+  board: Board,
+  cleared: Set<string>,
+  queue: string[],
+  r: number,
+  c: number,
+) => {
+  if (!inBounds(r, c)) return;
+  const gem = board[r]?.[c];
+  if (gem === null || gem === undefined) return;
+
+  const key = keyOf(r, c);
+  if (!cleared.has(key)) {
+    cleared.add(key);
+    queue.push(key);
+  }
+};
+
+const collectSpecialChainKeys = (board: Board, initialKeys: Set<string>): Set<string> => {
+  const cleared = new Set<string>(initialKeys);
+  const queue = [...initialKeys];
+  const activated = new Set<string>();
+
+  while (queue.length > 0) {
+    const key = queue.shift()!;
+    if (activated.has(key)) continue;
+
+    const [r, c] = key.split(',').map(Number);
+    const gem = board[r]?.[c];
+    if (gem === null || gem === undefined) continue;
+
+    const stateClass = getGemStateClass(gem);
+    if (stateClass === 1) continue;
+    activated.add(key);
+
+    if (stateClass === 2) {
+      TYPE2_OFFSETS.forEach(([dr, dc]) => {
+        addSpecialClearTarget(board, cleared, queue, r + dr, c + dc);
+      });
+      continue;
+    }
+
+    if (stateClass === 4) {
+      for (let nc = 0; nc < BOARD_COLS; nc++) addSpecialClearTarget(board, cleared, queue, r, nc);
+      for (let nr = 0; nr < BOARD_ROWS; nr++) addSpecialClearTarget(board, cleared, queue, nr, c);
+    }
+  }
+
+  return cleared;
+};
+
+const resolveSpawnGem = (line: JavaAxisLine): GemType | null => {
+  const baseId = line.category;
+  if (baseId < 0 || baseId >= TYPE2_SPECIAL_BY_BASE.length) return null;
+
+  if ((line.hLen >= 3 && line.vLen >= 3) || line.hLen >= 5 || line.vLen >= 5) {
+    return TYPE4_SPECIAL_BY_BASE[baseId] ?? null;
+  }
+  if (line.hLen >= 4 || line.vLen >= 4) {
+    return TYPE2_SPECIAL_BY_BASE[baseId] ?? null;
+  }
+  return null;
+};
+
+const mergeSpawnGemPriority = (current: GemType | undefined, next: GemType): GemType =>
+  current === undefined ? next : getGemStateClass(next) >= getGemStateClass(current) ? next : current;
+
+export function resolveJavaBoardStep(
+  board: Board,
+  scanTargets?: Iterable<string | BattleCell>,
+): JavaBoardResolveResult | null {
+  const { horizontal, vertical, triggerKeys } = collectJavaAxisLines(board, scanTargets);
+  if (triggerKeys.size === 0) return null;
+
+  const mergedLines = mergeJavaAxisLines(horizontal, vertical);
+  const clearedKeys = collectSpecialChainKeys(board, triggerKeys);
+  const nextBoard = cloneBoard(board);
+
+  clearedKeys.forEach(key => {
+    const [r, c] = key.split(',').map(Number);
+    if (inBounds(r, c)) nextBoard[r][c] = null;
+  });
+
+  const spawnMap = new Map<string, GemType>();
+  mergedLines.forEach(line => {
+    const spawnGem = resolveSpawnGem(line);
+    if (spawnGem === null) return;
+
+    const key = keyOf(line.spawnRow, line.spawnCol);
+    spawnMap.set(key, mergeSpawnGemPriority(spawnMap.get(key), spawnGem));
+  });
+
+  const spawnedSpecials: Array<{ r: number; c: number; gem: GemType }> = [];
+  spawnMap.forEach((gem, key) => {
+    const [r, c] = key.split(',').map(Number);
+    if (!inBounds(r, c)) return;
+    nextBoard[r][c] = gem;
+    spawnedSpecials.push({ r, c, gem });
+  });
+
+  return {
+    triggerKeys,
+    clearedKeys,
+    boardAfterClear: nextBoard,
+    spawnedSpecials,
+    bonusTurnCandidate: mergedLines.some(line => line.hLen >= 4 || line.vLen >= 4),
+  };
+}
+
 export const createJavaBoardEngine = (seed = randomSeed()): JavaBoardEngine => ({
   seed: seed >>> 0,
   state: seed >>> 0,
@@ -443,10 +736,13 @@ export function calcSwordDamage(board: Board, matched: Set<string>): number {
   matched.forEach(key => {
     const [r, c] = key.split(',').map(Number);
     const gem = board[r]?.[c];
-    if (gem === WHITE_SWORD_GEM) {
+    if (gem !== null && gem !== undefined && getGemCategory(gem) === getGemCategory(WHITE_SWORD_GEM)) {
+      const renderType = getGemRenderType(gem);
+      if (renderType === WHITE_SWORD_GEM) {
       total += SWORD_DAMAGE[WHITE_SWORD_GEM];
-    } else if (gem === RED_SWORD_GEM) {
-      total += SWORD_DAMAGE[RED_SWORD_GEM];
+      } else {
+        total += SWORD_DAMAGE[renderType as typeof WHITE_SWORD_GEM | typeof RED_SWORD_GEM];
+      }
     }
   });
 
@@ -499,6 +795,41 @@ export function collapseLogic(
   return { newBoard: nextBoard, fallMap, affectedKeys: [...affectedKeys] };
 }
 
+export function collapseResolvedBoard(
+  boardAfterClear: Board,
+  engine: JavaBoardEngine = createJavaBoardEngine(),
+): CollapseResult {
+  const nextBoard = cloneBoard(boardAfterClear);
+  const fallMap: FallEntry[] = [];
+  const affectedKeys = new Set<string>();
+
+  for (let c = 0; c < BOARD_COLS; c++) {
+    let target = BOARD_ROWS - 1;
+
+    for (let r = BOARD_ROWS - 1; r >= 0; r--) {
+      const gem = boardAfterClear[r][c];
+      if (gem === null || gem === undefined) continue;
+
+      nextBoard[target][c] = gem;
+      if (target !== r) {
+        nextBoard[r][c] = null;
+        fallMap.push({ r: target, c, srcRow: r });
+        affectedKeys.add(keyOf(target, c));
+      }
+      target -= 1;
+    }
+
+    for (let r = target; r >= 0; r--) {
+      const srcRow = -(target - r + 1);
+      nextBoard[r][c] = nextRefillGem(engine);
+      fallMap.push({ r, c, srcRow });
+      affectedKeys.add(keyOf(r, c));
+    }
+  }
+
+  return { newBoard: nextBoard, fallMap, affectedKeys: [...affectedKeys] };
+}
+
 export function clearMatchedCells(board: Board, matched: Set<string>): Board {
   const nextBoard = cloneBoard(board);
   matched.forEach(key => {
@@ -506,6 +837,37 @@ export function clearMatchedCells(board: Board, matched: Set<string>): Board {
     if (inBounds(r, c)) nextBoard[r][c] = null;
   });
   return nextBoard;
+}
+
+export function reshuffleBoard(
+  board: Board,
+  engine: JavaBoardEngine = createJavaBoardEngine(),
+): Board {
+  const gems = board.flat().filter((gem): gem is GemType => gem !== null && gem !== undefined);
+  if (gems.length !== BOARD_ROWS * BOARD_COLS) {
+    return makeBoard(engine);
+  }
+
+  for (let attempt = 0; attempt < 128; attempt++) {
+    const pool = [...gems];
+    const candidate: Board = Array.from({ length: BOARD_ROWS }, () =>
+      Array.from({ length: BOARD_COLS }, () => null),
+    );
+
+    for (let r = 0; r < BOARD_ROWS; r++) {
+      for (let c = 0; c < BOARD_COLS; c++) {
+        const index = randomIndex(engine, pool.length);
+        const [gem] = pool.splice(index, 1);
+        candidate[r][c] = gem ?? GEM_TYPES[0];
+      }
+    }
+
+    if (findMatches(candidate).size > 0) continue;
+    if (getAllValidMoves(candidate).length <= 0) continue;
+    return candidate;
+  }
+
+  return makeBoard(engine);
 }
 
 export function getAllValidMoves(board: Board): MoveSpec[] {
@@ -558,10 +920,11 @@ function scoreMove(
   if (level === 'borm') return randomIndex(engine, 1000);
 
   const nextBoard = applySwap(board, move.r1, move.c1, move.r2, move.c2);
-  const raw = findMatchesFromAffected(nextBoard, buildAffectedScanFromSwap(move));
-  if (raw.size === 0) return -1;
+  const resolved = resolveJavaBoardStep(nextBoard, buildAffectedScanFromSwap(move));
+  if (resolved === null) return -1;
 
-  const expanded = expandSword(raw, nextBoard);
+  const raw = resolved.triggerKeys;
+  const expanded = resolved.clearedKeys;
   const { dmg, heal } = calcEffect(nextBoard, raw, expanded);
   const blastBonus = (expanded.size - raw.size) * 6;
   const count = raw.size;
@@ -579,26 +942,30 @@ function scoreMove(
     }
     case 'quan_su': {
       const simEngine = cloneJavaBoardEngine(engine);
-      const { newBoard, affectedKeys } = collapseLogic(nextBoard, expanded, simEngine);
-      const chainRaw = findMatchesFromAffected(newBoard, affectedKeys);
-      const chainExpanded = chainRaw.size > 0 ? expandSword(chainRaw, newBoard) : new Set<string>();
-      const chain = chainRaw.size > 0 ? calcEffect(newBoard, chainRaw, chainExpanded) : { dmg: 0, heal: 0, mp: 0 };
+      const { newBoard, affectedKeys } = collapseResolvedBoard(resolved.boardAfterClear, simEngine);
+      const chainResolved = resolveJavaBoardStep(newBoard, affectedKeys);
+      const chain = chainResolved
+        ? calcEffect(newBoard, chainResolved.triggerKeys, chainResolved.clearedKeys)
+        : { dmg: 0, heal: 0, mp: 0 };
       return dmg * 2 + chain.dmg * 4 + blastBonus + heal + count * 2;
     }
     case 'thien_tai': {
       const simEngine = cloneJavaBoardEngine(engine);
-      const { newBoard, affectedKeys } = collapseLogic(nextBoard, expanded, simEngine);
-      const chain2Raw = findMatchesFromAffected(newBoard, affectedKeys);
-      const chain2Expanded = chain2Raw.size > 0 ? expandSword(chain2Raw, newBoard) : new Set<string>();
-      const chain2Fx = chain2Raw.size > 0 ? calcEffect(newBoard, chain2Raw, chain2Expanded) : { dmg: 0, heal: 0, mp: 0 };
+      const { newBoard, affectedKeys } = collapseResolvedBoard(resolved.boardAfterClear, simEngine);
+      const chain2Resolved = resolveJavaBoardStep(newBoard, affectedKeys);
+      const chain2Fx = chain2Resolved
+        ? calcEffect(newBoard, chain2Resolved.triggerKeys, chain2Resolved.clearedKeys)
+        : { dmg: 0, heal: 0, mp: 0 };
 
       let chain3Fx = { dmg: 0, heal: 0, mp: 0 };
-      if (chain2Raw.size > 0) {
+      if (chain2Resolved) {
         const secondEngine = cloneJavaBoardEngine(simEngine);
-        const { newBoard: nextLayerBoard, affectedKeys: nextAffected } = collapseLogic(newBoard, chain2Expanded, secondEngine);
-        const chain3Raw = findMatchesFromAffected(nextLayerBoard, nextAffected);
-        const chain3Expanded = chain3Raw.size > 0 ? expandSword(chain3Raw, nextLayerBoard) : new Set<string>();
-        if (chain3Raw.size > 0) chain3Fx = calcEffect(nextLayerBoard, chain3Raw, chain3Expanded);
+        const { newBoard: nextLayerBoard, affectedKeys: nextAffected } =
+          collapseResolvedBoard(chain2Resolved.boardAfterClear, secondEngine);
+        const chain3Resolved = resolveJavaBoardStep(nextLayerBoard, nextAffected);
+        if (chain3Resolved) {
+          chain3Fx = calcEffect(nextLayerBoard, chain3Resolved.triggerKeys, chain3Resolved.clearedKeys);
+        }
       }
 
       return dmg * 2 + chain2Fx.dmg * 4 + chain3Fx.dmg * 6 + heal + blastBonus + count * 2;

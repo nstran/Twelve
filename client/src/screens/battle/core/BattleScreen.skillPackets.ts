@@ -29,6 +29,11 @@ interface BattleSkillPacketLayout {
   monsterGroundOffset: number;
 }
 
+type SkillCellTargetLayout = {
+  spanRows: number;
+  spanCols: number;
+};
+
 const toKey = (row: number, col: number) => `${row},${col}`;
 
 const clampBoardCell = ([row, col]: BattleCell): BattleCell | null => {
@@ -55,6 +60,47 @@ const cellToTargetPoint = (
   x: layout.panelLeft + BOARD_LEFT + col * GEM_SIZE + GEM_SIZE / 2,
   y: layout.panelTop + BOARD_TOP + row * GEM_SIZE + GEM_SIZE / 2,
 });
+
+const SKILL_CELL_TARGET_LAYOUTS: Partial<
+  Record<BattleSkillRuntimePacket['familyCode'], SkillCellTargetLayout>
+> = {
+  // Java 1000 lands on the center of each 2x2 blast region even though the
+  // packet target currently arrives as that region's top-left anchor.
+  1000: { spanRows: 2, spanCols: 2 },
+};
+
+const clampCellTargetAnchor = (
+  [row, col]: BattleCell,
+  { spanRows, spanCols }: SkillCellTargetLayout,
+): BattleCell => [
+  Math.max(0, Math.min(row, BOARD_ROWS - spanRows)),
+  Math.max(0, Math.min(col, BOARD_COLS - spanCols)),
+];
+
+const regionTargetToPoint = (
+  cell: BattleCell,
+  region: SkillCellTargetLayout,
+  layout: Pick<BattleSkillPacketLayout, 'panelLeft' | 'panelTop'>,
+): SkillTargetPoint => {
+  const [anchorRow, anchorCol] = clampCellTargetAnchor(cell, region);
+  const point = cellToTargetPoint([anchorRow, anchorCol], layout);
+
+  return {
+    row: cell[0],
+    col: cell[1],
+    x: point.x + ((region.spanCols - 1) * GEM_SIZE) / 2,
+    y: point.y + ((region.spanRows - 1) * GEM_SIZE) / 2,
+  };
+};
+
+const skillCellTargetToPoint = (
+  familyCode: BattleSkillRuntimePacket['familyCode'],
+  cell: BattleCell,
+  layout: Pick<BattleSkillPacketLayout, 'panelLeft' | 'panelTop'>,
+): SkillTargetPoint => {
+  const region = SKILL_CELL_TARGET_LAYOUTS[familyCode];
+  return region ? regionTargetToPoint(cell, region, layout) : cellToTargetPoint(cell, layout);
+};
 
 const getActorPoint = (
   side: BattleSide,
@@ -99,21 +145,40 @@ export const buildActiveBattleSkillCastFromPacket = (
   const boardCells = dedupeBoardCells(packet.boardMutation.cells);
   const cellTargets = dedupeBoardCells(packet.cellTargets);
   const sourcePoint = getActorPoint(packet.casterSide, 'center', layout);
+  const impactDelayMs = packet.impactDelayMs ?? skill.impactDelayMs;
+
+  const boardMutationDelayMs = (() => {
+    switch (packet.familyCode) {
+      case 1000: {
+        if (cellTargets.length === 0) return impactDelayMs;
+
+        // Java 1000 fires the actor projectile first, then starts the follow-up
+        // board volley. Delay the actual board mutation until the last visible
+        // fireball has had time to reach its target.
+        const volleyDelayMs = 72;
+        return impactDelayMs + impactDelayMs + volleyDelayMs * (cellTargets.length - 1);
+      }
+      default:
+        return impactDelayMs;
+    }
+  })();
 
   return {
     key: `${packet.castId}-${packet.familyCode}`,
     familyCode: packet.familyCode,
     startedAt: Date.now(),
+    casterSide: packet.casterSide,
     sourceX: sourcePoint.x,
     sourceY: sourcePoint.y,
     actorTarget: packet.actorTarget
       ? getActorPoint(packet.actorTarget.side, packet.actorTarget.anchor, layout)
       : null,
     boardClearTargets: boardCells.map(cell => cellToTargetPoint(cell, layout)),
-    cellTargets: cellTargets.map(cell => cellToTargetPoint(cell, layout)),
+    cellTargets: cellTargets.map(cell => skillCellTargetToPoint(packet.familyCode, cell, layout)),
     runtimeSource: packet.runtimeSource,
     hitsActor: packet.impact.hitsActor,
-    impactDelayMs: packet.impactDelayMs ?? skill.impactDelayMs,
+    impactDelayMs,
+    boardMutationDelayMs,
     durationMs: packet.durationMs ?? skill.totalMs,
   };
 };

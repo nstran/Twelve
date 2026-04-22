@@ -763,6 +763,34 @@ Client con giu 1 lop catalog/tree rieng:
 
 `de.java` load icon tree bang `skillId * 1000`.
 
+Level/dialog flow xac nhan them:
+
+- `gz.java` hien mo ta theo level bang `go.r[n11].c[this.v[n2].f - 1].e`
+- `lv.f` = current level cua skill dang so huu
+- `lw.c` = danh sach moc level cua node skill
+- `lx.e` = chuoi mo ta player-facing cho tung level
+- `lx.b` = yeu cau level nhan vat de tang moc tiep
+- `lx.c` = so diem skill can de tang moc tiep
+- `lx.d` = metadata so hoc bo sung cua level, duoc `mt.java` copy vao `lv.e`
+
+Doc `de/om/gz` cho thay ro:
+
+- tree UI co giu level hien tai cua tung node (`de.r[slot] = lv.f`)
+- tree UI ve so level ngay tren icon skill
+- tree UI co tinh du dieu kien tang diem dua tren:
+  - level hien tai cua node
+  - `go.r[slot].c[nextLevel]`
+  - level nhan vat `go.k.G`
+  - skill point con lai `go.k.L`
+- popup/dialog skill doc mo ta dung theo level hien tai, khong phai 1 text co dinh cho moi skill
+
+Vi vay:
+
+- Java client co skill level tree that
+- Java client co text mo ta theo tung level
+- Java client co unlock rule/co so de hien UI nang skill
+- nhung Java client khong tu quyet dinh battle result; phan `byArray/objectArray`, damage thuc chien va runtime cast packet van la du lieu tu server/packet
+
 Ket luan:
 
 - map ten skill that -> family code ve mat du lieu la co kha nang khui tiep tu packet/catalog
@@ -810,12 +838,48 @@ Pending khong con la blocker de port client runtime.
 - mana / rage cost
 - damage multiplier
 - unlock table
-- skill level tree
 - cooldown state
 - server skill catalog
 - packet schema day du cho runtime cast result
 
+Chinh xac hon:
+
+- `skill level tree` co nam trong Java client o muc data/UI:
+  - node skill `lw`
+  - level entry `lx`
+  - skill dang so huu `lv`
+  - UI tree/dialog `de/gz`
+- nhung Java client khong chua server truth cho battle-effect scaling:
+  - so vung 2x2 that su bi pha
+  - target arrays cho runtime cast
+  - damage/he-so thuc chien theo level
+
 Nhung phan do phai lay tu server hoac tu cac file khac, khong duoc phat sinh tu spec nay.
+
+## Hoa Cau Thuat va Mo Ta Theo Level
+
+Anh popup user cung cap ("Tan cong va gay 168 sat thuong cho doi phuong, dong thoi pha huy tu 2 den 3 vung 2x2 cac quan co") phu hop dung voi pipeline Java nay:
+
+- ten skill lay tu `go.r[n].b`
+- mo ta level hien tai lay tu `go.r[n].c[currentLevel - 1].e`
+
+Y nghia reconstruction:
+
+- co the dung text popup de xac nhan y dinh thiet ke cua `1000 / Hoa cau thuat`
+- nhung khong duoc dung text popup lam bang chung duy nhat cho packet/runtime shape
+- neu popup noi `2 den 3 vung 2x2`, ta duoc phep xem day la muc tieu behavior can dat
+- con cach chon chinh xac cac vung 2x2 nao, va khi nao la `2` hay `3` vung, van can doi chieu them voi footage/capture hoac server logic phuc dung
+
+Implementation note hien tai:
+
+- battle runtime da cho phep packet nhan `skillLevel`
+- nhung battle sandbox chua noi vao skill tree/DB that
+- vi vay implementation hien tai dang dung fallback level trong battle test
+- khi co DB/catalog/tree that:
+  - phai noi `current skill level` that vao request battle
+  - bo fallback sandbox
+  - re-tune lai xac suat `1000 / Hoa cau thuat` theo du lieu that neu can
+- phan nay de sau, khong coi la blocker cho reconstruction runtime hien tai
 
 ## Canonical Names Pending
 

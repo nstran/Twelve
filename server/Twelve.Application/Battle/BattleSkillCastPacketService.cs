@@ -15,6 +15,8 @@ namespace Twelve.Application.Battle
     public sealed class BattleSkillCastPacketService : IBattleSkillCastPacketService
     {
         private const int JavaTickMs = 40;
+        private const int Skill1001FallbackMaxMarks = 5;
+        private const int SkillLevelFallback = 12;
 
         private readonly IBattleSkillPacketFactory _packetFactory;
 
@@ -40,11 +42,16 @@ namespace Twelve.Application.Battle
                 : BattleSide.Player;
             var victimCenter = new BattleSkillActorTarget(victimSide, BattleSkillActorAnchor.Center);
             var victimBottom = new BattleSkillActorTarget(victimSide, BattleSkillActorAnchor.Bottom);
+            var skillLevel = ClampSkillLevel(request.SkillLevel);
+            var fireballRegionAnchors = BattleSkillTargeting.SelectRandomTwoByTwoRegionAnchors(
+                CalculateSkill1000RegionCount(skillLevel));
+            var fireballClearCells = BattleSkillTargeting.ExpandTwoByTwoRegionAnchors(fireballRegionAnchors);
+            var fireMarkCells = BattleSkillTargeting.SelectNearestCellsBySelectedCategory(request, Skill1001FallbackMaxMarks);
 
             return request.FamilyCode switch
             {
-                1000 => CreateClearSeed(request, BattleSkillTargeting.SelectSingleCell(request), BattleSkillTargeting.SelectSingleCell(request), victimCenter, hitsActor: true, impactDelayMs: 10 * JavaTickMs),
-                1001 => CreateMarkSeed(request, BattleSkillTargeting.SelectCellsBySelectedCategory(request), stateId: 10, impactDelayMs: 10 * JavaTickMs),
+                1000 => CreateClearSeed(request, fireballClearCells, fireballRegionAnchors, victimCenter, hitsActor: true, impactDelayMs: 10 * JavaTickMs),
+                1001 => CreateMarkSeed(request, fireMarkCells, stateId: 10, impactDelayMs: 10 * JavaTickMs, durationMs: CalculateSkill1001DurationMs(fireMarkCells.Count)),
                 1002 => CreateHelperSeed(request, actorTarget: null),
                 1003 => CreateNoneSeed(request, actorTarget: null, hitsActor: false),
                 1004 => CreateNoneSeed(request, victimBottom, hitsActor: true, impactDelayMs: 16 * JavaTickMs),
@@ -72,6 +79,56 @@ namespace Twelve.Application.Battle
                 4008 => CreateClearSeed(request, BattleSkillTargeting.SelectSingleCell(request), BattleSkillTargeting.SelectSingleCell(request), victimCenter, hitsActor: true, impactDelayMs: 10 * JavaTickMs),
                 _ => CreateNoneSeed(request, actorTarget: null, hitsActor: false),
             };
+        }
+
+        private static int ClampSkillLevel(int? skillLevel) =>
+            Math.Clamp(skillLevel ?? SkillLevelFallback, 1, SkillLevelFallback);
+
+        private static int CalculateSkill1000RegionCount(int skillLevel)
+        {
+            // Reconstructed from the level-dialog range:
+            // - level 1..6 lives in the 1..2-region band
+            // - level 7..12 lives in the 2..3-region band
+            // The count should stay probabilistic even at max level, so roll
+            // the upper bound chance per cast instead of fixing the result.
+            var upperRegionRoll = Random.Shared.Next(100);
+
+            if (skillLevel <= 6)
+            {
+                return upperRegionRoll < CalculateSkill1000UpperRegionChancePercent(skillLevel)
+                    ? 2
+                    : 1;
+            }
+
+            return upperRegionRoll < CalculateSkill1000UpperRegionChancePercent(skillLevel)
+                ? 3
+                : 2;
+        }
+
+        private static int CalculateSkill1000UpperRegionChancePercent(int skillLevel)
+        {
+            if (skillLevel <= 6)
+            {
+                // level 1 -> 10% chance to reach 2 regions
+                // level 6 -> 85% chance to reach 2 regions
+                return 10 + ((skillLevel - 1) * 15);
+            }
+
+            // level 7 -> 20% chance to reach 3 regions
+            // level 12 -> 80% chance to reach 3 regions
+            return 20 + ((skillLevel - 7) * 12);
+        }
+
+        private static int CalculateSkill1001DurationMs(int markedCellCount)
+        {
+            // Java `mt` starts at tick 10 and adds +4 ticks per marked cell for `1001`.
+            // The exact targeting logic belongs to the missing server, so keep the
+            // fallback conservative and let the packet duration scale with the cells
+            // we actually emit.
+            var safeCount = Math.Max(1, markedCellCount);
+            var lastStartTick = 10 + ((safeCount - 1) * 4);
+            var trailingAnimationTicks = 12;
+            return (lastStartTick + trailingAnimationTicks) * JavaTickMs;
         }
 
         private static BattleSkillPacketSeed CreateHelperSeed(

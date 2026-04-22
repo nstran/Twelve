@@ -72,6 +72,7 @@ const ASSET_SOFTKEY_MENU = require('../../../assets/ui/11_softkey_icons_confirme
 const ASSET_SOFTKEY_OK = require('../../../assets/ui/11_softkey_icons_confirmed/icon_ok.png');
 const ASSET_SOFTKEY_CANCEL = require('../../../assets/ui/11_softkey_icons_confirmed/icon_cancel.png');
 const JAVA_DEFAULT_CURSOR_CELL: BattleCell = [3, 4];
+const DEFAULT_BATTLE_SKILL_LEVEL = 12;
 interface QueuedAttack {
   onImpact: () => void;
   onComplete: () => void;
@@ -787,6 +788,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         casterSide: 'player',
         board: boardRef.current,
         selectedCell: cursorCell,
+        // Battle mode currently opens the full skill sandbox without the
+        // character skill tree wired in, so request the reconstructed
+        // max-level packet shape until real per-skill levels are available.
+        skillLevel: DEFAULT_BATTLE_SKILL_LEVEL,
       });
 
       if (!mountedRef.current) return;
@@ -819,9 +824,13 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
       setActiveSkillCasts(prev => [...prev, cast]);
 
-      const impactTimer = setTimeout(() => {
+      const boardMutationTimer = setTimeout(() => {
         if (!mountedRef.current) return;
         applyServerPacketBoardMutation(packet);
+      }, cast.boardMutationDelayMs);
+
+      const impactTimer = setTimeout(() => {
+        if (!mountedRef.current) return;
 
         if (packet.impact.hitsActor) {
           playEnemySkillImpact(packet.impact.hitShakePx ?? skill.hitShakePx);
@@ -855,7 +864,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         setPhase('idle');
       }, cast.durationMs);
 
-      skillCastTimersRef.current.push(impactTimer, finishTimer);
+      skillCastTimersRef.current.push(boardMutationTimer, impactTimer, finishTimer);
     } catch (error) {
       console.warn('[BattleScreen] resolveSkillPacket failed', error);
       if (mountedRef.current) {

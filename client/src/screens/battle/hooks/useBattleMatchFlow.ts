@@ -3,20 +3,18 @@ import {
   MATCH_HOLD_BEFORE_EXPLODE_MS,
   buildAffectedScanFromSwap,
   calcSwordDamage,
-  clearMatchedCells,
-  collapseLogic,
-  expandSword,
-  findMatches,
-  findMatchesFromAffected,
+  collapseResolvedBoard,
   getGemFX,
   getAllValidMoves,
-  hasBonusTurn,
   type JavaBoardEngine,
   type BattlePhase,
   type BattleResult,
   type BattleTurn,
   type Board,
+  type CollapseResult,
   type GemType,
+  reshuffleBoard,
+  resolveJavaBoardStep,
   validateSwap,
 } from '../core';
 
@@ -49,9 +47,9 @@ interface UseBattleMatchFlowArgs {
   showDamagePopup: (side: 'player' | 'enemy', amount: number) => void;
   spawnCollectFX: (matched: Set<string>, board: Board, collectorSide: 'player' | 'enemy', healAmount: number) => void;
   playExplosion: (matched: Set<string>, expanded: Set<string>, board: Board, onDone: () => void) => void;
-  animateFall: (newBoard: Board, fallMap: ReturnType<typeof collapseLogic>['fallMap'], onDone: () => void) => void;
+  animateFall: (newBoard: Board, fallMap: CollapseResult['fallMap'], onDone: () => void) => void;
   animateInvalidSwapBounce: (r1: number, c1: number, r2: number, c2: number, onDone: () => void) => void;
-  resetBoardAnim: (onDone: () => void) => void;
+  resetBoardAnim: (nextBoard: Board | undefined, onDone: () => void) => void;
 }
 
 export const useBattleMatchFlow = ({
@@ -90,14 +88,16 @@ export const useBattleMatchFlow = ({
   const processMatches = useCallback((board: Board, chain: number, scanTargets?: Iterable<string | [number, number]>) => {
     if (!mountedRef.current) return;
 
-    const raw = scanTargets ? findMatchesFromAffected(board, scanTargets) : findMatches(board);
-    if (raw.size === 0) {
+    const resolved = resolveJavaBoardStep(board, scanTargets);
+    if (resolved === null) {
       setBoard(board);
 
       if (getAllValidMoves(board).length === 0) {
-        showBonusBanner('🔀 Hết nước! Bàn cờ mới!');
-        resetBoardAnim(() => {
+        const reshuffled = reshuffleBoard(board, boardEngineRef.current);
+        showBonusBanner('🔀 Hết nước đi!');
+        resetBoardAnim(reshuffled, () => {
           if (!mountedRef.current) return;
+          boardRef.current = reshuffled;
           setTurnCycle(v => v + 1);
           phaseRef.current = 'idle';
           setPhase('idle');
@@ -124,7 +124,10 @@ export const useBattleMatchFlow = ({
       return;
     }
 
-    if (hasBonusTurn(raw, board)) {
+    const raw = resolved.triggerKeys;
+    const matched = resolved.clearedKeys;
+
+    if (resolved.bonusTurnCandidate) {
       const newExtra = extraTurnsRef.current + 1;
       extraTurnsRef.current = newExtra;
       setExtraTurns(newExtra);
@@ -132,7 +135,6 @@ export const useBattleMatchFlow = ({
       showBonusBanner(`✨ ${who} +1 lượt!${newExtra > 1 ? ` (tổng ${newExtra})` : ''}`);
     }
 
-    const matched = expandSword(raw, board);
     let dmg = calcSwordDamage(board, matched);
     let heal = 0;
     let mp = 0;
@@ -163,8 +165,9 @@ export const useBattleMatchFlow = ({
       playExplosion(raw, matched, board, () => {
         if (!mountedRef.current) return;
 
-        const clearedBoard = clearMatchedCells(board, matched);
-        const { newBoard, fallMap, affectedKeys } = collapseLogic(board, matched, boardEngineRef.current);
+        const clearedBoard = resolved.boardAfterClear;
+        const { newBoard, fallMap, affectedKeys } = collapseResolvedBoard(clearedBoard, boardEngineRef.current);
+        boardRef.current = newBoard;
         setBoard(clearedBoard);
         const continueAfterFall = () => {
           if (!mountedRef.current) return;
