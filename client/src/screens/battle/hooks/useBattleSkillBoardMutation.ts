@@ -52,13 +52,35 @@ export const useBattleSkillBoardMutation = ({
       return;
     }
 
+    const key = `${row},${col}`;
     const currentGem = currentBoard[row][col];
+    if (currentGem === stateId && stateId === 10) {
+      // Consecutive 1001 casts can legitimately point back to an existing
+      // fire-sword mark. Re-arm the strip animation instead of dropping the
+      // packet on the floor; keep the board node as state `10`.
+      //
+      // Reset the visual base to the current red-sword state so the strip does
+      // not resurrect the original pre-conversion gem (for example a white
+      // sword) underneath the animation.
+      setFireSwordMarkBaseGems(current => ({
+        ...current,
+        [key]: currentGem,
+      }));
+      setFireSwordMarkTriggers(current => ({
+        ...current,
+        [key]: (current[key] ?? 0) + 1,
+      }));
+      return;
+    }
+
     if (currentGem === stateId) {
       return;
     }
 
     if (stateId === 10 && currentGem !== null) {
-      const key = `${row},${col}`;
+      // Java keeps family 1001 as board state `10`; the renderer maps that
+      // state to `chess8` art after the strip animation. Do not rewrite the
+      // board node to plain `8`, or the special type-2 explosion semantics break.
       setFireSwordMarkBaseGems(current => ({
         ...current,
         [key]: currentGem,

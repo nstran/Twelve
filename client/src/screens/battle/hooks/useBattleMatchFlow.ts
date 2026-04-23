@@ -23,6 +23,7 @@ interface UseBattleMatchFlowArgs {
   phaseRef: MutableRefObject<BattlePhase>;
   turnRef: MutableRefObject<BattleTurn>;
   extraTurnsRef: MutableRefObject<number>;
+  enemyHPRef: MutableRefObject<number>;
   pendingVictoryRef: MutableRefObject<boolean>;
   boardRef: MutableRefObject<Board>;
   boardEngineRef: MutableRefObject<JavaBoardEngine>;
@@ -60,6 +61,7 @@ export const useBattleMatchFlow = ({
   phaseRef,
   turnRef,
   extraTurnsRef,
+  enemyHPRef,
   pendingVictoryRef,
   boardRef,
   boardEngineRef,
@@ -91,6 +93,13 @@ export const useBattleMatchFlow = ({
   animateInvalidSwapBounce,
   resetBoardAnim,
 }: UseBattleMatchFlowArgs) => {
+  const finalizeVictory = useCallback(() => {
+    pendingVictoryRef.current = false;
+    phaseRef.current = 'over';
+    setPhase('over');
+    setResult('victory');
+  }, [pendingVictoryRef, phaseRef, setPhase, setResult]);
+
   const processMatches = useCallback((board: Board, chain: number, scanTargets?: Iterable<string | [number, number]>) => {
     if (!mountedRef.current) return;
 
@@ -98,10 +107,7 @@ export const useBattleMatchFlow = ({
     if (resolved === null) {
       setBoard(board);
       if (pendingVictoryRef.current) {
-        pendingVictoryRef.current = false;
-        phaseRef.current = 'over';
-        setPhase('over');
-        setResult('victory');
+        finalizeVictory();
         return;
       }
 
@@ -181,10 +187,44 @@ export const useBattleMatchFlow = ({
 
         const clearedBoard = resolved.boardAfterClear;
         const { newBoard, fallMap, affectedKeys } = collapseResolvedBoard(clearedBoard, boardEngineRef.current);
+        const lethalPlayerResolution =
+          turnRef.current === 'player' &&
+          dmg > 0 &&
+          enemyHPRef.current - dmg <= 0;
+        let lethalFallCompleted = false;
+        let lethalAttackCompleted = false;
+
+        const tryFinalizeLethalVictory = () => {
+          if (!lethalPlayerResolution || !mountedRef.current) {
+            return;
+          }
+
+          if (!pendingVictoryRef.current) {
+            return;
+          }
+
+          if (!lethalFallCompleted || !lethalAttackCompleted) {
+            return;
+          }
+
+          finalizeVictory();
+        };
+
         boardRef.current = newBoard;
         setBoard(clearedBoard);
+
         const continueAfterFall = () => {
           if (!mountedRef.current) return;
+          if (lethalPlayerResolution) {
+            lethalFallCompleted = true;
+            tryFinalizeLethalVictory();
+            return;
+          }
+
+          if (pendingVictoryRef.current) {
+            finalizeVictory();
+            return;
+          }
           setTimeout(() => processMatches(newBoard, chain + 1, affectedKeys), 80);
         };
         animateFall(newBoard, fallMap, continueAfterFall);
@@ -212,7 +252,18 @@ export const useBattleMatchFlow = ({
                 if (!mountedRef.current) return;
                 applyPlayerDamage();
               },
-              () => {},
+              () => {
+                if (!mountedRef.current) return;
+                if (lethalPlayerResolution) {
+                  lethalAttackCompleted = true;
+                  tryFinalizeLethalVictory();
+                  return;
+                }
+
+                if (pendingVictoryRef.current) {
+                  finalizeVictory();
+                }
+              },
             );
           }
 
@@ -243,7 +294,9 @@ export const useBattleMatchFlow = ({
     }, MATCH_HOLD_BEFORE_EXPLODE_MS);
   }, [
     animateFall,
+    enemyHPRef,
     extraTurnsRef,
+    finalizeVictory,
     flashComboBadge,
     flashExtraTurnsBadge,
     maxEHP,

@@ -103,6 +103,105 @@ namespace Twelve.Application.Battle
             return filtered;
         }
 
+        public static IReadOnlyList<BattleSkillJavaCell> SelectCellsBySelectedCategoryExcludingGems(
+            BattleSkillCastRequest request,
+            params int[] excludedGems)
+        {
+            var ordered = SelectCellsBySelectedCategory(request);
+            if (ordered.Count == 0 || request.Board is null)
+            {
+                return ordered;
+            }
+
+            if (excludedGems is null || excludedGems.Length == 0)
+            {
+                return ordered;
+            }
+
+            var excluded = new HashSet<int>(excludedGems);
+            var filtered = new List<BattleSkillJavaCell>(ordered.Count);
+            foreach (var cell in ordered)
+            {
+                var clientRow = cell.Row - 2;
+                var clientCol = cell.Col - 2;
+                if (clientRow < 0 || clientRow >= request.Board.Count)
+                {
+                    continue;
+                }
+
+                var boardRow = request.Board[clientRow];
+                if (boardRow is null || clientCol < 0 || clientCol >= boardRow.Count)
+                {
+                    continue;
+                }
+
+                var gem = boardRow[clientCol];
+                if (gem.HasValue && excluded.Contains(gem.Value))
+                {
+                    continue;
+                }
+
+                filtered.Add(cell);
+            }
+
+            return filtered;
+        }
+
+        public static IReadOnlyList<BattleSkillJavaCell> SelectRandomCellsExcludingGems(
+            BattleSkillCastRequest request,
+            int maxCells,
+            params int[] excludedGems)
+        {
+            if (maxCells <= 0 || request.Board is null || request.Board.Count == 0)
+            {
+                return Array.Empty<BattleSkillJavaCell>();
+            }
+
+            var excluded = excludedGems is null || excludedGems.Length == 0
+                ? null
+                : new HashSet<int>(excludedGems);
+            var eligible = new List<BattleSkillJavaCell>();
+            for (var row = 0; row < request.Board.Count; row++)
+            {
+                var boardRow = request.Board[row];
+                if (boardRow is null)
+                {
+                    continue;
+                }
+
+                for (var col = 0; col < boardRow.Count; col++)
+                {
+                    var gem = boardRow[col];
+                    if (!gem.HasValue)
+                    {
+                        continue;
+                    }
+
+                    if (excluded?.Contains(gem.Value) == true)
+                    {
+                        continue;
+                    }
+
+                    eligible.Add(ToJavaCell(row, col));
+                }
+            }
+
+            if (eligible.Count == 0)
+            {
+                return Array.Empty<BattleSkillJavaCell>();
+            }
+
+            ShuffleInPlace(eligible);
+            if (eligible.Count <= maxCells)
+            {
+                return eligible;
+            }
+
+            return eligible
+                .Take(maxCells)
+                .ToArray();
+        }
+
         public static IReadOnlyList<BattleSkillJavaCell> SelectNearestCellsBySelectedCategory(
             BattleSkillCastRequest request,
             int maxCells)

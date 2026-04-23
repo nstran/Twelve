@@ -102,6 +102,30 @@ Battle runtime lai tach them thanh 3 lop xu ly:
 
 Neu chi render projectile tren board ma khong co impact vao actor, hoac nguoc lai, thi chua giong Java.
 
+## Java Boundary Chot Cho Skill
+
+Theo Java client da doc lai, boundary hop ly cho skill la:
+
+- `Server authority`
+  - skill level that cua nhan vat
+  - cast legality, resource cost, cooldown/unlock
+  - target arrays/runtime payload cho `mq/mt`
+  - battle result do skill gay ra: damage/heal, status timer, them luot, them thoi gian
+- `Client authority`
+  - render skill tree/UI/icon/text da co
+  - playback projectile/helper/hit theo packet
+  - mutate board/HUD theo delta authoritative da nhan
+- `Khong duoc de o client`
+  - tu chon target list cho skill de "cho giong"
+  - tu suy bonus turn cua skill khi server da tra ket qua
+  - tu coi `skillLevel` gui len tu sandbox la gia tri that
+
+Trang thai repo sau chot boundary nay:
+
+- endpoint `/battle/skill-cast` la noi reconstruct payload cho runtime skill
+- request level tu client chi duoc xem la `debugSkillLevel` trong sandbox
+- packet da mo san cho `actorDeltas/turnDelta/skillLevelSource` de client uu tien dung ket qua BE thay vi tu suy rieng
+
 ## Skill Asset ID Schema
 
 Moi runtime skill asset load qua `pa.a(id, false)` duoi duong dan `/offline/<id>.png`,
@@ -255,8 +279,16 @@ Rule dang co trong C#:
 - `1001 / Hoa Kiem Thuat`
   - board mutation = `Mark`
   - `stateId = 10`
-  - target list hien tai = `tat ca o cung category voi o da chon`, sap theo khoang cach den o chon
-  - C# hien tai da bo qua cac o da la `state 10`, khong mark lai o da thanh `chess8`
+  - target list hien tai = `random toan board`, khong lien quan den o duoc chon
+  - NHUNG trong C# reconstruction hien tai phai loai tru toan bo `sword-family` da co san:
+    - `0` white sword
+    - `8` red sword render node neu client compact board tra ve
+    - `10` active fire-sword state
+    - `20` hidden/special sword-family state
+  - ly do:
+    - nguoi choi da xac nhan `1001` khong bam vao o chon ma phai random
+    - neu khong loai tru, `1001` se de len sword-family co san va nhin nhu skill tu an cac o vua thay
+  - `1001` duoc phep remark lai o da la `state 10` de re-arm animation, nhung khong duoc chon white sword nhu mot target moi
   - `USER-CONFIRMED lv12 truth`:
     - lv12 bien `8..10` o thanh kiem do
     - lv12 co `56%` ti le di tiep luot

@@ -42,6 +42,32 @@ Thực tế nó là hybrid:
 
 Vì bản hiện tại không có server, phần từng là authoritative packet phải được thay bằng local authority trong battle controller.
 
+## Java Boundary Chot
+
+Neu muon "day xuong BE" ma van bam dung Java, thi boundary hop ly nen la:
+
+- `Server authority`
+  - xac thuc cast co hop le hay khong
+  - skill level that, mana/cooldown/unlock, khong lay tu client
+  - skill packet runtime cho `mq/mt`: `byArray/byArray2/objectArray/byArray3`
+  - actor result sau cast/turn: `hp/mp/power`, status timers, them luot, them thoi gian
+  - reward/end-state
+- `Client authority`
+  - input/cursor/menu/tree UI
+  - animation/runtime playback cua board + actor theo packet/result da co
+  - swap/fall/explode/hint/no-move presentation
+  - HUD tween/popup tu delta authoritative
+- `Transitional hien tai trong repo`
+  - board core van dang local de thay cho packet server Java da mat
+  - skill cast geometry da di qua BE endpoint `/battle/skill-cast`
+  - nhung turn result tong quat van chua co endpoint authoritative rieng
+
+He qua thuc dung:
+
+- khong de client tu suy target list skill
+- khong de client tu quyet `+ luot`, `+ time`, damage/heal cua skill khi packet server da biet
+- neu chua co player skill data that tren server, chi duoc gui `debugSkillLevel` tam thoi; khong duoc coi do la authority
+
 ## Board Model
 
 ### 1. Kích thước thật

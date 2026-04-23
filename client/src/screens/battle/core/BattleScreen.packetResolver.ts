@@ -2,6 +2,7 @@ import type {
   BattleCell,
   BattleSide,
   BattleSkillActorAnchor,
+  BattleSkillLevelSource,
   BattleSkillBoardMutationKind,
   BattleSkillPacketRequest,
   BattleSkillRuntimePacket,
@@ -11,6 +12,7 @@ import type {
 type ServerBattleSide = 'Player' | 'Enemy';
 type ServerBattleSkillActorAnchor = 'Center' | 'Bottom';
 type ServerBattleSkillBoardMutationKind = 'Clear' | 'Mark' | 'Helper' | 'None';
+type ServerBattleSkillLevelSource = 'ServerAuthority' | 'ClientDebugRequest' | 'ServerFallback';
 
 type ServerBattleCell = {
   row: number;
@@ -38,6 +40,17 @@ type ServerBattleSkillRuntimePacket = {
     damage?: number | null;
     hitShakePx?: number | null;
   };
+  actorDeltas?: Array<{
+    side: ServerBattleSide;
+    hpDelta?: number | null;
+    manaDelta?: number | null;
+    powerDelta?: number | null;
+  }> | null;
+  turnDelta?: {
+    remainingTurnsDelta?: number | null;
+    timeLeftSecondsDelta?: number | null;
+  } | null;
+  skillLevelSource?: ServerBattleSkillLevelSource | null;
   grantsExtraTurn?: boolean | null;
   extraTurnChancePercent?: number | null;
   impactDelayMs?: number | null;
@@ -58,6 +71,17 @@ const mapMutationKind = (kind: ServerBattleSkillBoardMutationKind): BattleSkillB
     case 'None':
     default:
       return 'none';
+  }
+};
+const mapSkillLevelSource = (source?: ServerBattleSkillLevelSource | null): BattleSkillLevelSource => {
+  switch (source) {
+    case 'ServerAuthority':
+      return 'server_authority';
+    case 'ClientDebugRequest':
+      return 'client_debug_request';
+    case 'ServerFallback':
+    default:
+      return 'server_fallback';
   }
 };
 
@@ -95,7 +119,7 @@ export const createBattleSkillPacketResolver = (
           casterSide: request.casterSide === 'enemy' ? 'Enemy' : 'Player',
           selectedRow: request.selectedCell[0],
           selectedCol: request.selectedCell[1],
-          skillLevel: request.skillLevel ?? null,
+          debugSkillLevel: request.debugSkillLevel ?? null,
           board: request.board,
         }),
         signal: controller.signal,
@@ -138,6 +162,19 @@ export const createBattleSkillPacketResolver = (
           damage: packet.impact.damage ?? null,
           hitShakePx: packet.impact.hitShakePx ?? null,
         },
+        actorDeltas: packet.actorDeltas?.map(delta => ({
+          side: mapSide(delta.side),
+          hpDelta: delta.hpDelta ?? 0,
+          manaDelta: delta.manaDelta ?? 0,
+          powerDelta: delta.powerDelta ?? 0,
+        })) ?? null,
+        turnDelta: packet.turnDelta
+          ? {
+            remainingTurnsDelta: packet.turnDelta.remainingTurnsDelta ?? 0,
+            timeLeftSecondsDelta: packet.turnDelta.timeLeftSecondsDelta ?? 0,
+          }
+          : null,
+        skillLevelSource: mapSkillLevelSource(packet.skillLevelSource),
         grantsExtraTurn: packet.grantsExtraTurn ?? null,
         extraTurnChancePercent: packet.extraTurnChancePercent ?? null,
         impactDelayMs: packet.impactDelayMs ?? null,

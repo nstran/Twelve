@@ -101,6 +101,7 @@ export interface ScreenPoint {
 export type BattleSkillRuntimeSource = 'server_packet';
 export type BattleSkillActorAnchor = 'center' | 'bottom';
 export type BattleSkillBoardMutationKind = 'clear' | 'mark' | 'helper' | 'none';
+export type BattleSkillLevelSource = 'server_authority' | 'client_debug_request' | 'server_fallback';
 
 export interface BattleSkillActorPacketTarget {
   side: BattleSide;
@@ -119,6 +120,18 @@ export interface BattleSkillPacketImpact {
   hitShakePx?: number | null;
 }
 
+export interface BattleSkillActorDelta {
+  side: BattleSide;
+  hpDelta: number;
+  manaDelta: number;
+  powerDelta: number;
+}
+
+export interface BattleSkillTurnDelta {
+  remainingTurnsDelta: number;
+  timeLeftSecondsDelta: number;
+}
+
 export interface BattleSkillRuntimePacket {
   // Java packet arrays are normalized to 0..7 board coordinates before they reach
   // this client contract. Server adapters should convert Java row 2..9 -> client 0..7.
@@ -130,6 +143,9 @@ export interface BattleSkillRuntimePacket {
   boardMutation: BattleSkillBoardMutation;
   cellTargets: BattleCell[];
   impact: BattleSkillPacketImpact;
+  actorDeltas?: BattleSkillActorDelta[] | null;
+  turnDelta?: BattleSkillTurnDelta | null;
+  skillLevelSource: BattleSkillLevelSource;
   grantsExtraTurn?: boolean | null;
   extraTurnChancePercent?: number | null;
   impactDelayMs?: number | null;
@@ -141,7 +157,7 @@ export interface BattleSkillPacketRequest {
   casterSide: BattleSide;
   board: Board;
   selectedCell: BattleCell;
-  skillLevel?: number | null;
+  debugSkillLevel?: number | null;
 }
 
 export type ResolveBattleSkillPacket =

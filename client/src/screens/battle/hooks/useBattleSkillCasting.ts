@@ -12,7 +12,6 @@ import {
   type BattleSkillRuntimePacket,
   type BattleTurn,
   type Board,
-  type GemType,
   type MoveSpec,
   type SkillFamilyCode,
 } from '../core';
@@ -32,8 +31,11 @@ interface UseBattleSkillCastingArgs {
   charsRowHeight: number;
   charsTop: number;
   cursorCell: BattleCell;
-  fireSwordMarkBaseGems: Record<string, GemType>;
+  extraTurnsRef: MutableRefObject<number>;
   flashExtraTurnsBadge: (turns: number) => void;
+  maxHP: number;
+  maxMP: number;
+  maxPow: number;
   monsterBaseLeft: number;
   monsterGroundOffset: number;
   monsterSize: { w: number; h: number };
@@ -54,10 +56,14 @@ interface UseBattleSkillCastingArgs {
   setHintCell: Dispatch<SetStateAction<BattleCell | null>>;
   setHintMove: Dispatch<SetStateAction<MoveSpec | null>>;
   setMenuVisible: Dispatch<SetStateAction<boolean>>;
+  setExtraTurns: Dispatch<SetStateAction<number>>;
+  setMana: Dispatch<SetStateAction<number>>;
   setPhase: Dispatch<SetStateAction<BattlePhase>>;
   setPlayerAction: Dispatch<SetStateAction<CharacterAction>>;
   setPlayerActionFrameIndex: Dispatch<SetStateAction<number | null>>;
+  setPlayerHP: Dispatch<SetStateAction<number>>;
   setPlayerRetreatPose: Dispatch<SetStateAction<boolean>>;
+  setPower: Dispatch<SetStateAction<number>>;
   setResult: Dispatch<SetStateAction<BattleResult | null>>;
   setSelected: Dispatch<SetStateAction<BattleCell | null>>;
   setSelectedSkillFamily: Dispatch<SetStateAction<SkillFamilyCode | null>>;
@@ -79,8 +85,11 @@ export const useBattleSkillCasting = ({
   charsRowHeight,
   charsTop,
   cursorCell,
-  fireSwordMarkBaseGems,
+  extraTurnsRef,
   flashExtraTurnsBadge,
+  maxHP,
+  maxMP,
+  maxPow,
   monsterBaseLeft,
   monsterGroundOffset,
   monsterSize,
@@ -98,13 +107,17 @@ export const useBattleSkillCasting = ({
   result,
   setActiveSkillCasts,
   setEnemyHP,
+  setExtraTurns,
   setHintCell,
   setHintMove,
+  setMana,
   setMenuVisible,
   setPhase,
   setPlayerAction,
   setPlayerActionFrameIndex,
+  setPlayerHP,
   setPlayerRetreatPose,
+  setPower,
   setResult,
   setSelected,
   setSelectedSkillFamily,
@@ -118,6 +131,78 @@ export const useBattleSkillCasting = ({
   turn,
   turnRef,
 }: UseBattleSkillCastingArgs) => {
+  const applyPacketActorDeltas = useCallback((packet: BattleSkillRuntimePacket) => {
+    if (!packet.actorDeltas || packet.actorDeltas.length === 0) {
+      return {
+        hasAnyDelta: false,
+        appliedEnemyHpDelta: false,
+      };
+    }
+
+    let hasAnyDelta = false;
+    let appliedEnemyHpDelta = false;
+    let enemyHpDelta = 0;
+    let playerHpDelta = 0;
+    let playerManaDelta = 0;
+    let playerPowerDelta = 0;
+
+    for (const delta of packet.actorDeltas) {
+      if (delta.side === 'enemy') {
+        enemyHpDelta += delta.hpDelta;
+        hasAnyDelta = true;
+        continue;
+      }
+
+      playerHpDelta += delta.hpDelta;
+      playerManaDelta += delta.manaDelta;
+      playerPowerDelta += delta.powerDelta;
+      hasAnyDelta = true;
+    }
+
+    if (enemyHpDelta < 0) {
+      showDamagePopup('enemy', Math.abs(enemyHpDelta));
+    }
+
+    if (enemyHpDelta !== 0) {
+      appliedEnemyHpDelta = true;
+      setEnemyHP(hp => {
+        const next = Math.max(0, hp + enemyHpDelta);
+        if (next === 0) {
+          pendingVictoryRef.current = true;
+        }
+
+        return next;
+      });
+    }
+
+    if (playerHpDelta !== 0) {
+      setPlayerHP(hp => Math.max(0, Math.min(maxHP, hp + playerHpDelta)));
+    }
+
+    if (playerManaDelta !== 0) {
+      setMana(value => Math.max(0, Math.min(maxMP, value + playerManaDelta)));
+    }
+
+    if (playerPowerDelta !== 0) {
+      setPower(value => Math.max(0, Math.min(maxPow, value + playerPowerDelta)));
+    }
+
+    return {
+      hasAnyDelta,
+      appliedEnemyHpDelta,
+    };
+  }, [
+    maxHP,
+    maxMP,
+    maxPow,
+    pendingVictoryRef,
+    setEnemyHP,
+    setMana,
+    setPlayerHP,
+    setPower,
+    showDamagePopup,
+  ]);
+
   const handleSkillCast = useCallback(async (familyCode: SkillFamilyCode) => {
     const skill = BATTLE_SKILLS[familyCode];
     if (phase !== 'idle' || turn !== 'player' || result !== null || skillPacketRequestRef.current) return;
@@ -134,27 +219,12 @@ export const useBattleSkillCasting = ({
       const packet = await resolveSkillPacket({
         familyCode,
         casterSide: 'player',
-        board: (() => {
-          if (familyCode !== 1001) {
-            return boardRef.current;
-          }
-
-          const [selectedRow, selectedCol] = cursorCell;
-          const selectedGem = boardRef.current[selectedRow]?.[selectedCol];
-          const baseGem = fireSwordMarkBaseGems[`${selectedRow},${selectedCol}`];
-          if (selectedGem !== 10 || baseGem === undefined) {
-            return boardRef.current;
-          }
-
-          const requestBoard = boardRef.current.map(row => [...row]);
-          requestBoard[selectedRow][selectedCol] = baseGem;
-          return requestBoard;
-        })(),
+        board: boardRef.current,
         selectedCell: cursorCell,
         // Battle mode currently opens the full skill sandbox without the
         // character skill tree wired in, so request the reconstructed
         // max-level packet shape until real per-skill levels are available.
-        skillLevel: DEFAULT_BATTLE_SKILL_LEVEL,
+        debugSkillLevel: DEFAULT_BATTLE_SKILL_LEVEL,
       });
 
       if (!mountedRef.current) return;
@@ -226,7 +296,8 @@ export const useBattleSkillCasting = ({
           playEnemySkillImpact(packet.impact.hitShakePx ?? skill.hitShakePx);
         }
 
-        if ((packet.impact.damage ?? 0) > 0) {
+        const deltaApplication = applyPacketActorDeltas(packet);
+        if (!deltaApplication.appliedEnemyHpDelta && (packet.impact.damage ?? 0) > 0) {
           showDamagePopup('enemy', packet.impact.damage ?? 0);
           setEnemyHP(hp => {
             const next = Math.max(0, hp - (packet.impact.damage ?? 0));
@@ -259,8 +330,18 @@ export const useBattleSkillCasting = ({
           setResult('victory');
           return;
         }
-        if (packet.grantsExtraTurn) {
-          flashExtraTurnsBadge(1);
+        const remainingTurnsDelta = Math.max(
+          0,
+          packet.turnDelta?.remainingTurnsDelta ?? (packet.grantsExtraTurn ? 1 : 0),
+        );
+        if (remainingTurnsDelta > 0) {
+          // Skill-granted extra turn is consumed immediately by keeping the
+          // current side's turn. Only bank the remainder if the server ever
+          // returns more than one additional turn in a single cast.
+          const bankedExtraTurns = Math.max(0, remainingTurnsDelta - 1);
+          extraTurnsRef.current = bankedExtraTurns;
+          setExtraTurns(bankedExtraTurns);
+          flashExtraTurnsBadge(remainingTurnsDelta);
           turnRef.current = 'player';
           setTurn('player');
           setTurnCycle(cycle => cycle + 1);
@@ -288,12 +369,16 @@ export const useBattleSkillCasting = ({
   }, [
     applyServerPacketBoardMutation,
     applyServerPacketMarkCell,
+    applyPacketActorDeltas,
     boardRef,
     charsRowHeight,
     charsTop,
     cursorCell,
-    fireSwordMarkBaseGems,
+    extraTurnsRef,
     flashExtraTurnsBadge,
+    maxHP,
+    maxMP,
+    maxPow,
     monsterBaseLeft,
     monsterGroundOffset,
     monsterSize,
@@ -311,13 +396,17 @@ export const useBattleSkillCasting = ({
     result,
     setActiveSkillCasts,
     setEnemyHP,
+    setExtraTurns,
     setHintCell,
     setHintMove,
+    setMana,
     setMenuVisible,
     setPhase,
     setPlayerAction,
     setPlayerActionFrameIndex,
+    setPlayerHP,
     setPlayerRetreatPose,
+    setPower,
     setResult,
     setSelected,
     setSelectedSkillFamily,
