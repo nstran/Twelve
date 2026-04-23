@@ -119,6 +119,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [power,     setPower]     = useState(() => Math.min(playerBootstrap.currentPower, maxPow));
   const [enemyMana, setEnemyMana] = useState(() => Math.min(monsterBootstrap.enemy.currentMp, enemyMaxMP));
   const [enemyPower, setEnemyPower] = useState(() => Math.min(monsterBootstrap.enemy.currentPower, enemyMaxPow));
+  const playerRageReady = maxPow > 0 && power >= maxPow;
+  const enemyRageReady = enemyMaxPow > 0 && enemyPower >= enemyMaxPow;
   const [phase,     setPhase]     = useState<BattlePhase>('idle');
   const [result,    setResult]    = useState<BattleResult | null>(null);
   const [playerAction, setPlayerAction] = useState<CharacterAction>('idle');
@@ -147,6 +149,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const mountedRef = useRef(true);
   const boardRef   = useRef<Board>(board);
   const enemyHPRef = useRef(enemyHP);
+  const playerPowerRef = useRef(power);
+  const enemyPowerRef = useRef(enemyPower);
   const playerHPRef= useRef(playerHP);
   const selectedRef = useRef<BattleCell | null>(selected);
   const hintMoveRef = useRef<MoveSpec | null>(hintMove);
@@ -221,6 +225,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     turnCycle,
   ]);
   useEffect(() => { enemyHPRef.current = enemyHP; }, [enemyHP]);
+  useEffect(() => { playerPowerRef.current = power; }, [power]);
+  useEffect(() => { enemyPowerRef.current = enemyPower; }, [enemyPower]);
   useEffect(() => { playerHPRef.current = playerHP; }, [playerHP]);
   useEffect(() => { selectedRef.current = selected; }, [selected]);
   useEffect(() => { hintMoveRef.current = hintMove; }, [hintMove]);
@@ -242,12 +248,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   } = useBattleBoardBadges({ mountedRef });
   const {
     enemyHPBarAnim,
+    enemyPowerBlinkAnim,
     playPlayerHitReaction,
     playerDefeatPose,
     playerHPBarAnim,
     playerReactionPose,
     playerRetreatPose,
     powerBlinkAnim,
+    rageAuraPulseAnim,
     resultArtAnim,
     setPlayerRetreatPose,
     startPlayerDefeatSequence,
@@ -256,9 +264,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     maxEHP,
     maxHP,
     maxPow,
+    enemyMaxPow,
     mountedRef,
     playerHP,
     power,
+    enemyPower,
     result,
     setPlayerAction,
     setPlayerActionFrameIndex,
@@ -388,6 +398,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     monsterDefeatTranslateY,
     monsterPoseKey,
     playMonsterDefeatSequence,
+    playMonsterSkillCast,
     playMonsterSwordAttack,
     playPlayerSwordAttack,
   } = useBattleSwordAttacks({
@@ -407,6 +418,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     turnRef,
     extraTurnsRef,
     enemyHPRef,
+    playerPowerRef,
+    enemyPowerRef,
     pendingVictoryRef,
     boardRef,
     boardEngineRef,
@@ -536,6 +549,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     showDamagePopup,
     skillCastTimersRef,
     startPlayerDefeatSequence,
+    playMonsterSkillCast,
     playPlayerHitReaction,
     turn,
     turnRef,
@@ -679,6 +693,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         playerHPBarAnim={playerHPBarAnim}
         enemyHPBarAnim={enemyHPBarAnim}
         powerBlinkAnim={powerBlinkAnim}
+        enemyPowerBlinkAnim={enemyPowerBlinkAnim}
+        playerRageReady={playerRageReady}
+        enemyRageReady={enemyRageReady}
         onGemPress={handleGemPress}
       />
 
@@ -704,6 +721,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         playerHitTranslateX={playerHitTranslateX}
         enemyAttackTranslateX={enemyAttackTranslateX}
         enemyHitTranslateX={enemyHitTranslateX}
+        playerRageReady={playerRageReady}
+        enemyRageReady={enemyRageReady}
+        rageAuraPulseAnim={rageAuraPulseAnim}
       />
 
       <BattleEffects

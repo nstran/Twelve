@@ -129,10 +129,11 @@ namespace Twelve.Application.Battle
             var impact = baseSeed.Impact ?? new BattleSkillImpact(HitsActor: false, Damage: null);
             int? damage = null;
             var resolvedTurnDelta = ResolveTurnDelta(baseSeed);
+            var rageBurstActive = IsRageBurstActive(caster, baseSeed, impact);
 
             if (baseSeed.ActorTarget is not null && impact.HitsActor)
             {
-                damage = CalculateDamage(caster, target, familyCode, skillLevel);
+                damage = CalculateDamage(caster, target, familyCode, skillLevel, rageBurstActive);
                 actorDeltas.Add(new BattleSkillActorDelta(target.Side, HpDelta: -damage.Value));
                 actorDeltas.Add(new BattleSkillActorDelta(target.Side, PowerDelta: CalculateTargetPowerGain(damage.Value)));
             }
@@ -140,6 +141,11 @@ namespace Twelve.Application.Battle
             if (manaCost > 0)
             {
                 actorDeltas.Add(new BattleSkillActorDelta(caster.Side, ManaDelta: -manaCost));
+            }
+
+            if (rageBurstActive && caster.CurrentPower > 0)
+            {
+                actorDeltas.Add(new BattleSkillActorDelta(caster.Side, PowerDelta: -caster.CurrentPower));
             }
 
             var casterPowerGain = CalculateCasterPowerGain(baseSeed, skillLevel, damage);
@@ -206,7 +212,8 @@ namespace Twelve.Application.Battle
             BattleSessionCombatantState caster,
             BattleSessionCombatantState target,
             int familyCode,
-            int skillLevel)
+            int skillLevel,
+            bool rageBurstActive)
         {
             var baseDamage = (caster.MinDamage + caster.MaxDamage) / 2;
             var attackStat = ResolveAttackStat(caster, familyCode);
@@ -222,8 +229,22 @@ namespace Twelve.Application.Battle
                 variedDamage = (variedDamage * Math.Max(110, caster.CriticalDamage)) / 100;
             }
 
+            if (rageBurstActive)
+            {
+                variedDamage *= 2;
+            }
+
             return Math.Max(1, variedDamage);
         }
+
+        private static bool IsRageBurstActive(
+            BattleSessionCombatantState caster,
+            BattleSkillPacketSeed baseSeed,
+            BattleSkillImpact impact) =>
+            caster.MaxPower > 0 &&
+            caster.CurrentPower >= caster.MaxPower &&
+            baseSeed.ActorTarget is not null &&
+            impact.HitsActor;
 
         private static BattleSide FlipSide(BattleSide side) =>
             side == BattleSide.Player ? BattleSide.Enemy : BattleSide.Player;

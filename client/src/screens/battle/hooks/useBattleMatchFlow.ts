@@ -27,6 +27,8 @@ interface UseBattleMatchFlowArgs {
   turnRef: MutableRefObject<BattleTurn>;
   extraTurnsRef: MutableRefObject<number>;
   enemyHPRef: MutableRefObject<number>;
+  playerPowerRef: MutableRefObject<number>;
+  enemyPowerRef: MutableRefObject<number>;
   pendingVictoryRef: MutableRefObject<boolean>;
   boardRef: MutableRefObject<Board>;
   boardEngineRef: MutableRefObject<JavaBoardEngine>;
@@ -66,12 +68,19 @@ interface UseBattleMatchFlowArgs {
   resetBoardAnim: (nextBoard: Board | undefined, onDone: () => void) => void;
 }
 
+interface RageBurstState {
+  active: boolean;
+  consumed: boolean;
+}
+
 export const useBattleMatchFlow = ({
   mountedRef,
   phaseRef,
   turnRef,
   extraTurnsRef,
   enemyHPRef,
+  playerPowerRef,
+  enemyPowerRef,
   pendingVictoryRef,
   boardRef,
   boardEngineRef,
@@ -117,8 +126,20 @@ export const useBattleMatchFlow = ({
     setResult('victory');
   }, [pendingVictoryRef, phaseRef, setPhase, setResult]);
 
-  const processMatches = useCallback((board: Board, chain: number, scanTargets?: Iterable<string | [number, number]>) => {
+  const processMatches = useCallback((
+    board: Board,
+    chain: number,
+    scanTargets?: Iterable<string | [number, number]>,
+    rageBurstState?: RageBurstState,
+  ) => {
     if (!mountedRef.current) return;
+
+    const activeRageBurst = rageBurstState ?? {
+      active: turnRef.current === 'player'
+        ? maxPow > 0 && playerPowerRef.current >= maxPow
+        : enemyMaxPow > 0 && enemyPowerRef.current >= enemyMaxPow,
+      consumed: false,
+    };
 
     const resolved = resolveJavaBoardStep(board, scanTargets);
     if (resolved === null) {
@@ -173,6 +194,9 @@ export const useBattleMatchFlow = ({
     }
 
     let dmg = calcSwordDamage(board, matched);
+    if (activeRageBurst.active && dmg > 0) {
+      dmg *= 2;
+    }
     let heal = 0;
     let mp = 0;
     let pow = 0;
@@ -250,19 +274,44 @@ export const useBattleMatchFlow = ({
             finalizeVictory();
             return;
           }
-          setTimeout(() => processMatches(newBoard, chain + 1, affectedKeys), 80);
+          setTimeout(() => processMatches(newBoard, chain + 1, affectedKeys, activeRageBurst), 80);
         };
         animateFall(newBoard, fallMap, continueAfterFall);
+
+        const consumeRageIfNeeded = () => {
+          if (!activeRageBurst.active || activeRageBurst.consumed || dmg <= 0) {
+            return;
+          }
+
+          activeRageBurst.consumed = true;
+          showBonusBanner('No day x2');
+
+          if (turnRef.current === 'player') {
+            playerPowerRef.current = 0;
+            setPower(() => 0);
+            return;
+          }
+
+          enemyPowerRef.current = 0;
+          setEnemyPower(() => 0);
+        };
 
         if (turnRef.current === 'player') {
           const applyPlayerRewards = () => {
             if (heal > 0) setPlayerHP(hp => Math.min(maxHP, hp + heal));
             if (mp > 0) setMana(value => Math.min(maxMP, value + mp));
-            if (pow > 0) setPower(value => Math.min(maxPow, value + pow));
+            if (pow > 0) {
+              setPower(value => {
+                const next = Math.min(maxPow, value + pow);
+                playerPowerRef.current = next;
+                return next;
+              });
+            }
           };
 
           const applyPlayerDamage = () => {
             if (dmg <= 0) return;
+            consumeRageIfNeeded();
             showDamagePopup('enemy', dmg);
             setEnemyHP(hp => {
             const next = Math.max(0, hp - dmg);
@@ -304,6 +353,7 @@ export const useBattleMatchFlow = ({
             playMonsterSwordAttack(
               () => {
                 if (!mountedRef.current) return;
+                consumeRageIfNeeded();
                 onPlayerHit();
                 showDamagePopup('player', dmg);
                 setPlayerHP(hp => {
@@ -321,7 +371,13 @@ export const useBattleMatchFlow = ({
           }
           if (heal > 0) setEnemyHP(hp => Math.min(maxEHP, hp + heal));
           if (mp > 0) setEnemyMana(value => Math.min(enemyMaxMP, value + mp));
-          if (pow > 0) setEnemyPower(value => Math.min(enemyMaxPow, value + pow));
+          if (pow > 0) {
+            setEnemyPower(value => {
+              const next = Math.min(enemyMaxPow, value + pow);
+              enemyPowerRef.current = next;
+              return next;
+            });
+          }
         }
       });
     }, MATCH_HOLD_BEFORE_EXPLODE_MS);
@@ -339,6 +395,7 @@ export const useBattleMatchFlow = ({
     enemyMaxMP,
     enemyMaxPow,
     enemyResourceProfile,
+    enemyPowerRef,
     mountedRef,
     onPlayerDefeat,
     onPlayerHit,
@@ -366,6 +423,7 @@ export const useBattleMatchFlow = ({
     spawnCollectFX,
     setTurnCycle,
     turnRef,
+    playerPowerRef,
     playerResourceProfile,
   ]);
 

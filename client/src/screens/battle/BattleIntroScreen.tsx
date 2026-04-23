@@ -1,10 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
-  Dimensions,
   Easing,
   Image,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -12,8 +10,17 @@ import { MonsterSprite, monsterDisplaySize, monsterPlacementMetrics, type Monste
 import { CharacterRenderer, measureCharacterRenderer } from '../character';
 import type { CharacterAppearance } from '../character/shared';
 import { loadSession } from '../../storage/SessionStorage';
-import type { MonsterBattleBootstrapResponse } from './core';
+import type { MonsterBattleBootstrapResponse, MonsterSharedSheetFamily } from './core';
 import { resolveMonsterBadgeFromVisuals } from './core';
+import {
+  getBattleIntroCardsLayerStyle,
+  getBattleIntroCardInnerStyle,
+  getBattleIntroCardOuterStyle,
+  getBattleIntroHitFlashStyle,
+  getBattleIntroPreviewMonsterStyle,
+  getBattleIntroPreviewPlayerStyle,
+  styles,
+} from './BattleIntroScreen.styles';
 
 const AUTO_ADVANCE_MS = 5000;
 const SHOW_CARDS_AFTER_MS = 1500;
@@ -26,6 +33,15 @@ interface BattleIntroScreenProps {
   monsterType: MonsterType;
   monsterBootstrap: MonsterBattleBootstrapResponse | null;
   bootstrapStatus: 'loading' | 'ready' | 'error';
+  encounterDisplayName?: string;
+  encounterDisplayLevel?: number;
+  encounterIqValue?: number;
+  encounterVisualTypeByte?: number;
+  encounterSharedSheetFamily?: MonsterSharedSheetFamily;
+  encounterNameColorMode?: number;
+  monsterPreviewFrameIndex?: number;
+  monsterPreviewFacingRight?: boolean;
+  monsterPreviewWorldState?: 'patrol' | 'alert' | 'engaging';
   playerLeft: number;
   monsterLeft: number;
   groundY: number;
@@ -41,18 +57,59 @@ interface EncounterInfo {
   badge: string;
 }
 
-const PLAYER_INFO = {
-  level: 10,
-  note: 'Thường dân',
-};
-
 interface BattleInfoCardProps {
   align: 'left' | 'right';
   name: string;
   level: number | string;
   note: string;
   badge: string;
+  accentColor?: string;
   children: React.ReactNode;
+}
+
+function resolveEncounterIqLabel(iqValue: number): string {
+  if (iqValue < 3) {
+    return 'Siêu gà';
+  }
+
+  if (iqValue < 7) {
+    return 'Bờm';
+  }
+
+  if (iqValue < 10) {
+    return 'Ma lanh';
+  }
+
+  if (iqValue === 11) {
+    return 'Tốc chiến';
+  }
+
+  return 'Tuyệt đỉnh';
+}
+
+function resolveEncounterAccentColor(
+  displayLevel: number,
+  nameColorMode: number | undefined,
+  playerLevel: number,
+): string {
+  if (nameColorMode === 1) {
+    return '#d94141';
+  }
+
+  if (nameColorMode === 2) {
+    return '#b38a1a';
+  }
+
+  const levelDelta = displayLevel - playerLevel;
+  if (levelDelta >= 5) {
+    return '#1673FF';
+  }
+
+  if (levelDelta < -9) {
+    return '#818181';
+  }
+
+  return '#5aa8ff';
 }
 
 const BattleInfoCard: React.FC<BattleInfoCardProps> = ({
@@ -61,13 +118,16 @@ const BattleInfoCard: React.FC<BattleInfoCardProps> = ({
   level,
   note,
   badge,
+  accentColor = '#5aa8ff',
   children,
 }) => {
   const isLeft = align === 'left';
 
   return (
-    <View style={[styles.cardOuter, isLeft ? styles.cardTop : styles.cardBottom]}>
-      <View style={styles.cardInner}>
+    <View
+      style={getBattleIntroCardOuterStyle(isLeft, accentColor)}
+    >
+      <View style={getBattleIntroCardInnerStyle(accentColor)}>
         <Image
           source={ASSET_HIDDEN_DRAGON}
           style={[
@@ -100,6 +160,15 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
   monsterType,
   monsterBootstrap,
   bootstrapStatus,
+  encounterDisplayName,
+  encounterDisplayLevel,
+  encounterIqValue,
+  encounterVisualTypeByte,
+  encounterSharedSheetFamily,
+  encounterNameColorMode,
+  monsterPreviewFrameIndex = 0,
+  monsterPreviewFacingRight = false,
+  monsterPreviewWorldState = 'patrol',
   playerLeft,
   monsterLeft,
   groundY,
@@ -118,30 +187,48 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
   const cardsAnim = useRef(new Animated.Value(0)).current;
 
   const canConfirm = monsterBootstrap !== null && bootstrapStatus === 'ready';
+  const playerInfo = useMemo(
+    () => ({
+      level: appearance.level ?? 1,
+      note: appearance.quanHam?.trim() || 'Luong khach',
+    }),
+    [appearance.level, appearance.quanHam],
+  );
   const playerBadge = useMemo(() => {
     if (appearance.elementIndex === 1) return '⚡';
     if (appearance.elementIndex === 2) return '💧';
     return '🔥';
   }, [appearance.elementIndex]);
+  const encounterLevel = encounterDisplayLevel ?? monsterBootstrap?.displayLevel ?? 1;
+  const encounterIq = encounterIqValue ?? monsterBootstrap?.iqValue ?? 0;
+  const encounterBadge = resolveMonsterBadgeFromVisuals(
+    encounterVisualTypeByte ?? monsterBootstrap?.visualTypeByte ?? 0,
+    encounterSharedSheetFamily ?? monsterBootstrap?.sharedSheetFamily ?? 'Monster',
+  );
+  const monsterAccentColor = useMemo(
+    () => resolveEncounterAccentColor(
+      encounterLevel,
+      encounterNameColorMode,
+      appearance.level ?? 1,
+    ),
+    [appearance.level, encounterLevel, encounterNameColorMode],
+  );
   const monsterInfo = useMemo<EncounterInfo>(() => {
+    if (encounterDisplayName) {
+      return {
+        name: encounterDisplayName,
+        level: encounterLevel,
+        note: `IQ: ${resolveEncounterIqLabel(encounterIq)}`,
+        badge: encounterBadge,
+      };
+    }
+
     if (monsterBootstrap) {
-      const iqLabel = monsterBootstrap.iqValue < 3
-        ? 'Siêu gà'
-        : monsterBootstrap.iqValue < 7
-          ? 'Bờm'
-          : monsterBootstrap.iqValue < 10
-            ? 'Ma lanh'
-            : monsterBootstrap.iqValue === 11
-              ? 'Tốc chiến'
-              : 'Tuyệt đỉnh';
       return {
         name: monsterBootstrap.enemy.displayName,
-        level: monsterBootstrap.displayLevel,
-        note: `IQ: ${iqLabel}`,
-        badge: resolveMonsterBadgeFromVisuals(
-          monsterBootstrap.visualTypeByte,
-          monsterBootstrap.sharedSheetFamily,
-        ),
+        level: encounterLevel,
+        note: `IQ: ${resolveEncounterIqLabel(encounterIq)}`,
+        badge: encounterBadge,
       };
     }
 
@@ -160,7 +247,14 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
       note: 'Đang tải dữ liệu battle',
       badge: '…',
     };
-  }, [bootstrapStatus, monsterBootstrap]);
+  }, [
+    bootstrapStatus,
+    encounterBadge,
+    encounterDisplayName,
+    encounterIq,
+    encounterLevel,
+    monsterBootstrap,
+  ]);
   // Cùng thuật toán với HoaLuMapScreen: anchorToBody=true + SPRITE_FOOT_SINK.
   // Đảm bảo preview trong encounter không bị "nhảy" vị trí so với map screen.
   const playerSize = useMemo(() => {
@@ -176,6 +270,11 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
     () => monsterPlacementMetrics(monsterType),
     [monsterType],
   );
+  const previewMonsterScale = monsterPreviewWorldState === 'engaging'
+    ? 1.06
+    : monsterPreviewWorldState === 'alert'
+      ? 1.03
+      : 1;
 
   const finish = useCallback((next: () => void) => {
     if (handledRef.current) return;
@@ -332,27 +431,12 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
   return (
     <View style={styles.root} pointerEvents="none">
       <View style={styles.stage}>
-        <Animated.View
-          style={[
-            styles.cardsLayer,
-            {
-              opacity: cardsAnim,
-              transform: [
-                {
-                  translateY: cardsAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-18, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
+        <Animated.View style={getBattleIntroCardsLayerStyle(cardsAnim)}>
           <BattleInfoCard
             align="left"
             name={username}
-            level={PLAYER_INFO.level}
-            note={PLAYER_INFO.note}
+            level={playerInfo.level}
+            note={playerInfo.note}
             badge={playerBadge}
           >
             <View style={styles.playerSpriteWrap}>
@@ -370,26 +454,24 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
             level={monsterInfo.level}
             note={monsterInfo.note}
             badge={monsterInfo.badge}
+            accentColor={monsterAccentColor}
           >
             <View style={styles.monsterSpriteWrap}>
               <MonsterSprite
                 type={monsterType}
-                frameIndex={0}
-                facingRight={false}
+                frameIndex={monsterPreviewFrameIndex}
+                facingRight={monsterPreviewFacingRight}
               />
             </View>
           </BattleInfoCard>
         </Animated.View>
 
-        <Animated.View
-          style={[
-            styles.previewPlayer,
-            {
-              left: playerLeft,
-              top: groundY - playerSize.h + (playerSize.groundOffset ?? 0),
-              transform: [{ translateX: playerLungeAnim }],
-            },
-          ]}
+        <Animated.View style={getBattleIntroPreviewPlayerStyle(
+          playerLeft,
+          groundY,
+          playerSize,
+          playerLungeAnim,
+        )}
         >
           <CharacterRenderer
             appearance={appearance}
@@ -401,184 +483,23 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
           />
         </Animated.View>
 
-        <Animated.View
-          style={[
-            styles.previewMonster,
-            {
-              left: monsterLeft,
-              top: groundY - monsterSize.h + monsterPlacement.groundOffset,
-              transform: [{ translateX: monsterShakeAnim }],
-            },
-          ]}
+        <Animated.View style={getBattleIntroPreviewMonsterStyle(
+          monsterLeft,
+          groundY,
+          monsterSize,
+          monsterPlacement,
+          monsterShakeAnim,
+          previewMonsterScale,
+        )}
         >
           <MonsterSprite
             type={monsterType}
-            frameIndex={0}
-            facingRight={false}
+            frameIndex={monsterPreviewFrameIndex}
+            facingRight={monsterPreviewFacingRight}
           />
-          <Animated.View style={[styles.hitFlash, { opacity: hitFlashAnim }]} pointerEvents="none" />
+          <Animated.View style={getBattleIntroHitFlashStyle(hitFlashAnim)} pointerEvents="none" />
         </Animated.View>
       </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  root: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  stage: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-    paddingTop: 46,
-    paddingBottom: 44,
-  },
-  cardsLayer: {
-    zIndex: 4,
-  },
-  cardOuter: {
-    borderWidth: 2,
-    borderColor: '#5aa8ff',
-    backgroundColor: '#edf7ff',
-    borderRadius: 6,
-    padding: 2,
-    shadowColor: '#4d88d9',
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-  },
-  cardTop: {
-    marginBottom: 12,
-  },
-  cardBottom: {
-    marginTop: 12,
-  },
-  cardInner: {
-    minHeight: 118,
-    borderWidth: 1,
-    borderColor: '#c9e3ff',
-    backgroundColor: 'rgba(247, 252, 255, 0.96)',
-    borderRadius: 4,
-    overflow: 'hidden',
-    justifyContent: 'center',
-  },
-  hiddenDragon: {
-    position: 'absolute',
-    width: 107,
-    height: 78,
-    opacity: 0.22,
-    top: 24,
-  },
-  hiddenDragonRight: {
-    right: 16,
-  },
-  hiddenDragonLeft: {
-    left: 16,
-  },
-  cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  cardContentLeft: {
-    justifyContent: 'flex-start',
-  },
-  cardContentRight: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-  },
-  actorSlot: {
-    width: 96,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  textSlot: {
-    flex: 1,
-    marginLeft: 4,
-  },
-  textSlotRight: {
-    marginLeft: 4,
-    marginRight: 0,
-    alignItems: 'flex-end',
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  nameRowRight: {
-    justifyContent: 'flex-end',
-  },
-  badgeText: {
-    fontSize: 18,
-    marginRight: 6,
-  },
-  nameText: {
-    flexShrink: 1,
-    color: '#111',
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  levelText: {
-    color: '#1f1f1f',
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  levelTextRight: {
-    textAlign: 'right',
-  },
-  noteText: {
-    color: '#242424',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  noteTextRight: {
-    textAlign: 'right',
-  },
-  versusRow: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  versusIcon: {
-    color: '#f1c54d',
-    fontSize: 36,
-    textShadowColor: 'rgba(120, 60, 0, 0.35)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 3,
-  },
-  playerSpriteWrap: {
-    width: 82,
-    height: 74,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  monsterSpriteWrap: {
-    width: 82,
-    height: 74,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  previewPlayer: {
-    position: 'absolute',
-    zIndex: 1,
-  },
-  previewMonster: {
-    position: 'absolute',
-    zIndex: 0,
-  },
-  hitFlash: {
-    position: 'absolute',
-    left: -8,
-    top: -8,
-    right: -8,
-    bottom: -8,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 999,
-  },
-});

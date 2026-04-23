@@ -85,6 +85,7 @@ export interface CharacterControllerRef {
   stopMove: () => void;
   jump: (direction?: VirtualJumpDirection) => void;
   attack: () => void;
+  face: (direction: FacingDirection) => void;
 }
 
 // ── CharacterController props ─────────────────────────────────────────────

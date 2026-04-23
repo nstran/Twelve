@@ -12,6 +12,7 @@ import {
   type BattleTurn,
   type Board,
   type MoveSpec,
+  type SkillFamilyCode,
 } from '../core';
 import type { useBattleMatchFlow } from './useBattleMatchFlow';
 
@@ -64,6 +65,13 @@ interface UseBattleMonsterTurnArgs {
   showDamagePopup: (side: 'player' | 'enemy', amount: number) => void;
   skillCastTimersRef: MutableRefObject<ReturnType<typeof setTimeout>[]>;
   startPlayerDefeatSequence: () => void;
+  playMonsterSkillCast: (
+    familyCode: SkillFamilyCode,
+    impactDelayMs: number,
+    totalDurationMs: number,
+    hitsActor: boolean,
+    hitShakePx: number,
+  ) => void;
   playPlayerHitReaction: () => void;
   turn: BattleTurn;
   turnRef: MutableRefObject<BattleTurn>;
@@ -118,6 +126,7 @@ export const useBattleMonsterTurn = ({
   showDamagePopup,
   skillCastTimersRef,
   startPlayerDefeatSequence,
+  playMonsterSkillCast,
   playPlayerHitReaction,
   turn,
   turnRef,
@@ -207,6 +216,13 @@ export const useBattleMonsterTurn = ({
     setPhase('busy');
     phaseRef.current = 'busy';
     monsterTurnStateRef.current = 'skill';
+    playMonsterSkillCast(
+      packet.familyCode,
+      packet.impactDelayMs ?? 0,
+      packet.durationMs ?? 0,
+      packet.impact.hitsActor,
+      packet.impact.hitShakePx ?? 0,
+    );
 
     const cast = buildActiveBattleSkillCastFromPacket(packet, {
       panelLeft,
@@ -397,6 +413,7 @@ export const useBattleMonsterTurn = ({
     showDamagePopup,
     skillCastTimersRef,
     startPlayerDefeatSequence,
+    playMonsterSkillCast,
     turnRef,
   ]);
 

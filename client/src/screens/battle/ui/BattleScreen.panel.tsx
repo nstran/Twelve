@@ -61,6 +61,9 @@ interface BattlePanelProps {
   playerHPBarAnim: Animated.Value;
   enemyHPBarAnim: Animated.Value;
   powerBlinkAnim: Animated.Value;
+  enemyPowerBlinkAnim: Animated.Value;
+  playerRageReady: boolean;
+  enemyRageReady: boolean;
   onGemPress: (row: number, col: number) => void;
 }
 
@@ -99,6 +102,9 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   playerHPBarAnim,
   enemyHPBarAnim,
   powerBlinkAnim,
+  enemyPowerBlinkAnim,
+  playerRageReady,
+  enemyRageReady,
   onGemPress,
 }) => {
   const playerHud = PLAYER_HUD_LAYOUT;
@@ -155,7 +161,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             position: 'absolute',
             top: playerHud.power.y,
             left: playerHud.power.x,
-            opacity: powerBlinkAnim,
+            opacity: playerRageReady ? powerBlinkAnim : 1,
           }}
         >
           <TBar
@@ -166,6 +172,33 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             direction="ltr"
           />
         </Animated.View>
+        {playerRageReady && (
+          <Animated.View
+            style={{
+              position: 'absolute',
+              top: playerHud.power.y - 9,
+              left: playerHud.power.x + playerHud.power.w - 22,
+              minWidth: 22,
+              height: 10,
+              paddingHorizontal: 4,
+              borderRadius: 5,
+              borderWidth: 1,
+              borderColor: '#ffe39a',
+              backgroundColor: 'rgba(126, 33, 6, 0.95)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: powerBlinkAnim,
+              transform: [{
+                scale: powerBlinkAnim.interpolate({
+                  inputRange: [0.15, 1],
+                  outputRange: [0.92, 1.06],
+                }),
+              }],
+            }}
+          >
+            <Text style={{ color: '#fff1c8', fontSize: 7, fontWeight: '900' }}>x2</Text>
+          </Animated.View>
+        )}
       </View>
 
       <View
@@ -197,7 +230,14 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             direction="rtl"
           />
         </View>
-        <View style={{ position: 'absolute', top: enemyHud.power.y, right: enemyHud.power.x }}>
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: enemyHud.power.y,
+            right: enemyHud.power.x,
+            opacity: enemyRageReady ? enemyPowerBlinkAnim : 1,
+          }}
+        >
           <TBar
             asset={BATTLE_ASSETS.powerBar}
             fill={enemyMaxPow <= 0 ? 0 : enemyPower / enemyMaxPow}
@@ -205,7 +245,34 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             h={enemyHud.power.h}
             direction="rtl"
           />
-        </View>
+        </Animated.View>
+        {enemyRageReady && (
+          <Animated.View
+            style={{
+              position: 'absolute',
+              top: enemyHud.power.y - 9,
+              right: enemyHud.power.x + enemyHud.power.w - 22,
+              minWidth: 22,
+              height: 10,
+              paddingHorizontal: 4,
+              borderRadius: 5,
+              borderWidth: 1,
+              borderColor: '#9de8ff',
+              backgroundColor: 'rgba(10, 56, 118, 0.95)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: enemyPowerBlinkAnim,
+              transform: [{
+                scale: enemyPowerBlinkAnim.interpolate({
+                  inputRange: [0.15, 1],
+                  outputRange: [0.92, 1.06],
+                }),
+              }],
+            }}
+          >
+            <Text style={{ color: '#e9faff', fontSize: 7, fontWeight: '900' }}>x2</Text>
+          </Animated.View>
+        )}
       </View>
 
       <Animated.View

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing } from 'react-native';
 import type { CharacterAction } from '../../../engine/character';
 import type { BattleMonsterPoseKey } from '../../../engine/BattleMonsterAssetManifest';
+import type { SkillFamilyCode } from '../core';
 
 const JAVA_BATTLE_TICK_MS = 40;
 const JAVA_ATTACK_MIN_STEP_PX = 5;
@@ -46,6 +47,69 @@ interface UseBattleSwordAttacksArgs {
   setPlayerActionFrameIndex: React.Dispatch<React.SetStateAction<number | null>>;
   setPlayerRetreatPose: React.Dispatch<React.SetStateAction<boolean>>;
 }
+
+interface MonsterSkillCastProfile {
+  prepRatio: number;
+  settleLeadMs: number;
+  castTravelRatio: number;
+  minTravelPx: number;
+  maxTravelPx: number;
+  easing: (value: number) => number;
+}
+
+const FIRE_CAST_PROFILE: MonsterSkillCastProfile = {
+  prepRatio: 0.52,
+  settleLeadMs: 100,
+  castTravelRatio: 0.22,
+  minTravelPx: 8,
+  maxTravelPx: 20,
+  easing: Easing.out(Easing.cubic),
+};
+
+const THUNDER_CAST_PROFILE: MonsterSkillCastProfile = {
+  prepRatio: 0.34,
+  settleLeadMs: 72,
+  castTravelRatio: 0.28,
+  minTravelPx: 10,
+  maxTravelPx: 24,
+  easing: Easing.out(Easing.exp),
+};
+
+const WATER_CAST_PROFILE: MonsterSkillCastProfile = {
+  prepRatio: 0.46,
+  settleLeadMs: 118,
+  castTravelRatio: 0.18,
+  minTravelPx: 6,
+  maxTravelPx: 16,
+  easing: Easing.out(Easing.quad),
+};
+
+const resolveMonsterSkillCastProfile = (
+  familyCode: SkillFamilyCode,
+  hitsActor: boolean,
+  hitShakePx: number,
+): MonsterSkillCastProfile => {
+  const familyGroup = Math.floor(familyCode / 1000);
+  const baseProfile = familyGroup === 2
+    ? THUNDER_CAST_PROFILE
+    : familyGroup === 4
+      ? WATER_CAST_PROFILE
+      : FIRE_CAST_PROFILE;
+
+  if (!hitsActor && hitShakePx <= 10) {
+    return {
+      ...baseProfile,
+      castTravelRatio: Math.max(0.12, baseProfile.castTravelRatio - 0.05),
+      maxTravelPx: Math.max(baseProfile.minTravelPx, baseProfile.maxTravelPx - 4),
+    };
+  }
+
+  return {
+    ...baseProfile,
+    castTravelRatio: Math.min(0.32, baseProfile.castTravelRatio + Math.min(0.05, hitShakePx / 220)),
+    maxTravelPx: Math.min(28, baseProfile.maxTravelPx + Math.min(4, Math.floor(hitShakePx / 6))),
+  };
+};
 
 const ticksToMs = (ticks: number) => ticks * JAVA_BATTLE_TICK_MS;
 
@@ -455,12 +519,99 @@ export const useBattleSwordAttacks = ({
     runNextMonsterSwordAttack();
   }, [runNextMonsterSwordAttack]);
 
+  const playMonsterSkillCast = useCallback((
+    familyCode: SkillFamilyCode,
+    impactDelayMs: number,
+    totalDurationMs: number,
+    hitsActor: boolean,
+    hitShakePx: number,
+  ) => {
+    monsterAttackTimersRef.current.forEach(clearTimeout);
+    monsterAttackTimersRef.current = [];
+
+    enemyAttackTranslateX.stopAnimation();
+    enemyAttackTranslateX.setValue(0);
+
+    if (monsterHitTimerRef.current) {
+      clearTimeout(monsterHitTimerRef.current);
+      monsterHitTimerRef.current = null;
+    }
+
+    const profile = resolveMonsterSkillCastProfile(familyCode, hitsActor, hitShakePx);
+    const safeImpactDelayMs = Math.max(120, impactDelayMs);
+    const safeTotalDurationMs = Math.max(safeImpactDelayMs + 180, totalDurationMs);
+    const approachMs = Math.max(70, Math.min(190, Math.floor(safeImpactDelayMs * profile.prepRatio)));
+    const settleStartMs = Math.max(approachMs + 32, safeImpactDelayMs - profile.settleLeadMs);
+    const castTravel = Math.max(
+      profile.minTravelPx,
+      Math.min(profile.maxTravelPx, Math.round(attackTravelX * profile.castTravelRatio)),
+    );
+
+    monsterAttackRunningRef.current = true;
+    setMonAtk(true);
+    setMonHit(false);
+    setMonsterPoseKey('prepare_attack');
+
+    const runTimer = setTimeout(() => {
+      if (!mountedRef.current) {
+        return;
+      }
+
+      setMonsterPoseKey('run_attack');
+    }, Math.max(40, Math.floor(approachMs * 0.45)));
+
+    const attackPoseTimer = setTimeout(() => {
+      if (!mountedRef.current) {
+        return;
+      }
+
+      setMonsterPoseKey('attack');
+    }, Math.max(70, safeImpactDelayMs - 70));
+
+    const settleTimer = setTimeout(() => {
+      if (!mountedRef.current) {
+        return;
+      }
+
+      Animated.timing(enemyAttackTranslateX, {
+        toValue: 0,
+        duration: Math.max(110, safeTotalDurationMs - settleStartMs - 40),
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }).start();
+    }, settleStartMs);
+
+    const completeTimer = setTimeout(() => {
+      if (!mountedRef.current) {
+        return;
+      }
+
+      enemyAttackTranslateX.setValue(0);
+      setMonAtk(false);
+      setMonHit(false);
+      setMonsterPoseKey('idle_a');
+      monsterAttackRunningRef.current = false;
+      monsterAttackTimersRef.current = [];
+      runNextMonsterSwordAttack();
+    }, safeTotalDurationMs);
+
+    monsterAttackTimersRef.current = [runTimer, attackPoseTimer, settleTimer, completeTimer];
+
+    Animated.timing(enemyAttackTranslateX, {
+      toValue: -castTravel,
+      duration: approachMs,
+      easing: profile.easing,
+      useNativeDriver: true,
+    }).start();
+  }, [attackTravelX, enemyAttackTranslateX, mountedRef, runNextMonsterSwordAttack]);
+
   return {
     monsterDefeatOpacity,
     monsterDefeatScale,
     monsterDefeatTranslateY,
     monsterPoseKey,
     playMonsterDefeatSequence,
+    playMonsterSkillCast,
     playMonsterSwordAttack,
     playPlayerSwordAttack,
   };

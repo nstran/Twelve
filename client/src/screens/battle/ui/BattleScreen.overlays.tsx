@@ -7,6 +7,8 @@ import type { CharacterAction } from '../../../engine/character';
 import { CharacterRenderer } from '../../character';
 import type { CharacterAppearance } from '../../character/shared';
 import {
+  AURA1_IMG,
+  AURA2_IMG,
   BATTLE_PLAYER_SCALE,
   RESULT_ART_INDEX,
   BOARD_TOP,
@@ -52,6 +54,9 @@ interface BattleActorsRowProps {
   playerHitTranslateX: Animated.Value;
   enemyAttackTranslateX: Animated.Value;
   enemyHitTranslateX: Animated.Value;
+  playerRageReady: boolean;
+  enemyRageReady: boolean;
+  rageAuraPulseAnim: Animated.Value;
 }
 
 export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
@@ -76,6 +81,9 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
   playerHitTranslateX,
   enemyAttackTranslateX,
   enemyHitTranslateX,
+  playerRageReady,
+  enemyRageReady,
+  rageAuraPulseAnim,
 }) => {
   const { stageWidth, playerBaseLeft, monsterBaseLeft, monsterGroundOffset, playerSize } =
     React.useMemo(
@@ -110,6 +118,24 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
           ],
         }}
       >
+        {playerRageReady && (
+          <Animated.Image
+            source={AURA1_IMG}
+            resizeMode="contain"
+            style={{
+              position: 'absolute',
+              left: -18,
+              top: -20,
+              width: playerSize.w + 36,
+              height: playerSize.h + 24,
+              opacity: rageAuraPulseAnim.interpolate({
+                inputRange: [0.72, 1.08],
+                outputRange: [0.32, 0.8],
+              }),
+              transform: [{ scale: rageAuraPulseAnim }],
+            }}
+          />
+        )}
         <View
           style={{
             transform: [
@@ -147,6 +173,24 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
           ],
         }}
       >
+        {enemyRageReady && (
+          <Animated.Image
+            source={AURA2_IMG}
+            resizeMode="contain"
+            style={{
+              position: 'absolute',
+              left: -20,
+              top: -24,
+              width: monsterWidth + 40,
+              height: monsterHeight + 30,
+              opacity: rageAuraPulseAnim.interpolate({
+                inputRange: [0.72, 1.08],
+                outputRange: [0.3, 0.76],
+              }),
+              transform: [{ scale: rageAuraPulseAnim }],
+            }}
+          />
+        )}
         <BattleMonsterSprite
           assetCatalogId={monsterAssetCatalogId}
           fallbackType={monsterType}

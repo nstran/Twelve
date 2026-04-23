@@ -772,7 +772,10 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     attack: () => {
       performAttack();
     },
-  }), [performAttack, startMoving, stopMoving, triggerVirtualJump]);
+    face: (direction) => {
+      setFacingIfChanged(direction);
+    },
+  }), [performAttack, setFacingIfChanged, startMoving, stopMoving, triggerVirtualJump]);
 
   const isPointOnCharacter = useCallback((x: number, y: number) => {
     const top = currentGroundYRef.current - charSize.h + charGroundOffset + jumpYOffsetRef.current;

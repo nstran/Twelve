@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import {
   MonsterSprite, MonsterType,
-  WALK_FRAMES, ATTACK_FRAMES, monsterDisplaySize, monsterPlacementMetrics,
+  WALK_FRAMES, monsterDisplaySize, monsterPlacementMetrics,
 } from '../../../engine/MonsterSprite';
 import {
   CharacterController,
@@ -17,6 +17,7 @@ import {
 import { CharacterRenderer, measureCharacterRenderer } from '../../character';
 import {
   BattleIntroScreen,
+  type MonsterSharedSheetFamily,
   resolveMonsterTypeFromVisuals,
 } from '../../battle';
 import { MapHUD } from '../../../components/game/MapHUD/MapHUD';
@@ -85,18 +86,71 @@ interface MonsterVisual {
   worldState: 'patrol' | 'alert' | 'engaging';
 }
 
-// Khoảng cách tính là "va chạm" (px từ center-to-center)
-const COLLISION_DIST = 52;
-const ALERT_DIST = 144;
-const ALERT_HOLD_TICKS = 10;
 const ENGAGE_TRIGGER_DELAY_MS = 120;
-const ALERT_CHASE_SPEED_MULTIPLIER = 1.18;
+const PLAYER_ALERT_MEMORY_MS = 220;
 // Mỗi bao nhiêu tick thì đổi frame (tick=50ms, FRAME_TICKS=4 → 80ms/frame ≈ 12fps anim)
 const FRAME_TICKS = 4;
 const MONSTER_TICK_MS = 50; // 20 logic ticks/sec
 
-function buildMonsterRuntimes(roster: MapMonsterRosterEntry[], surfaces: GroundSurface[]): MonsterRuntime[] {
-  return roster.map((entry) => {
+const getLoopNowMs = (): number => (
+  typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now()
+);
+
+function createMonsterRuntime(entry: MapMonsterRosterEntry, surfaces: GroundSurface[]): MonsterRuntime {
+  const surface = surfaces.find((candidate) => candidate.id === entry.surfaceId);
+  if (!surface) {
+    throw new Error(`Surface '${entry.surfaceId}' not found in Hoa Lu navigation data.`);
+  }
+
+  const span = Math.max(0, surface.x2 - surface.x1);
+  const minX = surface.x1 + Math.max(0, Math.min(1, entry.patrolStartRatio)) * span;
+  const maxX = surface.x1 + Math.max(0, Math.min(1, entry.patrolEndRatio)) * span;
+  const startX = minX + Math.max(0, maxX - minX) * Math.max(0, Math.min(1, entry.spawnRatio));
+  const type = resolveMonsterTypeFromVisuals(entry.visualTypeByte, entry.sharedSheetFamily);
+  const size = monsterDisplaySize(type);
+  const placement = monsterPlacementMetrics(type);
+  const leftX = startX - size.w / 2;
+  const surfaceGroundY = getSurfaceStartY(surface);
+
+  return {
+    id: entry.monsterKey,
+    type,
+    roster: entry,
+    surfaceId: surface.id,
+    groundY: surfaceGroundY,
+    minX,
+    maxX,
+    x: startX,
+    direction: (entry.spawnInstanceIndex & 1) === 0 ? 1 : -1,
+    tickCount: 0,
+    attacking: false,
+    worldState: 'patrol',
+    aggroTicks: 0,
+    engageQueued: false,
+    frameIndex: WALK_FRAMES[0],
+    xAnim: new Animated.Value(leftX),
+    size,
+    topY: surfaceGroundY - size.h + placement.groundOffset,
+  };
+}
+
+function reconcileMonsterRuntimes(
+  previousRuntimes: MonsterRuntime[],
+  previousTargets: MonsterTarget[],
+  roster: MapMonsterRosterEntry[],
+  surfaces: GroundSurface[],
+): { runtimes: MonsterRuntime[]; targets: MonsterTarget[] } {
+  const previousById = new Map(previousRuntimes.map((runtime) => [runtime.id, runtime]));
+  const previousTargetsById = new Map(previousTargets.map((target) => [target.id, target]));
+
+  const runtimes = roster.map((entry) => {
+    const existing = previousById.get(entry.monsterKey);
+    if (!existing) {
+      return createMonsterRuntime(entry, surfaces);
+    }
+
     const surface = surfaces.find((candidate) => candidate.id === entry.surfaceId);
     if (!surface) {
       throw new Error(`Surface '${entry.surfaceId}' not found in Hoa Lu navigation data.`);
@@ -105,33 +159,66 @@ function buildMonsterRuntimes(roster: MapMonsterRosterEntry[], surfaces: GroundS
     const span = Math.max(0, surface.x2 - surface.x1);
     const minX = surface.x1 + Math.max(0, Math.min(1, entry.patrolStartRatio)) * span;
     const maxX = surface.x1 + Math.max(0, Math.min(1, entry.patrolEndRatio)) * span;
-    const startX = minX + Math.max(0, maxX - minX) * Math.max(0, Math.min(1, entry.spawnRatio));
     const type = resolveMonsterTypeFromVisuals(entry.visualTypeByte, entry.sharedSheetFamily);
     const size = monsterDisplaySize(type);
     const placement = monsterPlacementMetrics(type);
-    const leftX = startX - size.w / 2;
     const surfaceGroundY = getSurfaceStartY(surface);
+    const clampedX = Math.max(minX, Math.min(maxX, existing.x));
+    const nextTopY = surfaceGroundY - size.h + placement.groundOffset;
+    const nextLeftX = clampedX - size.w / 2;
+
+    existing.type = type;
+    existing.roster = entry;
+    existing.surfaceId = surface.id;
+    existing.groundY = surfaceGroundY;
+    existing.minX = minX;
+    existing.maxX = maxX;
+    existing.x = clampedX;
+    existing.size = size;
+    existing.topY = nextTopY;
+    existing.xAnim.setValue(nextLeftX);
+
+    return existing;
+  });
+
+  const targets = runtimes.map((runtime) => {
+    const existing = previousTargetsById.get(runtime.id);
+    const leftX = runtime.x - runtime.size.w / 2;
+    if (existing) {
+      existing.x = leftX;
+      existing.y = runtime.topY;
+      existing.width = runtime.size.w;
+      existing.height = runtime.size.h;
+      return existing;
+    }
+
     return {
-      id: entry.monsterKey,
-      type,
-      roster: entry,
-      surfaceId: surface.id,
-      groundY: surfaceGroundY,
-      minX,
-      maxX,
-      x: startX,
-      direction: (entry.spawnInstanceIndex & 1) === 0 ? 1 : -1,
-      tickCount: 0,
-      attacking: false,
-      worldState: 'patrol',
-      aggroTicks: 0,
-      engageQueued: false,
-      frameIndex: WALK_FRAMES[0],
-      xAnim: new Animated.Value(leftX),
-      size,
-      topY: surfaceGroundY - size.h + placement.groundOffset,
+      id: runtime.id,
+      x: leftX,
+      y: runtime.topY,
+      width: runtime.size.w,
+      height: runtime.size.h,
     };
   });
+
+  return { runtimes, targets };
+}
+
+function hasMonsterCollision(
+  playerLeft: number,
+  playerWidth: number,
+  monsterCenterX: number,
+  monsterWidth: number,
+): boolean {
+  const playerRight = playerLeft + playerWidth;
+  const monsterLeft = monsterCenterX - monsterWidth / 2;
+  const monsterRight = monsterLeft + monsterWidth;
+  const horizontalInset = Math.max(6, Math.min(18, Math.floor(Math.min(playerWidth, monsterWidth) * 0.22)));
+
+  return (
+    playerRight >= monsterLeft + horizontalInset &&
+    playerLeft <= monsterRight - horizontalInset
+  );
 }
 
 function buildInitialVisuals(runtimes: MonsterRuntime[]): MonsterVisual[] {
@@ -153,62 +240,17 @@ function buildInitialVisuals(runtimes: MonsterRuntime[]): MonsterVisual[] {
 interface MonsterFieldProps {
   runtimes: MonsterRuntime[];
   visuals: MonsterVisual[];
-  playerLevel: number;
 }
 
-type MonsterNameplatePalette = {
-  fillColor: string;
-  borderColor: string;
-  textColor: string;
-};
-
-function resolveMonsterNameplatePalette(
-  roster: MapMonsterRosterEntry,
-  playerLevel: number,
-): MonsterNameplatePalette {
-  const accent = (() => {
-    switch (roster.nameColorMode) {
-      case 1:
-        return '#FF0000';
-      case 2:
-        return '#897712';
-      default: {
-        const levelDelta = roster.displayLevel - playerLevel;
-        if (levelDelta >= 5) {
-          return '#1673FF';
-        }
-
-        if (levelDelta < -9) {
-          return '#AAAAAA';
-        }
-
-        return '#DDDDDD';
-      }
-    }
-  })();
-
-  const hex = accent.replace('#', '');
-  const red = parseInt(hex.slice(0, 2), 16);
-  const green = parseInt(hex.slice(2, 4), 16);
-  const blue = parseInt(hex.slice(4, 6), 16);
-  const luminance = ((red * 299) + (green * 587) + (blue * 114)) / 1000;
-
-  return {
-    fillColor: accent,
-    borderColor: '#0A0A0A',
-    textColor: luminance >= 150 ? '#111111' : '#FFFFFF',
-  };
-}
-
-const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals, playerLevel }) => (
+const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals }) => (
   <>
     {runtimes.map((m, i) => {
       const vis = visuals[i] ?? {
         frameIndex: m.frameIndex,
         direction: m.direction,
         attacking: m.attacking,
+        worldState: m.worldState,
       };
-      const palette = resolveMonsterNameplatePalette(m.roster, playerLevel);
       const spriteScale = vis.worldState === 'engaging'
         ? 1.06
         : vis.worldState === 'alert'
@@ -220,9 +262,9 @@ const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals, playerL
           style={{
             position: 'absolute',
             left: 0,
-            top: m.topY - 24,
-            width: Math.max(m.size.w, 92),
-            height: m.size.h + 24,
+            top: m.topY - 16,
+            width: Math.max(m.size.w, 72),
+            height: m.size.h + 16,
             zIndex: LAYER_MONSTER,
             transform: [{ translateX: m.xAnim }, { scale: spriteScale }],
             overflow: 'visible',
@@ -230,33 +272,23 @@ const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals, playerL
           }}
           pointerEvents="none"
         >
-          <View
+          <Text
+            numberOfLines={1}
             style={{
-              minWidth: 54,
-              maxWidth: 112,
-              paddingHorizontal: 6,
-              height: 18,
-              borderRadius: 3,
-              borderWidth: 1,
-              borderColor: palette.borderColor,
-              backgroundColor: palette.fillColor,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 6,
+              maxWidth: 120,
+              color: '#FFFFFF',
+              fontSize: 12,
+              fontWeight: '700',
+              lineHeight: 14,
+              marginBottom: 2,
+              textAlign: 'center',
+              textShadowColor: '#000000',
+              textShadowOffset: { width: 1, height: 1 },
+              textShadowRadius: 1,
             }}
           >
-            <Text
-              numberOfLines={1}
-              style={{
-                color: palette.textColor,
-                fontSize: 10,
-                fontWeight: '700',
-                lineHeight: 12,
-              }}
-            >
-              {m.roster.displayName}
-            </Text>
-          </View>
+            {m.roster.displayName}
+          </Text>
           <MonsterSprite
             type={m.type}
             frameIndex={vis.frameIndex}
@@ -289,6 +321,15 @@ interface Props {
 interface EncounterPreviewState {
   monsterType: MonsterType;
   monsterKey: string;
+  displayName: string;
+  displayLevel: number;
+  iqValue: number;
+  visualTypeByte: number;
+  sharedSheetFamily: MonsterSharedSheetFamily;
+  nameColorMode: number;
+  monsterFrameIndex: number;
+  monsterFacingRight: boolean;
+  monsterWorldState: 'patrol' | 'alert' | 'engaging';
   playerLeft: number;
   monsterLeft: number;
   groundY: number;
@@ -367,6 +408,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const engagedMonsterIdRef = useRef<string | null>(null);
   const encounterRequestVersionRef = useRef(0);
   const charLeftRef = useRef(charInitX);
+  const playerLastMovedAtRef = useRef(0);
   const cameraXRef = useRef(0);
   // Camera scroll is coalesced to 1 scrollTo per vsync via rAF, so 60Hz
   // onMove callbacks from the character controller don't hammer the JS
@@ -429,15 +471,15 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   }, [mapId, roomId]);
 
   useEffect(() => {
-    const nextRuntimes = buildMonsterRuntimes(monsterRoster, sceneSurfaces);
+    const reconciled = reconcileMonsterRuntimes(
+      monsterRuntimesRef.current,
+      monsterTargetsRef.current,
+      monsterRoster,
+      sceneSurfaces,
+    );
+    const nextRuntimes = reconciled.runtimes;
     monsterRuntimesRef.current = nextRuntimes;
-    monsterTargetsRef.current = nextRuntimes.map((runtime) => ({
-      id: runtime.id,
-      x: runtime.x - runtime.size.w / 2,
-      y: runtime.topY,
-      width: runtime.size.w,
-      height: runtime.size.h,
-    }));
+    monsterTargetsRef.current = reconciled.targets;
     setMonsterVisuals(buildInitialVisuals(nextRuntimes));
     engagedMonsterIdRef.current = encounterPreview?.monsterKey ?? null;
     battleTriggered.current = false;
@@ -577,6 +619,15 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const startEncounter = useCallback((snap: {
     type: MonsterType;
     monsterKey: string;
+    displayName: string;
+    displayLevel: number;
+    iqValue: number;
+    visualTypeByte: number;
+    sharedSheetFamily: MonsterSharedSheetFamily;
+    nameColorMode: number;
+    monsterFrameIndex: number;
+    monsterFacingRight: boolean;
+    monsterWorldState: 'patrol' | 'alert' | 'engaging';
     x: number;
     groundY: number;
     initialTurn: 'player' | 'monster';
@@ -587,11 +638,23 @@ export const HoaLuMapScreen: React.FC<Props> = ({
     const requestVersion = encounterRequestVersionRef.current + 1;
     encounterRequestVersionRef.current = requestVersion;
 
+    characterControllerRef.current?.stopMove();
+    characterControllerRef.current?.face(snap.x >= charLeftRef.current ? 'right' : 'left');
+    setActiveMoveDirection(null);
     engagedMonsterIdRef.current = snap.monsterKey;
     battleTriggered.current = true;
     setEncounterPreview({
       monsterType: snap.type,
       monsterKey: snap.monsterKey,
+      displayName: snap.displayName,
+      displayLevel: snap.displayLevel,
+      iqValue: snap.iqValue,
+      visualTypeByte: snap.visualTypeByte,
+      sharedSheetFamily: snap.sharedSheetFamily,
+      nameColorMode: snap.nameColorMode,
+      monsterFrameIndex: snap.monsterFrameIndex,
+      monsterFacingRight: snap.monsterFacingRight,
+      monsterWorldState: snap.monsterWorldState,
       playerLeft: charLeftRef.current - cameraXRef.current,
       monsterLeft: snap.x - monsterW / 2 - cameraXRef.current,
       groundY: snap.groundY,
@@ -688,51 +751,31 @@ export const HoaLuMapScreen: React.FC<Props> = ({
 
       while (accumulator >= MONSTER_TICK_MS) {
         accumulator -= MONSTER_TICK_MS;
-        const playerCenter = charLeftRef.current + playerSpriteSize.w / 2;
+        const playerRecentlyMoved = getLoopNowMs() - playerLastMovedAtRef.current <= PLAYER_ALERT_MEMORY_MS;
+        const playerLeft = charLeftRef.current;
         const lockedMonsterId = engagedMonsterIdRef.current;
 
         for (let i = 0; i < monsterRuntimes.length; i++) {
           const m = monsterRuntimes[i];
-          const distanceToPlayer = Math.abs(m.x - playerCenter);
           const canOwnEncounter = lockedMonsterId === null || lockedMonsterId === m.id;
-          const shouldEngage = canOwnEncounter && distanceToPlayer <= COLLISION_DIST;
-          const shouldAlert = canOwnEncounter && distanceToPlayer <= ALERT_DIST;
-          const nextWorldState: MonsterRuntime['worldState'] = shouldEngage
-            ? 'engaging'
-            : shouldAlert || m.aggroTicks > 0
-              ? 'alert'
-              : 'patrol';
-          const nextAggroTicks = shouldAlert
-            ? ALERT_HOLD_TICKS
-            : nextWorldState === 'alert'
-              ? Math.max(0, m.aggroTicks - 1)
-              : 0;
+          const collidesWithPlayer = canOwnEncounter &&
+            playerRecentlyMoved &&
+            hasMonsterCollision(playerLeft, playerSpriteSize.w, m.x, m.size.w);
+          const nextWorldState: MonsterRuntime['worldState'] = collidesWithPlayer ? 'engaging' : 'patrol';
 
           // 1. Move
-          let newX = m.x;
+          let newX = m.x + m.roster.moveSpeed * m.direction;
           let newDir: 1 | -1 = m.direction;
+          if (newX >= m.maxX) { newX = m.maxX; newDir = -1; }
+          if (newX <= m.minX) { newX = m.minX; newDir = 1; }
 
-          if (nextWorldState === 'patrol') {
-            newX = m.x + m.roster.moveSpeed * m.direction;
-            if (newX >= m.maxX) { newX = m.maxX; newDir = -1; }
-            if (newX <= m.minX) { newX = m.minX; newDir = 1; }
-            m.engageQueued = false;
-          } else {
-            newDir = playerCenter >= m.x ? 1 : -1;
-            const chaseSpeed = m.roster.moveSpeed * ALERT_CHASE_SPEED_MULTIPLIER;
-            const chaseDelta = Math.abs(playerCenter - m.x) <= COLLISION_DIST * 0.55
-              ? 0
-              : chaseSpeed * newDir;
-            newX = Math.max(m.minX, Math.min(m.maxX, m.x + chaseDelta));
-          }
-
-          const attacking = nextWorldState === 'engaging';
-          if (attacking && !battleTriggered.current && engagedMonsterIdRef.current === null) {
+          const collisionTriggeredEncounter = collidesWithPlayer;
+          if (collisionTriggeredEncounter && !battleTriggered.current && engagedMonsterIdRef.current === null) {
             engagedMonsterIdRef.current = m.id;
           }
 
           if (
-            attacking &&
+            collisionTriggeredEncounter &&
             !battleTriggered.current &&
             engagedMonsterIdRef.current === m.id &&
             !m.engageQueued
@@ -741,6 +784,15 @@ export const HoaLuMapScreen: React.FC<Props> = ({
             const snap = {
               type: m.type,
               monsterKey: m.roster.monsterKey,
+              displayName: m.roster.displayName,
+              displayLevel: m.roster.displayLevel,
+              iqValue: m.roster.iqValue,
+              visualTypeByte: m.roster.visualTypeByte,
+              sharedSheetFamily: m.roster.sharedSheetFamily,
+              nameColorMode: m.roster.nameColorMode,
+              monsterFrameIndex: m.frameIndex,
+              monsterFacingRight: newDir === 1,
+              monsterWorldState: nextWorldState,
               x: newX,
               groundY: m.groundY,
               initialTurn: 'monster' as const,
@@ -756,13 +808,13 @@ export const HoaLuMapScreen: React.FC<Props> = ({
 
               startEncounter(snap);
             }, ENGAGE_TRIGGER_DELAY_MS);
-          } else if (!attacking) {
+          } else if (!collisionTriggeredEncounter) {
             m.engageQueued = false;
           }
 
           // 3. Advance frame
           const newTick   = m.tickCount + 1;
-          const frames    = attacking ? ATTACK_FRAMES : WALK_FRAMES;
+          const frames    = WALK_FRAMES;
           const stepIdx   = Math.floor(newTick / FRAME_TICKS) % frames.length;
           const nextFrame = frames[stepIdx];
 
@@ -770,7 +822,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           if (
             m.frameIndex !== nextFrame ||
             m.direction !== newDir ||
-            m.attacking !== attacking ||
+            m.attacking !== false ||
             m.worldState !== nextWorldState
           ) {
             visualsDirty = true;
@@ -779,9 +831,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           // 5. Commit to runtime (mutate in place)
           m.x          = newX;
           m.direction  = newDir;
-          m.attacking  = attacking;
+          m.attacking  = false;
           m.worldState = nextWorldState;
-          m.aggroTicks = nextAggroTicks;
+          m.aggroTicks = 0;
           m.tickCount  = newTick;
           m.frameIndex = nextFrame;
 
@@ -831,6 +883,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   }, [showTouchGamepad]);
 
   const handleGamepadMoveStart = useCallback((direction: 'left' | 'right') => {
+    playerLastMovedAtRef.current = getLoopNowMs();
     setActiveMoveDirection(direction);
     characterControllerRef.current?.startMove(direction);
   }, []);
@@ -984,7 +1037,6 @@ export const HoaLuMapScreen: React.FC<Props> = ({
             <MonsterField
               runtimes={monsterRuntimes}
               visuals={monsterVisuals}
-              playerLevel={playerLevel}
             />
           )}
 
@@ -1022,6 +1074,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
               allowPointerInput={allowMapPointerInput}
               disabled={menuVisible}
               onMove={(x) => {
+                playerLastMovedAtRef.current = getLoopNowMs();
                 charLeftRef.current = x;
                 scrollToCharacter(x);
               }}
@@ -1036,6 +1089,15 @@ export const HoaLuMapScreen: React.FC<Props> = ({
                 const snap = {
                   type: targetMonster.type,
                   monsterKey: targetMonster.roster.monsterKey,
+                  displayName: targetMonster.roster.displayName,
+                  displayLevel: targetMonster.roster.displayLevel,
+                  iqValue: targetMonster.roster.iqValue,
+                  visualTypeByte: targetMonster.roster.visualTypeByte,
+                  sharedSheetFamily: targetMonster.roster.sharedSheetFamily,
+                  nameColorMode: targetMonster.roster.nameColorMode,
+                  monsterFrameIndex: targetMonster.frameIndex,
+                  monsterFacingRight: targetMonster.direction === 1,
+                  monsterWorldState: targetMonster.worldState,
                   x: targetMonster.x,
                   groundY: targetMonster.groundY,
                   initialTurn: 'player' as const,
@@ -1061,6 +1123,15 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           monsterType={encounterPreview.monsterType}
           monsterBootstrap={encounterPreview.monsterBootstrap}
           bootstrapStatus={encounterPreview.bootstrapStatus}
+          encounterDisplayName={encounterPreview.displayName}
+          encounterDisplayLevel={encounterPreview.displayLevel}
+          encounterIqValue={encounterPreview.iqValue}
+          encounterVisualTypeByte={encounterPreview.visualTypeByte}
+          encounterSharedSheetFamily={encounterPreview.sharedSheetFamily}
+          encounterNameColorMode={encounterPreview.nameColorMode}
+          monsterPreviewFrameIndex={encounterPreview.monsterFrameIndex}
+          monsterPreviewFacingRight={encounterPreview.monsterFacingRight}
+          monsterPreviewWorldState={encounterPreview.monsterWorldState}
           playerLeft={encounterPreview.playerLeft}
           monsterLeft={encounterPreview.monsterLeft}
           groundY={encounterPreview.groundY}
@@ -1110,6 +1181,15 @@ export const HoaLuMapScreen: React.FC<Props> = ({
               startEncounter({
                 type: previewMonster.type,
                 monsterKey: previewMonster.roster.monsterKey,
+                displayName: previewMonster.roster.displayName,
+                displayLevel: previewMonster.roster.displayLevel,
+                iqValue: previewMonster.roster.iqValue,
+                visualTypeByte: previewMonster.roster.visualTypeByte,
+                sharedSheetFamily: previewMonster.roster.sharedSheetFamily,
+                nameColorMode: previewMonster.roster.nameColorMode,
+                monsterFrameIndex: previewMonster.frameIndex,
+                monsterFacingRight: previewMonster.direction === 1,
+                monsterWorldState: previewMonster.worldState,
                 x: previewMonster.x,
                 groundY: previewMonster.groundY,
                 initialTurn: 'player',
