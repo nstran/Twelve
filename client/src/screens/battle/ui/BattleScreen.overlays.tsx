@@ -1,6 +1,8 @@
 import React from 'react';
 import { Animated, Image, Text, TouchableOpacity, View } from 'react-native';
-import { MonsterSprite, type MonsterType } from '../../../engine/MonsterSprite';
+import type { BattleMonsterPoseKey } from '../../../engine/BattleMonsterAssetManifest';
+import { type MonsterType } from '../../../engine/MonsterSprite';
+import { BattleMonsterSprite } from '../../../engine/BattleMonsterSprite';
 import type { CharacterAction } from '../../../engine/character';
 import { CharacterRenderer } from '../../character';
 import type { CharacterAppearance } from '../../character/shared';
@@ -33,8 +35,12 @@ interface BattleActorsRowProps {
   charsTop: number;
   charsHeight: number;
   appearance: CharacterAppearance;
+  monsterAssetCatalogId?: string | null;
   monsterType: MonsterType;
-  monFrame: number;
+  monsterDefeatOpacity: Animated.Value;
+  monsterDefeatScale: Animated.Value;
+  monsterDefeatTranslateY: Animated.Value;
+  monsterPoseKey: BattleMonsterPoseKey;
   playerAction: CharacterAction;
   playerActionFrameIndex: number | null;
   playerReactionPose: boolean;
@@ -53,8 +59,12 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
   charsTop,
   charsHeight,
   appearance,
+  monsterAssetCatalogId,
   monsterType,
-  monFrame,
+  monsterDefeatOpacity,
+  monsterDefeatScale,
+  monsterDefeatTranslateY,
+  monsterPoseKey,
   playerAction,
   playerActionFrameIndex,
   playerReactionPose,
@@ -68,7 +78,10 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
   enemyHitTranslateX,
 }) => {
   const { stageWidth, playerBaseLeft, monsterBaseLeft, monsterGroundOffset, playerSize } =
-    React.useMemo(() => getBattleActorLayout(monsterType, appearance), [monsterType, appearance]);
+    React.useMemo(
+      () => getBattleActorLayout(monsterType, appearance, monsterAssetCatalogId),
+      [appearance, monsterAssetCatalogId, monsterType],
+    );
   const playerPoseFamilySlotOverride =
     playerDefeatPose ? 8 : playerReactionPose ? 7 : playerRetreatPose ? 9 : undefined;
   const playerPoseFrameIndexOverride = playerPoseFamilySlotOverride !== undefined ? 0 : undefined;
@@ -124,14 +137,23 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
           bottom: -monsterGroundOffset,
           width: monsterWidth,
           height: monsterHeight,
+          opacity: monsterDefeatOpacity,
           transform: [
             { translateX: Animated.add(enemyAttackTranslateX, enemyHitTranslateX) },
+            { translateY: monsterDefeatTranslateY },
+            { scale: monsterDefeatScale },
             { translateX: ENEMY_SPRITE_SHIFT_X * BOARD_SCALE },
             { translateY: ENEMY_SPRITE_SHIFT_Y * BOARD_SCALE },
           ],
         }}
       >
-        <MonsterSprite type={monsterType} frameIndex={monFrame} facingRight={false} />
+        <BattleMonsterSprite
+          assetCatalogId={monsterAssetCatalogId}
+          fallbackType={monsterType}
+          frameIndex={0}
+          poseKey={monsterPoseKey}
+          facingRight={false}
+        />
       </Animated.View>
     </View>
   );

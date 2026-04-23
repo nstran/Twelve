@@ -209,6 +209,48 @@ Các phần chưa chốt hẳn:
 - `jump links` cho AI / auto path giữa các platform
 - ceiling authoring chi tiết cho những khối có underside phức tạp
 
+## Current Scene Config Direction
+
+Repo hiện đã bắt đầu chốt một `map scene config` layer cho side-scrolling maps.
+
+### Current Client Files
+
+- [MapSceneConfig.types.ts](/e:/Twelve/client/src/screens/map/core/MapSceneConfig.types.ts)
+- [MapSceneConfig.registry.ts](/e:/Twelve/client/src/screens/map/core/MapSceneConfig.registry.ts)
+- [hoaLu.scene.ts](/e:/Twelve/client/src/screens/map/hoa-lu/hoaLu.scene.ts)
+- [HoaLuMapScreen.tsx](/e:/Twelve/client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx)
+
+### Direction
+
+The screen should be reusable. A map-specific file should provide data only:
+
+- native map size
+- background / ground assets
+- ground strip metrics
+- player spawn defaults
+- `primaryGroundSurfaceId`
+- `buildSurfaces(mapScale)`
+
+That means a future map should not require copying Hoa Lư logic. It should only
+need:
+
+1. a `*.scene.ts` config file
+2. a `navigation.ts` surface file
+3. map art assets
+4. server roster rows for that `mapId + roomId`
+
+### Planned Persistence Direction
+
+Client scene config should stay file-based because it is presentation/layout
+authority.
+
+Server roster / monster truth should later move to DB.
+
+So the split is:
+
+- `client scene config` = presentation + navigation authoring
+- `server monster catalog / roster` = gameplay authority
+
 ## Kết Luận
 
 Map system nên xem như 2 bài toán riêng:

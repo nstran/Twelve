@@ -23,6 +23,8 @@ interface UseBattleMatchFlowArgs {
   phaseRef: MutableRefObject<BattlePhase>;
   turnRef: MutableRefObject<BattleTurn>;
   extraTurnsRef: MutableRefObject<number>;
+  enemyHPRef: MutableRefObject<number>;
+  pendingVictoryRef: MutableRefObject<boolean>;
   boardRef: MutableRefObject<Board>;
   boardEngineRef: MutableRefObject<JavaBoardEngine>;
   maxHP: number;
@@ -39,11 +41,14 @@ interface UseBattleMatchFlowArgs {
   setMana: Dispatch<SetStateAction<number>>;
   setPower: Dispatch<SetStateAction<number>>;
   setResult: Dispatch<SetStateAction<BattleResult | null>>;
+  playMonsterDefeatSequence: (onComplete: () => void) => void;
   playPlayerSwordAttack: (onImpact: () => void, onComplete: () => void) => void;
   playMonsterSwordAttack: (onImpact: () => void, onComplete: () => void) => void;
   onPlayerHit: () => void;
   onPlayerDefeat: () => void;
   showBonusBanner: (msg: string) => void;
+  flashExtraTurnsBadge: (turns: number) => void;
+  flashComboBadge: (multiplier: number) => void;
   showDamagePopup: (side: 'player' | 'enemy', amount: number) => void;
   spawnCollectFX: (matched: Set<string>, board: Board, collectorSide: 'player' | 'enemy', healAmount: number) => void;
   playExplosion: (matched: Set<string>, expanded: Set<string>, board: Board, onDone: () => void) => void;
@@ -57,6 +62,8 @@ export const useBattleMatchFlow = ({
   phaseRef,
   turnRef,
   extraTurnsRef,
+  enemyHPRef,
+  pendingVictoryRef,
   boardRef,
   boardEngineRef,
   maxHP,
@@ -73,11 +80,14 @@ export const useBattleMatchFlow = ({
   setMana,
   setPower,
   setResult,
+  playMonsterDefeatSequence,
   playPlayerSwordAttack,
   playMonsterSwordAttack,
   onPlayerHit,
   onPlayerDefeat,
   showBonusBanner,
+  flashExtraTurnsBadge,
+  flashComboBadge,
   showDamagePopup,
   spawnCollectFX,
   playExplosion,
@@ -85,12 +95,23 @@ export const useBattleMatchFlow = ({
   animateInvalidSwapBounce,
   resetBoardAnim,
 }: UseBattleMatchFlowArgs) => {
+  const finalizeVictory = useCallback(() => {
+    pendingVictoryRef.current = false;
+    phaseRef.current = 'over';
+    setPhase('over');
+    setResult('victory');
+  }, [pendingVictoryRef, phaseRef, setPhase, setResult]);
+
   const processMatches = useCallback((board: Board, chain: number, scanTargets?: Iterable<string | [number, number]>) => {
     if (!mountedRef.current) return;
 
     const resolved = resolveJavaBoardStep(board, scanTargets);
     if (resolved === null) {
       setBoard(board);
+      if (pendingVictoryRef.current) {
+        finalizeVictory();
+        return;
+      }
 
       if (getAllValidMoves(board).length === 0) {
         const reshuffled = reshuffleBoard(board, boardEngineRef.current);
@@ -109,8 +130,6 @@ export const useBattleMatchFlow = ({
         const remaining = extraTurnsRef.current - 1;
         extraTurnsRef.current = remaining;
         setExtraTurns(remaining);
-        const who = turnRef.current === 'player' ? 'Bạn' : 'Quái';
-        showBonusBanner(`🔄 ${who} được thêm lượt! ${remaining > 0 ? `Còn ${remaining} lượt` : ''}`);
         setTurnCycle(v => v + 1);
         phaseRef.current = 'idle';
         setPhase('idle');
@@ -127,12 +146,15 @@ export const useBattleMatchFlow = ({
     const raw = resolved.triggerKeys;
     const matched = resolved.clearedKeys;
 
+    if (chain > 0) {
+      flashComboBadge(chain + 1);
+    }
+
     if (resolved.bonusTurnCandidate) {
       const newExtra = extraTurnsRef.current + 1;
       extraTurnsRef.current = newExtra;
       setExtraTurns(newExtra);
-      const who = turnRef.current === 'player' ? 'Bạn' : 'Quái';
-      showBonusBanner(`✨ ${who} +1 lượt!${newExtra > 1 ? ` (tổng ${newExtra})` : ''}`);
+      flashExtraTurnsBadge(newExtra);
     }
 
     let dmg = calcSwordDamage(board, matched);
@@ -167,10 +189,44 @@ export const useBattleMatchFlow = ({
 
         const clearedBoard = resolved.boardAfterClear;
         const { newBoard, fallMap, affectedKeys } = collapseResolvedBoard(clearedBoard, boardEngineRef.current);
+        const lethalPlayerResolution =
+          turnRef.current === 'player' &&
+          dmg > 0 &&
+          enemyHPRef.current - dmg <= 0;
+        let lethalFallCompleted = false;
+        let lethalAttackCompleted = false;
+
+        const tryFinalizeLethalVictory = () => {
+          if (!lethalPlayerResolution || !mountedRef.current) {
+            return;
+          }
+
+          if (!pendingVictoryRef.current) {
+            return;
+          }
+
+          if (!lethalFallCompleted || !lethalAttackCompleted) {
+            return;
+          }
+
+          finalizeVictory();
+        };
+
         boardRef.current = newBoard;
         setBoard(clearedBoard);
+
         const continueAfterFall = () => {
           if (!mountedRef.current) return;
+          if (lethalPlayerResolution) {
+            lethalFallCompleted = true;
+            tryFinalizeLethalVictory();
+            return;
+          }
+
+          if (pendingVictoryRef.current) {
+            finalizeVictory();
+            return;
+          }
           setTimeout(() => processMatches(newBoard, chain + 1, affectedKeys), 80);
         };
         animateFall(newBoard, fallMap, continueAfterFall);
@@ -186,12 +242,8 @@ export const useBattleMatchFlow = ({
             if (dmg <= 0) return;
             showDamagePopup('enemy', dmg);
             setEnemyHP(hp => {
-              const next = Math.max(0, hp - dmg);
-              if (next === 0 && phaseRef.current !== 'over') {
-                phaseRef.current = 'over';
-                setPhase('over');
-                setResult('victory');
-              }
+            const next = Math.max(0, hp - dmg);
+              if (next === 0) pendingVictoryRef.current = true;
               return next;
             });
           };
@@ -202,7 +254,24 @@ export const useBattleMatchFlow = ({
                 if (!mountedRef.current) return;
                 applyPlayerDamage();
               },
-              () => {},
+              () => {
+                if (!mountedRef.current) return;
+                if (lethalPlayerResolution) {
+                  playMonsterDefeatSequence(() => {
+                    if (!mountedRef.current) {
+                      return;
+                    }
+
+                    lethalAttackCompleted = true;
+                    tryFinalizeLethalVictory();
+                  });
+                  return;
+                }
+
+                if (pendingVictoryRef.current) {
+                  finalizeVictory();
+                }
+              },
             );
           }
 
@@ -233,7 +302,11 @@ export const useBattleMatchFlow = ({
     }, MATCH_HOLD_BEFORE_EXPLODE_MS);
   }, [
     animateFall,
+    enemyHPRef,
     extraTurnsRef,
+    finalizeVictory,
+    flashComboBadge,
+    flashExtraTurnsBadge,
     maxEHP,
     maxHP,
     maxMP,
@@ -241,7 +314,9 @@ export const useBattleMatchFlow = ({
     mountedRef,
     onPlayerDefeat,
     onPlayerHit,
+    pendingVictoryRef,
     phaseRef,
+    playMonsterDefeatSequence,
     playMonsterSwordAttack,
     playPlayerSwordAttack,
     playExplosion,

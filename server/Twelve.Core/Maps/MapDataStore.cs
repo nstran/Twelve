@@ -41,6 +41,27 @@ namespace Twelve.Core.Maps
             Maps["M99"] = new List<MapRoom>(); // World Map Placeholder
         }
 
+        public static bool TryGetRoom(string mapId, int roomId, out MapRoom room)
+        {
+            room = null!;
+
+            if (!Maps.TryGetValue(mapId, out var rooms))
+            {
+                return false;
+            }
+
+            foreach (var candidate in rooms)
+            {
+                if (candidate.Id == roomId)
+                {
+                    room = candidate;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static byte[] BuildHoaLuLogicLayer()
         {
             // 10x8 = 80 cells

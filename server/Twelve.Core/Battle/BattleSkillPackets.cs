@@ -23,6 +23,13 @@ namespace Twelve.Core.Battle
         None = 3,
     }
 
+    public enum BattleSkillLevelSource
+    {
+        ServerAuthority = 0,
+        ClientDebugRequest = 1,
+        ServerFallback = 2,
+    }
+
     public sealed record BattleCell(int Row, int Col);
 
     public sealed record BattleSkillActorTarget(
@@ -42,6 +49,18 @@ namespace Twelve.Core.Battle
         int? HitShakePx = null
     );
 
+    public sealed record BattleSkillActorDelta(
+        BattleSide Side,
+        int HpDelta = 0,
+        int ManaDelta = 0,
+        int PowerDelta = 0
+    );
+
+    public sealed record BattleSkillTurnDelta(
+        int RemainingTurnsDelta = 0,
+        int TimeLeftSecondsDelta = 0
+    );
+
     public sealed record BattleSkillRuntimePacket(
         string CastId,
         int FamilyCode,
@@ -50,6 +69,11 @@ namespace Twelve.Core.Battle
         BattleSkillBoardMutation BoardMutation,
         IReadOnlyList<BattleCell> CellTargets,
         BattleSkillImpact Impact,
+        IReadOnlyList<BattleSkillActorDelta>? ActorDeltas = null,
+        BattleSkillTurnDelta? TurnDelta = null,
+        BattleSkillLevelSource SkillLevelSource = BattleSkillLevelSource.ServerFallback,
+        bool GrantsExtraTurn = false,
+        int? ExtraTurnChancePercent = null,
         int? ImpactDelayMs = null,
         int? DurationMs = null
     );
@@ -64,6 +88,11 @@ namespace Twelve.Core.Battle
         IReadOnlyList<BattleSkillJavaCell>? CellTargets = null,
         BattleSkillActorTarget? ActorTarget = null,
         BattleSkillImpact? Impact = null,
+        IReadOnlyList<BattleSkillActorDelta>? ActorDeltas = null,
+        BattleSkillTurnDelta? TurnDelta = null,
+        BattleSkillLevelSource SkillLevelSource = BattleSkillLevelSource.ServerFallback,
+        bool GrantsExtraTurn = false,
+        int? ExtraTurnChancePercent = null,
         int? ImpactDelayMs = null,
         int? DurationMs = null,
         int? StateId = null,

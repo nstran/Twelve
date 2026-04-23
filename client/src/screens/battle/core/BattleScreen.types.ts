@@ -8,12 +8,17 @@ export type BattleTurn = 'player' | 'monster';
 
 export interface BattleScreenProps {
   monsterType: MonsterType;
+  monsterBootstrap: MonsterBattleBootstrapResponse;
   appearance: CharacterAppearance;
   initialTurn?: BattleTurn;
   onVictory: () => void;
   onDefeat: () => void;
   onFlee: () => void;
   resolveSkillPacket?: ResolveBattleSkillPacket;
+  resolveEnemyMove?: ResolveEnemyBattleMove;
+  resolveEnemyTurn?: ResolveEnemyBattleTurn;
+  resolveEnemyTurnPlan?: ResolveEnemyBattleTurnPlan;
+  resolveBattleSessionSync?: ResolveBattleSessionSync;
 }
 
 export type BattlePhase = 'idle' | 'busy' | 'over';
@@ -101,6 +106,7 @@ export interface ScreenPoint {
 export type BattleSkillRuntimeSource = 'server_packet';
 export type BattleSkillActorAnchor = 'center' | 'bottom';
 export type BattleSkillBoardMutationKind = 'clear' | 'mark' | 'helper' | 'none';
+export type BattleSkillLevelSource = 'server_authority' | 'client_debug_request' | 'server_fallback';
 
 export interface BattleSkillActorPacketTarget {
   side: BattleSide;
@@ -119,6 +125,18 @@ export interface BattleSkillPacketImpact {
   hitShakePx?: number | null;
 }
 
+export interface BattleSkillActorDelta {
+  side: BattleSide;
+  hpDelta: number;
+  manaDelta: number;
+  powerDelta: number;
+}
+
+export interface BattleSkillTurnDelta {
+  remainingTurnsDelta: number;
+  timeLeftSecondsDelta: number;
+}
+
 export interface BattleSkillRuntimePacket {
   // Java packet arrays are normalized to 0..7 board coordinates before they reach
   // this client contract. Server adapters should convert Java row 2..9 -> client 0..7.
@@ -130,21 +148,156 @@ export interface BattleSkillRuntimePacket {
   boardMutation: BattleSkillBoardMutation;
   cellTargets: BattleCell[];
   impact: BattleSkillPacketImpact;
+  actorDeltas?: BattleSkillActorDelta[] | null;
+  turnDelta?: BattleSkillTurnDelta | null;
+  skillLevelSource: BattleSkillLevelSource;
+  grantsExtraTurn?: boolean | null;
+  extraTurnChancePercent?: number | null;
   impactDelayMs?: number | null;
   durationMs?: number | null;
 }
 
 export interface BattleSkillPacketRequest {
+  sessionId: string;
   familyCode: SkillFamilyCode;
   casterSide: BattleSide;
   board: Board;
   selectedCell: BattleCell;
-  skillLevel?: number | null;
+  debugSkillLevel?: number | null;
 }
 
 export type ResolveBattleSkillPacket =
   (request: BattleSkillPacketRequest) =>
     BattleSkillRuntimePacket | Promise<BattleSkillRuntimePacket | null> | null;
+
+export interface BattleEnemyTurnRequest {
+  sessionId: string;
+  board: Board;
+}
+
+export type ResolveEnemyBattleTurn =
+  (request: BattleEnemyTurnRequest) =>
+    BattleSkillRuntimePacket | Promise<BattleSkillRuntimePacket | null> | null;
+
+export interface BattleEnemyMoveRequest {
+  sessionId: string;
+  board: Board;
+}
+
+export interface BattleEnemyMoveResponse {
+  move: {
+    fromRow: number;
+    fromCol: number;
+    toRow: number;
+    toCol: number;
+  };
+}
+
+export type ResolveEnemyBattleMove =
+  (request: BattleEnemyMoveRequest) =>
+    BattleEnemyMoveResponse | Promise<BattleEnemyMoveResponse | null> | null;
+
+export interface BattleEnemyTurnPlanRequest {
+  sessionId: string;
+  board: Board;
+}
+
+export interface BattleEnemyTurnPlanResponse {
+  action: 'move' | 'skill' | 'pass';
+  move?: {
+    fromRow: number;
+    fromCol: number;
+    toRow: number;
+    toCol: number;
+  } | null;
+  skillPacket?: BattleSkillRuntimePacket | null;
+}
+
+export type ResolveEnemyBattleTurnPlan =
+  (request: BattleEnemyTurnPlanRequest) =>
+    BattleEnemyTurnPlanResponse | Promise<BattleEnemyTurnPlanResponse | null> | null;
+
+export interface BattleSessionSyncRequest {
+  sessionId: string;
+  board: Board;
+  activeTurn: BattleSide;
+  playerCurrentHp: number;
+  playerCurrentMp: number;
+  playerCurrentPower: number;
+  enemyCurrentHp: number;
+}
+
+export type ResolveBattleSessionSync =
+  (request: BattleSessionSyncRequest) =>
+    void | Promise<void>;
+
+export type MonsterSharedSheetFamily = 'Monster' | 'Zap' | 'Ice';
+
+export interface MonsterBattleSkillInstanceDto {
+  skillId: number;
+  level: number;
+  manaCost: number;
+}
+
+export interface MonsterBattleAppearanceDto {
+  assetCatalogId?: string | null;
+  baseBodyId?: number | null;
+  weaponBodyId?: number | null;
+  hairBodyId?: number | null;
+}
+
+export interface MonsterBattleInstanceDto {
+  combatantId: string;
+  monsterKey: string;
+  battleTemplateId: string;
+  displayName: string;
+  element: number;
+  level: number;
+  currentHp: number;
+  maxHp: number;
+  currentMp: number;
+  maxMp: number;
+  currentPower: number;
+  maxPower: number;
+  strength: number;
+  agility: number;
+  magic: number;
+  vitality: number;
+  minDamage: number;
+  maxDamage: number;
+  defense: number;
+  hitRate: number;
+  dodgeRate: number;
+  criticalDamage: number;
+  skills: MonsterBattleSkillInstanceDto[];
+  appearance: MonsterBattleAppearanceDto;
+}
+
+export interface MonsterBattleBootstrapRequest {
+  mapId: string;
+  roomId: number;
+  monsterKey: string;
+  initialTurnSide: BattleSide;
+}
+
+export interface MonsterBattleBootstrapResponse {
+  sessionId: string;
+  monsterKey: string;
+  spawnTemplateKey: string;
+  battleTemplateId: string;
+  visualTypeByte: number;
+  displayLevel: number;
+  iqValue: number;
+  nameColorMode: number;
+  initialTurnSide: BattleSide;
+  sharedSheetFamily?: MonsterSharedSheetFamily | null;
+  initialBoard: Board;
+  enemy: MonsterBattleInstanceDto;
+}
+
+export type ResolveMonsterBattleBootstrap =
+  (request: MonsterBattleBootstrapRequest) =>
+    MonsterBattleBootstrapResponse | Promise<MonsterBattleBootstrapResponse | null> | null;
 
 export interface BattleSkillRuntimePayload {
   actorTarget: ScreenPoint | null;

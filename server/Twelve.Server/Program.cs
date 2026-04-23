@@ -2,6 +2,7 @@ using Twelve.Server;
 using Twelve.Server.Middleware;
 using Twelve.Core.Battle;
 using Twelve.Core.Interfaces;
+using Twelve.Core.Monsters;
 using Twelve.Core.Options;
 using Twelve.Application;
 using Twelve.Infrastructure;
@@ -77,4 +78,96 @@ app.MapPost("/battle/skill-cast", (BattleSkillCastRequest request, IBattleSkillC
     return packet is null ? Results.NoContent() : Results.Ok(packet);
 });
 
+app.MapPost("/battle/enemy-move", (BattleEnemyMoveRequest request, IBattleEnemyMoveService service) =>
+{
+    var response = service.CreateMove(request);
+    return response is null ? Results.NoContent() : Results.Ok(response);
+});
+
+app.MapPost("/battle/enemy-turn-plan", (BattleEnemyTurnPlanRequest request, IBattleEnemyTurnPlannerService service) =>
+{
+    var response = service.CreatePlan(request);
+    return response is null ? Results.NoContent() : Results.Ok(response);
+});
+
+app.MapPost("/battle/session-sync", (BattleSessionSyncRequest request, IBattleSessionSyncService service) =>
+{
+    var synced = service.Sync(request);
+    return synced ? Results.Ok() : Results.NotFound();
+});
+
+app.MapPost("/battle/enemy-turn", (BattleEnemyTurnRequest request, IBattleEnemyTurnPacketService service) =>
+{
+    var packet = service.CreatePacket(request);
+    return packet is null ? Results.NoContent() : Results.Ok(packet);
+});
+
+app.MapPost("/battle/monster-bootstrap", (MonsterBattleBootstrapRequest request, IMonsterBattleBootstrapService service) =>
+{
+    var response = service.Bootstrap(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapGet("/map/monster-roster", (
+    string mapId,
+    int roomId,
+    IMapMonsterRosterService rosterService,
+    IMonsterSpawnCatalog spawnCatalog,
+    IMonsterAssetCatalog assetCatalog) =>
+{
+    var encounters = rosterService.GetActiveRoster(mapId, roomId);
+    var responseEntries = new List<MapMonsterRosterEntry>(encounters.Count);
+
+    foreach (var encounter in encounters)
+    {
+        var spawnTemplate = spawnCatalog.GetBySpawnTemplateKey(encounter.SpawnTemplateKey);
+        if (spawnTemplate is null)
+        {
+            continue;
+        }
+
+        var sharedSheetFamily = ResolveSharedSheetFamily(spawnTemplate, assetCatalog);
+        responseEntries.Add(new MapMonsterRosterEntry(
+            MonsterKey: encounter.MonsterKey,
+            SpawnTemplateKey: encounter.SpawnTemplateKey,
+            DisplayName: spawnTemplate.DisplayName,
+            VisualTypeByte: spawnTemplate.VisualTypeByte,
+            DisplayLevel: spawnTemplate.DisplayLevel,
+            IqValue: spawnTemplate.IqValue,
+            NameColorMode: spawnTemplate.NameColorMode,
+            SharedSheetFamily: sharedSheetFamily,
+            SurfaceId: encounter.SurfaceId,
+            PatrolStartRatio: encounter.PatrolStartRatio,
+            PatrolEndRatio: encounter.PatrolEndRatio,
+            SpawnRatio: encounter.SpawnRatio,
+            MoveSpeed: encounter.MoveSpeed));
+    }
+
+    return Results.Ok(new MapMonsterRosterResponse(
+        MapId: mapId,
+        RoomId: roomId,
+        Encounters: responseEntries));
+});
+
 app.Run();
+
+static MonsterSharedSheetFamily ResolveSharedSheetFamily(
+    MonsterSpawnTemplate spawnTemplate,
+    IMonsterAssetCatalog assetCatalog)
+{
+    if (!string.IsNullOrWhiteSpace(spawnTemplate.AssetCatalogId))
+    {
+        var assetEntry = assetCatalog.GetById(spawnTemplate.AssetCatalogId);
+        if (assetEntry is not null)
+        {
+            return assetEntry.SharedSheetFamily;
+        }
+    }
+
+    return (spawnTemplate.VisualTypeByte >> 1) switch
+    {
+        0 => MonsterSharedSheetFamily.Monster,
+        1 => MonsterSharedSheetFamily.Zap,
+        _ => MonsterSharedSheetFamily.Ice,
+    };
+}

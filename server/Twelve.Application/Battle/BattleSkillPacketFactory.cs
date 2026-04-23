@@ -29,6 +29,11 @@ namespace Twelve.Application.Battle
                 ),
                 CellTargets: cellTargets,
                 Impact: seed.Impact ?? new BattleSkillImpact(HitsActor: false, Damage: null),
+                ActorDeltas: seed.ActorDeltas,
+                TurnDelta: seed.TurnDelta,
+                SkillLevelSource: seed.SkillLevelSource,
+                GrantsExtraTurn: seed.GrantsExtraTurn,
+                ExtraTurnChancePercent: seed.ExtraTurnChancePercent,
                 ImpactDelayMs: seed.ImpactDelayMs,
                 DurationMs: seed.DurationMs
             );

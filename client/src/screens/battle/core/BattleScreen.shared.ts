@@ -1,5 +1,3 @@
-import type { MonsterType } from '../../../engine/MonsterSprite';
-
 export const TOTAL_FRAMES = 7;
 export const EXPLODE_START = 1;
 // Skip the last sprite-sheet frame because it leaves a visible "residual line"
@@ -152,12 +150,6 @@ const GEM_FX_BASE: Record<VisibleGemType, { dmg: number; heal: number; mana: num
 };
 
 export const GEM_FX: Record<VisibleGemType, { dmg: number; heal: number; mana: number; pow: number }> = GEM_FX_BASE;
-
-export const MONSTER_HP: Record<MonsterType, number> = {
-  fire: 120,
-  ice: 150,
-  zap: 180,
-};
 
 const GEM_FX_KIND_BASE: Record<VisibleGemType, FXKind> = {
   0: 'sword',

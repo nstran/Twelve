@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -30,6 +30,12 @@ const ARROW_TOP_INSET = 1.1;
 const ARROW_BOTTOM_INSET = 1.1;
 const ARROW_LEFT_INSET = 0.5;
 const ARROW_RIGHT_INSET = 6;
+const FIRE_SWORD_MARK_SOURCE = require('../../../../assets/skill/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1001_it/runtime_png/1001001.png');
+const FIRE_SWORD_MARK_FRAME_COUNT = 5;
+const JAVA_TICK_MS = 40;
+const FIRE_SWORD_MARK_FRAME_DURATION_MS = 3 * JAVA_TICK_MS;
+const FIRE_SWORD_MARK_TOTAL_MS = FIRE_SWORD_MARK_FRAME_COUNT * FIRE_SWORD_MARK_FRAME_DURATION_MS;
+const FIRE_SWORD_MARK_STATE = 10 as const;
 
 // These sprites were authored on 28x28 frames, but some visible pixels are not
 // perfectly centered inside the transparent frame. Nudge them by their native
@@ -172,6 +178,8 @@ export const GemCell = React.memo(({
   size,
   selected,
   focusVariant,
+  fireSwordBaseGemType,
+  fireSwordMarkTrigger,
   onPress,
 }: {
   gemType: GemType;
@@ -179,6 +187,8 @@ export const GemCell = React.memo(({
   size: number;
   selected: boolean;
   focusVariant?: 'player' | 'enemy';
+  fireSwordBaseGemType?: GemType | null;
+  fireSwordMarkTrigger?: number;
   onPress: () => void;
 }) => {
   const renderType = getGemRenderType(gemType);
@@ -189,6 +199,65 @@ export const GemCell = React.memo(({
   const focusInset = Math.floor((size - focusSize) / 2);
   const focusLeft = focusInset + Math.round(FOCUS_OFFSET_X * size / 28);
   const focusTop = focusInset + Math.round(FOCUS_OFFSET_Y * size / 28);
+  const [fireSwordMarkFrame, setFireSwordMarkFrame] = useState(0);
+  const [showFireSwordMarkAnim, setShowFireSwordMarkAnim] = useState(false);
+  const previousMarkTriggerRef = useRef(fireSwordMarkTrigger ?? 0);
+  const pendingFireSwordMarkStart =
+    gemType === FIRE_SWORD_MARK_STATE &&
+    (fireSwordMarkTrigger ?? 0) > previousMarkTriggerRef.current;
+  const fireSwordBaseGemTypeResolved =
+    gemType === FIRE_SWORD_MARK_STATE &&
+    fireSwordBaseGemType !== undefined && fireSwordBaseGemType !== null
+      ? fireSwordBaseGemType
+      : gemType;
+  const fireSwordBaseFrameIndex = fireSwordBaseGemTypeResolved === gemType ? frameIndex : 0;
+
+  useEffect(() => {
+    if (gemType !== FIRE_SWORD_MARK_STATE) {
+      setShowFireSwordMarkAnim(false);
+      setFireSwordMarkFrame(0);
+      return undefined;
+    }
+
+    const nextTrigger = fireSwordMarkTrigger ?? 0;
+    if (nextTrigger <= 0 || previousMarkTriggerRef.current === nextTrigger) {
+      return undefined;
+    }
+    previousMarkTriggerRef.current = nextTrigger;
+
+    setShowFireSwordMarkAnim(true);
+    setFireSwordMarkFrame(0);
+
+    const startedAt = Date.now();
+    const timer = setInterval(() => {
+      const elapsedMs = Date.now() - startedAt;
+      const frameIndex = Math.min(
+        FIRE_SWORD_MARK_FRAME_COUNT - 1,
+        Math.floor(elapsedMs / FIRE_SWORD_MARK_FRAME_DURATION_MS),
+      );
+
+      setFireSwordMarkFrame(frameIndex);
+
+      if (elapsedMs >= FIRE_SWORD_MARK_TOTAL_MS) {
+        clearInterval(timer);
+        setShowFireSwordMarkAnim(false);
+      }
+    }, JAVA_TICK_MS);
+
+    return () => clearInterval(timer);
+  }, [fireSwordMarkTrigger, gemType]);
+
+  const showCrystalOverlay = isCrystalGem(gemType) && gemType !== FIRE_SWORD_MARK_STATE;
+  const isFireSwordFinalFrame =
+    showFireSwordMarkAnim && fireSwordMarkFrame >= FIRE_SWORD_MARK_FRAME_COUNT - 1;
+  const showFireSwordBaseGem =
+    gemType !== FIRE_SWORD_MARK_STATE ||
+    pendingFireSwordMarkStart ||
+    (showFireSwordMarkAnim && !isFireSwordFinalFrame);
+  const showPersistedFireSwordGem =
+    gemType === FIRE_SWORD_MARK_STATE &&
+    !pendingFireSwordMarkStart &&
+    (!showFireSwordMarkAnim || isFireSwordFinalFrame);
 
   return (
     <TouchableOpacity
@@ -216,16 +285,30 @@ export const GemCell = React.memo(({
             resizeMode="contain"
           />
         )}
-        <Image
-          source={getGemSheet(gemType)}
-          style={{
-            width: size * TOTAL_FRAMES,
-            height: size,
-            transform: [{ translateX: -frameIndex * size }],
-          }}
-          resizeMode="stretch"
-        />
-        {isCrystalGem(gemType) && (
+        {showFireSwordBaseGem && (
+          <Image
+            source={getGemSheet(fireSwordBaseGemTypeResolved)}
+            style={{
+              width: size * TOTAL_FRAMES,
+              height: size,
+              transform: [{ translateX: -fireSwordBaseFrameIndex * size }],
+            }}
+            resizeMode="stretch"
+          />
+        )}
+        {showPersistedFireSwordGem && (
+          <Image
+            source={getGemSheet(gemType)}
+            style={{
+              position: 'absolute',
+              width: size * TOTAL_FRAMES,
+              height: size,
+              transform: [{ translateX: -frameIndex * size }],
+            }}
+            resizeMode="stretch"
+          />
+        )}
+        {showCrystalOverlay && (
           <Image
             source={GEM_CRYSTAL_OVERLAY}
             style={{
@@ -236,6 +319,26 @@ export const GemCell = React.memo(({
             }}
             resizeMode="stretch"
           />
+        )}
+        {showFireSwordMarkAnim && (
+          <View
+            style={{
+              position: 'absolute',
+              width: size,
+              height: size,
+              overflow: 'hidden',
+            }}
+          >
+            <Image
+              source={FIRE_SWORD_MARK_SOURCE}
+              style={{
+                width: size * FIRE_SWORD_MARK_FRAME_COUNT,
+                height: size,
+                transform: [{ translateX: -fireSwordMarkFrame * size }],
+              }}
+              resizeMode="stretch"
+            />
+          </View>
         )}
       </View>
 
