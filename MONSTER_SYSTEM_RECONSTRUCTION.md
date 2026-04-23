@@ -1346,23 +1346,18 @@ This document formally recommends preserving that direction.
 
 ### What the Current Repo Still Does as a Placeholder
 
-`MapHandler` currently sends a placeholder scene actor payload with one player
-and one boss-like actor, including direct coordinates.
+The biggest remaining placeholders are no longer the basic monster roster
+bridge itself; they are the deeper runtime authority layers.
 
-Evidence:
+Still transitional / not final:
 
-- [MapHandler.cs](/d:/Twelve/server/Twelve.Application/Handlers/MapHandler.cs:21)
+- board match and cascade truth is still partially hybrid client/server
+- monster AI pressure is reconstruction logic, not recovered Java server truth
+- map placement on remake maps still uses server-authored spawn zones/profiles
+  rather than original Java server cells
 
-This is useful as a sandbox, but it does **not** match the recovered Java
-monster-map flow yet, because the Java client monster flow expects:
-
-- map logic layer with spawn markers
-- separate monster roster packet decoded into `jo[]`
-- stable `monsterKey`
-- encounter-to-battle handoff by key
-
-So `MapHandler` should be treated as temporary scaffolding, not as the final
-shape of the monster server.
+Current repo direction is already much closer to the recovered Java shape than
+the original placeholder actor-scaffold phase.
 
 ### Target Server Boundary
 
@@ -1667,7 +1662,14 @@ Key rule:
 
 The current repo should evolve in the following order.
 
-### Phase 1. Replace placeholder map monster sending
+Status legend used below:
+
+- `[Done]` implemented and already active in the repo
+- `[In Progress]` direction is active, but not yet fully authoritative
+- `[Pending]` still a real next step
+- `[Inference]` reconstruction rule, not something proven from Java server code
+
+### [Done] Phase 1. Replace placeholder map monster sending
 
 Replace the monster-related part of `MapHandler` with:
 
@@ -1675,9 +1677,13 @@ Replace the monster-related part of `MapHandler` with:
 - separate monster roster from `MapMonsterRosterService`
 - stable `monsterKey`
 
-Do not send hard-coded boss actors as the final design.
+Current outcome:
 
-### Phase 2. Add server monster catalogs
+- monster map flow now uses lightweight roster packets with stable `monsterKey`
+- roster semantics now preserve `group/count` style map authority better than
+  the original placeholder actor scaffold
+
+### [Done] Phase 2. Add server monster catalogs
 
 Introduce:
 
@@ -1686,9 +1692,15 @@ Introduce:
 - `MonsterBattleCatalog`
 - `MapMonsterRosterService`
 
-At this stage the project can already place real monsters on maps and enter battle by key.
+Current outcome:
 
-### Phase 3. Split battle authority from packet reconstruction
+- the repo now has `MonsterAssetCatalog`, `MonsterSpawnCatalog`,
+  `MonsterBattleCatalog`, `MapMonsterRosterService`, and
+  `MonsterBattleBootstrapService`
+- the catalog source is still in-memory seed data by design, pending future DB
+  storage
+
+### [In Progress] Phase 3. Split battle authority from packet reconstruction
 
 Refactor current battle packet logic into:
 
@@ -1699,7 +1711,13 @@ The current `BattleSkillPacketFactory` can remain the packet half.
 The current `BattleSkillCastPacketService` should shrink until it becomes an orchestrator
 or disappear into the new engine.
 
-### Phase 4. Replace debug-only skill level sourcing
+Current note:
+
+- `BattleTurnEngine` now exists and already owns part of cast/turn logic
+- packet assembly is much closer to adapter-only than before
+- full board/match/cascade authority is still not fully server-owned yet
+
+### [In Progress] Phase 4. Replace debug-only skill level sourcing
 
 Remove gameplay dependence on `DebugSkillLevel`.
 
@@ -1709,7 +1727,12 @@ Skill level must come from:
 - monster battle template
 - or server-side character progression
 
-### Phase 5. Add content and AI
+Current note:
+
+- monster skill level already resolves from monster battle template/rule logic
+- player-side progression is still transitional
+
+### [In Progress] Phase 5. Add content and AI
 
 Only after the authority split is clean should the project add:
 
@@ -1719,9 +1742,23 @@ Only after the authority split is clean should the project add:
 - AI profiles
 - reward tables
 
+Current note:
+
+- monster stat content, skill loadouts, and AI profiles are now present through
+  a reconstruction rule engine
+- this area is active but still not final because the content truth is
+  server-authored reconstruction rather than recovered Java server data
+
 ### Implementation Snapshot in the Current Repo
 
-The repo now has the first end-to-end slice of this plan implemented.
+The repo now has a substantial end-to-end monster slice implemented.
+
+Important framing:
+
+- the project does **not** have the original Java server
+- the current target is therefore not `canon data parity`
+- the target is `server-authored reconstruction that preserves Java client
+  boundaries, flow, and runtime feel`
 
 Completed infrastructure:
 
@@ -1730,15 +1767,25 @@ Completed infrastructure:
 - `MonsterBattleCatalog`
 - `MapMonsterRosterService`
 - `MonsterBattleBootstrapService`
+- `MonsterBattleRuleFactory`
 
 Completed flow:
 
 1. Hoa Lư map monsters now resolve through stable `monsterKey` values.
-2. Client encounter preview requests `/battle/monster-bootstrap`.
-3. Server resolves:
+2. Map monster roster is now transmitted as a lightweight socket packet with
+   Java-like `group/count` semantics instead of only a direct actor scaffold.
+3. Client encounter preview / battle entry resolve through `monsterKey`, and
+   the server resolves:
    `monsterKey -> MapMonsterEncounter -> MonsterSpawnTemplate -> MonsterBattleTemplate`
-4. Encounter preview now renders monster name / display level / IQ from the bootstrap payload.
-5. Battle screen now uses server-authoritative enemy HP instead of a client `MONSTER_HP` table.
+4. Encounter preview renders monster name / display level / IQ from bootstrap
+   data instead of client-side monster tables.
+5. Battle screen uses bootstrap/session enemy state for HP / MP / Power instead
+   of a client-only fallback table.
+6. Monster map runtime keeps lightweight roster authority on the server while
+   the client expands local live actors from roster/group data.
+7. Current monster battle templates are no longer hand-tuned one by one; they
+   are derived from a rule engine using:
+   `element + level + combat role + threat tier + skill tier`
 
 Current scaffold content in code:
 
@@ -1748,16 +1795,35 @@ Current scaffold content in code:
 
 Important constraint:
 
-- these Hoa Lư monsters are still reconstruction scaffolds aligned with the repo's current
-  `fire / ice / zap` visual families
+- these Hoa Lư monsters are still reconstruction scaffolds aligned with the
+  repo's current `fire / ice / zap` visual families
 - they are not claimed as legacy-canon Java content
+- their stats / skill loadouts are `server-authored reconstruction`, not
+  recovered Java server truth
+
+Current practical fidelity estimate:
+
+- if judged against the correct remake target
+  `reconstructed logic that stays Java-faithful in system behavior`
+- the current monster system is approximately `90-93%` complete/faithful
+- strongest areas:
+  - map -> encounter -> battle flow
+  - monster identity / key / preview / bootstrap contracts
+  - roster/group/count split between map and battle
+  - stat progression and skill assignment rule engine
+- still not final:
+  - board/match authority is still hybrid client/server
+  - AI pressure is reconstruction, not canon server behavior
+  - map placement uses remake spawn zones rather than original Java server cells
 
 What still remains after this implementation slice:
 
-- replace local Hoa Lư roaming definitions with server-driven roster placement if desired
-- introduce a true battle session / `BattleTurnEngine`
-- make monster AI depend on authoritative battle state
-- fill real reconstructed content map-by-map
+- continue moving board/match resolution toward stronger server authority
+- make monster AI depend more deeply on authoritative combat stats and battle state
+- extend the rule system from current tiers into:
+  `species profile + zone scaling + rare override`
+- keep current rule logic ready for a future DB, where the database stores data
+  inputs while the rule engine remains the gameplay authority
 
 ## Anti-Solutions To Avoid
 
@@ -1860,36 +1926,32 @@ When implementing the monster pipeline, consult these project skills
 Note: there are no monster **names** in any skill. Names are
 server-catalog data and must NOT be invented at the client / asset layer.
 
-## Next Practical Step
+## Current Follow-Up Backlog
 
-The next coding step should no longer be only an asset loader.
+Use this instead of the older "next practical step" section.
 
-It should be a 3-part monster foundation:
+### [Done]
 
-1. `MonsterAssetCatalog`
-   - reads `client/assets/monster/index.csv`
-   - builds `species_code -> slot -> [frame_path]`
-   - exposes shared visual-family lookup
+- `MonsterAssetCatalog`
+- `MonsterSpawnCatalog`
+- `MonsterBattleCatalog`
+- `MapMonsterRosterService`
+- `MonsterBattleBootstrapService`
+- socket roster / bootstrap flow by `monsterKey`
+- rule-driven monster stat progression + skill assignment
 
-2. `MonsterSpawnCatalog`
-   - stores Java-like fields equivalent to `jo`
-   - exposes `GetSpawnTemplate(monsterKey)`
-   - stays lightweight and map-facing
+### [In Progress]
 
-3. `MonsterBattleCatalog`
-   - stores authoritative HP/MP/stats/skills for the remake
-   - exposes `GetBattleTemplate(battleTemplateId)`
-   - feeds battle scene and AI
+- `BattleTurnEngine` as true server gameplay authority
+- packet layer shrinking toward pure adapter role
+- monster AI pressure using stronger derived combat-stat logic
 
-The minimal end-to-end contract should be:
+### [Pending]
 
-```ts
-Map encounter -> monsterKey
-monsterKey -> MonsterSpawnTemplate
-MonsterSpawnTemplate.battleTemplateId -> MonsterBattleTemplate
-MonsterSpawnTemplate.visualTypeByte -> shared sheet / icon family
-optional speciesCode -> numeric offline art family
-```
-
-That is the cleanest way to stay very close to Java while still working
-without the original Java server.
+1. move more board/match/cascade truth into the server
+2. extend monster rule engine into:
+   `species profile + zone scaling + rare override`
+3. prepare DB migration so the database stores authoring inputs while keeping
+   rule logic in code/service form
+4. later connect the same pattern to player progression once monster side is
+   considered stable
