@@ -1805,12 +1805,17 @@ Current practical fidelity estimate:
 
 - if judged against the correct remake target
   `reconstructed logic that stays Java-faithful in system behavior`
-- the current monster system is approximately `90-93%` complete/faithful
+- the current monster system is approximately `95-96%` complete/faithful for
+  the client-visible monster slice, and about `95%` if the deeper authority
+  layers are counted as part of the same feature
 - strongest areas:
   - map -> encounter -> battle flow
   - monster identity / key / preview / bootstrap contracts
   - roster/group/count split between map and battle
   - stat progression and skill assignment rule engine
+  - map runtime behavior now stays closer to Java feel:
+    patrol-only roaming, encounter by direct player attack or collision, and
+    a lighter map preview / HUD presentation
 - still not final:
   - board/match authority is still hybrid client/server
   - AI pressure is reconstruction, not canon server behavior
@@ -1824,6 +1829,37 @@ What still remains after this implementation slice:
   `species profile + zone scaling + rare override`
 - keep current rule logic ready for a future DB, where the database stores data
   inputs while the rule engine remains the gameplay authority
+
+### Current Development Note
+
+The current preferred direction is:
+
+- keep pushing the parts that are directly traceable from the Java client first
+- only infer new server authority where the remake genuinely needs a source of truth
+
+Practical reading:
+
+- `client-visible fidelity` has priority over inventing deeper server gameplay
+- map monster feel, encounter flow, battle presentation timing, HUD behavior,
+  and preview behavior should be tightened first because they have stronger
+  evidence from the old Java client
+- new server logic should be added conservatively, mainly for:
+  - battle authority
+  - AI
+  - rewards
+  - board/cascade truth
+
+This means the preferred near-term order is:
+
+1. polish `map patrol / contact / encounter feel`
+2. polish `battle presentation timing` per skill family / impact family
+3. polish `encounter confirm / cancel / restore map state`
+4. only then continue deeper server-side inference where authority is required
+
+Non-goal for now:
+
+- do not invent large new gameplay systems on the server just to "fill in" what
+  is missing if that behavior is not supported by client-visible Java evidence
 
 ## Anti-Solutions To Avoid
 
