@@ -2,12 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, View, Text } from 'react-native';
 import {
   BattleScreen,
+  createBattleSessionSyncResolver,
   createBattleSkillPacketResolver,
+  createEnemyBattleTurnPlanResolver,
+  createMonsterBattleBootstrapResolver,
   HoaLuMapScreen,
   LoginScreen,
   MainScreen,
   MapSelectionScreen,
   RegisterScreen,
+  type MonsterBattleBootstrapResponse,
 } from './src/screens';
 import { CreateCharacterScreen } from './src/screens/character/create';
 import { CharacterStatusScreen, type PlayerAppearance } from './src/screens/character/status';
@@ -48,6 +52,7 @@ export default function App() {
   const [screen, setScreen]           = useState<Screen>('login');
   const [battleMonster, setBattleMonster] = useState<MonsterTypeNav>('fire');
   const [battleInitialTurn, setBattleInitialTurn] = useState<BattleInitialTurn>('player');
+  const [battleBootstrap, setBattleBootstrap] = useState<MonsterBattleBootstrapResponse | null>(null);
   const [playerAppearance, setPlayerAppearance] = useState<PlayerAppearance>({
     genderIndex: 0, faceIndex: 0, hairIndex: 0, hairColorIndex: 0, skinColorIndex: 0, elementIndex: 0,
   });
@@ -56,6 +61,18 @@ export default function App() {
   const addLog = (msg: string) => console.log(msg);
   const resolveSkillPacket = React.useMemo(
     () => createBattleSkillPacketResolver(SERVER_URL),
+    [],
+  );
+  const resolveBattleSessionSync = React.useMemo(
+    () => createBattleSessionSyncResolver(SERVER_URL),
+    [],
+  );
+  const resolveEnemyTurnPlan = React.useMemo(
+    () => createEnemyBattleTurnPlanResolver(SERVER_URL),
+    [],
+  );
+  const resolveMonsterBootstrap = React.useMemo(
+    () => createMonsterBattleBootstrapResolver(SERVER_URL),
     [],
   );
 
@@ -183,6 +200,11 @@ export default function App() {
     };
   }, []);
 
+  const leaveBattle = () => {
+    setBattleBootstrap(null);
+    setScreen('hoaLuMap');
+  };
+
   const renderScreen = () => {
     if (!isConnected) {
       return (
@@ -206,6 +228,7 @@ export default function App() {
               console.log('[App] Selected Map:', map.name, map.id);
               // Hoa Lư → màn hình map side-scrolling mới
               if (map.id === 'hoalu') {
+                setBattleBootstrap(null);
                 setScreen('hoaLuMap');
               } else {
                 setScreen('main');
@@ -227,24 +250,40 @@ export default function App() {
               await clearSession();
               setScreen('login');
             }}
-            onBattle={(type, initialTurn) => {
+            resolveMonsterBootstrap={resolveMonsterBootstrap}
+            onBattle={(type, initialTurn, monsterBootstrap) => {
               setBattleMonster(type as MonsterTypeNav);
-              setBattleInitialTurn(initialTurn);
+              setBattleInitialTurn(
+                monsterBootstrap.initialTurnSide === 'enemy' ? 'monster' : initialTurn,
+              );
+              setBattleBootstrap(monsterBootstrap);
               setScreen('battle');
             }}
           />
         );
 
       case 'battle':
+        if (!battleBootstrap) {
+          return (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>THIẾU BATTLE BOOTSTRAP</Text>
+              <Text style={styles.loadingSubText}>Quay lại Hoa Lư để mở encounter lại.</Text>
+            </View>
+          );
+        }
+
         return (
           <BattleScreen
             monsterType={battleMonster}
+            monsterBootstrap={battleBootstrap}
             appearance={playerAppearance}
             initialTurn={battleInitialTurn}
             resolveSkillPacket={resolveSkillPacket}
-            onVictory={() => setScreen('hoaLuMap')}
-            onDefeat={()  => setScreen('hoaLuMap')}
-            onFlee={()    => setScreen('hoaLuMap')}
+            resolveEnemyTurnPlan={resolveEnemyTurnPlan}
+            resolveBattleSessionSync={resolveBattleSessionSync}
+            onVictory={leaveBattle}
+            onDefeat={leaveBattle}
+            onFlee={leaveBattle}
           />
         );
 

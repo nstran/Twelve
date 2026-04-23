@@ -1666,6 +1666,46 @@ Only after the authority split is clean should the project add:
 - AI profiles
 - reward tables
 
+### Implementation Snapshot in the Current Repo
+
+The repo now has the first end-to-end slice of this plan implemented.
+
+Completed infrastructure:
+
+- `MonsterAssetCatalog`
+- `MonsterSpawnCatalog`
+- `MonsterBattleCatalog`
+- `MapMonsterRosterService`
+- `MonsterBattleBootstrapService`
+
+Completed flow:
+
+1. Hoa Lư map monsters now resolve through stable `monsterKey` values.
+2. Client encounter preview requests `/battle/monster-bootstrap`.
+3. Server resolves:
+   `monsterKey -> MapMonsterEncounter -> MonsterSpawnTemplate -> MonsterBattleTemplate`
+4. Encounter preview now renders monster name / display level / IQ from the bootstrap payload.
+5. Battle screen now uses server-authoritative enemy HP instead of a client `MONSTER_HP` table.
+
+Current scaffold content in code:
+
+- `HOA_LU_FIRE_001`
+- `HOA_LU_ICE_001`
+- `HOA_LU_ZAP_001`
+
+Important constraint:
+
+- these Hoa Lư monsters are still reconstruction scaffolds aligned with the repo's current
+  `fire / ice / zap` visual families
+- they are not claimed as legacy-canon Java content
+
+What still remains after this implementation slice:
+
+- replace local Hoa Lư roaming definitions with server-driven roster placement if desired
+- introduce a true battle session / `BattleTurnEngine`
+- make monster AI depend on authoritative battle state
+- fill real reconstructed content map-by-map
+
 ## Anti-Solutions To Avoid
 
 These would be fast, but they would drift away from Java and create rework.

@@ -24,6 +24,10 @@ import { PopupMenu, MenuItem } from '../../../components/controls/PopupMenu/Popu
 import { TouchGamepad } from '../../../components/controls/TouchGamepad';
 import { clearSession } from '../../../storage/SessionStorage';
 import type { CharacterAppearance } from '../../character/shared';
+import type {
+  MonsterBattleBootstrapResponse,
+  ResolveMonsterBattleBootstrap,
+} from '../../battle';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const ASSET_SOFTKEY_MENU = require('../../../../assets/ui/11_softkey_icons_confirmed/icon_sharpest_1.png');
@@ -93,6 +97,7 @@ const GROUND_TOP = getSurfaceStartY(GROUND_MAIN_SURFACE);
 interface MonsterDef {
   id: number;
   type: MonsterType;
+  monsterKey: string;
   surfaceId: string;
   patrolInsetLeft: number;
   patrolInsetRight: number;
@@ -108,19 +113,19 @@ interface MonsterDef {
 //   Zone 3 (zap):  70% – 92% MAP_W
 const MONSTER_DEFS: MonsterDef[] = [
   {
-    id: 1, type: 'fire', surfaceId: 'ground_main',
+    id: 1, type: 'fire', monsterKey: 'HOA_LU_FIRE_001', surfaceId: 'ground_main',
     patrolInsetLeft:  Math.round(MAP_W * 0.25) + GROUND_TILE_LEFT_OFFSET,
     patrolInsetRight: Math.round(MAP_W * 0.52),
     startRatio: 0.4, speed: 2.2,
   },
   {
-    id: 2, type: 'ice',  surfaceId: 'ground_main',
+    id: 2, type: 'ice', monsterKey: 'HOA_LU_ICE_001', surfaceId: 'ground_main',
     patrolInsetLeft:  Math.round(MAP_W * 0.48) + GROUND_TILE_LEFT_OFFSET,
     patrolInsetRight: Math.round(MAP_W * 0.28),
     startRatio: 0.5, speed: 2.6,
   },
   {
-    id: 3, type: 'zap',  surfaceId: 'ground_main',
+    id: 3, type: 'zap', monsterKey: 'HOA_LU_ZAP_001', surfaceId: 'ground_main',
     patrolInsetLeft:  Math.round(MAP_W * 0.70) + GROUND_TILE_LEFT_OFFSET,
     patrolInsetRight: Math.round(MAP_W * 0.08),
     startRatio: 0.5, speed: 3.0,
@@ -288,22 +293,40 @@ interface Props {
   appearance: CharacterAppearance;
   onBack:    () => void;
   onLogout:  () => void;
-  onBattle?: (monsterType: MonsterType, initialTurn: 'player' | 'monster') => void;
+  onBattle?: (
+    monsterType: MonsterType,
+    initialTurn: 'player' | 'monster',
+    monsterBootstrap: MonsterBattleBootstrapResponse,
+  ) => void;
+  resolveMonsterBootstrap?: ResolveMonsterBattleBootstrap;
 }
 
 interface EncounterPreviewState {
   monsterType: MonsterType;
+  monsterKey: string;
   playerLeft: number;
   monsterLeft: number;
   groundY: number;
   initialTurn: 'player' | 'monster';
+  bootstrapStatus: 'loading' | 'ready' | 'error';
+  monsterBootstrap: MonsterBattleBootstrapResponse | null;
 }
 
+const HOA_LU_MAP_ID = 'Hoa Lu';
+const HOA_LU_ROOM_ID = 1;
+
 // ═══════════════════════════════════════════════════════════════════════════
-export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, onBattle }) => {
+export const HoaLuMapScreen: React.FC<Props> = ({
+  appearance,
+  onBack,
+  onLogout,
+  onBattle,
+  resolveMonsterBootstrap,
+}) => {
   const scrollRef = useRef<ScrollView>(null);
   const characterControllerRef = useRef<CharacterControllerRef>(null);
   const battleTriggered = useRef(false);
+  const encounterRequestVersionRef = useRef(0);
   const charLeftRef = useRef(CHAR_INIT_X);
   const cameraXRef = useRef(0);
   // Camera scroll is coalesced to 1 scrollTo per vsync via rAF, so 60Hz
@@ -476,6 +499,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
 
   const startEncounter = useCallback((snap: {
     type: MonsterType;
+    monsterKey: string;
     x: number;
     groundY: number;
     initialTurn: 'player' | 'monster';
@@ -483,23 +507,80 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
     if (battleTriggered.current || isEncounterActive) return;
 
     const { w: monsterW } = monsterDisplaySize(snap.type);
+    const requestVersion = encounterRequestVersionRef.current + 1;
+    encounterRequestVersionRef.current = requestVersion;
 
     battleTriggered.current = true;
     setEncounterPreview({
       monsterType: snap.type,
+      monsterKey: snap.monsterKey,
       playerLeft: charLeftRef.current - cameraXRef.current,
       monsterLeft: snap.x - monsterW / 2 - cameraXRef.current,
       groundY: snap.groundY,
       initialTurn: snap.initialTurn,
+      bootstrapStatus: 'loading',
+      monsterBootstrap: null,
     });
-  }, [isEncounterActive]);
+
+    const bootstrapResolver = resolveMonsterBootstrap;
+    if (!bootstrapResolver) {
+      setEncounterPreview((current) => {
+        if (!current || encounterRequestVersionRef.current !== requestVersion) {
+          return current;
+        }
+
+        return {
+          ...current,
+          bootstrapStatus: 'error',
+        };
+      });
+      return;
+    }
+
+    void Promise.resolve(bootstrapResolver({
+      mapId: HOA_LU_MAP_ID,
+      roomId: HOA_LU_ROOM_ID,
+      monsterKey: snap.monsterKey,
+      initialTurnSide: snap.initialTurn === 'monster' ? 'enemy' : 'player',
+    }))
+      .then((monsterBootstrap) => {
+        setEncounterPreview((current) => {
+          if (!current || encounterRequestVersionRef.current !== requestVersion) {
+            return current;
+          }
+
+          return {
+            ...current,
+            bootstrapStatus: monsterBootstrap ? 'ready' : 'error',
+            monsterBootstrap,
+          };
+        });
+      })
+      .catch(() => {
+        setEncounterPreview((current) => {
+          if (!current || encounterRequestVersionRef.current !== requestVersion) {
+            return current;
+          }
+
+          return {
+            ...current,
+            bootstrapStatus: 'error',
+          };
+        });
+      });
+  }, [isEncounterActive, resolveMonsterBootstrap]);
 
   const confirmEncounter = useCallback(() => {
-    if (!encounterPreview || !onBattle) return;
-    onBattle(encounterPreview.monsterType, encounterPreview.initialTurn);
+    if (!encounterPreview || !encounterPreview.monsterBootstrap || !onBattle) return;
+    onBattle(
+      encounterPreview.monsterType,
+      encounterPreview.initialTurn,
+      encounterPreview.monsterBootstrap,
+    );
   }, [encounterPreview, onBattle]);
 
   const cancelEncounter = useCallback(() => {
+    encounterRequestVersionRef.current += 1;
     setEncounterPreview(null);
     battleTriggered.current = false;
   }, []);
@@ -542,7 +623,13 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
           // 2. Collision
           const attacking = Math.abs(newX - playerCenter) < COLLISION_DIST;
           if (attacking && !battleTriggered.current) {
-            const snap = { type: m.type, x: newX, groundY: m.groundY, initialTurn: 'monster' as const };
+            const snap = {
+              type: m.type,
+              monsterKey: m.def.monsterKey,
+              x: newX,
+              groundY: m.groundY,
+              initialTurn: 'monster' as const,
+            };
             setTimeout(() => startEncounter(snap), 120);
           }
 
@@ -810,6 +897,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
 
                 const snap = {
                   type: targetMonster.type,
+                  monsterKey: targetMonster.def.monsterKey,
                   x: targetMonster.x,
                   groundY: targetMonster.groundY,
                   initialTurn: 'player' as const,
@@ -833,6 +921,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
       {encounterPreview && (
         <BattleIntroScreen
           monsterType={encounterPreview.monsterType}
+          monsterBootstrap={encounterPreview.monsterBootstrap}
+          bootstrapStatus={encounterPreview.bootstrapStatus}
           playerLeft={encounterPreview.playerLeft}
           monsterLeft={encounterPreview.monsterLeft}
           groundY={encounterPreview.groundY}
@@ -881,6 +971,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({ appearance, onBack, onLogout, 
             if (previewMonster) {
               startEncounter({
                 type: previewMonster.type,
+                monsterKey: previewMonster.def.monsterKey,
                 x: previewMonster.x,
                 groundY: previewMonster.groundY,
                 initialTurn: 'player',

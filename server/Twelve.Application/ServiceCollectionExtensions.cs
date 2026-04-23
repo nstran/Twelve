@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Twelve.Application.Battle;
 using Twelve.Application.Handlers;
+using Twelve.Application.Monsters;
 using Twelve.Core.Interfaces;
 using Twelve.Core.Tlv;
 
@@ -10,8 +11,20 @@ namespace Twelve.Application
     {
         public static IServiceCollection AddTwelveApplication(this IServiceCollection services)
         {
+            services.AddSingleton<IBattleSessionStore, InMemoryBattleSessionStore>();
+            services.AddSingleton<IBattleBoardService, ReconstructedBattleBoardService>();
+            services.AddSingleton<IBattleSessionSyncService, BattleSessionSyncService>();
+            services.AddSingleton<IBattleTurnEngine, BattleTurnEngine>();
+            services.AddSingleton<IBattleEnemyMoveService, BattleEnemyMoveService>();
+            services.AddSingleton<IBattleEnemyTurnPlannerService, BattleEnemyTurnPlannerService>();
             services.AddSingleton<IBattleSkillPacketFactory, BattleSkillPacketFactory>();
             services.AddSingleton<IBattleSkillCastPacketService, BattleSkillCastPacketService>();
+            services.AddSingleton<IBattleEnemyTurnPacketService, BattleEnemyTurnPacketService>();
+            services.AddSingleton<IMonsterAssetCatalog, InMemoryMonsterAssetCatalog>();
+            services.AddSingleton<IMonsterSpawnCatalog, InMemoryMonsterSpawnCatalog>();
+            services.AddSingleton<IMonsterBattleCatalog, InMemoryMonsterBattleCatalog>();
+            services.AddSingleton<IMapMonsterRosterService, InMemoryMapMonsterRosterService>();
+            services.AddSingleton<IMonsterBattleBootstrapService, MonsterBattleBootstrapService>();
 
             // ── Đăng ký Handlers ───────────────────────────────────────────────
             services.AddSingleton<AuthHandler>();

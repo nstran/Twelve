@@ -3,6 +3,8 @@ export * from './useBattleActorHudState';
 export * from './useBattleBoardBadges';
 export * from './useBattleBoardAnimations';
 export * from './useBattleEffects';
+export * from './useBattleEnemyTurn';
+export * from './useBattleMonsterTurn';
 export * from './useBattleMatchFlow';
 export * from './useBattleMenuControls';
 export * from './useBattlePlayerInput';

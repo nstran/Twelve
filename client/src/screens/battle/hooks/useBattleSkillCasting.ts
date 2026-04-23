@@ -27,6 +27,7 @@ const JAVA_SKILL_ATTACK_RESET_TICKS = 20;
 interface UseBattleSkillCastingArgs {
   applyServerPacketBoardMutation: (packet: BattleSkillRuntimePacket) => void;
   applyServerPacketMarkCell: (cell: BattleCell, stateId: number) => void;
+  battleSessionId: string;
   boardRef: MutableRefObject<Board>;
   charsRowHeight: number;
   charsTop: number;
@@ -81,6 +82,7 @@ interface UseBattleSkillCastingArgs {
 export const useBattleSkillCasting = ({
   applyServerPacketBoardMutation,
   applyServerPacketMarkCell,
+  battleSessionId,
   boardRef,
   charsRowHeight,
   charsTop,
@@ -217,6 +219,7 @@ export const useBattleSkillCasting = ({
 
     try {
       const packet = await resolveSkillPacket({
+        sessionId: battleSessionId,
         familyCode,
         casterSide: 'player',
         board: boardRef.current,
@@ -370,6 +373,7 @@ export const useBattleSkillCasting = ({
     applyServerPacketBoardMutation,
     applyServerPacketMarkCell,
     applyPacketActorDeltas,
+    battleSessionId,
     boardRef,
     charsRowHeight,
     charsTop,

@@ -1,4 +1,5 @@
-import { monsterDisplaySize, monsterPlacementMetrics, type MonsterType } from '../../../engine/MonsterSprite';
+import { type MonsterType } from '../../../engine/MonsterSprite';
+import { battleMonsterDisplaySize, battleMonsterPlacementMetrics } from '../../../engine/BattleMonsterSprite';
 import { measureCharacterRenderer } from '../../character';
 import type { CharacterAppearance } from '../../character/shared';
 import {
@@ -101,10 +102,14 @@ export const measureBattlePlayerSize = (appearance: CharacterAppearance) => {
   };
 };
 
-export const getBattleActorLayout = (monsterType: MonsterType, appearance: CharacterAppearance) => {
+export const getBattleActorLayout = (
+  monsterType: MonsterType,
+  appearance: CharacterAppearance,
+  assetCatalogId?: string | null,
+) => {
   const playerSize = measureBattlePlayerSize(appearance);
-  const monsterSize = monsterDisplaySize(monsterType);
-  const monsterPlacement = monsterPlacementMetrics(monsterType);
+  const monsterSize = battleMonsterDisplaySize(monsterType, assetCatalogId);
+  const monsterPlacement = battleMonsterPlacementMetrics(monsterType, assetCatalogId);
   const monsterBaseLeft = ACTOR_STAGE_W - monsterSize.w - MONSTER_BASE_RIGHT;
   const attackStopLeft = monsterBaseLeft - playerSize.w + ATTACK_CONTACT_OVERLAP;
   const attackTravelX = Math.max(0, attackStopLeft - PLAYER_BASE_LEFT);
@@ -120,7 +125,10 @@ export const getBattleActorLayout = (monsterType: MonsterType, appearance: Chara
   };
 };
 
-export const getBattleStageLayout = (monsterType: MonsterType) => {
+export const getBattleStageLayout = (
+  monsterType: MonsterType,
+  assetCatalogId?: string | null,
+) => {
   const stageTotalH = BG_H;
   const panelLeft =
     Math.round((SCREEN_W - BG_W) / 2) + Math.round(BATTLE_PANEL_LEFT_SHIFT * BOARD_SCALE);
@@ -136,6 +144,6 @@ export const getBattleStageLayout = (monsterType: MonsterType) => {
     charsTop,
     damagePopupTop,
     charsRowHeight: CHARS_ROW_H,
-    monsterSize: monsterDisplaySize(monsterType),
+    monsterSize: battleMonsterDisplaySize(monsterType, assetCatalogId),
   };
 };

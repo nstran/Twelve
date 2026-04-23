@@ -3,12 +3,12 @@ using Twelve.Core.Interfaces;
 
 namespace Twelve.Application.Battle
 {
-    public sealed class BattleSkillCastPacketService : IBattleSkillCastPacketService
+    public sealed class BattleEnemyTurnPacketService : IBattleEnemyTurnPacketService
     {
         private readonly IBattleTurnEngine _battleTurnEngine;
         private readonly IBattleSkillPacketFactory _packetFactory;
 
-        public BattleSkillCastPacketService(
+        public BattleEnemyTurnPacketService(
             IBattleTurnEngine battleTurnEngine,
             IBattleSkillPacketFactory packetFactory)
         {
@@ -16,9 +16,9 @@ namespace Twelve.Application.Battle
             _packetFactory = packetFactory;
         }
 
-        public BattleSkillRuntimePacket? CreatePacket(BattleSkillCastRequest request)
+        public BattleSkillRuntimePacket? CreatePacket(BattleEnemyTurnRequest request)
         {
-            var seed = _battleTurnEngine.ResolvePlayerCast(request);
+            var seed = _battleTurnEngine.ResolveEnemyTurn(request);
             return seed is null ? null : _packetFactory.CreatePacket(seed);
         }
     }

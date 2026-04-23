@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing } from 'react-native';
 import type { CharacterAction } from '../../../engine/character';
-import { ATTACK_FRAMES, WALK_FRAMES } from '../../../engine/MonsterSprite';
+import type { BattleMonsterPoseKey } from '../../../engine/BattleMonsterAssetManifest';
 
 const JAVA_BATTLE_TICK_MS = 40;
 const JAVA_ATTACK_MIN_STEP_PX = 5;
@@ -11,6 +11,9 @@ const JAVA_ATTACK_FRAME_2_TICKS = 6;
 const JAVA_ATTACK_IMPACT_TICKS = 11;
 const JAVA_ATTACK_FRAME_4_TICKS = 16;
 const MONSTER_ANIM_TICK_MS = 240;
+const MONSTER_NORMAL_ATTACK_REPEAT_COUNT = 3;
+const MONSTER_NORMAL_ATTACK_SWING_MS = 110;
+const MONSTER_NORMAL_ATTACK_RECOVER_MS = 70;
 
 interface QueuedAttack {
   onImpact: () => void;
@@ -80,9 +83,11 @@ export const useBattleSwordAttacks = ({
   setPlayerActionFrameIndex,
   setPlayerRetreatPose,
 }: UseBattleSwordAttacksArgs) => {
-  const [monFrame, setMonFrame] = useState<number>(WALK_FRAMES[0]);
+  const [monsterPoseKey, setMonsterPoseKey] = useState<BattleMonsterPoseKey>('idle_a');
   const [monAtk, setMonAtk] = useState(false);
+  const [monHit, setMonHit] = useState(false);
   const swordAttackTiming = getSwordAttackTiming(attackTravelX);
+  const idlePoses: readonly BattleMonsterPoseKey[] = ['idle_a', 'idle_b', 'idle_c'];
 
   const playerAttackTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const monsterAttackTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -91,6 +96,7 @@ export const useBattleSwordAttacks = ({
   const playerAttackRunningRef = useRef(false);
   const monsterAttackRunningRef = useRef(false);
   const monTick = useRef(0);
+  const monsterHitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
     playerAttackTimersRef.current.forEach(clearTimeout);
@@ -105,17 +111,45 @@ export const useBattleSwordAttacks = ({
     playerHitTranslateX.stopAnimation();
     enemyAttackTranslateX.stopAnimation();
     enemyHitTranslateX.stopAnimation();
+    if (monsterHitTimerRef.current) {
+      clearTimeout(monsterHitTimerRef.current);
+      monsterHitTimerRef.current = null;
+    }
   }, [enemyAttackTranslateX, enemyHitTranslateX, playerAttackTranslateX, playerHitTranslateX]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       if (!mountedRef.current) return;
+      if (monAtk || monHit) return;
       monTick.current++;
-      const frames = monAtk ? ATTACK_FRAMES : WALK_FRAMES;
-      setMonFrame(frames[monTick.current % frames.length]);
+      setMonsterPoseKey(idlePoses[monTick.current % idlePoses.length] ?? 'idle_a');
     }, MONSTER_ANIM_TICK_MS);
     return () => clearInterval(timer);
-  }, [monAtk, mountedRef]);
+  }, [idlePoses, monAtk, monHit, mountedRef]);
+
+  const triggerMonsterHitPose = useCallback(() => {
+    if (!mountedRef.current) {
+      return;
+    }
+
+    if (monsterHitTimerRef.current) {
+      clearTimeout(monsterHitTimerRef.current);
+      monsterHitTimerRef.current = null;
+    }
+
+    setMonHit(true);
+    setMonsterPoseKey('hit');
+    monsterHitTimerRef.current = setTimeout(() => {
+      if (!mountedRef.current) {
+        return;
+      }
+
+      setMonHit(false);
+      if (!monsterAttackRunningRef.current) {
+        setMonsterPoseKey('idle_a');
+      }
+    }, 200);
+  }, [mountedRef]);
 
   const runNextPlayerSwordAttack = useCallback(() => {
     if (playerAttackRunningRef.current) return;
@@ -149,6 +183,7 @@ export const useBattleSwordAttacks = ({
     const impactTimer = setTimeout(() => {
       if (!mountedRef.current) return;
       setPlayerActionFrameIndex(2);
+      triggerMonsterHitPose();
       nextAttack.onImpact();
     }, swordAttackTiming.impactMs);
 
@@ -213,6 +248,7 @@ export const useBattleSwordAttacks = ({
     swordAttackTiming.returnMs,
     swordAttackTiming.returnStartMs,
     swordAttackTiming.totalMs,
+    triggerMonsterHitPose,
   ]);
 
   const playPlayerSwordAttack = useCallback((onImpact: () => void, onComplete: () => void) => {
@@ -235,11 +271,38 @@ export const useBattleSwordAttacks = ({
     enemyAttackTranslateX.setValue(0);
     playerHitTranslateX.setValue(0);
     setMonAtk(true);
+    setMonHit(false);
+    setMonsterPoseKey('prepare_attack');
+    const attackLoopDurationMs =
+      MONSTER_NORMAL_ATTACK_REPEAT_COUNT * MONSTER_NORMAL_ATTACK_SWING_MS
+      + Math.max(0, MONSTER_NORMAL_ATTACK_REPEAT_COUNT - 1) * MONSTER_NORMAL_ATTACK_RECOVER_MS;
+    const returnStartMs = swordAttackTiming.contactMs + attackLoopDurationMs;
+
+    const runTimer = setTimeout(() => {
+      if (!mountedRef.current) return;
+      setMonsterPoseKey('run_attack');
+    }, Math.max(50, Math.min(160, Math.floor(swordAttackTiming.contactMs * 0.55))));
 
     const hitTimer = setTimeout(() => {
       if (!mountedRef.current) return;
+      setMonsterPoseKey('attack');
       nextAttack.onImpact();
     }, swordAttackTiming.contactMs);
+
+    const repeatPoseTimers: ReturnType<typeof setTimeout>[] = [];
+    for (let repeatIndex = 1; repeatIndex < MONSTER_NORMAL_ATTACK_REPEAT_COUNT; repeatIndex++) {
+      const recoverTimer = setTimeout(() => {
+        if (!mountedRef.current) return;
+        setMonsterPoseKey('prepare_attack');
+      }, swordAttackTiming.contactMs + repeatIndex * MONSTER_NORMAL_ATTACK_SWING_MS + (repeatIndex - 1) * MONSTER_NORMAL_ATTACK_RECOVER_MS);
+
+      const nextSwingTimer = setTimeout(() => {
+        if (!mountedRef.current) return;
+        setMonsterPoseKey('attack');
+      }, swordAttackTiming.contactMs + repeatIndex * (MONSTER_NORMAL_ATTACK_SWING_MS + MONSTER_NORMAL_ATTACK_RECOVER_MS));
+
+      repeatPoseTimers.push(recoverTimer, nextSwingTimer);
+    }
 
     const returnTimer = setTimeout(() => {
       if (!mountedRef.current) return;
@@ -249,18 +312,19 @@ export const useBattleSwordAttacks = ({
         easing: Easing.linear,
         useNativeDriver: true,
       }).start();
-    }, swordAttackTiming.returnStartMs);
+    }, returnStartMs);
 
     const completeTimer = setTimeout(() => {
       if (!mountedRef.current) return;
       setMonAtk(false);
+      setMonsterPoseKey('idle_a');
       nextAttack.onComplete();
       monsterAttackRunningRef.current = false;
       monsterAttackTimersRef.current = [];
       runNextMonsterSwordAttack();
-    }, swordAttackTiming.totalMs);
+    }, returnStartMs + swordAttackTiming.returnMs);
 
-    monsterAttackTimersRef.current = [hitTimer, returnTimer, completeTimer];
+    monsterAttackTimersRef.current = [runTimer, hitTimer, ...repeatPoseTimers, returnTimer, completeTimer];
 
     Animated.timing(enemyAttackTranslateX, {
       toValue: -attackTravelX,
@@ -286,7 +350,7 @@ export const useBattleSwordAttacks = ({
   }, [runNextMonsterSwordAttack]);
 
   return {
-    monFrame,
+    monsterPoseKey,
     playMonsterSwordAttack,
     playPlayerSwordAttack,
   };

@@ -22,7 +22,6 @@ import {
   getBattleElement,
   getBattleStageLayout,
   makeBoard,
-  MONSTER_HP,
   PLAYER_HUD_LAYOUT,
   type ActiveBattleSkillCast,
   type AILevel,
@@ -45,6 +44,7 @@ import {
   useBattleEffects,
   useBattleMatchFlow,
   useBattleMenuControls,
+  useBattleMonsterTurn,
   useBattlePlayerInput,
   useBattleSkillBoardMutation,
   useBattleSkillCasting,
@@ -57,15 +57,38 @@ const ASSET_SOFTKEY_CANCEL = require('../../../assets/ui/11_softkey_icons_confir
 const JAVA_DEFAULT_CURSOR_CELL: BattleCell = [3, 4];
 
 export const BattleScreen: React.FC<BattleScreenProps> = ({
-  monsterType, appearance, initialTurn = 'player', onVictory, onDefeat, onFlee, resolveSkillPacket,
+  monsterType,
+  monsterBootstrap,
+  appearance,
+  initialTurn = 'player',
+  onVictory,
+  onDefeat,
+  onFlee,
+  resolveBattleSessionSync,
+  resolveEnemyMove,
+  resolveSkillPacket,
+  resolveEnemyTurn,
+  resolveEnemyTurnPlan,
 }) => {
+  const initialBoard = useMemo<Board>(() => {
+    const board = monsterBootstrap.initialBoard;
+    if (
+      Array.isArray(board) &&
+      board.length === 8 &&
+      board.every((row) => Array.isArray(row) && row.length === 8)
+    ) {
+      return board.map((row) => row.map((cell) => cell ?? null));
+    }
+
+    return makeBoard(createJavaBoardEngine());
+  }, [monsterBootstrap.initialBoard]);
   const maxHP  = 100;
-  const maxEHP = MONSTER_HP[monsterType] ?? 150;
+  const maxEHP = Math.max(1, monsterBootstrap.enemy.maxHp);
   const maxMP  = 100;
   const maxPow = 100;
 
   const boardEngineRef = useRef(createJavaBoardEngine());
-  const [board,         setBoard]         = useState<Board>(() => makeBoard(boardEngineRef.current));
+  const [board,         setBoard]         = useState<Board>(() => initialBoard);
   const [cursorCell,    setCursorCell]    = useState<BattleCell>(JAVA_DEFAULT_CURSOR_CELL);
   const [selected,      setSelected]      = useState<BattleCell | null>(null);
   const [hintCell,      setHintCell]      = useState<BattleCell | null>(null);
@@ -74,14 +97,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [fireSwordMarkBaseGems, setFireSwordMarkBaseGems] = useState<Record<string, GemType>>({});
   const [fireSwordMarkTriggers, setFireSwordMarkTriggers] = useState<Record<string, number>>({});
   const [playerHP,  setPlayerHP]  = useState(maxHP);
-  const [enemyHP,   setEnemyHP]   = useState(maxEHP);
+  const [enemyHP,   setEnemyHP]   = useState(() => Math.min(monsterBootstrap.enemy.currentHp, maxEHP));
   const [mana,      setMana]      = useState(30);
   const [power,     setPower]     = useState(40);
   const [phase,     setPhase]     = useState<BattlePhase>('idle');
   const [result,    setResult]    = useState<BattleResult | null>(null);
   const [playerAction, setPlayerAction] = useState<CharacterAction>('idle');
   const [playerActionFrameIndex, setPlayerActionFrameIndex] = useState<number | null>(null);
-  const [aiLevel]  = useState<AILevel | null>('linh_canh');
+  const aiLevel: AILevel | null = resolveEnemyTurnPlan ? null : 'linh_canh';
   const [activeSkillCasts, setActiveSkillCasts] = useState<ActiveBattleSkillCast[]>([]);
   const battleElement = getBattleElement(appearance.elementIndex);
 
@@ -112,6 +135,44 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   useEffect(() => { phaseRef.current = phase; }, [phase]);
   useEffect(() => () => { mountedRef.current = false; }, []);
   useEffect(() => { boardRef.current = board; }, [board]);
+  useEffect(() => {
+    boardRef.current = initialBoard;
+    setBoard(initialBoard);
+    setSelected(null);
+    setHintCell(null);
+    setHintMove(null);
+  }, [initialBoard]);
+  useEffect(() => {
+    if (!resolveBattleSessionSync) {
+      return;
+    }
+
+    if (phase !== 'idle' && phase !== 'over') {
+      return;
+    }
+
+    void Promise.resolve(resolveBattleSessionSync({
+      sessionId: monsterBootstrap.sessionId,
+      board,
+      activeTurn: turn === 'monster' ? 'enemy' : 'player',
+      playerCurrentHp: playerHP,
+      playerCurrentMp: mana,
+      playerCurrentPower: power,
+      enemyCurrentHp: enemyHP,
+    }));
+  }, [
+    board,
+    enemyHP,
+    mana,
+    monsterBootstrap.sessionId,
+    phase,
+    playerHP,
+    power,
+    resolveBattleSessionSync,
+    result,
+    turn,
+    turnCycle,
+  ]);
   useEffect(() => { enemyHPRef.current = enemyHP; }, [enemyHP]);
   useEffect(() => { playerHPRef.current = playerHP; }, [playerHP]);
   useEffect(() => { selectedRef.current = selected; }, [selected]);
@@ -188,8 +249,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       }),
     ]).start();
   }, [enemyHitTranslateX]);
+  const enemyAssetCatalogId = monsterBootstrap.enemy.appearance.assetCatalogId;
   const { panelLeft, panelTop, charsTop, damagePopupTop, charsRowHeight, monsterSize } =
-    getBattleStageLayout(monsterType);
+    getBattleStageLayout(monsterType, enemyAssetCatalogId);
   const {
     attackTravelX,
     playerBaseLeft,
@@ -197,8 +259,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     playerSize,
     monsterGroundOffset,
   } = useMemo(
-    () => getBattleActorLayout(monsterType, appearance),
-    [appearance, monsterType],
+    () => getBattleActorLayout(monsterType, appearance, enemyAssetCatalogId),
+    [appearance, enemyAssetCatalogId, monsterType],
   );
   const playerHud = PLAYER_HUD_LAYOUT;
   const enemyHud = ENEMY_HUD_LAYOUT;
@@ -273,7 +335,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     showBonusBanner,
     turn,
   });
-  const { monFrame, playMonsterSwordAttack, playPlayerSwordAttack } = useBattleSwordAttacks({
+  const { monsterPoseKey, playMonsterSwordAttack, playPlayerSwordAttack } = useBattleSwordAttacks({
     attackTravelX,
     mountedRef,
     enemyAttackTranslateX,
@@ -355,11 +417,62 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     playerHPRef,
     enemyHPRef,
     doDirectSwapRef,
+    enemyBattleSessionId: monsterBootstrap.sessionId,
+    resolveEnemyMove,
     setCursorCell,
     setSelected,
     setHintCell,
     setHintMove,
     setTurn,
+  });
+  useBattleMonsterTurn({
+    applyServerPacketBoardMutation,
+    applyServerPacketMarkCell,
+    boardRef,
+    charsRowHeight,
+    charsTop,
+    doDirectSwapRef,
+    extraTurnsRef,
+    flashExtraTurnsBadge,
+    maxEHP,
+    maxHP,
+    maxMP,
+    maxPow,
+    monsterBaseLeft,
+    monsterGroundOffset,
+    monsterSize,
+    mountedRef,
+    panelLeft,
+    panelTop,
+    phase,
+    phaseRef,
+    playerBaseLeft,
+    playerSize,
+    processMatchesRef,
+    resolveEnemyTurnPlan,
+    result,
+    sessionId: monsterBootstrap.sessionId,
+    setActiveSkillCasts,
+    setAiStep,
+    setCursorCell,
+    setEnemyHP,
+    setExtraTurns,
+    setHintCell,
+    setHintMove,
+    setMana,
+    setPhase,
+    setPlayerHP,
+    setPower,
+    setSelected,
+    setTurn,
+    setTurnCycle,
+    showBonusBanner,
+    showDamagePopup,
+    skillCastTimersRef,
+    startPlayerDefeatSequence,
+    playPlayerHitReaction,
+    turn,
+    turnRef,
   });
   const { turnTimeLeft } = useBattleTurnTimer({
     phase,
@@ -389,6 +502,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const { handleSkillCast } = useBattleSkillCasting({
     applyServerPacketBoardMutation,
     applyServerPacketMarkCell,
+    battleSessionId: monsterBootstrap.sessionId,
     boardRef,
     charsRowHeight,
     charsTop,
@@ -498,8 +612,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         charsTop={charsTop}
         charsHeight={charsRowHeight}
         appearance={appearance}
+        monsterAssetCatalogId={enemyAssetCatalogId}
         monsterType={monsterType}
-        monFrame={monFrame}
+        monsterPoseKey={monsterPoseKey}
         playerAction={playerAction}
         playerActionFrameIndex={playerActionFrameIndex}
         playerReactionPose={playerReactionPose}

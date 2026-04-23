@@ -2,6 +2,7 @@ using Twelve.Server;
 using Twelve.Server.Middleware;
 using Twelve.Core.Battle;
 using Twelve.Core.Interfaces;
+using Twelve.Core.Monsters;
 using Twelve.Core.Options;
 using Twelve.Application;
 using Twelve.Infrastructure;
@@ -75,6 +76,36 @@ app.MapPost("/battle/skill-cast", (BattleSkillCastRequest request, IBattleSkillC
 {
     var packet = service.CreatePacket(request);
     return packet is null ? Results.NoContent() : Results.Ok(packet);
+});
+
+app.MapPost("/battle/enemy-move", (BattleEnemyMoveRequest request, IBattleEnemyMoveService service) =>
+{
+    var response = service.CreateMove(request);
+    return response is null ? Results.NoContent() : Results.Ok(response);
+});
+
+app.MapPost("/battle/enemy-turn-plan", (BattleEnemyTurnPlanRequest request, IBattleEnemyTurnPlannerService service) =>
+{
+    var response = service.CreatePlan(request);
+    return response is null ? Results.NoContent() : Results.Ok(response);
+});
+
+app.MapPost("/battle/session-sync", (BattleSessionSyncRequest request, IBattleSessionSyncService service) =>
+{
+    var synced = service.Sync(request);
+    return synced ? Results.Ok() : Results.NotFound();
+});
+
+app.MapPost("/battle/enemy-turn", (BattleEnemyTurnRequest request, IBattleEnemyTurnPacketService service) =>
+{
+    var packet = service.CreatePacket(request);
+    return packet is null ? Results.NoContent() : Results.Ok(packet);
+});
+
+app.MapPost("/battle/monster-bootstrap", (MonsterBattleBootstrapRequest request, IMonsterBattleBootstrapService service) =>
+{
+    var response = service.Bootstrap(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
 });
 
 app.Run();

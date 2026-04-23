@@ -8,11 +8,11 @@ import {
   Text,
   View,
 } from 'react-native';
-import type { MonsterType } from '../../engine/MonsterSprite';
-import { MonsterSprite, monsterDisplaySize, monsterPlacementMetrics } from '../../engine/MonsterSprite';
+import { MonsterSprite, monsterDisplaySize, monsterPlacementMetrics, type MonsterType } from '../../engine/MonsterSprite';
 import { CharacterRenderer, measureCharacterRenderer } from '../character';
 import type { CharacterAppearance } from '../character/shared';
 import { loadSession } from '../../storage/SessionStorage';
+import type { MonsterBattleBootstrapResponse } from './core';
 
 const AUTO_ADVANCE_MS = 5000;
 const SHOW_CARDS_AFTER_MS = 1500;
@@ -23,6 +23,8 @@ const ASSET_HIDDEN_DRAGON = require('../../../assets/battle/09_hidden_pieces/hid
 
 interface BattleIntroScreenProps {
   monsterType: MonsterType;
+  monsterBootstrap: MonsterBattleBootstrapResponse | null;
+  bootstrapStatus: 'loading' | 'ready' | 'error';
   playerLeft: number;
   monsterLeft: number;
   groundY: number;
@@ -33,42 +35,20 @@ interface BattleIntroScreenProps {
 
 interface EncounterInfo {
   name: string;
-  level: number;
+  level: number | string;
   note: string;
   badge: string;
 }
 
-const MONSTER_INFO: Record<MonsterType, EncounterInfo> = {
-  fire: {
-    name: 'Heo Mọi',
-    level: 7,
-    note: 'IQ: Siêu gà',
-    badge: '⚡',
-  },
-  ice: {
-    name: 'Băng Linh',
-    level: 8,
-    note: 'IQ: Tỉnh ngủ',
-    badge: '❄',
-  },
-  zap: {
-    name: 'Lôi Thú',
-    level: 9,
-    note: 'IQ: Lém lỉnh',
-    badge: '⚡',
-  },
-};
-
 const PLAYER_INFO = {
   level: 10,
   note: 'Thường dân',
-  badge: '💧',
 };
 
 interface BattleInfoCardProps {
   align: 'left' | 'right';
   name: string;
-  level: number;
+  level: number | string;
   note: string;
   badge: string;
   children: React.ReactNode;
@@ -117,6 +97,8 @@ const BattleInfoCard: React.FC<BattleInfoCardProps> = ({
 
 export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
   monsterType,
+  monsterBootstrap,
+  bootstrapStatus,
   playerLeft,
   monsterLeft,
   groundY,
@@ -134,7 +116,53 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
   const hitFlashAnim = useRef(new Animated.Value(0)).current;
   const cardsAnim = useRef(new Animated.Value(0)).current;
 
-  const monsterInfo = useMemo(() => MONSTER_INFO[monsterType], [monsterType]);
+  const canConfirm = monsterBootstrap !== null && bootstrapStatus === 'ready';
+  const playerBadge = useMemo(() => {
+    if (appearance.elementIndex === 1) return '⚡';
+    if (appearance.elementIndex === 2) return '💧';
+    return '🔥';
+  }, [appearance.elementIndex]);
+  const monsterInfo = useMemo<EncounterInfo>(() => {
+    if (monsterBootstrap) {
+      const iqLabel = monsterBootstrap.iqValue < 3
+        ? 'Siêu gà'
+        : monsterBootstrap.iqValue < 7
+          ? 'Bờm'
+          : monsterBootstrap.iqValue < 10
+            ? 'Ma lanh'
+            : monsterBootstrap.iqValue === 11
+              ? 'Tốc chiến'
+              : 'Tuyệt đỉnh';
+      const badge = monsterBootstrap.enemy.element === 1
+        ? '⚡'
+        : monsterBootstrap.enemy.element === 2
+          ? '💧'
+          : '🔥';
+
+      return {
+        name: monsterBootstrap.enemy.displayName,
+        level: monsterBootstrap.displayLevel,
+        note: `IQ: ${iqLabel}`,
+        badge,
+      };
+    }
+
+    if (bootstrapStatus === 'error') {
+      return {
+        name: 'Không tải được quái',
+        level: '--',
+        note: 'Thiếu bootstrap từ server',
+        badge: '!',
+      };
+    }
+
+    return {
+      name: 'Đang dò quái...',
+      level: '--',
+      note: 'Đang tải dữ liệu battle',
+      badge: '…',
+    };
+  }, [bootstrapStatus, monsterBootstrap]);
   // Cùng thuật toán với HoaLuMapScreen: anchorToBody=true + SPRITE_FOOT_SINK.
   // Đảm bảo preview trong encounter không bị "nhảy" vị trí so với map screen.
   const playerSize = useMemo(() => {
@@ -142,8 +170,14 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
     const footSink = Math.round(5 * playerScale / 2.2); // transparent below feet, tại playerScale
     return { ...measured, groundOffset: measured.groundOffset + footSink };
   }, [appearance, playerScale]);
-  const monsterSize = useMemo(() => monsterDisplaySize(monsterType), [monsterType]);
-  const monsterPlacement = useMemo(() => monsterPlacementMetrics(monsterType), [monsterType]);
+  const monsterSize = useMemo(
+    () => monsterDisplaySize(monsterType),
+    [monsterType],
+  );
+  const monsterPlacement = useMemo(
+    () => monsterPlacementMetrics(monsterType),
+    [monsterType],
+  );
 
   const finish = useCallback((next: () => void) => {
     if (handledRef.current) return;
@@ -167,16 +201,18 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
       setShowCards(true);
     }, SHOW_CARDS_AFTER_MS);
 
-    const timer = setTimeout(() => {
-      finish(onConfirm);
-    }, AUTO_ADVANCE_MS);
+    const timer = canConfirm
+      ? setTimeout(() => {
+        finish(onConfirm);
+      }, AUTO_ADVANCE_MS)
+      : null;
 
     return () => {
       mounted = false;
       if (cardsTimer) clearTimeout(cardsTimer);
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
     };
-  }, [finish, onConfirm]);
+  }, [canConfirm, finish, onConfirm]);
 
   useEffect(() => {
     Animated.timing(cardsAnim, {
@@ -319,7 +355,7 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
             name={username}
             level={PLAYER_INFO.level}
             note={PLAYER_INFO.note}
-            badge={PLAYER_INFO.badge}
+            badge={playerBadge}
           >
             <View style={styles.playerSpriteWrap}>
               <CharacterRenderer appearance={appearance} scale={0.42} action="idle" facing="right" />
@@ -338,7 +374,11 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
             badge={monsterInfo.badge}
           >
             <View style={styles.monsterSpriteWrap}>
-              <MonsterSprite type={monsterType} frameIndex={0} facingRight={false} />
+              <MonsterSprite
+                type={monsterType}
+                frameIndex={0}
+                facingRight={false}
+              />
             </View>
           </BattleInfoCard>
         </Animated.View>
@@ -373,7 +413,11 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
             },
           ]}
         >
-          <MonsterSprite type={monsterType} frameIndex={0} facingRight={false} />
+          <MonsterSprite
+            type={monsterType}
+            frameIndex={0}
+            facingRight={false}
+          />
           <Animated.View style={[styles.hitFlash, { opacity: hitFlashAnim }]} pointerEvents="none" />
         </Animated.View>
       </View>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Animated, Image, Text, TouchableOpacity, View } from 'react-native';
-import { MonsterSprite, type MonsterType } from '../../../engine/MonsterSprite';
+import type { BattleMonsterPoseKey } from '../../../engine/BattleMonsterAssetManifest';
+import { type MonsterType } from '../../../engine/MonsterSprite';
+import { BattleMonsterSprite } from '../../../engine/BattleMonsterSprite';
 import type { CharacterAction } from '../../../engine/character';
 import { CharacterRenderer } from '../../character';
 import type { CharacterAppearance } from '../../character/shared';
@@ -33,8 +35,9 @@ interface BattleActorsRowProps {
   charsTop: number;
   charsHeight: number;
   appearance: CharacterAppearance;
+  monsterAssetCatalogId?: string | null;
   monsterType: MonsterType;
-  monFrame: number;
+  monsterPoseKey: BattleMonsterPoseKey;
   playerAction: CharacterAction;
   playerActionFrameIndex: number | null;
   playerReactionPose: boolean;
@@ -53,8 +56,9 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
   charsTop,
   charsHeight,
   appearance,
+  monsterAssetCatalogId,
   monsterType,
-  monFrame,
+  monsterPoseKey,
   playerAction,
   playerActionFrameIndex,
   playerReactionPose,
@@ -68,7 +72,10 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
   enemyHitTranslateX,
 }) => {
   const { stageWidth, playerBaseLeft, monsterBaseLeft, monsterGroundOffset, playerSize } =
-    React.useMemo(() => getBattleActorLayout(monsterType, appearance), [monsterType, appearance]);
+    React.useMemo(
+      () => getBattleActorLayout(monsterType, appearance, monsterAssetCatalogId),
+      [appearance, monsterAssetCatalogId, monsterType],
+    );
   const playerPoseFamilySlotOverride =
     playerDefeatPose ? 8 : playerReactionPose ? 7 : playerRetreatPose ? 9 : undefined;
   const playerPoseFrameIndexOverride = playerPoseFamilySlotOverride !== undefined ? 0 : undefined;
@@ -131,7 +138,13 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
           ],
         }}
       >
-        <MonsterSprite type={monsterType} frameIndex={monFrame} facingRight={false} />
+        <BattleMonsterSprite
+          assetCatalogId={monsterAssetCatalogId}
+          fallbackType={monsterType}
+          frameIndex={0}
+          poseKey={monsterPoseKey}
+          facingRight={false}
+        />
       </Animated.View>
     </View>
   );
