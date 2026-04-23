@@ -64,7 +64,7 @@ namespace Twelve.Application.Monsters
                 Level: battleTemplate.Level,
                 CurrentHp: battleTemplate.MaxHp,
                 MaxHp: battleTemplate.MaxHp,
-                CurrentMp: battleTemplate.MaxMp,
+                CurrentMp: 0,
                 MaxMp: battleTemplate.MaxMp,
                 CurrentPower: 0,
                 MaxPower: battleTemplate.MaxPower,
@@ -83,13 +83,16 @@ namespace Twelve.Application.Monsters
 
             var sessionId = Guid.NewGuid().ToString("N");
             var initialBoard = _battleBoardService.CreateInitialBoard();
+            var playerState = CreateDefaultPlayerState();
+            var enemyState = CreateEnemySessionState(enemy, spawnTemplate.IqValue, battleTemplate.AiProfileId);
+
             _battleSessionStore.Save(new BattleSessionState(
                 SessionId: sessionId,
                 MonsterKey: encounter.MonsterKey,
                 ActiveTurn: request.InitialTurnSide,
                 Board: initialBoard,
-                Player: CreateDefaultPlayerState(),
-                Enemy: CreateEnemySessionState(enemy, spawnTemplate.IqValue, battleTemplate.AiProfileId),
+                Player: playerState,
+                Enemy: enemyState,
                 CreatedAtUtc: DateTime.UtcNow));
 
             return new MonsterBattleBootstrapResponse(
@@ -104,6 +107,7 @@ namespace Twelve.Application.Monsters
                 InitialTurnSide: request.InitialTurnSide,
                 SharedSheetFamily: asset?.SharedSheetFamily,
                 InitialBoard: initialBoard,
+                Player: CreateCombatantSnapshot(playerState),
                 Enemy: enemy);
         }
 
@@ -194,6 +198,49 @@ namespace Twelve.Application.Monsters
             foreach (var skill in skills)
             {
                 instances.Add(new BattleSessionSkillInstance(
+                    SkillId: skill.SkillId,
+                    Level: skill.Level,
+                    ManaCost: skill.ManaCost));
+            }
+
+            return instances;
+        }
+
+        private static BattleCombatantSnapshot CreateCombatantSnapshot(BattleSessionCombatantState state) =>
+            new(
+                CombatantId: state.CombatantId,
+                DisplayName: state.DisplayName,
+                Level: state.Level,
+                CurrentHp: state.CurrentHp,
+                MaxHp: state.MaxHp,
+                CurrentMp: state.CurrentMp,
+                MaxMp: state.MaxMp,
+                CurrentPower: state.CurrentPower,
+                MaxPower: state.MaxPower,
+                Strength: state.Strength,
+                Agility: state.Agility,
+                Magic: state.Magic,
+                Vitality: state.Vitality,
+                MinDamage: state.MinDamage,
+                MaxDamage: state.MaxDamage,
+                Defense: state.Defense,
+                HitRate: state.HitRate,
+                DodgeRate: state.DodgeRate,
+                CriticalDamage: state.CriticalDamage,
+                Skills: CreateSkillInstances(state.Skills));
+
+        private static IReadOnlyList<MonsterSkillInstance> CreateSkillInstances(
+            IReadOnlyList<BattleSessionSkillInstance> skills)
+        {
+            if (skills.Count == 0)
+            {
+                return [];
+            }
+
+            var instances = new List<MonsterSkillInstance>(skills.Count);
+            foreach (var skill in skills)
+            {
+                instances.Add(new MonsterSkillInstance(
                     SkillId: skill.SkillId,
                     Level: skill.Level,
                     ManaCost: skill.ManaCost));

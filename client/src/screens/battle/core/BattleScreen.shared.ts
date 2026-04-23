@@ -18,6 +18,11 @@ export type GemType =
 
 export type FXKind = 'gold' | 'mp' | 'sword' | 'crystal_red';
 
+export interface BattleResourceProfile {
+  strength: number;
+  magic: number;
+}
+
 export type AILevel =
   | 'borm'
   | 'dan_thuong'
@@ -151,6 +156,12 @@ const GEM_FX_BASE: Record<VisibleGemType, { dmg: number; heal: number; mana: num
 
 export const GEM_FX: Record<VisibleGemType, { dmg: number; heal: number; mana: number; pow: number }> = GEM_FX_BASE;
 
+const RESOURCE_GAIN_BASELINE_STAT = 10;
+const HEAL_GAIN_PERCENT_PER_STRENGTH = 4;
+const MANA_GAIN_PERCENT_PER_MAGIC = 5;
+const MIN_RESOURCE_GAIN_PERCENT = 65;
+const MAX_RESOURCE_GAIN_PERCENT = 185;
+
 const GEM_FX_KIND_BASE: Record<VisibleGemType, FXKind> = {
   0: 'sword',
   1: 'crystal_red',
@@ -179,6 +190,31 @@ export const getGemMatchMask = (gem: GemType): number => GEM_MATCH_MASKS[gem];
 export const getGemCategory = (gem: GemType): number => GEM_CATEGORIES[gem];
 
 export const getGemFX = (gem: GemType) => GEM_FX_BASE[getGemRenderType(gem)];
+
+const resolveResourceGainPercent = (statValue: number, percentPerPoint: number): number => {
+  const normalizedStat = Number.isFinite(statValue) ? Math.trunc(statValue) : RESOURCE_GAIN_BASELINE_STAT;
+  const percent = 100 + ((normalizedStat - RESOURCE_GAIN_BASELINE_STAT) * percentPerPoint);
+  return Math.max(MIN_RESOURCE_GAIN_PERCENT, Math.min(MAX_RESOURCE_GAIN_PERCENT, percent));
+};
+
+const scaleResourceGain = (baseAmount: number, percent: number): number =>
+  Math.max(0, Math.trunc((Math.max(0, baseAmount) * percent) / 100));
+
+export const scalePeachGainByStrength = (
+  baseHeal: number,
+  profile?: BattleResourceProfile | null,
+): number => scaleResourceGain(
+  baseHeal,
+  resolveResourceGainPercent(profile?.strength ?? RESOURCE_GAIN_BASELINE_STAT, HEAL_GAIN_PERCENT_PER_STRENGTH),
+);
+
+export const scaleManaGainByMagic = (
+  baseMana: number,
+  profile?: BattleResourceProfile | null,
+): number => scaleResourceGain(
+  baseMana,
+  resolveResourceGainPercent(profile?.magic ?? RESOURCE_GAIN_BASELINE_STAT, MANA_GAIN_PERCENT_PER_MAGIC),
+);
 
 export const getGemFXKind = (gem: GemType): FXKind => GEM_FX_KIND_BASE[getGemRenderType(gem)];
 

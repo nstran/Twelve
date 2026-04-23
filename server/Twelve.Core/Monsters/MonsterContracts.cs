@@ -154,6 +154,29 @@ namespace Twelve.Core.Monsters
         MonsterAppearanceTemplate Appearance
     );
 
+    public sealed record BattleCombatantSnapshot(
+        string CombatantId,
+        string DisplayName,
+        int Level,
+        int CurrentHp,
+        int MaxHp,
+        int CurrentMp,
+        int MaxMp,
+        int CurrentPower,
+        int MaxPower,
+        int Strength,
+        int Agility,
+        int Magic,
+        int Vitality,
+        int MinDamage,
+        int MaxDamage,
+        int Defense,
+        int HitRate,
+        int DodgeRate,
+        int CriticalDamage,
+        IReadOnlyList<MonsterSkillInstance> Skills
+    );
+
     public sealed record MonsterBattleBootstrapRequest(
         string MapId,
         int RoomId,
@@ -173,6 +196,7 @@ namespace Twelve.Core.Monsters
         BattleSide InitialTurnSide,
         MonsterSharedSheetFamily? SharedSheetFamily,
         IReadOnlyList<IReadOnlyList<int?>> InitialBoard,
+        BattleCombatantSnapshot Player,
         MonsterBattleInstance Enemy
     );
 }

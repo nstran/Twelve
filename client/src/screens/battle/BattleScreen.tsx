@@ -82,12 +82,27 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
     return makeBoard(createJavaBoardEngine());
   }, [monsterBootstrap.initialBoard]);
-  const maxHP  = 100;
+  const playerBootstrap = monsterBootstrap.player;
+  const maxHP  = Math.max(1, playerBootstrap.maxHp);
   const maxEHP = Math.max(1, monsterBootstrap.enemy.maxHp);
-  const maxMP  = 100;
-  const maxPow = 100;
+  const maxMP  = Math.max(1, playerBootstrap.maxMp);
+  const maxPow = Math.max(1, playerBootstrap.maxPower);
   const enemyMaxMP = Math.max(1, monsterBootstrap.enemy.maxMp);
   const enemyMaxPow = Math.max(1, monsterBootstrap.enemy.maxPower);
+  const playerResourceProfile = useMemo(
+    () => ({
+      strength: playerBootstrap.strength,
+      magic: playerBootstrap.magic,
+    }),
+    [playerBootstrap.magic, playerBootstrap.strength],
+  );
+  const enemyResourceProfile = useMemo(
+    () => ({
+      strength: monsterBootstrap.enemy.strength,
+      magic: monsterBootstrap.enemy.magic,
+    }),
+    [monsterBootstrap.enemy.magic, monsterBootstrap.enemy.strength],
+  );
 
   const boardEngineRef = useRef(createJavaBoardEngine());
   const [board,         setBoard]         = useState<Board>(() => initialBoard);
@@ -98,10 +113,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [explodeFrames, setExplodeFrames] = useState<Record<string, number>>({});
   const [fireSwordMarkBaseGems, setFireSwordMarkBaseGems] = useState<Record<string, GemType>>({});
   const [fireSwordMarkTriggers, setFireSwordMarkTriggers] = useState<Record<string, number>>({});
-  const [playerHP,  setPlayerHP]  = useState(maxHP);
+  const [playerHP,  setPlayerHP]  = useState(() => Math.min(playerBootstrap.currentHp, maxHP));
   const [enemyHP,   setEnemyHP]   = useState(() => Math.min(monsterBootstrap.enemy.currentHp, maxEHP));
-  const [mana,      setMana]      = useState(30);
-  const [power,     setPower]     = useState(40);
+  const [mana,      setMana]      = useState(() => Math.min(playerBootstrap.currentMp, maxMP));
+  const [power,     setPower]     = useState(() => Math.min(playerBootstrap.currentPower, maxPow));
   const [enemyMana, setEnemyMana] = useState(() => Math.min(monsterBootstrap.enemy.currentMp, enemyMaxMP));
   const [enemyPower, setEnemyPower] = useState(() => Math.min(monsterBootstrap.enemy.currentPower, enemyMaxPow));
   const [phase,     setPhase]     = useState<BattlePhase>('idle');
@@ -146,9 +161,27 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setSelected(null);
     setHintCell(null);
     setHintMove(null);
+    setPlayerHP(Math.min(playerBootstrap.currentHp, maxHP));
+    setMana(Math.min(playerBootstrap.currentMp, maxMP));
+    setPower(Math.min(playerBootstrap.currentPower, maxPow));
+    setEnemyHP(Math.min(monsterBootstrap.enemy.currentHp, maxEHP));
     setEnemyMana(Math.min(monsterBootstrap.enemy.currentMp, enemyMaxMP));
     setEnemyPower(Math.min(monsterBootstrap.enemy.currentPower, enemyMaxPow));
-  }, [initialBoard]);
+  }, [
+    enemyMaxMP,
+    enemyMaxPow,
+    initialBoard,
+    maxEHP,
+    maxHP,
+    maxMP,
+    maxPow,
+    monsterBootstrap.enemy.currentHp,
+    monsterBootstrap.enemy.currentMp,
+    monsterBootstrap.enemy.currentPower,
+    playerBootstrap.currentHp,
+    playerBootstrap.currentMp,
+    playerBootstrap.currentPower,
+  ]);
   useEffect(() => {
     setExplodeFrames({});
   }, [board]);
@@ -383,6 +416,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     maxPow,
     enemyMaxMP,
     enemyMaxPow,
+    playerResourceProfile,
+    enemyResourceProfile,
     setBoard,
     setPhase,
     setTurn,

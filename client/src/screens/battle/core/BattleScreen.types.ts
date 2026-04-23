@@ -248,6 +248,29 @@ export interface MonsterBattleAppearanceDto {
   hairBodyId?: number | null;
 }
 
+export interface BattleCombatantSnapshotDto {
+  combatantId: string;
+  displayName: string;
+  level: number;
+  currentHp: number;
+  maxHp: number;
+  currentMp: number;
+  maxMp: number;
+  currentPower: number;
+  maxPower: number;
+  strength: number;
+  agility: number;
+  magic: number;
+  vitality: number;
+  minDamage: number;
+  maxDamage: number;
+  defense: number;
+  hitRate: number;
+  dodgeRate: number;
+  criticalDamage: number;
+  skills: MonsterBattleSkillInstanceDto[];
+}
+
 export interface MonsterBattleInstanceDto {
   combatantId: string;
   monsterKey: string;
@@ -294,6 +317,7 @@ export interface MonsterBattleBootstrapResponse {
   initialTurnSide: BattleSide;
   sharedSheetFamily?: MonsterSharedSheetFamily | null;
   initialBoard: Board;
+  player: BattleCombatantSnapshotDto;
   enemy: MonsterBattleInstanceDto;
 }
 

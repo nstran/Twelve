@@ -6,6 +6,9 @@ import {
   collapseResolvedBoard,
   getGemFX,
   getAllValidMoves,
+  scaleManaGainByMagic,
+  scalePeachGainByStrength,
+  type BattleResourceProfile,
   type JavaBoardEngine,
   type BattlePhase,
   type BattleResult,
@@ -33,6 +36,8 @@ interface UseBattleMatchFlowArgs {
   maxPow: number;
   enemyMaxMP: number;
   enemyMaxPow: number;
+  playerResourceProfile: BattleResourceProfile;
+  enemyResourceProfile: BattleResourceProfile;
   setBoard: Dispatch<SetStateAction<Board>>;
   setPhase: Dispatch<SetStateAction<BattlePhase>>;
   setTurn: Dispatch<SetStateAction<BattleTurn>>;
@@ -76,6 +81,8 @@ export const useBattleMatchFlow = ({
   maxPow,
   enemyMaxMP,
   enemyMaxPow,
+  playerResourceProfile,
+  enemyResourceProfile,
   setBoard,
   setPhase,
   setTurn,
@@ -169,6 +176,8 @@ export const useBattleMatchFlow = ({
     let heal = 0;
     let mp = 0;
     let pow = 0;
+    let baseHeal = 0;
+    let baseMp = 0;
     const counts: Partial<Record<GemType, number>> = {};
 
     raw.forEach(key => {
@@ -181,11 +190,17 @@ export const useBattleMatchFlow = ({
       const gem = Number(gemKey) as GemType;
       const fx = getGemFX(gem);
       const mul = 1 + chain * 0.4;
-      heal += Math.round(fx.heal * (count! / 3) * mul);
-      mp += Math.round(fx.mana * count!);
+      baseHeal += Math.round(fx.heal * (count! / 3) * mul);
+      baseMp += Math.round(fx.mana * count!);
       pow += Math.round(fx.pow * count!);
     });
     dmg = Math.round(dmg * (1 + chain * 0.4));
+
+    const collectorProfile = turnRef.current === 'player'
+      ? playerResourceProfile
+      : enemyResourceProfile;
+    heal = scalePeachGainByStrength(baseHeal, collectorProfile);
+    mp = scaleManaGainByMagic(baseMp, collectorProfile);
 
     setTimeout(() => {
       if (!mountedRef.current || phaseRef.current === 'over') return;
@@ -323,6 +338,7 @@ export const useBattleMatchFlow = ({
     maxPow,
     enemyMaxMP,
     enemyMaxPow,
+    enemyResourceProfile,
     mountedRef,
     onPlayerDefeat,
     onPlayerHit,
@@ -350,6 +366,7 @@ export const useBattleMatchFlow = ({
     spawnCollectFX,
     setTurnCycle,
     turnRef,
+    playerResourceProfile,
   ]);
 
   const doDirectSwap = useCallback((r1: number, c1: number, r2: number, c2: number) => {
