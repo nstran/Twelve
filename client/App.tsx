@@ -5,6 +5,7 @@ import {
   createBattleSessionSyncResolver,
   createBattleSkillPacketResolver,
   createEnemyBattleTurnPlanResolver,
+  createMapMonsterRosterResolver,
   createMonsterBattleBootstrapResolver,
   HoaLuMapScreen,
   LoginScreen,
@@ -15,6 +16,7 @@ import {
 } from './src/screens';
 import { CreateCharacterScreen } from './src/screens/character/create';
 import { CharacterStatusScreen, type PlayerAppearance } from './src/screens/character/status';
+import type { MapInfo } from './src/data/MapData';
 import { SocketClient }          from './src/network/SocketClient';
 import {
   loadSession,
@@ -53,6 +55,7 @@ export default function App() {
   const [battleMonster, setBattleMonster] = useState<MonsterTypeNav>('fire');
   const [battleInitialTurn, setBattleInitialTurn] = useState<BattleInitialTurn>('player');
   const [battleBootstrap, setBattleBootstrap] = useState<MonsterBattleBootstrapResponse | null>(null);
+  const [selectedMap, setSelectedMap] = useState<MapInfo | null>(null);
   const [playerAppearance, setPlayerAppearance] = useState<PlayerAppearance>({
     genderIndex: 0, faceIndex: 0, hairIndex: 0, hairColorIndex: 0, skinColorIndex: 0, elementIndex: 0,
   });
@@ -73,6 +76,10 @@ export default function App() {
   );
   const resolveMonsterBootstrap = React.useMemo(
     () => createMonsterBattleBootstrapResolver(SERVER_URL),
+    [],
+  );
+  const resolveMapMonsterRoster = React.useMemo(
+    () => createMapMonsterRosterResolver(SERVER_URL),
     [],
   );
 
@@ -226,13 +233,9 @@ export default function App() {
           <MapSelectionScreen
             onSelect={(map) => {
               console.log('[App] Selected Map:', map.name, map.id);
-              // Hoa Lư → màn hình map side-scrolling mới
-              if (map.id === 'hoalu') {
-                setBattleBootstrap(null);
-                setScreen('hoaLuMap');
-              } else {
-                setScreen('main');
-              }
+              setSelectedMap(map);
+              setBattleBootstrap(null);
+              setScreen(map.sceneKind === 'sideScroll' ? 'hoaLuMap' : 'main');
             }}
             onBack={async () => {
               await clearSession();
@@ -244,12 +247,16 @@ export default function App() {
       case 'hoaLuMap':
         return (
           <HoaLuMapScreen
+            mapId={selectedMap?.runtimeMapId ?? 'Hoa Lu'}
+            roomId={selectedMap?.defaultRoomId ?? 1}
+            roomLabel={selectedMap?.roomLabel ?? 'Khu 1'}
             appearance={playerAppearance}
             onBack={() => setScreen('mapSelection')}
             onLogout={async () => {
               await clearSession();
               setScreen('login');
             }}
+            resolveMonsterRoster={resolveMapMonsterRoster}
             resolveMonsterBootstrap={resolveMonsterBootstrap}
             onBattle={(type, initialTurn, monsterBootstrap) => {
               setBattleMonster(type as MonsterTypeNav);

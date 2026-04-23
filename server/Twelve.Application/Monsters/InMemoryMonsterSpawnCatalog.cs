@@ -27,7 +27,7 @@ namespace Twelve.Application.Monsters
                 ["hoa_lu_ice_basic"] = new MonsterSpawnTemplate(
                     SpawnTemplateKey: "hoa_lu_ice_basic",
                     DisplayName: "Băng Linh",
-                    VisualTypeByte: 2,
+                    VisualTypeByte: 4,
                     DisplayLevel: 8,
                     IqValue: 8,
                     SpawnCount: 1,
@@ -37,7 +37,7 @@ namespace Twelve.Application.Monsters
                 ["hoa_lu_zap_basic"] = new MonsterSpawnTemplate(
                     SpawnTemplateKey: "hoa_lu_zap_basic",
                     DisplayName: "Lôi Thú",
-                    VisualTypeByte: 1,
+                    VisualTypeByte: 2,
                     DisplayLevel: 9,
                     IqValue: 11,
                     SpawnCount: 1,

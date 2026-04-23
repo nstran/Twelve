@@ -36,7 +36,34 @@ namespace Twelve.Core.Monsters
         string SpawnTemplateKey,
         int SpawnCellRow,
         int SpawnCellCol,
+        string SurfaceId,
+        float PatrolStartRatio,
+        float PatrolEndRatio,
+        float SpawnRatio,
+        float MoveSpeed,
         bool IsActive = true
+    );
+
+    public sealed record MapMonsterRosterEntry(
+        string MonsterKey,
+        string SpawnTemplateKey,
+        string DisplayName,
+        byte VisualTypeByte,
+        int DisplayLevel,
+        int IqValue,
+        byte NameColorMode,
+        MonsterSharedSheetFamily SharedSheetFamily,
+        string SurfaceId,
+        float PatrolStartRatio,
+        float PatrolEndRatio,
+        float SpawnRatio,
+        float MoveSpeed
+    );
+
+    public sealed record MapMonsterRosterResponse(
+        string MapId,
+        int RoomId,
+        IReadOnlyList<MapMonsterRosterEntry> Encounters
     );
 
     public sealed record MonsterSkillTemplate(

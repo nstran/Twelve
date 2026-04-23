@@ -18,11 +18,16 @@ import { CharacterRenderer, measureCharacterRenderer } from '../../character';
 import { HOA_LU_MAP_ASSETS } from './assets';
 import { buildHoaLuSurfaces } from './hoaLu.navigation';
 import { BattleIntroScreen } from '../../battle';
+import type { MonsterSharedSheetFamily } from '../../battle';
 import { MapHUD } from '../../../components/game/MapHUD/MapHUD';
 import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
 import { PopupMenu, MenuItem } from '../../../components/controls/PopupMenu/PopupMenu';
 import { TouchGamepad } from '../../../components/controls/TouchGamepad';
 import { clearSession } from '../../../storage/SessionStorage';
+import type {
+  MapMonsterRosterEntry,
+  ResolveMapMonsterRoster,
+} from '../core';
 import type { CharacterAppearance } from '../../character/shared';
 import type {
   MonsterBattleBootstrapResponse,
@@ -93,45 +98,6 @@ const GROUND_MAIN_SURFACE = HOA_LU_SURFACES.find((surface) => surface.id === 'gr
   ?? { id: 'ground_main', x1: -GROUND_TILE_LEFT_OFFSET, x2: MAP_W, y: GROUND_MAIN_Y, kind: 'ground' as const };
 const GROUND_TOP = getSurfaceStartY(GROUND_MAIN_SURFACE);
 
-// ── Monster dữ liệu tĩnh (loại + patrol range) ────────────────────────────
-interface MonsterDef {
-  id: number;
-  type: MonsterType;
-  monsterKey: string;
-  surfaceId: string;
-  patrolInsetLeft: number;
-  patrolInsetRight: number;
-  startRatio: number;
-  speed: number;  // px/tick (1 tick = 50ms)
-}
-
-// Patrol zones tính theo tỉ lệ MAP_W — dùng GROUND_TILE_LEFT_OFFSET bù thêm
-// vì surface.x1 = -GROUND_TILE_LEFT_OFFSET (patrol bắt đầu từ bên trái khung hình).
-// Nhân vật spawn tại CHAR_INIT_X ≈ 8% MAP_W → zone đầu bắt đầu từ 25% để an toàn.
-//   Zone 1 (fire): 25% – 48% MAP_W
-//   Zone 2 (ice):  48% – 72% MAP_W
-//   Zone 3 (zap):  70% – 92% MAP_W
-const MONSTER_DEFS: MonsterDef[] = [
-  {
-    id: 1, type: 'fire', monsterKey: 'HOA_LU_FIRE_001', surfaceId: 'ground_main',
-    patrolInsetLeft:  Math.round(MAP_W * 0.25) + GROUND_TILE_LEFT_OFFSET,
-    patrolInsetRight: Math.round(MAP_W * 0.52),
-    startRatio: 0.4, speed: 2.2,
-  },
-  {
-    id: 2, type: 'ice', monsterKey: 'HOA_LU_ICE_001', surfaceId: 'ground_main',
-    patrolInsetLeft:  Math.round(MAP_W * 0.48) + GROUND_TILE_LEFT_OFFSET,
-    patrolInsetRight: Math.round(MAP_W * 0.28),
-    startRatio: 0.5, speed: 2.6,
-  },
-  {
-    id: 3, type: 'zap', monsterKey: 'HOA_LU_ZAP_001', surfaceId: 'ground_main',
-    patrolInsetLeft:  Math.round(MAP_W * 0.70) + GROUND_TILE_LEFT_OFFSET,
-    patrolInsetRight: Math.round(MAP_W * 0.08),
-    startRatio: 0.5, speed: 3.0,
-  },
-];
-
 /**
  * Runtime monster data (mutable, NEVER replaced).
  * Position is driven by Animated.Value → native-thread translateX, no React
@@ -140,9 +106,9 @@ const MONSTER_DEFS: MonsterDef[] = [
  * cycle frames, but those fields change at ~5Hz instead of 20Hz.
  */
 interface MonsterRuntime {
-  id: number;
+  id: string;
   type: MonsterType;
-  def: MonsterDef;
+  roster: MapMonsterRosterEntry;
   surfaceId: string;
   groundY: number;
   minX: number;
@@ -159,7 +125,7 @@ interface MonsterRuntime {
 
 /** React-state slice — only re-rendered when it actually changes. */
 interface MonsterVisual {
-  id: number;
+  id: string;
   frameIndex: number;
   direction: 1 | -1;
   attacking: boolean;
@@ -171,24 +137,38 @@ const COLLISION_DIST = 52;
 const FRAME_TICKS = 4;
 const MONSTER_TICK_MS = 50; // 20 logic ticks/sec
 
-function buildMonsterRuntimes(): MonsterRuntime[] {
-  return MONSTER_DEFS.map((def) => {
-    const surface = HOA_LU_SURFACES.find((entry) => entry.id === def.surfaceId);
+function mapSharedSheetFamilyToMonsterType(sharedSheetFamily: MonsterSharedSheetFamily): MonsterType {
+  switch (sharedSheetFamily) {
+    case 'Ice':
+      return 'ice';
+    case 'Zap':
+      return 'zap';
+    case 'Monster':
+    default:
+      return 'fire';
+  }
+}
+
+function buildMonsterRuntimes(roster: MapMonsterRosterEntry[]): MonsterRuntime[] {
+  return roster.map((entry) => {
+    const surface = HOA_LU_SURFACES.find((candidate) => candidate.id === entry.surfaceId);
     if (!surface) {
-      throw new Error(`Surface '${def.surfaceId}' not found in Hoa Lu navigation data.`);
+      throw new Error(`Surface '${entry.surfaceId}' not found in Hoa Lu navigation data.`);
     }
 
-    const minX = surface.x1 + def.patrolInsetLeft;
-    const maxX = surface.x2 - def.patrolInsetRight;
-    const startX = minX + Math.max(0, maxX - minX) * def.startRatio;
-    const size = monsterDisplaySize(def.type);
-    const placement = monsterPlacementMetrics(def.type);
+    const span = Math.max(0, surface.x2 - surface.x1);
+    const minX = surface.x1 + Math.max(0, Math.min(1, entry.patrolStartRatio)) * span;
+    const maxX = surface.x1 + Math.max(0, Math.min(1, entry.patrolEndRatio)) * span;
+    const startX = minX + Math.max(0, maxX - minX) * Math.max(0, Math.min(1, entry.spawnRatio));
+    const type = mapSharedSheetFamilyToMonsterType(entry.sharedSheetFamily);
+    const size = monsterDisplaySize(type);
+    const placement = monsterPlacementMetrics(type);
     const leftX = startX - size.w / 2;
     const surfaceGroundY = getSurfaceStartY(surface);
     return {
-      id: def.id,
-      type: def.type,
-      def,
+      id: entry.monsterKey,
+      type,
+      roster: entry,
       surfaceId: surface.id,
       groundY: surfaceGroundY,
       minX,
@@ -212,36 +192,6 @@ function buildInitialVisuals(runtimes: MonsterRuntime[]): MonsterVisual[] {
     direction: m.direction,
     attacking: m.attacking,
   }));
-}
-
-function shouldRebuildMonsterRuntimes(runtimes: MonsterRuntime[]) {
-  if (runtimes.length !== MONSTER_DEFS.length) return true;
-
-  return runtimes.some((m, index) => (
-    m.id !== MONSTER_DEFS[index]?.id
-    || !Number.isFinite(m.topY)
-    || !Number.isFinite(m.groundY)
-    || !Number.isFinite(m.x)
-    || !Number.isFinite(m.minX)
-    || !Number.isFinite(m.maxX)
-  ));
-}
-
-function shouldRebuildMonsterTargets(targets: MonsterTarget[], runtimes: MonsterRuntime[]) {
-  if (targets.length !== runtimes.length) return true;
-
-  return targets.some((target, index) => {
-    const runtime = runtimes[index];
-    if (!runtime) return true;
-    return (
-      target.id !== String(runtime.id)
-      || !Number.isFinite(target.x)
-      || !Number.isFinite(target.y)
-      || target.y !== runtime.topY
-      || target.width !== runtime.size.w
-      || target.height !== runtime.size.h
-    );
-  });
 }
 
 /**
@@ -290,6 +240,9 @@ MonsterField.displayName = 'MonsterField';
 
 // ── Props ────────────────────────────────────────────────────────────────────
 interface Props {
+  mapId: string;
+  roomId: number;
+  roomLabel?: string;
   appearance: CharacterAppearance;
   onBack:    () => void;
   onLogout:  () => void;
@@ -298,6 +251,7 @@ interface Props {
     initialTurn: 'player' | 'monster',
     monsterBootstrap: MonsterBattleBootstrapResponse,
   ) => void;
+  resolveMonsterRoster?: ResolveMapMonsterRoster;
   resolveMonsterBootstrap?: ResolveMonsterBattleBootstrap;
 }
 
@@ -312,15 +266,16 @@ interface EncounterPreviewState {
   monsterBootstrap: MonsterBattleBootstrapResponse | null;
 }
 
-const HOA_LU_MAP_ID = 'Hoa Lu';
-const HOA_LU_ROOM_ID = 1;
-
 // ═══════════════════════════════════════════════════════════════════════════
 export const HoaLuMapScreen: React.FC<Props> = ({
+  mapId,
+  roomId,
+  roomLabel = 'Khu 1',
   appearance,
   onBack,
   onLogout,
   onBattle,
+  resolveMonsterRoster,
   resolveMonsterBootstrap,
 }) => {
   const scrollRef = useRef<ScrollView>(null);
@@ -336,37 +291,55 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const scrollRafRef = useRef<number | null>(null);
   const [encounterPreview, setEncounterPreview] = useState<EncounterPreviewState | null>(null);
   const [activeMoveDirection, setActiveMoveDirection] = useState<'left' | 'right' | null>(null);
+  const [monsterRoster, setMonsterRoster] = useState<MapMonsterRosterEntry[]>([]);
+  const [monsterRuntimeVersion, setMonsterRuntimeVersion] = useState(0);
 
   // ── Monster runtime (stable identity, mutated in place) ─────────────────
-  // Created once; the rAF loop mutates fields directly and drives position
-  // via Animated.Value (native). This avoids 20Hz React re-renders and
-  // keeps the `monsters` prop identity stable for CharacterController.
   const monsterRuntimesRef = useRef<MonsterRuntime[]>([]);
-  if (shouldRebuildMonsterRuntimes(monsterRuntimesRef.current)) {
-    monsterRuntimesRef.current = buildMonsterRuntimes();
-  }
+  const monsterTargetsRef = useRef<MonsterTarget[]>([]);
+  const [monsterVisuals, setMonsterVisuals] = useState<MonsterVisual[]>([]);
   const monsterRuntimes = monsterRuntimesRef.current;
 
-  /**
-   * Stable MonsterTarget[] — same array identity across renders, contents
-   * are mutated in place by the game loop. CharacterController reads
-   * positions via its internal ref each rAF tick → always fresh.
-   */
-  const monsterTargetsRef = useRef<MonsterTarget[]>([]);
-  if (shouldRebuildMonsterTargets(monsterTargetsRef.current, monsterRuntimes)) {
-    monsterTargetsRef.current = monsterRuntimes.map(m => ({
-      id: String(m.id),
-      x: m.x - m.size.w / 2,
-      y: m.topY,
-      width: m.size.w,
-      height: m.size.h,
-    }));
-  }
+  useEffect(() => {
+    let cancelled = false;
 
-  // React state — only for frame/direction flips (changes ~5Hz, not 20Hz).
-  const [monsterVisuals, setMonsterVisuals] = useState<MonsterVisual[]>(
-    () => buildInitialVisuals(monsterRuntimes),
-  );
+    const resolver = resolveMonsterRoster;
+    if (!resolver) {
+      setMonsterRoster([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void Promise.resolve(resolver({ mapId, roomId }))
+      .then((response) => {
+        if (cancelled) return;
+        setMonsterRoster(response?.encounters ?? []);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setMonsterRoster([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mapId, roomId, resolveMonsterRoster]);
+
+  useEffect(() => {
+    const nextRuntimes = buildMonsterRuntimes(monsterRoster);
+    monsterRuntimesRef.current = nextRuntimes;
+    monsterTargetsRef.current = nextRuntimes.map((runtime) => ({
+      id: runtime.id,
+      x: runtime.x - runtime.size.w / 2,
+      y: runtime.topY,
+      width: runtime.size.w,
+      height: runtime.size.h,
+    }));
+    setMonsterVisuals(buildInitialVisuals(nextRuntimes));
+    battleTriggered.current = false;
+    setMonsterRuntimeVersion((version) => version + 1);
+  }, [monsterRoster]);
 
   // ── Menu state ──────────────────────────────────────────────────────────
   const [menuVisible, setMenuVisible] = useState(false);
@@ -538,8 +511,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
     }
 
     void Promise.resolve(bootstrapResolver({
-      mapId: HOA_LU_MAP_ID,
-      roomId: HOA_LU_ROOM_ID,
+      mapId,
+      roomId,
       monsterKey: snap.monsterKey,
       initialTurnSide: snap.initialTurn === 'monster' ? 'enemy' : 'player',
     }))
@@ -568,7 +541,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           };
         });
       });
-  }, [isEncounterActive, resolveMonsterBootstrap]);
+  }, [isEncounterActive, mapId, resolveMonsterBootstrap, roomId]);
 
   const confirmEncounter = useCallback(() => {
     if (!encounterPreview || !encounterPreview.monsterBootstrap || !onBattle) return;
@@ -615,7 +588,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           const m = monsterRuntimes[i];
 
           // 1. Move
-          let newX  = m.x + m.def.speed * m.direction;
+          let newX  = m.x + m.roster.moveSpeed * m.direction;
           let newDir: 1 | -1 = m.direction;
           if (newX >= m.maxX) { newX = m.maxX; newDir = -1; }
           if (newX <= m.minX) { newX = m.minX; newDir =  1; }
@@ -625,7 +598,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           if (attacking && !battleTriggered.current) {
             const snap = {
               type: m.type,
-              monsterKey: m.def.monsterKey,
+              monsterKey: m.roster.monsterKey,
               x: newX,
               groundY: m.groundY,
               initialTurn: 'monster' as const,
@@ -686,7 +659,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       cancelled = true;
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
-  }, [isEncounterActive, monsterRuntimes, playerSpriteSize.w, startEncounter]);
+  }, [isEncounterActive, monsterRuntimeVersion, playerSpriteSize.w, startEncounter]);
 
   useEffect(() => {
     scrollToCharacter(CHAR_INIT_X);
@@ -821,7 +794,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         hp={hudHp}
         maxHp={hudMaxHp}
         expPercent={hudExpPercent}
-        zoneName="Khu 1"
+        zoneName={roomLabel}
         width={SCREEN_W}
       />
 
@@ -892,12 +865,12 @@ export const HoaLuMapScreen: React.FC<Props> = ({
               onAttackMonster={(monsterId) => {
                 if (battleTriggered.current) return;
 
-                const targetMonster = monsterRuntimes.find((m) => String(m.id) === monsterId);
+                const targetMonster = monsterRuntimes.find((m) => m.id === monsterId);
                 if (!targetMonster) return;
 
                 const snap = {
                   type: targetMonster.type,
-                  monsterKey: targetMonster.def.monsterKey,
+                  monsterKey: targetMonster.roster.monsterKey,
                   x: targetMonster.x,
                   groundY: targetMonster.groundY,
                   initialTurn: 'player' as const,
@@ -971,7 +944,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
             if (previewMonster) {
               startEncounter({
                 type: previewMonster.type,
-                monsterKey: previewMonster.def.monsterKey,
+                monsterKey: previewMonster.roster.monsterKey,
                 x: previewMonster.x,
                 groundY: previewMonster.groundY,
                 initialTurn: 'player',
