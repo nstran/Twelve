@@ -133,6 +133,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [hintCell,      setHintCell]      = useState<BattleCell | null>(null);
   const [hintMove,      setHintMove]      = useState<MoveSpec | null>(null);
   const [explodeFrames, setExplodeFrames] = useState<Record<string, number>>({});
+  const [fireSwordMarkTriggers, setFireSwordMarkTriggers] = useState<Record<string, number>>({});
   const [playerHP,  setPlayerHP]  = useState(maxHP);
   const [enemyHP,   setEnemyHP]   = useState(maxEHP);
   const [mana,      setMana]      = useState(30);
@@ -161,10 +162,15 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   // ── Extra turns: match 4+ → bonus lượt ────────────────────────────────────
   const [extraTurns, setExtraTurns] = useState(0);
   const extraTurnsRef = useRef(0);
+  const [extraTurnsBadgeValue, setExtraTurnsBadgeValue] = useState(0);
   const [showExtraTurnsBadge, setShowExtraTurnsBadge] = useState(false);
   const extraTurnsBadgeAnim = useRef(new Animated.Value(1)).current;
   const extraTurnsBadgeLoopRef = useRef<Animated.CompositeAnimation | null>(null);
   const extraTurnsBadgeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [comboMultiplier, setComboMultiplier] = useState(0);
+  const [showComboBadge, setShowComboBadge] = useState(false);
+  const comboBadgeAnim = useRef(new Animated.Value(0)).current;
+  const comboBadgeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [turnCycle, setTurnCycle] = useState(0);
 
   const resultArtAnim = useRef(new Animated.Value(0)).current;
@@ -230,6 +236,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       clearTimeout(extraTurnsBadgeTimeoutRef.current);
       extraTurnsBadgeTimeoutRef.current = null;
     }
+    if (comboBadgeTimeoutRef.current !== null) {
+      clearTimeout(comboBadgeTimeoutRef.current);
+      comboBadgeTimeoutRef.current = null;
+    }
   }, []);
   useEffect(() => {
     Animated.timing(playerHPBarAnim, {
@@ -247,7 +257,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       useNativeDriver: false,
     }).start();
   }, [enemyHP, enemyHPBarAnim]);
-  useEffect(() => {
+  const flashExtraTurnsBadge = useCallback((turns: number) => {
     extraTurnsBadgeLoopRef.current?.stop();
     extraTurnsBadgeLoopRef.current = null;
     if (extraTurnsBadgeTimeoutRef.current !== null) {
@@ -255,12 +265,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       extraTurnsBadgeTimeoutRef.current = null;
     }
 
-    if (extraTurns <= 0) {
+    if (turns <= 0) {
       setShowExtraTurnsBadge(false);
+      setExtraTurnsBadgeValue(0);
       extraTurnsBadgeAnim.setValue(1);
       return;
     }
 
+    setExtraTurnsBadgeValue(turns);
     setShowExtraTurnsBadge(true);
     extraTurnsBadgeAnim.setValue(1);
     const loop = Animated.loop(
@@ -288,9 +300,42 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       extraTurnsBadgeLoopRef.current = null;
       extraTurnsBadgeAnim.setValue(1);
       setShowExtraTurnsBadge(false);
+      setExtraTurnsBadgeValue(0);
       extraTurnsBadgeTimeoutRef.current = null;
     }, EXTRA_TURNS_BADGE_TOTAL_MS);
-  }, [extraTurns, extraTurnsBadgeAnim]);
+  }, [extraTurnsBadgeAnim]);
+  const flashComboBadge = useCallback((multiplier: number) => {
+    if (comboBadgeTimeoutRef.current !== null) {
+      clearTimeout(comboBadgeTimeoutRef.current);
+      comboBadgeTimeoutRef.current = null;
+    }
+
+    setComboMultiplier(multiplier);
+    setShowComboBadge(true);
+    comboBadgeAnim.stopAnimation();
+    comboBadgeAnim.setValue(0);
+    Animated.timing(comboBadgeAnim, {
+      toValue: 1,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+
+    comboBadgeTimeoutRef.current = setTimeout(() => {
+      if (!mountedRef.current) return;
+      Animated.timing(comboBadgeAnim, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }).start(() => {
+        if (!mountedRef.current) return;
+        setShowComboBadge(false);
+        setComboMultiplier(0);
+      });
+      comboBadgeTimeoutRef.current = null;
+    }, 760);
+  }, [comboBadgeAnim, mountedRef]);
   useEffect(() => {
     powerBlinkLoopRef.current?.stop();
     powerBlinkLoopRef.current = null;
@@ -470,6 +515,31 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     onSpawnFX: spawnMatchFX,
   });
   const processMatchesRef = useRef<ReturnType<typeof useBattleMatchFlow>['processMatches'] | null>(null);
+  const applyServerPacketMarkCell = useCallback((cell: BattleCell, stateId: number) => {
+    const [row, col] = cell;
+    if (stateId === 10) {
+      const key = `${row},${col}`;
+      setFireSwordMarkTriggers(current => ({
+        ...current,
+        [key]: (current[key] ?? 0) + 1,
+      }));
+    }
+    setBoard(currentBoard => {
+      if (row < 0 || row >= currentBoard.length || col < 0 || col >= currentBoard[row].length) {
+        return currentBoard;
+      }
+
+      if (currentBoard[row][col] === stateId) {
+        return currentBoard;
+      }
+
+      const nextBoard = currentBoard.map(boardRow => [...boardRow]);
+      nextBoard[row][col] = stateId as Board[number][number];
+      boardRef.current = nextBoard;
+      return nextBoard;
+    });
+  }, [setBoard]);
+
   const applyServerPacketBoardMutation = useCallback((packet: BattleSkillRuntimePacket) => {
     switch (packet.boardMutation.kind) {
       case 'clear': {
@@ -494,15 +564,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       case 'mark': {
         const stateId = packet.boardMutation.stateId ?? 10;
         if (packet.boardMutation.cells.length === 0) return;
-        setBoard(currentBoard => {
-          const nextBoard = currentBoard.map(row => [...row]);
-          for (const [row, col] of packet.boardMutation.cells) {
-            if (row < 0 || row >= nextBoard.length || col < 0 || col >= nextBoard[row].length) continue;
-            nextBoard[row][col] = stateId as Board[number][number];
-          }
-          boardRef.current = nextBoard;
-          return nextBoard;
-        });
+        for (const cell of packet.boardMutation.cells) {
+          applyServerPacketMarkCell(cell, stateId);
+        }
         return;
       }
       case 'helper':
@@ -510,7 +574,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       default:
         return;
     }
-  }, [animateFall, boardEngineRef, mountedRef, playExplosion, setBoard]);
+  }, [animateFall, applyServerPacketMarkCell, boardEngineRef, mountedRef, playExplosion]);
 
   // ── Monster animation ──────────────────────────────────────────────────────
   const monTick = useRef(0);
@@ -692,6 +756,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     onPlayerHit: playPlayerHitReaction,
     onPlayerDefeat: startPlayerDefeatSequence,
     showBonusBanner,
+    flashExtraTurnsBadge,
+    flashComboBadge,
     showDamagePopup,
     spawnCollectFX,
     playExplosion,
@@ -824,10 +890,16 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
       setActiveSkillCasts(prev => [...prev, cast]);
 
-      const boardMutationTimer = setTimeout(() => {
-        if (!mountedRef.current) return;
-        applyServerPacketBoardMutation(packet);
-      }, cast.boardMutationDelayMs);
+      const boardMutationTimers =
+        packet.boardMutation.kind === 'mark'
+          ? packet.boardMutation.cells.map((cell, index) => setTimeout(() => {
+            if (!mountedRef.current) return;
+            applyServerPacketMarkCell(cell, packet.boardMutation.stateId ?? 10);
+          }, cast.boardMutationDelayMs + index * 4 * JAVA_BATTLE_TICK_MS))
+          : [setTimeout(() => {
+            if (!mountedRef.current) return;
+            applyServerPacketBoardMutation(packet);
+          }, cast.boardMutationDelayMs)];
 
       const impactTimer = setTimeout(() => {
         if (!mountedRef.current) return;
@@ -856,6 +928,25 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         setPlayerAction('idle');
         setPlayerActionFrameIndex(null);
         if (phaseRef.current === 'over') return;
+        if (
+          packet.boardMutation.kind === 'mark' &&
+          processMatchesRef.current
+        ) {
+          const markMatches = findMatchesFromAffected(boardRef.current, packet.boardMutation.cells);
+          if (markMatches.size > 0) {
+            processMatchesRef.current(boardRef.current, 0, packet.boardMutation.cells);
+            return;
+          }
+        }
+        if (packet.grantsExtraTurn) {
+          flashExtraTurnsBadge(1);
+          turnRef.current = 'player';
+          setTurn('player');
+          setTurnCycle(cycle => cycle + 1);
+          phaseRef.current = 'idle';
+          setPhase('idle');
+          return;
+        }
         if (phaseRef.current !== 'busy') return;
         turnRef.current = 'monster';
         setTurn('monster');
@@ -864,7 +955,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         setPhase('idle');
       }, cast.durationMs);
 
-      skillCastTimersRef.current.push(boardMutationTimer, impactTimer, finishTimer);
+      skillCastTimersRef.current.push(...boardMutationTimers, impactTimer, finishTimer);
     } catch (error) {
       console.warn('[BattleScreen] resolveSkillPacket failed', error);
       if (mountedRef.current) {
@@ -878,6 +969,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     charsRowHeight,
     charsTop,
     cursorCell,
+    flashExtraTurnsBadge,
     monsterBaseLeft,
     monsterGroundOffset,
     monsterSize,
@@ -989,10 +1081,13 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         selected={selected}
         hintCell={hintCell}
         explodeFrames={explodeFrames}
+        fireSwordMarkTriggers={fireSwordMarkTriggers}
         turn={turn}
         matchFX={matchFX}
-        extraTurns={extraTurns}
         showExtraTurnsBadge={showExtraTurnsBadge}
+        extraTurnsBadgeValue={extraTurnsBadgeValue}
+        showComboBadge={showComboBadge}
+        comboMultiplier={comboMultiplier}
         turnTimeLeft={turnTimeLeft}
         mana={mana}
         power={power}
@@ -1004,6 +1099,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         swapOffsetsX={swapOffsetsX}
         swapOffsetsY={swapOffsetsY}
         extraTurnsBadgeAnim={extraTurnsBadgeAnim}
+        comboBadgeAnim={comboBadgeAnim}
         playerHPBarAnim={playerHPBarAnim}
         enemyHPBarAnim={enemyHPBarAnim}
         powerBlinkAnim={powerBlinkAnim}

@@ -33,10 +33,13 @@ interface BattlePanelProps {
   selected: BattleCell | null;
   hintCell: BattleCell | null;
   explodeFrames: Record<string, number>;
+  fireSwordMarkTriggers: Record<string, number>;
   turn: BattleTurn;
   matchFX: MatchFXItem[];
-  extraTurns: number;
   showExtraTurnsBadge: boolean;
+  extraTurnsBadgeValue: number;
+  showComboBadge: boolean;
+  comboMultiplier: number;
   turnTimeLeft: number;
   mana: number;
   power: number;
@@ -48,6 +51,7 @@ interface BattlePanelProps {
   swapOffsetsX: Animated.Value[][];
   swapOffsetsY: Animated.Value[][];
   extraTurnsBadgeAnim: Animated.Value;
+  comboBadgeAnim: Animated.Value;
   playerHPBarAnim: Animated.Value;
   enemyHPBarAnim: Animated.Value;
   powerBlinkAnim: Animated.Value;
@@ -62,10 +66,13 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   selected,
   hintCell,
   explodeFrames,
+  fireSwordMarkTriggers,
   turn,
   matchFX,
-  extraTurns,
   showExtraTurnsBadge,
+  extraTurnsBadgeValue,
+  showComboBadge,
+  comboMultiplier,
   turnTimeLeft,
   mana,
   power,
@@ -77,6 +84,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   swapOffsetsX,
   swapOffsetsY,
   extraTurnsBadgeAnim,
+  comboBadgeAnim,
   playerHPBarAnim,
   enemyHPBarAnim,
   powerBlinkAnim,
@@ -228,6 +236,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                   gemType={gemType}
                   frameIndex={explodeFrames[`${r},${c}`] ?? 0}
                   size={GEM_SIZE}
+                  fireSwordMarkTrigger={fireSwordMarkTriggers[`${r},${c}`]}
                   selected={
                     (selected?.[0] === r && selected?.[1] === c) ||
                     (hintCell?.[0] === r && hintCell?.[1] === c)
@@ -279,7 +288,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
         })}
       </Animated.View>
 
-      {extraTurns > 0 && showExtraTurnsBadge && (
+      {extraTurnsBadgeValue > 0 && showExtraTurnsBadge && (
         <Animated.View
           style={{
             position: 'absolute',
@@ -293,9 +302,37 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             opacity: extraTurnsBadgeAnim,
           }}
         >
-          <Text style={{ color: extraTurns === 1 ? '#fff' : '#111', fontSize: 12, fontWeight: 'bold' }}>
-            Còn {extraTurns} lượt
+          <Text style={{ color: extraTurnsBadgeValue === 1 ? '#fff' : '#111', fontSize: 12, fontWeight: 'bold' }}>
+            Còn {extraTurnsBadgeValue} lượt
           </Text>
+        </Animated.View>
+      )}
+
+      {showComboBadge && comboMultiplier >= 2 && (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: BOARD_TOP + GEM_SIZE * 5.9,
+            left: BOARD_LEFT + GEM_SIZE * BOARD_COLS / 2 - 26,
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+            borderWidth: 3,
+            borderColor: '#6fdcff',
+            backgroundColor: 'rgba(23, 45, 89, 0.78)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 55,
+            opacity: comboBadgeAnim,
+            transform: [{
+              scale: comboBadgeAnim.interpolate({
+                inputRange: [0, 0.2, 1],
+                outputRange: [0.55, 1.15, 1],
+              }),
+            }],
+          }}
+        >
+          <Text style={s.comboTxt}>{`x${comboMultiplier}`}</Text>
         </Animated.View>
       )}
 

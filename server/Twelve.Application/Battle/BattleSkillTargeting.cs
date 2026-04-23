@@ -66,6 +66,43 @@ namespace Twelve.Application.Battle
                 .ToArray();
         }
 
+        public static IReadOnlyList<BattleSkillJavaCell> SelectCellsBySelectedCategoryExcludingGem(
+            BattleSkillCastRequest request,
+            int excludedGem)
+        {
+            var ordered = SelectCellsBySelectedCategory(request);
+            if (ordered.Count == 0 || request.Board is null)
+            {
+                return ordered;
+            }
+
+            var filtered = new List<BattleSkillJavaCell>(ordered.Count);
+            foreach (var cell in ordered)
+            {
+                var clientRow = cell.Row - 2;
+                var clientCol = cell.Col - 2;
+                if (clientRow < 0 || clientRow >= request.Board.Count)
+                {
+                    continue;
+                }
+
+                var boardRow = request.Board[clientRow];
+                if (boardRow is null || clientCol < 0 || clientCol >= boardRow.Count)
+                {
+                    continue;
+                }
+
+                if (boardRow[clientCol] == excludedGem)
+                {
+                    continue;
+                }
+
+                filtered.Add(cell);
+            }
+
+            return filtered.Count > 0 ? filtered : ordered;
+        }
+
         public static IReadOnlyList<BattleSkillJavaCell> SelectNearestCellsBySelectedCategory(
             BattleSkillCastRequest request,
             int maxCells)

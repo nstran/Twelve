@@ -38,6 +38,8 @@ type ServerBattleSkillRuntimePacket = {
     damage?: number | null;
     hitShakePx?: number | null;
   };
+  grantsExtraTurn?: boolean | null;
+  extraTurnChancePercent?: number | null;
   impactDelayMs?: number | null;
   durationMs?: number | null;
 };
@@ -136,6 +138,8 @@ export const createBattleSkillPacketResolver = (
           damage: packet.impact.damage ?? null,
           hitShakePx: packet.impact.hitShakePx ?? null,
         },
+        grantsExtraTurn: packet.grantsExtraTurn ?? null,
+        extraTurnChancePercent: packet.extraTurnChancePercent ?? null,
         impactDelayMs: packet.impactDelayMs ?? null,
         durationMs: packet.durationMs ?? null,
       };

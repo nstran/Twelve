@@ -130,6 +130,8 @@ export interface BattleSkillRuntimePacket {
   boardMutation: BattleSkillBoardMutation;
   cellTargets: BattleCell[];
   impact: BattleSkillPacketImpact;
+  grantsExtraTurn?: boolean | null;
+  extraTurnChancePercent?: number | null;
   impactDelayMs?: number | null;
   durationMs?: number | null;
 }

@@ -3,6 +3,38 @@
 Tai lieu khoi phuc he thong skill tu Java client cu.
 File nay la source of truth duy nhat trong repo cho phan skill reconstruction.
 
+## LUU Y TO NHAT: KHONG CO SOURCE SERVER JAVA GOC
+
+Repo hien tai KHONG CO source code server Java goc cua battle system.
+
+Dieu da chot:
+
+- Chung ta chi co Java client decompiled (`mq`, `mt`, `mx`, `mp`, `de`, `gz`, ...).
+- Java client cho thay:
+  - runtime render skill
+  - board mutation sau khi da co `byArray/byArray2/objectArray/byArray3`
+  - metadata skill/tree/UI
+- Java client KHONG cho thay:
+  - server truth sinh `byArray/byArray2/objectArray/byArray3`
+  - battle packet resolution that cho tung family
+  - damage/he so thuc chien theo level
+  - level scaling runtime packet that
+
+He qua bat buoc:
+
+- Moi logic packet/server viet bang C# hien nay deu la `RECONSTRUCTION`, KHONG duoc xem la Java-canon 1:1.
+- Bat ky rule nao trong C# khong co bang chung truc tiep tu Java client hoac packet capture that deu phai:
+  - duoc note ro trong file nay
+  - san sang sua hoac xoa ngay khi doi chieu thay sai
+- Khong duoc "giu tam cho chay duoc" neu no lam lech spec Java lau dai.
+
+Quy tac lam viec bat buoc tu bay gio:
+
+1. `Java-confirmed` thi giu.
+2. `Reconstructed` thi phai note ro la reconstructed.
+3. Neu reconstruction bi doi chieu thay sai, uu tien xoa/sua ve dung spec thay vi bao ve code cu.
+4. Moi cuoc tro chuyen moi deu phai doc muc nay truoc khi sua skill server/client runtime.
+
 Khong suy damage, mana, unlock, level tree, cooldown tu client.
 Khong dat ten skill player-facing neu Java khong cho thay.
 Khong dung ghi chu fake/local fixture de suy ra battle behavior.
@@ -206,6 +238,121 @@ client/assets/skill/
 - `objectArray/byArray3` la danh sach toa do board dung cho projectile / impact per-cell trong nhieu family.
 - `side = 0/1`; trong `mt`, `nArray` la actor victim, `object2` la actor caster.
 - Client Java chi render theo cac mang tren; khong tu tinh ket qua battle.
+
+## Server C# Reconstruction Hien Tai
+
+Muc nay ghi lai logic da dua vao `server/Twelve.Application/Battle/BattleSkillCastPacketService.cs`
+de sau nay con tiep tuc doi chieu va xoa/sua neu thay lech Java.
+
+Trang thai:
+
+- Day la `C# reconstruction layer`, KHONG phai port 1:1 tu server Java goc.
+- Muc tieu la dua client vao model `packet-driven` thay vi fake tu client cursor.
+- Neu packet capture that hoac source server Java xuat hien, muc nay phai duoc doi chieu lai tung dong.
+
+Rule dang co trong C#:
+
+- `1001 / Hoa Kiem Thuat`
+  - board mutation = `Mark`
+  - `stateId = 10`
+  - target list hien tai = `tat ca o cung category voi o da chon`, sap theo khoang cach den o chon
+  - C# hien tai da bo qua cac o da la `state 10`, khong mark lai o da thanh `chess8`
+  - `USER-CONFIRMED lv12 truth`:
+    - lv12 bien `8..10` o thanh kiem do
+    - lv12 co `56%` ti le di tiep luot
+  - `USER-DERIVED reconstruction formula` hien dang code trong C#:
+    - so o mark:
+      - lv1 = `3..5`
+      - lv12 = `8..10`
+      - noi suy bang 5 moc tang deu trong 12 level:
+        - `minMarks = 3 + floor((level - 1) * 5 / 11)`
+        - `maxMarks = 5 + floor((level - 1) * 5 / 11)`
+      - moi lan cast roll ngau nhien trong range tren, roi lay `N` o gan o chon nhat
+    - bonus luot:
+      - lv1 = `12%`
+      - lv12 = `56%`
+      - noi suy tuyen tinh:
+        - `extraTurn% = 12 + (level - 1) * 4`
+      - moi lan cast roll true/false theo % nay
+  - duration packet = `10 tick + 4 tick * index cuoi + trailing anim`
+  - client runtime note:
+    - moi o `state 10` phai chay strip `1001001.png` du 5 frame theo thu tu trai -> phai
+    - `chess8` chi duoc hien dong thoi voi frame cuoi cua strip, khong duoc lo ra tu frame dau
+    - sau khi frame cuoi ket thuc moi de lai `chess8` tren o
+    - khong render `state 10` bang crystal overlay generic
+    - sau khi dot mark cuoi cung ket thuc, neu cac o `state 10` tao thanh line hop le thi battle phai auto resolve chain match ngay, khong doi den swap sau
+  - danh dau: `RECONSTRUCTED`
+  - phan Java-confirmed chi gom:
+    - `mq` mark `a(row,col,10)`
+    - `mt` start `10 tick`, moi o `+4 tick`
+  - phan chua duoc Java-confirmed:
+    - cach server chon danh sach o nao de mark
+    - cong thuc di tiep luot day du cho moi level trong Java goc
+  - ghi chu rat quan trong:
+    - cong thuc tren la `USER-DERIVED`, dung de phuc dung battle server khi khong con server Java
+    - neu sau nay tim thay dump skill data/payload that khac voi cong thuc nay, phai doi lai theo data that
+
+- `1000 / Hoa cau thuat`
+  - board mutation = `Clear`
+  - C# hien tai dung reconstruction theo `vung 2x2`
+  - so vung dang scale theo `skillLevel`
+  - count `1..2` o band level thap, `2..3` o band level cao
+  - anchor vung 2x2 dang duoc chon theo reconstruction C#, khong phai Java-confirmed
+  - danh dau: `RECONSTRUCTED`
+  - phan Java-confirmed chi gom:
+    - clear theo `byArray/byArray2`
+    - projectile actor hit + volley per-cell theo `objectArray/byArray3`
+  - phan chua duoc Java-confirmed:
+    - cong thuc server chon chinh xac cac vung 2x2
+
+- `1008 / Hoa phung lieu nguyen`
+  - board mutation = clear full cot target
+  - actor-side runtime lay cot tu `byArray3[0]`, spawn effect tu row `7` cua cot do
+  - danh dau:
+    - `column shape` = `JAVA-CONFIRMED`
+    - packet target list day du = `RECONSTRUCTED`
+
+- `2006`
+  - board mutation = clear theo cot, sort cot tang dan truoc khi dispatch
+  - actor-side runtime = side sweep + them 3 lane ngang
+  - danh dau:
+    - `column sweep shape` = `JAVA-CONFIRMED`
+    - packet target list day du = `RECONSTRUCTED`
+
+Sandbox/runtime note:
+
+- Battle sandbox client hien tai van gui `skillLevel` fallback de test packet khi chua noi skill tree/server catalog that.
+- Fallback nay chi duoc xem la gia lap de test reconstruction.
+- Khi noi xong skill tree / player skill data that:
+  - phai thay fallback bang `skill level` that
+  - doi chieu lai cac family co scaling nhu `1000`
+- User da nhac lai rang co `cong thuc / ty le di tiep luot` rieng o he skill.
+  - Hien chua co bang chung Java/client packet nao du de code canon phan nay.
+  - Tam thoi KHONG duoc tu y bịa formula.
+  - Khi co mo ta level, packet capture, hoac user cung cap cong thuc, phai bo sung lai cho dung.
+- Hien tai battle runtime CHI CO them luot theo board rule:
+  - line `4+` trong `resolveJavaBoardStep()` => `bonusTurnCandidate = true`
+  - day KHONG duoc xem la cong thuc them luot rieng cua skill
+  - neu sau nay tim thay cong thuc skill-specific, phai tach rieng khoi board-rule bonus turn
+- `UPDATE UI FLOW`:
+  - battle Java feel khong dung popup chu kieu `Ban/Quai duoc them luot`
+  - khi co extra turn, board phai hien overlay giua ban co theo kieu `Con 1 luot`, `Con 2 luot`, ...
+  - chain combo lien tiep phai hien badge giua/duoi ban co theo kieu `x2`, `x3`, ...
+  - vi vay client RN phai uu tien `board overlay` cho extra turn va combo chain, khong dung gain-popup text de thong bao 2 viec nay
+- Chung cu da chot cho blocker nay:
+  - `it.java` chi la runtime sheet/tick cua `1001`, KHONG chua cong thuc them luot
+  - `ib.java` chi render text level `lx.e` va mana cost `lx.d / 9`
+  - `ky.q(ku)` cho thay `lx.e`/`lx.d` duoc nap tu data packet/resource ngoai code, KHONG hardcode trong repo
+  - vi vay cong thuc them luot rieng cua skill neu co hien nam o skill data/server truth dang thieu
+- `UPDATE`: user da xac nhan them 1 moc that cho `1001`:
+  - `lv12 = bien 8..10 o thanh kiem do`
+  - `lv12 = 56% ti le di tiep luot`
+  - tu moc nay, C# da noi suy nguoc ra cong thuc reconstruction cho `lv1..11`
+- Code hien tai da mo san packet hook cho truong hop server truth tra ve ket qua nay:
+  - `BattleSkillRuntimePacket.grantsExtraTurn`
+  - `BattleSkillRuntimePacket.extraTurnChancePercent`
+  - client se giu luot neu packet server tra `grantsExtraTurn = true`
+  - NHUNG server reconstruction hien tai CHUA duoc tu y set 2 field nay cho `1001` khi chua co cong thuc that
 
 ## Board Mutation Truth Tu `mq.java`
 

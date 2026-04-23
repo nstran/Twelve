@@ -88,7 +88,6 @@ export const useBattleTurnTimer = ({
       const remaining = extraTurnsRef.current - 1;
       extraTurnsRef.current = remaining;
       setExtraTurns(remaining);
-      showBonusBanner(`⏳ ${who} hết giờ! -1 lượt thưởng`);
       setTurnTimeLeft(TURN_TIME_LIMIT_SEC);
       setTurnCycle(v => v + 1);
       return;

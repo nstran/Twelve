@@ -428,6 +428,12 @@ const renderTileBurstPattern = (
   skill: BattleSkillDefinition,
   elapsedMs: number,
 ) => {
+  if (cast.familyCode === 1001) {
+    // `1001 / it` is rendered as a tile-local strip on the board cell itself so
+    // the final frame can reveal the persisted `chess8` mark underneath.
+    return null;
+  }
+
   const burstSource = runtimePrimary(skill);
   const burstDurationMs = Math.max(
     3 * JAVA_SKILL_DELAY_TICK_MS,

@@ -44,6 +44,8 @@ interface UseBattleMatchFlowArgs {
   onPlayerHit: () => void;
   onPlayerDefeat: () => void;
   showBonusBanner: (msg: string) => void;
+  flashExtraTurnsBadge: (turns: number) => void;
+  flashComboBadge: (multiplier: number) => void;
   showDamagePopup: (side: 'player' | 'enemy', amount: number) => void;
   spawnCollectFX: (matched: Set<string>, board: Board, collectorSide: 'player' | 'enemy', healAmount: number) => void;
   playExplosion: (matched: Set<string>, expanded: Set<string>, board: Board, onDone: () => void) => void;
@@ -78,6 +80,8 @@ export const useBattleMatchFlow = ({
   onPlayerHit,
   onPlayerDefeat,
   showBonusBanner,
+  flashExtraTurnsBadge,
+  flashComboBadge,
   showDamagePopup,
   spawnCollectFX,
   playExplosion,
@@ -109,8 +113,6 @@ export const useBattleMatchFlow = ({
         const remaining = extraTurnsRef.current - 1;
         extraTurnsRef.current = remaining;
         setExtraTurns(remaining);
-        const who = turnRef.current === 'player' ? 'Bạn' : 'Quái';
-        showBonusBanner(`🔄 ${who} được thêm lượt! ${remaining > 0 ? `Còn ${remaining} lượt` : ''}`);
         setTurnCycle(v => v + 1);
         phaseRef.current = 'idle';
         setPhase('idle');
@@ -127,12 +129,15 @@ export const useBattleMatchFlow = ({
     const raw = resolved.triggerKeys;
     const matched = resolved.clearedKeys;
 
+    if (chain > 0) {
+      flashComboBadge(chain + 1);
+    }
+
     if (resolved.bonusTurnCandidate) {
       const newExtra = extraTurnsRef.current + 1;
       extraTurnsRef.current = newExtra;
       setExtraTurns(newExtra);
-      const who = turnRef.current === 'player' ? 'Bạn' : 'Quái';
-      showBonusBanner(`✨ ${who} +1 lượt!${newExtra > 1 ? ` (tổng ${newExtra})` : ''}`);
+      flashExtraTurnsBadge(newExtra);
     }
 
     let dmg = calcSwordDamage(board, matched);
@@ -234,6 +239,8 @@ export const useBattleMatchFlow = ({
   }, [
     animateFall,
     extraTurnsRef,
+    flashComboBadge,
+    flashExtraTurnsBadge,
     maxEHP,
     maxHP,
     maxMP,

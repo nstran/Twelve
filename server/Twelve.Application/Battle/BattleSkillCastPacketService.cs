@@ -1,3 +1,4 @@
+using System.Linq;
 using Twelve.Core.Battle;
 using Twelve.Core.Interfaces;
 
@@ -15,7 +16,6 @@ namespace Twelve.Application.Battle
     public sealed class BattleSkillCastPacketService : IBattleSkillCastPacketService
     {
         private const int JavaTickMs = 40;
-        private const int Skill1001FallbackMaxMarks = 5;
         private const int SkillLevelFallback = 12;
 
         private readonly IBattleSkillPacketFactory _packetFactory;
@@ -46,12 +46,21 @@ namespace Twelve.Application.Battle
             var fireballRegionAnchors = BattleSkillTargeting.SelectRandomTwoByTwoRegionAnchors(
                 CalculateSkill1000RegionCount(skillLevel));
             var fireballClearCells = BattleSkillTargeting.ExpandTwoByTwoRegionAnchors(fireballRegionAnchors);
-            var fireMarkCells = BattleSkillTargeting.SelectNearestCellsBySelectedCategory(request, Skill1001FallbackMaxMarks);
+            var fireMarkCells = SelectSkill1001MarkedCells(request, skillLevel);
+            var skill1001ExtraTurnChancePercent = CalculateSkill1001ExtraTurnChancePercent(skillLevel);
+            var skill1001GrantsExtraTurn = RollPercent(skill1001ExtraTurnChancePercent);
 
             return request.FamilyCode switch
             {
                 1000 => CreateClearSeed(request, fireballClearCells, fireballRegionAnchors, victimCenter, hitsActor: true, impactDelayMs: 10 * JavaTickMs),
-                1001 => CreateMarkSeed(request, fireMarkCells, stateId: 10, impactDelayMs: 10 * JavaTickMs, durationMs: CalculateSkill1001DurationMs(fireMarkCells.Count)),
+                1001 => CreateMarkSeed(
+                    request,
+                    fireMarkCells,
+                    stateId: 10,
+                    impactDelayMs: 10 * JavaTickMs,
+                    durationMs: CalculateSkill1001DurationMs(fireMarkCells.Count),
+                    grantsExtraTurn: skill1001GrantsExtraTurn,
+                    extraTurnChancePercent: skill1001ExtraTurnChancePercent),
                 1002 => CreateHelperSeed(request, actorTarget: null),
                 1003 => CreateNoneSeed(request, actorTarget: null, hitsActor: false),
                 1004 => CreateNoneSeed(request, victimBottom, hitsActor: true, impactDelayMs: 16 * JavaTickMs),
@@ -122,13 +131,51 @@ namespace Twelve.Application.Battle
         private static int CalculateSkill1001DurationMs(int markedCellCount)
         {
             // Java `mt` starts at tick 10 and adds +4 ticks per marked cell for `1001`.
-            // The exact targeting logic belongs to the missing server, so keep the
-            // fallback conservative and let the packet duration scale with the cells
-            // we actually emit.
+            // The exact target list still belongs to the missing Java server, so this
+            // duration follows whatever reconstructed mark list the current server emits.
             var safeCount = Math.Max(1, markedCellCount);
             var lastStartTick = 10 + ((safeCount - 1) * 4);
-            var trailingAnimationTicks = 12;
+            var trailingAnimationTicks = 15;
             return (lastStartTick + trailingAnimationTicks) * JavaTickMs;
+        }
+
+        private static IReadOnlyList<BattleSkillJavaCell> SelectSkill1001MarkedCells(
+            BattleSkillCastRequest request,
+            int skillLevel)
+        {
+            // USER-DERIVED reconstruction:
+            // - level 12: mark 8..10 cells
+            // - infer level 1: mark 3..5 cells
+            // - keep a fixed width-2 range and grow by five total steps across 12 levels
+            var orderedCells = BattleSkillTargeting.SelectCellsBySelectedCategoryExcludingGem(request, excludedGem: 10);
+            if (orderedCells.Count == 0)
+            {
+                return orderedCells;
+            }
+
+            var minMarks = 3 + ((skillLevel - 1) * 5 / 11);
+            var maxMarks = 5 + ((skillLevel - 1) * 5 / 11);
+            var rolledCount = Random.Shared.Next(minMarks, maxMarks + 1);
+            var finalCount = Math.Clamp(rolledCount, 1, orderedCells.Count);
+
+            return orderedCells
+                .Take(finalCount)
+                .ToArray();
+        }
+
+        private static int CalculateSkill1001ExtraTurnChancePercent(int skillLevel)
+        {
+            // USER-DERIVED reconstruction:
+            // - level 12: 56%
+            // - infer level 1: 12%
+            // - linear +4% per level
+            return 12 + ((skillLevel - 1) * 4);
+        }
+
+        private static bool RollPercent(int percent)
+        {
+            var clampedPercent = Math.Clamp(percent, 0, 100);
+            return Random.Shared.Next(100) < clampedPercent;
         }
 
         private static BattleSkillPacketSeed CreateHelperSeed(
@@ -190,6 +237,8 @@ namespace Twelve.Application.Battle
             BattleSkillCastRequest request,
             IReadOnlyList<BattleSkillJavaCell> cells,
             int stateId,
+            bool grantsExtraTurn = false,
+            int? extraTurnChancePercent = null,
             int? impactDelayMs = null,
             int? durationMs = null)
         {
@@ -200,6 +249,8 @@ namespace Twelve.Application.Battle
                 BoardMutationCells: cells,
                 CellTargets: cells,
                 Impact: new BattleSkillImpact(HitsActor: false, Damage: null),
+                GrantsExtraTurn: grantsExtraTurn,
+                ExtraTurnChancePercent: extraTurnChancePercent,
                 ImpactDelayMs: impactDelayMs,
                 DurationMs: durationMs,
                 StateId: stateId

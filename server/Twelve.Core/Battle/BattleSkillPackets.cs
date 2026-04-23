@@ -50,6 +50,8 @@ namespace Twelve.Core.Battle
         BattleSkillBoardMutation BoardMutation,
         IReadOnlyList<BattleCell> CellTargets,
         BattleSkillImpact Impact,
+        bool GrantsExtraTurn = false,
+        int? ExtraTurnChancePercent = null,
         int? ImpactDelayMs = null,
         int? DurationMs = null
     );
@@ -64,6 +66,8 @@ namespace Twelve.Core.Battle
         IReadOnlyList<BattleSkillJavaCell>? CellTargets = null,
         BattleSkillActorTarget? ActorTarget = null,
         BattleSkillImpact? Impact = null,
+        bool GrantsExtraTurn = false,
+        int? ExtraTurnChancePercent = null,
         int? ImpactDelayMs = null,
         int? DurationMs = null,
         int? StateId = null,
