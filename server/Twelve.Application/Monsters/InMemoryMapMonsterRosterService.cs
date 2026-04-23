@@ -7,53 +7,12 @@ namespace Twelve.Application.Monsters
 {
     public sealed class InMemoryMapMonsterRosterService : IMapMonsterRosterService
     {
-        private readonly Dictionary<string, IReadOnlyList<MapMonsterEncounter>> _rosters =
-            new(StringComparer.OrdinalIgnoreCase)
-            {
-                [ToKey("Hoa Lu", 1)] = new[]
-                {
-                    new MapMonsterEncounter(
-                        MonsterKey: "HOA_LU_FIRE_001",
-                        MapId: "Hoa Lu",
-                        RoomId: 1,
-                        SpawnTemplateKey: "hoa_lu_fire_basic",
-                        SpawnCellRow: 5,
-                        SpawnCellCol: 3,
-                        SurfaceId: "ground_main",
-                        PatrolStartRatio: 0.25f,
-                        PatrolEndRatio: 0.48f,
-                        SpawnRatio: 0.40f,
-                        MoveSpeed: 2.2f),
-                    new MapMonsterEncounter(
-                        MonsterKey: "HOA_LU_ICE_001",
-                        MapId: "Hoa Lu",
-                        RoomId: 1,
-                        SpawnTemplateKey: "hoa_lu_ice_basic",
-                        SpawnCellRow: 5,
-                        SpawnCellCol: 4,
-                        SurfaceId: "ground_main",
-                        PatrolStartRatio: 0.48f,
-                        PatrolEndRatio: 0.72f,
-                        SpawnRatio: 0.50f,
-                        MoveSpeed: 2.6f),
-                    new MapMonsterEncounter(
-                        MonsterKey: "HOA_LU_ZAP_001",
-                        MapId: "Hoa Lu",
-                        RoomId: 1,
-                        SpawnTemplateKey: "hoa_lu_zap_basic",
-                        SpawnCellRow: 5,
-                        SpawnCellCol: 5,
-                        SurfaceId: "ground_main",
-                        PatrolStartRatio: 0.70f,
-                        PatrolEndRatio: 0.92f,
-                        SpawnRatio: 0.50f,
-                        MoveSpeed: 3.0f),
-                }
-            };
+        private readonly IReadOnlyDictionary<string, IReadOnlyList<MapMonsterEncounter>> _rosters =
+            MonsterCatalogSeed.MapRosters;
 
         public IReadOnlyList<MapMonsterEncounter> GetActiveRoster(string mapId, int roomId)
         {
-            if (_rosters.TryGetValue(ToKey(mapId, roomId), out var roster))
+            if (_rosters.TryGetValue(MonsterCatalogSeed.ToRosterKey(mapId, roomId), out var roster))
             {
                 return roster;
             }
@@ -73,7 +32,5 @@ namespace Twelve.Application.Monsters
 
             return null;
         }
-
-        private static string ToKey(string mapId, int roomId) => $"{mapId}#{roomId}";
     }
 }

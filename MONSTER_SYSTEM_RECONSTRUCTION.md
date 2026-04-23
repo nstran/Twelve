@@ -1107,6 +1107,59 @@ Total confirmed: `309 frames across 8 species`.
 
 ## Candidate Unknown Ranges
 
+## Current Project Catalog Direction
+
+Phần triển khai hiện tại trong repo đã chốt hướng authority như sau:
+
+- `client` không còn là nơi quyết định roster monster cho map
+- `server` là nơi giữ `monster catalog + map roster`
+- `client map scene` chỉ render runtime từ roster server trả về
+
+### Current Server Files
+
+- [MonsterCatalogSeed.cs](/e:/Twelve/server/Twelve.Application/Monsters/MonsterCatalogSeed.cs)
+- [InMemoryMonsterAssetCatalog.cs](/e:/Twelve/server/Twelve.Application/Monsters/InMemoryMonsterAssetCatalog.cs)
+- [InMemoryMonsterSpawnCatalog.cs](/e:/Twelve/server/Twelve.Application/Monsters/InMemoryMonsterSpawnCatalog.cs)
+- [InMemoryMonsterBattleCatalog.cs](/e:/Twelve/server/Twelve.Application/Monsters/InMemoryMonsterBattleCatalog.cs)
+- [InMemoryMapMonsterRosterService.cs](/e:/Twelve/server/Twelve.Application/Monsters/InMemoryMapMonsterRosterService.cs)
+- [Program.cs](/e:/Twelve/server/Twelve.Server/Program.cs) — exposes `/map/monster-roster`
+
+### Shape We Are Preserving
+
+The remake now separates 4 authoring tables even before DB exists:
+
+1. `asset catalog`
+2. `spawn template catalog`
+3. `battle template catalog`
+4. `map room roster`
+
+This matches the Java runtime split much better than a single flat
+`monster-by-map` table.
+
+### Important Rule
+
+If a new monster is added, do **not** hard-code it into a map screen.
+
+Instead:
+
+1. add / reuse an asset catalog entry
+2. add a spawn template
+3. add a battle template
+4. add map roster rows for the target `mapId + roomId`
+
+### Planned DB Migration
+
+Current repo state is still `in-memory seed catalog`, not database authority.
+
+This is intentional.
+
+The next migration should move the **same shapes** into DB tables, not invent a
+new contract. In other words:
+
+- `MonsterCatalogSeed.cs` is a temporary seed source
+- later it should become repository / DB-backed loaders
+- HTTP contract and client roster consumption should remain stable
+
 Everything else in the 6-digit numeric space that is not `100X` is kept as a
 candidate until the server catalog confirms its role.
 

@@ -15,8 +15,6 @@ import {
   getSurfaceStartY,
 } from '../../../engine/character';
 import { CharacterRenderer, measureCharacterRenderer } from '../../character';
-import { HOA_LU_MAP_ASSETS } from './assets';
-import { buildHoaLuSurfaces } from './hoaLu.navigation';
 import { BattleIntroScreen } from '../../battle';
 import type { MonsterSharedSheetFamily } from '../../battle';
 import { MapHUD } from '../../../components/game/MapHUD/MapHUD';
@@ -24,6 +22,7 @@ import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
 import { PopupMenu, MenuItem } from '../../../components/controls/PopupMenu/PopupMenu';
 import { TouchGamepad } from '../../../components/controls/TouchGamepad';
 import { clearSession } from '../../../storage/SessionStorage';
+import { resolveSideScrollMapSceneConfig } from '../core';
 import type {
   MapMonsterRosterEntry,
   ResolveMapMonsterRoster,
@@ -39,64 +38,11 @@ const ASSET_SOFTKEY_MENU = require('../../../../assets/ui/11_softkey_icons_confi
 const ASSET_SOFTKEY_OK = require('../../../../assets/ui/11_softkey_icons_confirmed/icon_ok.png');
 const ASSET_SOFTKEY_CANCEL = require('../../../../assets/ui/11_softkey_icons_confirmed/icon_cancel.png');
 
-// ── Map / Background ────────────────────────────────────────────────────────
-const MAP_NATIVE_W  = 1536;
-const MAP_NATIVE_H  = 1024;
-const MAP_SCALE     = SCREEN_H / MAP_NATIVE_H;
-const MAP_W         = Math.round(MAP_NATIVE_W * MAP_SCALE);
-const MAP_H         = SCREEN_H;
-const MAP_MIN_X     = 0;
-const MAP_MAX_X     = MAP_W;
 const SOFTKEY_BAR_HEIGHT = 26;
 const LAYER_BG = 0;
 const LAYER_GROUND = 1;
 const LAYER_MONSTER = 2;
 const LAYER_CHARACTER = 3;
-
-// ── Ground tile strip ────────────────────────────────────────────────────────
-const GROUND_TILE_W       = 124;
-const GROUND_TILE_H       = 102;
-const GROUND_TILE_OVERLAP = 20;
-const GROUND_TILE_STEP    = GROUND_TILE_W - GROUND_TILE_OVERLAP;
-// Mở rộng ground 1 tile sang TRÁI để nhân vật không nhìn thấy edge khi đứng đầu map
-const GROUND_TILE_LEFT_OFFSET = GROUND_TILE_STEP;
-const NUM_GROUND_TILES    = Math.ceil((MAP_W + GROUND_TILE_LEFT_OFFSET) / GROUND_TILE_STEP) + 2;
-// Tỉ lệ từ đỉnh tile xuống điểm tiếp xúc mặt đất (grass surface).
-// 0.16 × 102px ≈ 16px từ đỉnh tile = vị trí visual grass trong tile image.
-// Đây là giá trị đã được calibrate để nhân vật đứng đúng trên cỏ.
-const GROUND_TILE_CONTACT_RATIO = 0.16;
-const GROUND_TILE_CONTACT_OFFSET = Math.round(GROUND_TILE_H * GROUND_TILE_CONTACT_RATIO);
-// Hạ ground line thêm vài px để character/monster "ăn" xuống thảm cỏ hơn,
-// tránh cảm giác đang lơ lửng trên mép cỏ.
-const GROUND_TILE_CONTACT_VISUAL_DROP = 4;
-
-// ── Platform ─────────────────────────────────────────────────────────────────
-const GROUND_ROWS  = 1;
-// GROUND_SINK: đẩy toàn bộ tile strip xuống. Giảm = đất cao hơn, trông đẹp hơn về mặt visual.
-const GROUND_SINK  = 18;
-const GROUND_STRIP_TOP = SCREEN_H - SOFTKEY_BAR_HEIGHT - (GROUND_ROWS * GROUND_TILE_H) + GROUND_SINK;
-
-// ── Player ────────────────────────────────────────────────────────────────────
-const CHAR_SCALE  = 1.6;   // tăng size nhân vật
-const CHAR_SPEED  = 1.35;
-const CHAR_INIT_X = Math.round(MAP_W * 0.08);
-// CreateCharacterScreen đặt canvas bottom 5px DƯỚI stone surface (tại scale 2.2).
-// → Chân nhân vật cách canvas bottom: 5 / 2.2 ≈ 2.27 native px.
-// → Tại CHAR_SCALE: transparent_display = round(5 * CHAR_SCALE / 2.2) = 4px.
-// → Phải bù thêm 4px vào groundOffset để body bottom + 4 = GROUND_MAIN_Y → chân chạm cỏ.
-const CREATE_CHARACTER_DEFAULT_SCALE = 2.2;
-const SPRITE_FOOT_SINK = Math.round(5 * CHAR_SCALE / CREATE_CHARACTER_DEFAULT_SCALE); // = 4
-const HOA_LU_SURFACES_BASE: GroundSurface[] = buildHoaLuSurfaces(MAP_SCALE);
-// GROUND_MAIN_Y = vị trí mặt đất vật lý (y tính từ đỉnh màn hình xuống chỗ chân nhân vật/quái đứng)
-const GROUND_MAIN_Y = GROUND_STRIP_TOP + GROUND_TILE_CONTACT_OFFSET + GROUND_TILE_CONTACT_VISUAL_DROP;
-const HOA_LU_SURFACES: GroundSurface[] = HOA_LU_SURFACES_BASE.map((surface) => (
-  surface.id === 'ground_main'
-    ? { ...surface, x1: -GROUND_TILE_LEFT_OFFSET, y: GROUND_MAIN_Y }
-    : surface
-));
-const GROUND_MAIN_SURFACE = HOA_LU_SURFACES.find((surface) => surface.id === 'ground_main')
-  ?? { id: 'ground_main', x1: -GROUND_TILE_LEFT_OFFSET, x2: MAP_W, y: GROUND_MAIN_Y, kind: 'ground' as const };
-const GROUND_TOP = getSurfaceStartY(GROUND_MAIN_SURFACE);
 
 /**
  * Runtime monster data (mutable, NEVER replaced).
@@ -149,9 +95,9 @@ function mapSharedSheetFamilyToMonsterType(sharedSheetFamily: MonsterSharedSheet
   }
 }
 
-function buildMonsterRuntimes(roster: MapMonsterRosterEntry[]): MonsterRuntime[] {
+function buildMonsterRuntimes(roster: MapMonsterRosterEntry[], surfaces: GroundSurface[]): MonsterRuntime[] {
   return roster.map((entry) => {
-    const surface = HOA_LU_SURFACES.find((candidate) => candidate.id === entry.surfaceId);
+    const surface = surfaces.find((candidate) => candidate.id === entry.surfaceId);
     if (!surface) {
       throw new Error(`Surface '${entry.surfaceId}' not found in Hoa Lu navigation data.`);
     }
@@ -270,7 +216,7 @@ interface EncounterPreviewState {
 export const HoaLuMapScreen: React.FC<Props> = ({
   mapId,
   roomId,
-  roomLabel = 'Khu 1',
+  roomLabel,
   appearance,
   onBack,
   onLogout,
@@ -278,11 +224,62 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   resolveMonsterRoster,
   resolveMonsterBootstrap,
 }) => {
+  const sceneConfig = useMemo(
+    () => resolveSideScrollMapSceneConfig(mapId, roomId),
+    [mapId, roomId],
+  );
+
+  if (!sceneConfig) {
+    throw new Error(`Missing side-scroll scene config for map '${mapId}' room '${roomId}'.`);
+  }
+
+  const activeRoomLabel = roomLabel ?? sceneConfig.roomLabel;
+  const mapScale = SCREEN_H / sceneConfig.nativeHeight;
+  const mapWidth = Math.round(sceneConfig.nativeWidth * mapScale);
+  const mapHeight = SCREEN_H;
+  const mapMinX = 0;
+  const mapMaxX = mapWidth;
+  const groundTileStep = sceneConfig.groundTileWidth - sceneConfig.groundTileOverlap;
+  const groundTileLeftOffset = groundTileStep;
+  const numGroundTiles = Math.ceil((mapWidth + groundTileLeftOffset) / groundTileStep) + 2;
+  const groundTileContactOffset = Math.round(sceneConfig.groundTileHeight * sceneConfig.groundContactRatio);
+  const groundStripTop = SCREEN_H
+    - SOFTKEY_BAR_HEIGHT
+    - (sceneConfig.groundRows * sceneConfig.groundTileHeight)
+    + sceneConfig.groundSink;
+  const spriteFootSink = Math.round(
+    sceneConfig.playerFootSinkSourcePx
+    * sceneConfig.playerScale
+    / sceneConfig.createCharacterDefaultScale,
+  );
+  const charInitX = Math.round(mapWidth * sceneConfig.playerSpawnRatio);
+  const surfacesBase = useMemo(
+    () => sceneConfig.buildSurfaces(mapScale),
+    [mapScale, sceneConfig],
+  );
+  const primaryGroundY = groundStripTop + groundTileContactOffset + sceneConfig.groundContactVisualDrop;
+  const sceneSurfaces = useMemo(() => (
+    surfacesBase.map((surface) => (
+      surface.id === sceneConfig.primaryGroundSurfaceId
+        ? { ...surface, x1: -groundTileLeftOffset, y: primaryGroundY }
+        : surface
+    ))
+  ), [groundTileLeftOffset, primaryGroundY, sceneConfig.primaryGroundSurfaceId, surfacesBase]);
+  const groundMainSurface = sceneSurfaces.find((surface) => surface.id === sceneConfig.primaryGroundSurfaceId)
+    ?? {
+      id: sceneConfig.primaryGroundSurfaceId,
+      x1: -groundTileLeftOffset,
+      x2: mapWidth,
+      y: primaryGroundY,
+      kind: 'ground' as const,
+    };
+  const groundTop = getSurfaceStartY(groundMainSurface);
+
   const scrollRef = useRef<ScrollView>(null);
   const characterControllerRef = useRef<CharacterControllerRef>(null);
   const battleTriggered = useRef(false);
   const encounterRequestVersionRef = useRef(0);
-  const charLeftRef = useRef(CHAR_INIT_X);
+  const charLeftRef = useRef(charInitX);
   const cameraXRef = useRef(0);
   // Camera scroll is coalesced to 1 scrollTo per vsync via rAF, so 60Hz
   // onMove callbacks from the character controller don't hammer the JS
@@ -327,7 +324,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   }, [mapId, roomId, resolveMonsterRoster]);
 
   useEffect(() => {
-    const nextRuntimes = buildMonsterRuntimes(monsterRoster);
+    const nextRuntimes = buildMonsterRuntimes(monsterRoster, sceneSurfaces);
     monsterRuntimesRef.current = nextRuntimes;
     monsterTargetsRef.current = nextRuntimes.map((runtime) => ({
       id: runtime.id,
@@ -339,7 +336,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
     setMonsterVisuals(buildInitialVisuals(nextRuntimes));
     battleTriggered.current = false;
     setMonsterRuntimeVersion((version) => version + 1);
-  }, [monsterRoster]);
+  }, [monsterRoster, sceneSurfaces]);
 
   // ── Menu state ──────────────────────────────────────────────────────────
   const [menuVisible, setMenuVisible] = useState(false);
@@ -426,17 +423,17 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       //           = groundY - (maxAbove+53)*scale + SINK
       //   feet_y  = charTop + (maxAbove+53)*scale - transparent_display
       //           = groundY + SINK - SINK = groundY ✓
-      const measured = measureCharacterRenderer(appearance, CHAR_SCALE, true);
-      return { ...measured, groundOffset: measured.groundOffset + SPRITE_FOOT_SINK };
+      const measured = measureCharacterRenderer(appearance, sceneConfig.playerScale, true);
+      return { ...measured, groundOffset: measured.groundOffset + spriteFootSink };
     },
-    [appearance],
+    [appearance, sceneConfig.playerScale, spriteFootSink],
   );
   const hudHp = appearance.hp?.cur ?? 800;
   const hudMaxHp = appearance.hp?.max ?? 1000;
   const hudExpPercent = appearance.exp?.cur ?? 45;
 
   const scrollToCharacter = useCallback((charLeft: number) => {
-    const maxScrollX = Math.max(0, MAP_W - SCREEN_W);
+    const maxScrollX = Math.max(0, mapWidth - SCREEN_W);
     const camTarget = charLeft + playerSpriteSize.w / 2 - SCREEN_W / 2;
     const nextScrollX = Math.max(0, Math.min(maxScrollX, camTarget));
 
@@ -456,7 +453,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       cameraXRef.current = target;
       scrollRef.current?.scrollTo({ x: target, animated: false });
     });
-  }, [playerSpriteSize.w]);
+  }, [mapWidth, playerSpriteSize.w]);
 
   // Cancel any pending scroll rAF on unmount to avoid leaks.
   useEffect(() => () => {
@@ -662,8 +659,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   }, [isEncounterActive, monsterRuntimeVersion, playerSpriteSize.w, startEncounter]);
 
   useEffect(() => {
-    scrollToCharacter(CHAR_INIT_X);
-  }, [scrollToCharacter]);
+    charLeftRef.current = charInitX;
+    scrollToCharacter(charInitX);
+  }, [charInitX, scrollToCharacter]);
 
   useEffect(() => {
     if (showTouchGamepad) return;
@@ -753,17 +751,17 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   // → nhân vật ở gần đầu map không nhìn thấy edge tile → không cảm giác "rớt khỏi map"
   const renderGround = () => {
     const tiles = [];
-    for (let row = 0; row < GROUND_ROWS; row++) {
-      for (let col = 0; col < NUM_GROUND_TILES; col++) {
-        const tileLeft = col * GROUND_TILE_STEP - GROUND_TILE_LEFT_OFFSET;
+    for (let row = 0; row < sceneConfig.groundRows; row++) {
+      for (let col = 0; col < numGroundTiles; col++) {
+        const tileLeft = col * groundTileStep - groundTileLeftOffset;
         // Edge tiles chỉ dùng cho tile đầu/cuối thực sự ngoài phạm vi map
-        const isFirst = tileLeft <= -GROUND_TILE_LEFT_OFFSET;
-        const isLast  = col === NUM_GROUND_TILES - 1;
+        const isFirst = tileLeft <= -groundTileLeftOffset;
+        const isLast  = col === numGroundTiles - 1;
         const source  = isFirst
-          ? HOA_LU_MAP_ASSETS.groundLeft
+          ? sceneConfig.assets.groundLeft
           : isLast
-            ? HOA_LU_MAP_ASSETS.groundRight
-            : HOA_LU_MAP_ASSETS.groundCenter;
+            ? sceneConfig.assets.groundRight
+            : sceneConfig.assets.groundCenter;
 
         tiles.push(
           <Image
@@ -772,9 +770,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
             style={{
               position: 'absolute',
               left:   tileLeft,
-              top:    GROUND_STRIP_TOP + row * GROUND_TILE_H,
-              width:  GROUND_TILE_W,
-              height: GROUND_TILE_H,
+              top:    groundStripTop + row * sceneConfig.groundTileHeight,
+              width:  sceneConfig.groundTileWidth,
+              height: sceneConfig.groundTileHeight,
               zIndex: LAYER_GROUND,
             }}
             resizeMode="stretch"
@@ -794,7 +792,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         hp={hudHp}
         maxHp={hudMaxHp}
         expPercent={hudExpPercent}
-        zoneName={roomLabel}
+        zoneName={activeRoomLabel}
         width={SCREEN_W}
       />
 
@@ -806,14 +804,14 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         showsHorizontalScrollIndicator={false}
         scrollEventThrottle={16}
         style={styles.scroll}
-        contentContainerStyle={{ width: MAP_W, height: MAP_H }}
+        contentContainerStyle={{ width: mapWidth, height: mapHeight }}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ width: MAP_W, height: MAP_H }}>
+        <View style={{ width: mapWidth, height: mapHeight }}>
           {/* Layer 0: Background */}
           <Image
-            source={HOA_LU_MAP_ASSETS.background}
-            style={styles.bg}
+            source={sceneConfig.assets.background}
+            style={[styles.bg, { width: mapWidth, height: mapHeight }]}
             resizeMode="stretch"
           />
 
@@ -829,11 +827,11 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           {!isEncounterActive && (
             <CharacterController
               ref={characterControllerRef}
-              initialX={CHAR_INIT_X}
-              groundY={GROUND_TOP}
+              initialX={charInitX}
+              groundY={groundTop}
               controlMode="tap-to-move"
-              speed={CHAR_SPEED}
-              scale={CHAR_SCALE}
+              speed={sceneConfig.playerSpeed}
+              scale={sceneConfig.playerScale}
               spriteSize={playerSpriteSize}
               renderSprite={({ action, actionFrameIndex, facing, scale, poseFamilySlot, poseFrameIndex }) => (
                 <CharacterRenderer
@@ -848,13 +846,13 @@ export const HoaLuMapScreen: React.FC<Props> = ({
                 />
               )}
               monsters={monsterTargets}
-              surfaces={HOA_LU_SURFACES}
+              surfaces={sceneSurfaces}
               // Cho phép đi sát 2 đầu map nhưng vẫn bị clamp trong biên map,
               // nên ở điểm đầu/cuối sẽ không bị hụt support rồi rơi xuống.
-              minX={MAP_MIN_X}
-              maxX={MAP_MAX_X}
-              containerWidth={MAP_W}
-              containerHeight={MAP_H}
+              minX={mapMinX}
+              maxX={mapMaxX}
+              containerWidth={mapWidth}
+              containerHeight={mapHeight}
               zIndex={LAYER_CHARACTER}
               allowPointerInput={allowMapPointerInput}
               disabled={menuVisible}
@@ -899,7 +897,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           playerLeft={encounterPreview.playerLeft}
           monsterLeft={encounterPreview.monsterLeft}
           groundY={encounterPreview.groundY}
-          playerScale={CHAR_SCALE}
+          playerScale={sceneConfig.playerScale}
           appearance={appearance}
           onConfirm={confirmEncounter}
         />
@@ -965,5 +963,5 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
 
   scroll: { flex: 1 },
-  bg: { position: 'absolute', top: 0, left: 0, width: MAP_W, height: MAP_H, zIndex: LAYER_BG },
+  bg: { position: 'absolute', top: 0, left: 0, zIndex: LAYER_BG },
 });
