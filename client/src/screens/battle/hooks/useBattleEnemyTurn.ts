@@ -292,8 +292,7 @@ export const useBattleEnemyTurn = ({
 
           skillCastTimersRef.current.push(...boardMutationTimers, impactTimer, finishTimer);
         })
-        .catch((error) => {
-          console.warn('[BattleScreen] resolveEnemyTurn failed', error);
+        .catch(() => {
           if (mountedRef.current) {
             showBonusBanner('Lượt quái lỗi packet runtime');
             turnRef.current = 'player';

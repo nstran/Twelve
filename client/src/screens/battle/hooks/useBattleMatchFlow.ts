@@ -41,6 +41,7 @@ interface UseBattleMatchFlowArgs {
   setMana: Dispatch<SetStateAction<number>>;
   setPower: Dispatch<SetStateAction<number>>;
   setResult: Dispatch<SetStateAction<BattleResult | null>>;
+  playMonsterDefeatSequence: (onComplete: () => void) => void;
   playPlayerSwordAttack: (onImpact: () => void, onComplete: () => void) => void;
   playMonsterSwordAttack: (onImpact: () => void, onComplete: () => void) => void;
   onPlayerHit: () => void;
@@ -79,6 +80,7 @@ export const useBattleMatchFlow = ({
   setMana,
   setPower,
   setResult,
+  playMonsterDefeatSequence,
   playPlayerSwordAttack,
   playMonsterSwordAttack,
   onPlayerHit,
@@ -255,8 +257,14 @@ export const useBattleMatchFlow = ({
               () => {
                 if (!mountedRef.current) return;
                 if (lethalPlayerResolution) {
-                  lethalAttackCompleted = true;
-                  tryFinalizeLethalVictory();
+                  playMonsterDefeatSequence(() => {
+                    if (!mountedRef.current) {
+                      return;
+                    }
+
+                    lethalAttackCompleted = true;
+                    tryFinalizeLethalVictory();
+                  });
                   return;
                 }
 
@@ -308,6 +316,7 @@ export const useBattleMatchFlow = ({
     onPlayerHit,
     pendingVictoryRef,
     phaseRef,
+    playMonsterDefeatSequence,
     playMonsterSwordAttack,
     playPlayerSwordAttack,
     playExplosion,
@@ -333,11 +342,6 @@ export const useBattleMatchFlow = ({
     const board = boardRef.current;
     const swap = validateSwap(board, r1, c1, r2, c2);
     if (swap === null) {
-      console.warn('[BattleMatchFlow] doDirectSwap invalid', {
-        move: { r1, c1, r2, c2 },
-        first: board[r1]?.[c1] ?? null,
-        second: board[r2]?.[c2] ?? null,
-      });
       phaseRef.current = 'busy';
       setPhase('busy');
       animateInvalidSwapBounce(r1, c1, r2, c2, () => {
@@ -352,11 +356,6 @@ export const useBattleMatchFlow = ({
       return;
     }
 
-    console.log('[BattleMatchFlow] doDirectSwap valid', {
-      move: { r1, c1, r2, c2 },
-      first: board[r1]?.[c1] ?? null,
-      second: board[r2]?.[c2] ?? null,
-    });
     const nextBoard: Board = board.map(row => [...row]);
     [nextBoard[r1][c1], nextBoard[r2][c2]] = [nextBoard[r2][c2], nextBoard[r1][c1]];
     phaseRef.current = 'busy';

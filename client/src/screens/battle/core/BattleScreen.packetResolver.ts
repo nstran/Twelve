@@ -211,8 +211,7 @@ export const createBattleSkillPacketResolver = (
       const packet = JSON.parse(rawBody) as ServerBattleSkillRuntimePacket;
 
       return mapRuntimePacket(packet, request.familyCode);
-    } catch (error) {
-      console.warn('[BattleSkillPacketResolver] skill packet request failed', error);
+    } catch {
       return null;
     } finally {
       clearTimeout(timeout);
@@ -250,8 +249,7 @@ export const createEnemyBattleTurnResolver = (
       const packet = JSON.parse(rawBody) as ServerBattleSkillRuntimePacket;
 
       return mapRuntimePacket(packet);
-    } catch (error) {
-      console.warn('[EnemyBattleTurnResolver] enemy turn request failed', error);
+    } catch {
       return null;
     } finally {
       clearTimeout(timeout);
@@ -268,11 +266,6 @@ export const createEnemyBattleTurnPlanResolver = (
   return async (request: BattleEnemyTurnPlanRequest): Promise<BattleEnemyTurnPlanResponse | null> => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    console.log('[EnemyBattleTurnPlanResolver] request', {
-      sessionId: request.sessionId,
-      boardRows: request.board.length,
-      boardCols: request.board[0]?.length ?? 0,
-    });
 
     try {
       const response = await fetch(`${baseUrl}/battle/enemy-turn-plan`, {
@@ -302,10 +295,8 @@ export const createEnemyBattleTurnPlanResolver = (
         move: plan.move ?? null,
         skillPacket: plan.skillPacket ? mapRuntimePacket(plan.skillPacket) : null,
       };
-      console.log('[EnemyBattleTurnPlanResolver] response', mappedPlan);
       return mappedPlan;
-    } catch (error) {
-      console.warn('[EnemyBattleTurnPlanResolver] enemy turn plan request failed', error);
+    } catch {
       return null;
     } finally {
       clearTimeout(timeout);
@@ -341,8 +332,7 @@ export const createEnemyBattleMoveResolver = (
       }
 
       return JSON.parse(rawBody) as ServerBattleEnemyMoveResponse;
-    } catch (error) {
-      console.warn('[EnemyBattleMoveResolver] enemy move request failed', error);
+    } catch {
       return null;
     } finally {
       clearTimeout(timeout);
@@ -375,8 +365,7 @@ export const createBattleSessionSyncResolver = (
         }),
         signal: controller.signal,
       });
-    } catch (error) {
-      console.warn('[BattleSessionSyncResolver] session sync failed', error);
+    } catch {
     } finally {
       clearTimeout(timeout);
     }
@@ -422,8 +411,7 @@ export const createMonsterBattleBootstrapResolver = (
         ...responseBody,
         initialTurnSide: mapSide(responseBody.initialTurnSide),
       };
-    } catch (error) {
-      console.warn('[MonsterBattleBootstrapResolver] bootstrap request failed', error);
+    } catch {
       return null;
     } finally {
       clearTimeout(timeout);

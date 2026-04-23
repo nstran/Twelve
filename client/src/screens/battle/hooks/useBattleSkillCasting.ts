@@ -45,6 +45,7 @@ interface UseBattleSkillCastingArgs {
   panelTop: number;
   phase: BattlePhase;
   phaseRef: MutableRefObject<BattlePhase>;
+  playMonsterDefeatSequence: (onComplete: () => void) => void;
   playEnemySkillImpact: (shakePx: number) => void;
   playerBaseLeft: number;
   playerSize: { w: number; h: number; groundOffset?: number };
@@ -100,6 +101,7 @@ export const useBattleSkillCasting = ({
   panelTop,
   phase,
   phaseRef,
+  playMonsterDefeatSequence,
   playEnemySkillImpact,
   playerBaseLeft,
   playerSize,
@@ -327,10 +329,16 @@ export const useBattleSkillCasting = ({
           }
         }
         if (pendingVictoryRef.current) {
-          pendingVictoryRef.current = false;
-          phaseRef.current = 'over';
-          setPhase('over');
-          setResult('victory');
+          playMonsterDefeatSequence(() => {
+            if (!mountedRef.current) {
+              return;
+            }
+
+            pendingVictoryRef.current = false;
+            phaseRef.current = 'over';
+            setPhase('over');
+            setResult('victory');
+          });
           return;
         }
         const remainingTurnsDelta = Math.max(
@@ -361,8 +369,7 @@ export const useBattleSkillCasting = ({
       }, cast.durationMs);
 
       skillCastTimersRef.current.push(...actorFrameTimers, ...boardMutationTimers, impactTimer, finishTimer);
-    } catch (error) {
-      console.warn('[BattleScreen] resolveSkillPacket failed', error);
+    } catch {
       if (mountedRef.current) {
         showBonusBanner(`Skill ${skill.familyCode} lỗi packet runtime`);
       }
@@ -392,6 +399,7 @@ export const useBattleSkillCasting = ({
     phase,
     phaseRef,
     pendingVictoryRef,
+    playMonsterDefeatSequence,
     playEnemySkillImpact,
     playerBaseLeft,
     playerSize,

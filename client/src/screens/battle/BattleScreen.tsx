@@ -335,7 +335,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     showBonusBanner,
     turn,
   });
-  const { monsterPoseKey, playMonsterSwordAttack, playPlayerSwordAttack } = useBattleSwordAttacks({
+  const {
+    monsterDefeatOpacity,
+    monsterDefeatTranslateY,
+    monsterPoseKey,
+    playMonsterDefeatSequence,
+    playMonsterSwordAttack,
+    playPlayerSwordAttack,
+  } = useBattleSwordAttacks({
     attackTravelX,
     mountedRef,
     enemyAttackTranslateX,
@@ -369,6 +376,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setMana,
     setPower,
     setResult,
+    playMonsterDefeatSequence,
     playPlayerSwordAttack,
     playMonsterSwordAttack,
     onPlayerHit: playPlayerHitReaction,
@@ -521,6 +529,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     phase,
     phaseRef,
     pendingVictoryRef,
+    playMonsterDefeatSequence,
     playEnemySkillImpact,
     playerBaseLeft,
     playerSize,
@@ -614,6 +623,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         appearance={appearance}
         monsterAssetCatalogId={enemyAssetCatalogId}
         monsterType={monsterType}
+        monsterDefeatOpacity={monsterDefeatOpacity}
+        monsterDefeatTranslateY={monsterDefeatTranslateY}
         monsterPoseKey={monsterPoseKey}
         playerAction={playerAction}
         playerActionFrameIndex={playerActionFrameIndex}

@@ -139,12 +139,6 @@ export const useBattleMonsterTurn = ({
 
     enemyTurnRequestRef.current = false;
     monsterTurnStateRef.current = 'idle';
-    console.log('[BattleMonsterTurn] handBackTurnToPlayer', {
-      sessionId,
-      message: message ?? null,
-      turn: turnRef.current,
-      phase: phaseRef.current,
-    });
     if (message) {
       showBonusBanner(message);
     }
@@ -162,39 +156,24 @@ export const useBattleMonsterTurn = ({
     toCol: number;
   }) => {
     monsterTurnStateRef.current = 'playback_move';
-    console.log('[BattleMonsterTurn] playbackMove:start', { sessionId, move });
     setAiStep('pick1');
     setCursorCell([move.fromRow, move.fromCol]);
     setSelected([move.fromRow, move.fromCol]);
 
     const pickSecondTimer = setTimeout(() => {
       if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') {
-        console.warn('[BattleMonsterTurn] playbackMove:pick1-abort', {
-          sessionId,
-          move,
-          phase: phaseRef.current,
-          turn: turnRef.current,
-        });
         return;
       }
 
-      console.log('[BattleMonsterTurn] playbackMove:pick2', { sessionId, move });
       setAiStep('pick2');
       setCursorCell([move.toRow, move.toCol]);
       setSelected([move.toRow, move.toCol]);
 
       const swapTimer = setTimeout(() => {
         if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') {
-          console.warn('[BattleMonsterTurn] playbackMove:swap-abort', {
-            sessionId,
-            move,
-            phase: phaseRef.current,
-            turn: turnRef.current,
-          });
           return;
         }
 
-        console.log('[BattleMonsterTurn] playbackMove:doDirectSwap', { sessionId, move });
         enemyTurnRequestRef.current = false;
         monsterTurnStateRef.current = 'idle';
         setAiStep(null);
@@ -220,11 +199,6 @@ export const useBattleMonsterTurn = ({
     setPhase('busy');
     phaseRef.current = 'busy';
     monsterTurnStateRef.current = 'skill';
-    console.log('[BattleMonsterTurn] playbackSkillPacket:start', {
-      sessionId,
-      castId: packet.castId,
-      familyCode: packet.familyCode,
-    });
 
     const cast = buildActiveBattleSkillCastFromPacket(packet, {
       panelLeft,
@@ -423,11 +397,6 @@ export const useBattleMonsterTurn = ({
 
     enemyTurnRequestRef.current = true;
     monsterTurnStateRef.current = 'planning';
-    console.log('[BattleMonsterTurn] planning:start', {
-      sessionId,
-      phase,
-      turn,
-    });
     clearMonsterTurnTimers();
     setAiStep('think');
     setSelected(null);
@@ -445,18 +414,9 @@ export const useBattleMonsterTurn = ({
       void plannerPromise
         .then((plan) => {
           if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') {
-            console.warn('[BattleMonsterTurn] planning:response-abort', {
-              sessionId,
-              phase: phaseRef.current,
-              turn: turnRef.current,
-            });
             return;
           }
 
-          console.log('[BattleMonsterTurn] planning:response', {
-            sessionId,
-            plan,
-          });
           if (!plan || plan.action === 'pass') {
             const fallbackMove = pickFallbackMove();
             if (!fallbackMove) {
@@ -514,8 +474,7 @@ export const useBattleMonsterTurn = ({
           setAiStep(null);
           playbackSkillPacket(plan.skillPacket);
         })
-        .catch((error) => {
-          console.warn('[BattleScreen] resolveEnemyTurnPlan failed', error);
+        .catch(() => {
           const fallbackMove = pickFallbackMove();
           if (!fallbackMove) {
             handBackTurnToPlayer('Lượt quái lỗi server planner');

@@ -14,6 +14,8 @@ const MONSTER_ANIM_TICK_MS = 240;
 const MONSTER_NORMAL_ATTACK_REPEAT_COUNT = 3;
 const MONSTER_NORMAL_ATTACK_SWING_MS = 110;
 const MONSTER_NORMAL_ATTACK_RECOVER_MS = 70;
+const MONSTER_DEFEAT_HIT_HOLD_MS = 140;
+const MONSTER_DEFEAT_SINK_MS = 280;
 
 interface QueuedAttack {
   onImpact: () => void;
@@ -95,8 +97,12 @@ export const useBattleSwordAttacks = ({
   const monsterAttackQueueRef = useRef<QueuedAttack[]>([]);
   const playerAttackRunningRef = useRef(false);
   const monsterAttackRunningRef = useRef(false);
+  const monsterDefeatRunningRef = useRef(false);
+  const monsterDefeatQueuedCallbacksRef = useRef<(() => void)[]>([]);
   const monTick = useRef(0);
   const monsterHitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const monsterDefeatTranslateY = useRef(new Animated.Value(0)).current;
+  const monsterDefeatOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => () => {
     playerAttackTimersRef.current.forEach(clearTimeout);
@@ -111,11 +117,20 @@ export const useBattleSwordAttacks = ({
     playerHitTranslateX.stopAnimation();
     enemyAttackTranslateX.stopAnimation();
     enemyHitTranslateX.stopAnimation();
+    monsterDefeatTranslateY.stopAnimation();
+    monsterDefeatOpacity.stopAnimation();
     if (monsterHitTimerRef.current) {
       clearTimeout(monsterHitTimerRef.current);
       monsterHitTimerRef.current = null;
     }
-  }, [enemyAttackTranslateX, enemyHitTranslateX, playerAttackTranslateX, playerHitTranslateX]);
+  }, [
+    enemyAttackTranslateX,
+    enemyHitTranslateX,
+    monsterDefeatOpacity,
+    monsterDefeatTranslateY,
+    playerAttackTranslateX,
+    playerHitTranslateX,
+  ]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -132,6 +147,10 @@ export const useBattleSwordAttacks = ({
       return;
     }
 
+    if (monsterDefeatRunningRef.current) {
+      return;
+    }
+
     if (monsterHitTimerRef.current) {
       clearTimeout(monsterHitTimerRef.current);
       monsterHitTimerRef.current = null;
@@ -145,11 +164,74 @@ export const useBattleSwordAttacks = ({
       }
 
       setMonHit(false);
-      if (!monsterAttackRunningRef.current) {
+      if (!monsterAttackRunningRef.current && !monsterDefeatRunningRef.current) {
         setMonsterPoseKey('idle_a');
       }
     }, 200);
   }, [mountedRef]);
+
+  const playMonsterDefeatSequence = useCallback((onComplete: () => void) => {
+    if (monsterDefeatRunningRef.current) {
+      monsterDefeatQueuedCallbacksRef.current.push(onComplete);
+      return;
+    }
+
+    monsterDefeatRunningRef.current = true;
+    monsterDefeatQueuedCallbacksRef.current = [onComplete];
+    monsterAttackTimersRef.current.forEach(clearTimeout);
+    monsterAttackTimersRef.current = [];
+
+    if (monsterHitTimerRef.current) {
+      clearTimeout(monsterHitTimerRef.current);
+      monsterHitTimerRef.current = null;
+    }
+
+    enemyAttackTranslateX.stopAnimation();
+    enemyHitTranslateX.stopAnimation();
+    monsterDefeatTranslateY.stopAnimation();
+    monsterDefeatOpacity.stopAnimation();
+
+    enemyAttackTranslateX.setValue(0);
+    enemyHitTranslateX.setValue(0);
+    monsterDefeatTranslateY.setValue(0);
+    monsterDefeatOpacity.setValue(1);
+
+    setMonAtk(false);
+    setMonHit(true);
+    setMonsterPoseKey('hit');
+
+    Animated.sequence([
+      Animated.timing(monsterDefeatTranslateY, {
+        toValue: 4,
+        duration: MONSTER_DEFEAT_HIT_HOLD_MS,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.parallel([
+        Animated.timing(monsterDefeatTranslateY, {
+          toValue: 28,
+          duration: MONSTER_DEFEAT_SINK_MS,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(monsterDefeatOpacity, {
+          toValue: 0,
+          duration: MONSTER_DEFEAT_SINK_MS,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => {
+      const callbacks = monsterDefeatQueuedCallbacksRef.current.splice(0);
+      monsterDefeatRunningRef.current = false;
+      callbacks.forEach((callback) => callback());
+    });
+  }, [
+    enemyAttackTranslateX,
+    enemyHitTranslateX,
+    monsterDefeatOpacity,
+    monsterDefeatTranslateY,
+  ]);
 
   const runNextPlayerSwordAttack = useCallback(() => {
     if (playerAttackRunningRef.current) return;
@@ -270,6 +352,11 @@ export const useBattleSwordAttacks = ({
     playerHitTranslateX.stopAnimation();
     enemyAttackTranslateX.setValue(0);
     playerHitTranslateX.setValue(0);
+    monsterDefeatTranslateY.stopAnimation();
+    monsterDefeatOpacity.stopAnimation();
+    monsterDefeatTranslateY.setValue(0);
+    monsterDefeatOpacity.setValue(1);
+    monsterDefeatRunningRef.current = false;
     setMonAtk(true);
     setMonHit(false);
     setMonsterPoseKey('prepare_attack');
@@ -336,6 +423,8 @@ export const useBattleSwordAttacks = ({
     attackTravelX,
     enemyAttackTranslateX,
     mountedRef,
+    monsterDefeatOpacity,
+    monsterDefeatTranslateY,
     playerHitTranslateX,
     swordAttackTiming.approachMs,
     swordAttackTiming.contactMs,
@@ -350,7 +439,10 @@ export const useBattleSwordAttacks = ({
   }, [runNextMonsterSwordAttack]);
 
   return {
+    monsterDefeatOpacity,
+    monsterDefeatTranslateY,
     monsterPoseKey,
+    playMonsterDefeatSequence,
     playMonsterSwordAttack,
     playPlayerSwordAttack,
   };

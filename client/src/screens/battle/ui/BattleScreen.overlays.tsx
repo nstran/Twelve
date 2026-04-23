@@ -37,6 +37,8 @@ interface BattleActorsRowProps {
   appearance: CharacterAppearance;
   monsterAssetCatalogId?: string | null;
   monsterType: MonsterType;
+  monsterDefeatOpacity: Animated.Value;
+  monsterDefeatTranslateY: Animated.Value;
   monsterPoseKey: BattleMonsterPoseKey;
   playerAction: CharacterAction;
   playerActionFrameIndex: number | null;
@@ -58,6 +60,8 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
   appearance,
   monsterAssetCatalogId,
   monsterType,
+  monsterDefeatOpacity,
+  monsterDefeatTranslateY,
   monsterPoseKey,
   playerAction,
   playerActionFrameIndex,
@@ -131,8 +135,10 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
           bottom: -monsterGroundOffset,
           width: monsterWidth,
           height: monsterHeight,
+          opacity: monsterDefeatOpacity,
           transform: [
             { translateX: Animated.add(enemyAttackTranslateX, enemyHitTranslateX) },
+            { translateY: monsterDefeatTranslateY },
             { translateX: ENEMY_SPRITE_SHIFT_X * BOARD_SCALE },
             { translateY: ENEMY_SPRITE_SHIFT_Y * BOARD_SCALE },
           ],
