@@ -39,6 +39,8 @@ namespace Twelve.Application.Battle
             var updatedEnemy = session.Enemy with
             {
                 CurrentHp = Clamp(request.EnemyCurrentHp, session.Enemy.MaxHp),
+                CurrentMp = Clamp(request.EnemyCurrentMp, session.Enemy.MaxMp),
+                CurrentPower = Clamp(request.EnemyCurrentPower, session.Enemy.MaxPower),
             };
             var isCompleted = updatedPlayer.CurrentHp <= 0 || updatedEnemy.CurrentHp <= 0;
 

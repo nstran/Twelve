@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Twelve.Core.Interfaces;
 using Twelve.Core.Monsters;
@@ -7,58 +8,44 @@ namespace Twelve.Application.Monsters
 {
     public sealed class InMemoryMapMonsterRosterService : IMapMonsterRosterService
     {
-        private readonly IMonsterSpawnCatalog _spawnCatalog;
         private readonly IReadOnlyDictionary<string, IReadOnlyList<MapMonsterSpawnGroup>> _spawnGroups =
             MonsterCatalogSeed.MapSpawnGroups;
+        private readonly ConcurrentDictionary<string, IReadOnlyList<MapMonsterEncounter>> _baseRosters =
+            new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _inactiveEncounterKeys =
+            new(StringComparer.OrdinalIgnoreCase);
 
         public InMemoryMapMonsterRosterService(IMonsterSpawnCatalog spawnCatalog)
         {
-            _spawnCatalog = spawnCatalog;
+            foreach (var rosterEntry in _spawnGroups)
+            {
+                _baseRosters[rosterEntry.Key] = BuildBaseRoster(rosterEntry.Value, spawnCatalog);
+            }
         }
 
         public IReadOnlyList<MapMonsterEncounter> GetActiveRoster(string mapId, int roomId)
         {
-            var groups = GetActiveSpawnGroups(mapId, roomId);
-            if (groups.Count == 0)
+            if (!_baseRosters.TryGetValue(MonsterCatalogSeed.ToRosterKey(mapId, roomId), out var baseRoster))
             {
                 return [];
             }
 
-            var encounters = new List<MapMonsterEncounter>();
-            foreach (var group in groups)
+            if (!_inactiveEncounterKeys.TryGetValue(MonsterCatalogSeed.ToRosterKey(mapId, roomId), out var inactiveKeys) ||
+                inactiveKeys.Count == 0)
             {
-                if (!group.IsActive)
-                {
-                    continue;
-                }
+                return baseRoster;
+            }
 
-                var spawnTemplate = _spawnCatalog.GetBySpawnTemplateKey(group.SpawnTemplateKey);
-                if (spawnTemplate is null || spawnTemplate.SpawnCount <= 0)
+            var activeRoster = new List<MapMonsterEncounter>(baseRoster.Count);
+            foreach (var encounter in baseRoster)
+            {
+                if (!inactiveKeys.ContainsKey(encounter.MonsterKey))
                 {
-                    continue;
-                }
-
-                for (var i = 0; i < spawnTemplate.SpawnCount; i++)
-                {
-                    encounters.Add(new MapMonsterEncounter(
-                        MonsterKey: BuildMonsterKey(group.SpawnGroupKey, i + 1),
-                        SpawnGroupKey: group.SpawnGroupKey,
-                        SpawnInstanceIndex: i,
-                        MapId: group.MapId,
-                        RoomId: group.RoomId,
-                        SpawnTemplateKey: group.SpawnTemplateKey,
-                        SpawnCellRow: group.SpawnCellRow,
-                        SpawnCellCol: group.SpawnCellCol,
-                        SurfaceId: group.SurfaceId,
-                        PatrolStartRatio: group.PatrolStartRatio,
-                        PatrolEndRatio: group.PatrolEndRatio,
-                        SpawnRatio: ResolveSpawnRatio(group, i, spawnTemplate.SpawnCount),
-                        MoveSpeed: group.MoveSpeed,
-                        IsActive: true));
+                    activeRoster.Add(encounter);
                 }
             }
 
-            return encounters;
+            return activeRoster;
         }
 
         public IReadOnlyList<MapMonsterSpawnGroup> GetActiveSpawnGroups(string mapId, int roomId)
@@ -91,6 +78,78 @@ namespace Twelve.Application.Monsters
             }
 
             return null;
+        }
+
+        public MapMonsterEncounter? DeactivateEncounter(string mapId, int roomId, string monsterKey)
+        {
+            var rosterKey = MonsterCatalogSeed.ToRosterKey(mapId, roomId);
+            if (!_baseRosters.TryGetValue(rosterKey, out var baseRoster))
+            {
+                return null;
+            }
+
+            MapMonsterEncounter? encounter = null;
+            foreach (var candidate in baseRoster)
+            {
+                if (string.Equals(candidate.MonsterKey, monsterKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    encounter = candidate;
+                    break;
+                }
+            }
+
+            if (encounter is null)
+            {
+                return null;
+            }
+
+            var inactiveKeys = _inactiveEncounterKeys.GetOrAdd(
+                rosterKey,
+                _ => new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase));
+            inactiveKeys[encounter.MonsterKey] = 0;
+            return encounter;
+        }
+
+        private static IReadOnlyList<MapMonsterEncounter> BuildBaseRoster(
+            IReadOnlyList<MapMonsterSpawnGroup> groups,
+            IMonsterSpawnCatalog spawnCatalog)
+        {
+            var encounters = new List<MapMonsterEncounter>();
+
+            foreach (var group in groups)
+            {
+                if (!group.IsActive)
+                {
+                    continue;
+                }
+
+                var spawnTemplate = spawnCatalog.GetBySpawnTemplateKey(group.SpawnTemplateKey);
+                if (spawnTemplate is null || spawnTemplate.SpawnCount <= 0)
+                {
+                    continue;
+                }
+
+                for (var i = 0; i < spawnTemplate.SpawnCount; i++)
+                {
+                    encounters.Add(new MapMonsterEncounter(
+                        MonsterKey: BuildMonsterKey(group.SpawnGroupKey, i + 1),
+                        SpawnGroupKey: group.SpawnGroupKey,
+                        SpawnInstanceIndex: i,
+                        MapId: group.MapId,
+                        RoomId: group.RoomId,
+                        SpawnTemplateKey: group.SpawnTemplateKey,
+                        SpawnCellRow: group.SpawnCellRow,
+                        SpawnCellCol: group.SpawnCellCol,
+                        SurfaceId: group.SurfaceId,
+                        PatrolStartRatio: group.PatrolStartRatio,
+                        PatrolEndRatio: group.PatrolEndRatio,
+                        SpawnRatio: ResolveSpawnRatio(group, i, spawnTemplate.SpawnCount),
+                        MoveSpeed: group.MoveSpeed,
+                        IsActive: true));
+                }
+            }
+
+            return encounters;
         }
 
         private static string BuildMonsterKey(string spawnGroupKey, int instanceNumber) =>

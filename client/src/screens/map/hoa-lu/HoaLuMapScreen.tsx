@@ -24,11 +24,13 @@ import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
 import { PopupMenu, MenuItem } from '../../../components/controls/PopupMenu/PopupMenu';
 import { TouchGamepad } from '../../../components/controls/TouchGamepad';
 import { clearSession } from '../../../storage/SessionStorage';
+import { SocketClient, type MapMonsterRosterPacket } from '../../../network/SocketClient';
 import { resolveSideScrollMapSceneConfig } from '../core';
 import type {
   MapMonsterRosterEntry,
   ResolveMapMonsterRoster,
 } from '../core';
+import { applyMapMonsterRuntimePacket } from '../core';
 import type { CharacterAppearance } from '../../character/shared';
 import type {
   MonsterBattleBootstrapResponse,
@@ -65,6 +67,9 @@ interface MonsterRuntime {
   direction: 1 | -1;
   tickCount: number;
   attacking: boolean;
+  worldState: 'patrol' | 'alert' | 'engaging';
+  aggroTicks: number;
+  engageQueued: boolean;
   frameIndex: number;
   xAnim: Animated.Value;  // drives translateX on native side
   size: ReturnType<typeof monsterDisplaySize>;
@@ -77,10 +82,15 @@ interface MonsterVisual {
   frameIndex: number;
   direction: 1 | -1;
   attacking: boolean;
+  worldState: 'patrol' | 'alert' | 'engaging';
 }
 
 // Khoảng cách tính là "va chạm" (px từ center-to-center)
 const COLLISION_DIST = 52;
+const ALERT_DIST = 144;
+const ALERT_HOLD_TICKS = 10;
+const ENGAGE_TRIGGER_DELAY_MS = 120;
+const ALERT_CHASE_SPEED_MULTIPLIER = 1.18;
 // Mỗi bao nhiêu tick thì đổi frame (tick=50ms, FRAME_TICKS=4 → 80ms/frame ≈ 12fps anim)
 const FRAME_TICKS = 4;
 const MONSTER_TICK_MS = 50; // 20 logic ticks/sec
@@ -113,6 +123,9 @@ function buildMonsterRuntimes(roster: MapMonsterRosterEntry[], surfaces: GroundS
       direction: (entry.spawnInstanceIndex & 1) === 0 ? 1 : -1,
       tickCount: 0,
       attacking: false,
+      worldState: 'patrol',
+      aggroTicks: 0,
+      engageQueued: false,
       frameIndex: WALK_FRAMES[0],
       xAnim: new Animated.Value(leftX),
       size,
@@ -127,6 +140,7 @@ function buildInitialVisuals(runtimes: MonsterRuntime[]): MonsterVisual[] {
     frameIndex: m.frameIndex,
     direction: m.direction,
     attacking: m.attacking,
+    worldState: m.worldState,
   }));
 }
 
@@ -195,6 +209,11 @@ const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals, playerL
         attacking: m.attacking,
       };
       const palette = resolveMonsterNameplatePalette(m.roster, playerLevel);
+      const spriteScale = vis.worldState === 'engaging'
+        ? 1.06
+        : vis.worldState === 'alert'
+          ? 1.03
+          : 1;
       return (
         <Animated.View
           key={m.id}
@@ -205,7 +224,7 @@ const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals, playerL
             width: Math.max(m.size.w, 92),
             height: m.size.h + 24,
             zIndex: LAYER_MONSTER,
-            transform: [{ translateX: m.xAnim }],
+            transform: [{ translateX: m.xAnim }, { scale: spriteScale }],
             overflow: 'visible',
             alignItems: 'center',
           }}
@@ -342,8 +361,10 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const groundTop = getSurfaceStartY(groundMainSurface);
 
   const scrollRef = useRef<ScrollView>(null);
+  const socketClientRef = useRef(SocketClient.getInstance());
   const characterControllerRef = useRef<CharacterControllerRef>(null);
   const battleTriggered = useRef(false);
+  const engagedMonsterIdRef = useRef<string | null>(null);
   const encounterRequestVersionRef = useRef(0);
   const charLeftRef = useRef(charInitX);
   const cameraXRef = useRef(0);
@@ -390,6 +411,24 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   }, [mapId, roomId, resolveMonsterRoster]);
 
   useEffect(() => {
+    const client = socketClientRef.current;
+    const request = { mapId, roomId };
+
+    const handleRosterPacket = (packet: MapMonsterRosterPacket) => {
+      if (packet.mapId !== mapId || packet.roomId !== roomId) {
+        return;
+      }
+
+      setMonsterRoster((current) => applyMapMonsterRuntimePacket(current, request, packet));
+    };
+
+    client.on('mapMonsterRoster', handleRosterPacket);
+    return () => {
+      client.off('mapMonsterRoster', handleRosterPacket);
+    };
+  }, [mapId, roomId]);
+
+  useEffect(() => {
     const nextRuntimes = buildMonsterRuntimes(monsterRoster, sceneSurfaces);
     monsterRuntimesRef.current = nextRuntimes;
     monsterTargetsRef.current = nextRuntimes.map((runtime) => ({
@@ -400,9 +439,10 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       height: runtime.size.h,
     }));
     setMonsterVisuals(buildInitialVisuals(nextRuntimes));
+    engagedMonsterIdRef.current = encounterPreview?.monsterKey ?? null;
     battleTriggered.current = false;
     setMonsterRuntimeVersion((version) => version + 1);
-  }, [monsterRoster, sceneSurfaces]);
+  }, [encounterPreview?.monsterKey, monsterRoster, sceneSurfaces]);
 
   // ── Menu state ──────────────────────────────────────────────────────────
   const [menuVisible, setMenuVisible] = useState(false);
@@ -547,6 +587,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
     const requestVersion = encounterRequestVersionRef.current + 1;
     encounterRequestVersionRef.current = requestVersion;
 
+    engagedMonsterIdRef.current = snap.monsterKey;
     battleTriggered.current = true;
     setEncounterPreview({
       monsterType: snap.type,
@@ -618,6 +659,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
 
   const cancelEncounter = useCallback(() => {
     encounterRequestVersionRef.current += 1;
+    engagedMonsterIdRef.current = null;
     setEncounterPreview(null);
     battleTriggered.current = false;
   }, []);
@@ -647,19 +689,55 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       while (accumulator >= MONSTER_TICK_MS) {
         accumulator -= MONSTER_TICK_MS;
         const playerCenter = charLeftRef.current + playerSpriteSize.w / 2;
+        const lockedMonsterId = engagedMonsterIdRef.current;
 
         for (let i = 0; i < monsterRuntimes.length; i++) {
           const m = monsterRuntimes[i];
+          const distanceToPlayer = Math.abs(m.x - playerCenter);
+          const canOwnEncounter = lockedMonsterId === null || lockedMonsterId === m.id;
+          const shouldEngage = canOwnEncounter && distanceToPlayer <= COLLISION_DIST;
+          const shouldAlert = canOwnEncounter && distanceToPlayer <= ALERT_DIST;
+          const nextWorldState: MonsterRuntime['worldState'] = shouldEngage
+            ? 'engaging'
+            : shouldAlert || m.aggroTicks > 0
+              ? 'alert'
+              : 'patrol';
+          const nextAggroTicks = shouldAlert
+            ? ALERT_HOLD_TICKS
+            : nextWorldState === 'alert'
+              ? Math.max(0, m.aggroTicks - 1)
+              : 0;
 
           // 1. Move
-          let newX  = m.x + m.roster.moveSpeed * m.direction;
+          let newX = m.x;
           let newDir: 1 | -1 = m.direction;
-          if (newX >= m.maxX) { newX = m.maxX; newDir = -1; }
-          if (newX <= m.minX) { newX = m.minX; newDir =  1; }
 
-          // 2. Collision
-          const attacking = Math.abs(newX - playerCenter) < COLLISION_DIST;
-          if (attacking && !battleTriggered.current) {
+          if (nextWorldState === 'patrol') {
+            newX = m.x + m.roster.moveSpeed * m.direction;
+            if (newX >= m.maxX) { newX = m.maxX; newDir = -1; }
+            if (newX <= m.minX) { newX = m.minX; newDir = 1; }
+            m.engageQueued = false;
+          } else {
+            newDir = playerCenter >= m.x ? 1 : -1;
+            const chaseSpeed = m.roster.moveSpeed * ALERT_CHASE_SPEED_MULTIPLIER;
+            const chaseDelta = Math.abs(playerCenter - m.x) <= COLLISION_DIST * 0.55
+              ? 0
+              : chaseSpeed * newDir;
+            newX = Math.max(m.minX, Math.min(m.maxX, m.x + chaseDelta));
+          }
+
+          const attacking = nextWorldState === 'engaging';
+          if (attacking && !battleTriggered.current && engagedMonsterIdRef.current === null) {
+            engagedMonsterIdRef.current = m.id;
+          }
+
+          if (
+            attacking &&
+            !battleTriggered.current &&
+            engagedMonsterIdRef.current === m.id &&
+            !m.engageQueued
+          ) {
+            m.engageQueued = true;
             const snap = {
               type: m.type,
               monsterKey: m.roster.monsterKey,
@@ -667,7 +745,19 @@ export const HoaLuMapScreen: React.FC<Props> = ({
               groundY: m.groundY,
               initialTurn: 'monster' as const,
             };
-            setTimeout(() => startEncounter(snap), 120);
+            setTimeout(() => {
+              if (
+                battleTriggered.current ||
+                !m.engageQueued ||
+                engagedMonsterIdRef.current !== m.id
+              ) {
+                return;
+              }
+
+              startEncounter(snap);
+            }, ENGAGE_TRIGGER_DELAY_MS);
+          } else if (!attacking) {
+            m.engageQueued = false;
           }
 
           // 3. Advance frame
@@ -680,7 +770,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           if (
             m.frameIndex !== nextFrame ||
             m.direction !== newDir ||
-            m.attacking !== attacking
+            m.attacking !== attacking ||
+            m.worldState !== nextWorldState
           ) {
             visualsDirty = true;
           }
@@ -689,6 +780,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           m.x          = newX;
           m.direction  = newDir;
           m.attacking  = attacking;
+          m.worldState = nextWorldState;
+          m.aggroTicks = nextAggroTicks;
           m.tickCount  = newTick;
           m.frameIndex = nextFrame;
 
@@ -711,6 +804,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           frameIndex: m.frameIndex,
           direction: m.direction,
           attacking: m.attacking,
+          worldState: m.worldState,
         })));
       }
 
@@ -936,6 +1030,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
 
                 const targetMonster = monsterRuntimes.find((m) => m.id === monsterId);
                 if (!targetMonster) return;
+                engagedMonsterIdRef.current = monsterId;
+                targetMonster.engageQueued = true;
 
                 const snap = {
                   type: targetMonster.type,

@@ -86,6 +86,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const maxEHP = Math.max(1, monsterBootstrap.enemy.maxHp);
   const maxMP  = 100;
   const maxPow = 100;
+  const enemyMaxMP = Math.max(1, monsterBootstrap.enemy.maxMp);
+  const enemyMaxPow = Math.max(1, monsterBootstrap.enemy.maxPower);
 
   const boardEngineRef = useRef(createJavaBoardEngine());
   const [board,         setBoard]         = useState<Board>(() => initialBoard);
@@ -100,6 +102,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [enemyHP,   setEnemyHP]   = useState(() => Math.min(monsterBootstrap.enemy.currentHp, maxEHP));
   const [mana,      setMana]      = useState(30);
   const [power,     setPower]     = useState(40);
+  const [enemyMana, setEnemyMana] = useState(() => Math.min(monsterBootstrap.enemy.currentMp, enemyMaxMP));
+  const [enemyPower, setEnemyPower] = useState(() => Math.min(monsterBootstrap.enemy.currentPower, enemyMaxPow));
   const [phase,     setPhase]     = useState<BattlePhase>('idle');
   const [result,    setResult]    = useState<BattleResult | null>(null);
   const [playerAction, setPlayerAction] = useState<CharacterAction>('idle');
@@ -142,6 +146,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setSelected(null);
     setHintCell(null);
     setHintMove(null);
+    setEnemyMana(Math.min(monsterBootstrap.enemy.currentMp, enemyMaxMP));
+    setEnemyPower(Math.min(monsterBootstrap.enemy.currentPower, enemyMaxPow));
   }, [initialBoard]);
   useEffect(() => {
     setExplodeFrames({});
@@ -163,10 +169,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       playerCurrentMp: mana,
       playerCurrentPower: power,
       enemyCurrentHp: enemyHP,
+      enemyCurrentMp: enemyMana,
+      enemyCurrentPower: enemyPower,
     }));
   }, [
     board,
     enemyHP,
+    enemyMana,
+    enemyPower,
     mana,
     monsterBootstrap.sessionId,
     phase,
@@ -371,12 +381,16 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     maxEHP,
     maxMP,
     maxPow,
+    enemyMaxMP,
+    enemyMaxPow,
     setBoard,
     setPhase,
     setTurn,
     setExtraTurns,
     setTurnCycle,
     setEnemyHP,
+    setEnemyMana,
+    setEnemyPower,
     setPlayerHP,
     setMana,
     setPower,
@@ -451,6 +465,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     maxHP,
     maxMP,
     maxPow,
+    enemyMaxMP,
+    enemyMaxPow,
     monsterBaseLeft,
     monsterGroundOffset,
     monsterSize,
@@ -469,6 +485,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setAiStep,
     setCursorCell,
     setEnemyHP,
+    setEnemyMana,
+    setEnemyPower,
     setExtraTurns,
     setHintCell,
     setHintMove,
@@ -525,6 +543,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     maxHP,
     maxMP,
     maxPow,
+    enemyMaxMP,
+    enemyMaxPow,
     monsterBaseLeft,
     monsterGroundOffset,
     monsterSize,
@@ -543,6 +563,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     result,
     setActiveSkillCasts,
     setEnemyHP,
+    setEnemyMana,
+    setEnemyPower,
     setExtraTurns,
     setHintCell,
     setHintMove,
@@ -606,10 +628,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         turnTimeLeft={turnTimeLeft}
         mana={mana}
         power={power}
+        enemyMana={enemyMana}
+        enemyPower={enemyPower}
         maxHP={maxHP}
         maxEHP={maxEHP}
         maxMP={maxMP}
         maxPow={maxPow}
+        enemyMaxMP={enemyMaxMP}
+        enemyMaxPow={enemyMaxPow}
         offsets={offsets}
         swapOffsetsX={swapOffsetsX}
         swapOffsetsY={swapOffsetsY}

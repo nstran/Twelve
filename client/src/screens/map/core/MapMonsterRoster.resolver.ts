@@ -4,7 +4,7 @@ import type {
   MapMonsterRosterResponse,
   ResolveMapMonsterRoster,
 } from './MapMonsterRoster.types';
-import { SocketClient, type MapMonsterRosterPacket } from '../../../network/SocketClient';
+import { SocketClient, type MapMonsterRosterPacket, type MapMonsterSpawnRecord } from '../../../network/SocketClient';
 import { resolveMonsterSharedSheetFamily } from '../../battle';
 import { resolveSideScrollMapSceneConfig } from './MapSceneConfig.registry';
 
@@ -17,9 +17,6 @@ const toHttpBaseUrl = (socketUrl: string): string => {
     return socketUrl;
   }
 };
-
-const buildMonsterKey = (spawnGroupKey: string, instanceNumber: number): string =>
-  `${spawnGroupKey}:${instanceNumber.toString().padStart(3, '0')}`.toUpperCase();
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
 
@@ -53,57 +50,102 @@ const resolveSpawnRatio = (
   return clamp01(ratio);
 };
 
-const mapPacketToRoster = (
+const buildRosterEntry = (
   request: MapMonsterRosterRequest,
-  packet: MapMonsterRosterPacket,
-): MapMonsterRosterResponse | null => {
+  record: MapMonsterSpawnRecord,
+): MapMonsterRosterEntry | null => {
   const sceneConfig = resolveSideScrollMapSceneConfig(request.mapId, request.roomId);
   if (!sceneConfig || !sceneConfig.monsterSpawnGroups || sceneConfig.monsterSpawnGroups.length === 0) {
     return null;
   }
 
-  const encounters: MapMonsterRosterEntry[] = [];
-  for (const packetMonster of packet.monsters) {
-    const profile = sceneConfig.monsterSpawnGroups.find(
-      (candidate) => candidate.spawnGroupKey === packetMonster.monsterKey,
-    );
+  const profile = sceneConfig.monsterSpawnGroups.find(
+    (candidate) => candidate.spawnGroupKey === record.spawnGroupKey,
+  );
+  if (!profile) {
+    return null;
+  }
 
-    if (!profile) {
-      continue;
-    }
+  const effectiveSpawnCount = Math.max(1, record.spawnCount);
+  return {
+    monsterKey: record.monsterKey,
+    spawnGroupKey: record.spawnGroupKey,
+    spawnInstanceIndex: record.spawnInstanceIndex,
+    spawnTemplateKey: `${record.spawnGroupKey}_runtime`,
+    displayName: record.displayName,
+    visualTypeByte: record.visualTypeByte,
+    displayLevel: record.displayLevel,
+    iqValue: record.iqValue,
+    nameColorMode: record.nameColorMode,
+    sharedSheetFamily: resolveMonsterSharedSheetFamily(record.visualTypeByte),
+    surfaceId: profile.surfaceId,
+    patrolStartRatio: profile.patrolStartRatio,
+    patrolEndRatio: profile.patrolEndRatio,
+    spawnRatio: resolveSpawnRatio(
+      profile.spawnStartRatio,
+      profile.spawnEndRatio,
+      record.spawnInstanceIndex,
+      effectiveSpawnCount,
+    ),
+    moveSpeed: profile.moveSpeed,
+  };
+};
 
-    const spawnCount = Math.max(0, packetMonster.spawnCount);
-    for (let i = 0; i < spawnCount; i++) {
-      encounters.push({
-        monsterKey: buildMonsterKey(packetMonster.monsterKey, i + 1),
-        spawnGroupKey: packetMonster.monsterKey,
-        spawnInstanceIndex: i,
-        spawnTemplateKey: `${packetMonster.monsterKey}_runtime`,
-        displayName: packetMonster.displayName,
-        visualTypeByte: packetMonster.visualTypeByte,
-        displayLevel: packetMonster.displayLevel,
-        iqValue: packetMonster.iqValue,
-        nameColorMode: packetMonster.nameColorMode,
-        sharedSheetFamily: resolveMonsterSharedSheetFamily(packetMonster.visualTypeByte),
-        surfaceId: profile.surfaceId,
-        patrolStartRatio: profile.patrolStartRatio,
-        patrolEndRatio: profile.patrolEndRatio,
-        spawnRatio: resolveSpawnRatio(
-          profile.spawnStartRatio,
-          profile.spawnEndRatio,
-          i,
-          spawnCount,
-        ),
-        moveSpeed: profile.moveSpeed,
-      });
+const buildRosterEntries = (
+  request: MapMonsterRosterRequest,
+  packet: MapMonsterRosterPacket,
+): MapMonsterRosterEntry[] => {
+  const entries: MapMonsterRosterEntry[] = [];
+  for (const record of packet.monsters) {
+    const entry = buildRosterEntry(request, record);
+    if (entry) {
+      entries.push(entry);
     }
   }
 
-  return {
-    mapId: request.mapId,
-    roomId: request.roomId,
-    encounters,
-  };
+  return entries;
+};
+
+export const applyMapMonsterRuntimePacket = (
+  current: MapMonsterRosterEntry[],
+  request: MapMonsterRosterRequest,
+  packet: MapMonsterRosterPacket,
+): MapMonsterRosterEntry[] => {
+  if (packet.mapId !== request.mapId || packet.roomId !== request.roomId) {
+    return current;
+  }
+
+  switch (packet.mode) {
+    case 1: {
+      if (packet.monsters.length === 0) {
+        return current;
+      }
+
+      const removedKeys = new Set(packet.monsters.map((monster) => monster.monsterKey));
+      return current.filter((entry) => !removedKeys.has(entry.monsterKey));
+    }
+
+    case 0: {
+      const additions = buildRosterEntries(request, packet);
+      if (additions.length === 0) {
+        return current;
+      }
+
+      const byKey = new Map<string, MapMonsterRosterEntry>();
+      for (const entry of current) {
+        byKey.set(entry.monsterKey, entry);
+      }
+      for (const entry of additions) {
+        byKey.set(entry.monsterKey, entry);
+      }
+
+      return Array.from(byKey.values());
+    }
+
+    case 3:
+    default:
+      return buildRosterEntries(request, packet);
+  }
 };
 
 const fetchHttpRoster = async (
@@ -170,11 +212,15 @@ export const createMapMonsterRosterResolver = (
         };
 
         const handleRoster = (packet: MapMonsterRosterPacket) => {
-          if (packet.mapId !== request.mapId) {
+          if (packet.mapId !== request.mapId || packet.roomId !== request.roomId || packet.mode !== 3) {
             return;
           }
 
-          finish(mapPacketToRoster(request, packet));
+          finish({
+            mapId: request.mapId,
+            roomId: request.roomId,
+            encounters: applyMapMonsterRuntimePacket([], request, packet),
+          });
         };
 
         client.on('mapMonsterRoster', handleRoster);

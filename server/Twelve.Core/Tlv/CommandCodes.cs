@@ -21,6 +21,8 @@ namespace Twelve.Core.Tlv
         EnterGame               = 10,
         PlayerInfo              = 11,
         MapMonsterRoster        = 43,   // Java-like lightweight monster roster packet
+        MonsterBootstrapRequest = 96,
+        MonsterBootstrapResponse= 97,
         MapLoad                 = 20,
 
         // ── Stat Allocation ───────────────────────────────────────────

@@ -31,12 +31,16 @@ interface UseBattleMatchFlowArgs {
   maxEHP: number;
   maxMP: number;
   maxPow: number;
+  enemyMaxMP: number;
+  enemyMaxPow: number;
   setBoard: Dispatch<SetStateAction<Board>>;
   setPhase: Dispatch<SetStateAction<BattlePhase>>;
   setTurn: Dispatch<SetStateAction<BattleTurn>>;
   setExtraTurns: Dispatch<SetStateAction<number>>;
   setTurnCycle: Dispatch<SetStateAction<number>>;
   setEnemyHP: Dispatch<SetStateAction<number>>;
+  setEnemyMana: Dispatch<SetStateAction<number>>;
+  setEnemyPower: Dispatch<SetStateAction<number>>;
   setPlayerHP: Dispatch<SetStateAction<number>>;
   setMana: Dispatch<SetStateAction<number>>;
   setPower: Dispatch<SetStateAction<number>>;
@@ -70,12 +74,16 @@ export const useBattleMatchFlow = ({
   maxEHP,
   maxMP,
   maxPow,
+  enemyMaxMP,
+  enemyMaxPow,
   setBoard,
   setPhase,
   setTurn,
   setExtraTurns,
   setTurnCycle,
   setEnemyHP,
+  setEnemyMana,
+  setEnemyPower,
   setPlayerHP,
   setMana,
   setPower,
@@ -297,6 +305,8 @@ export const useBattleMatchFlow = ({
             );
           }
           if (heal > 0) setEnemyHP(hp => Math.min(maxEHP, hp + heal));
+          if (mp > 0) setEnemyMana(value => Math.min(enemyMaxMP, value + mp));
+          if (pow > 0) setEnemyPower(value => Math.min(enemyMaxPow, value + pow));
         }
       });
     }, MATCH_HOLD_BEFORE_EXPLODE_MS);
@@ -311,6 +321,8 @@ export const useBattleMatchFlow = ({
     maxHP,
     maxMP,
     maxPow,
+    enemyMaxMP,
+    enemyMaxPow,
     mountedRef,
     onPlayerDefeat,
     onPlayerHit,
@@ -324,6 +336,8 @@ export const useBattleMatchFlow = ({
     setBoard,
     boardEngineRef,
     setEnemyHP,
+    setEnemyMana,
+    setEnemyPower,
     setExtraTurns,
     setMana,
     setPhase,

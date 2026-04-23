@@ -85,12 +85,10 @@ namespace Twelve.Application.Monsters
                     HitRate: 82,
                     DodgeRate: 4,
                     CriticalDamage: 110,
-                    Skills: new[]
-                    {
-                        new MonsterSkillTemplate(SkillId: 1000, Level: 1, ManaCost: 6)
-                    },
+                    Skills: [],
                     Appearance: new MonsterAppearanceTemplate(
-                        AssetCatalogId: "monster_species_1000_slot_0")),
+                        AssetCatalogId: "monster_species_1000_slot_0"),
+                    AiProfileId: "beast"),
                 ["battle_hoa_lu_ice_basic"] = new MonsterBattleTemplate(
                     BattleTemplateId: "battle_hoa_lu_ice_basic",
                     Element: 2,
@@ -113,7 +111,8 @@ namespace Twelve.Application.Monsters
                         new MonsterSkillTemplate(SkillId: 4000, Level: 2, ManaCost: 8)
                     },
                     Appearance: new MonsterAppearanceTemplate(
-                        AssetCatalogId: "monster_species_1002_slot_0")),
+                        AssetCatalogId: "monster_species_1002_slot_0"),
+                    AiProfileId: "move_first"),
                 ["battle_hoa_lu_zap_basic"] = new MonsterBattleTemplate(
                     BattleTemplateId: "battle_hoa_lu_zap_basic",
                     Element: 1,
@@ -136,7 +135,8 @@ namespace Twelve.Application.Monsters
                         new MonsterSkillTemplate(SkillId: 2000, Level: 3, ManaCost: 10)
                     },
                     Appearance: new MonsterAppearanceTemplate(
-                        AssetCatalogId: "monster_species_1003_slot_0")),
+                        AssetCatalogId: "monster_species_1003_slot_0"),
+                    AiProfileId: "tactician"),
             };
 
         public static IReadOnlyDictionary<string, IReadOnlyList<MapMonsterSpawnGroup>> MapSpawnGroups { get; } =

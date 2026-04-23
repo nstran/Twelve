@@ -89,7 +89,7 @@ namespace Twelve.Application.Monsters
                 ActiveTurn: request.InitialTurnSide,
                 Board: initialBoard,
                 Player: CreateDefaultPlayerState(),
-                Enemy: CreateEnemySessionState(enemy),
+                Enemy: CreateEnemySessionState(enemy, spawnTemplate.IqValue, battleTemplate.AiProfileId),
                 CreatedAtUtc: DateTime.UtcNow));
 
             return new MonsterBattleBootstrapResponse(
@@ -128,9 +128,15 @@ namespace Twelve.Application.Monsters
                 HitRate: 85,
                 DodgeRate: 5,
                 CriticalDamage: 110,
-                Skills: []);
+                Skills: [],
+                Level: 10,
+                IqValue: 0,
+                AiProfileId: null);
 
-        private static BattleSessionCombatantState CreateEnemySessionState(MonsterBattleInstance enemy) =>
+        private static BattleSessionCombatantState CreateEnemySessionState(
+            MonsterBattleInstance enemy,
+            int iqValue,
+            string? aiProfileId) =>
             new(
                 CombatantId: enemy.CombatantId,
                 DisplayName: enemy.DisplayName,
@@ -151,7 +157,10 @@ namespace Twelve.Application.Monsters
                 HitRate: enemy.HitRate,
                 DodgeRate: enemy.DodgeRate,
                 CriticalDamage: enemy.CriticalDamage,
-                Skills: CreateSessionSkills(enemy.Skills));
+                Skills: CreateSessionSkills(enemy.Skills),
+                Level: enemy.Level,
+                IqValue: iqValue,
+                AiProfileId: aiProfileId);
 
         private static IReadOnlyList<MonsterSkillInstance> CreateSkillInstances(
             IReadOnlyList<MonsterSkillTemplate> templates)

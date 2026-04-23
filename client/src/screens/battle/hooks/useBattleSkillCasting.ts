@@ -37,6 +37,8 @@ interface UseBattleSkillCastingArgs {
   maxHP: number;
   maxMP: number;
   maxPow: number;
+  enemyMaxMP: number;
+  enemyMaxPow: number;
   monsterBaseLeft: number;
   monsterGroundOffset: number;
   monsterSize: { w: number; h: number };
@@ -55,6 +57,8 @@ interface UseBattleSkillCastingArgs {
   result: BattleResult | null;
   setActiveSkillCasts: Dispatch<SetStateAction<ActiveBattleSkillCast[]>>;
   setEnemyHP: Dispatch<SetStateAction<number>>;
+  setEnemyMana: Dispatch<SetStateAction<number>>;
+  setEnemyPower: Dispatch<SetStateAction<number>>;
   setHintCell: Dispatch<SetStateAction<BattleCell | null>>;
   setHintMove: Dispatch<SetStateAction<MoveSpec | null>>;
   setMenuVisible: Dispatch<SetStateAction<boolean>>;
@@ -93,6 +97,8 @@ export const useBattleSkillCasting = ({
   maxHP,
   maxMP,
   maxPow,
+  enemyMaxMP,
+  enemyMaxPow,
   monsterBaseLeft,
   monsterGroundOffset,
   monsterSize,
@@ -111,6 +117,8 @@ export const useBattleSkillCasting = ({
   result,
   setActiveSkillCasts,
   setEnemyHP,
+  setEnemyMana,
+  setEnemyPower,
   setExtraTurns,
   setHintCell,
   setHintMove,
@@ -146,6 +154,8 @@ export const useBattleSkillCasting = ({
     let hasAnyDelta = false;
     let appliedEnemyHpDelta = false;
     let enemyHpDelta = 0;
+    let enemyManaDelta = 0;
+    let enemyPowerDelta = 0;
     let playerHpDelta = 0;
     let playerManaDelta = 0;
     let playerPowerDelta = 0;
@@ -153,6 +163,8 @@ export const useBattleSkillCasting = ({
     for (const delta of packet.actorDeltas) {
       if (delta.side === 'enemy') {
         enemyHpDelta += delta.hpDelta;
+        enemyManaDelta += delta.manaDelta;
+        enemyPowerDelta += delta.powerDelta;
         hasAnyDelta = true;
         continue;
       }
@@ -179,6 +191,14 @@ export const useBattleSkillCasting = ({
       });
     }
 
+    if (enemyManaDelta !== 0) {
+      setEnemyMana(value => Math.max(0, Math.min(enemyMaxMP, value + enemyManaDelta)));
+    }
+
+    if (enemyPowerDelta !== 0) {
+      setEnemyPower(value => Math.max(0, Math.min(enemyMaxPow, value + enemyPowerDelta)));
+    }
+
     if (playerHpDelta !== 0) {
       setPlayerHP(hp => Math.max(0, Math.min(maxHP, hp + playerHpDelta)));
     }
@@ -199,8 +219,12 @@ export const useBattleSkillCasting = ({
     maxHP,
     maxMP,
     maxPow,
+    enemyMaxMP,
+    enemyMaxPow,
     pendingVictoryRef,
     setEnemyHP,
+    setEnemyMana,
+    setEnemyPower,
     setMana,
     setPlayerHP,
     setPower,
@@ -390,6 +414,8 @@ export const useBattleSkillCasting = ({
     maxHP,
     maxMP,
     maxPow,
+    enemyMaxMP,
+    enemyMaxPow,
     monsterBaseLeft,
     monsterGroundOffset,
     monsterSize,
@@ -408,6 +434,8 @@ export const useBattleSkillCasting = ({
     result,
     setActiveSkillCasts,
     setEnemyHP,
+    setEnemyMana,
+    setEnemyPower,
     setExtraTurns,
     setHintCell,
     setHintMove,

@@ -21,6 +21,7 @@ import type {
   ResolveEnemyBattleTurn,
   ResolveEnemyBattleTurnPlan,
 } from './BattleScreen.types';
+import { SocketClient, type MonsterBattleBootstrapSocketResponse } from '../../../network/SocketClient';
 
 type ServerBattleSide = 'Player' | 'Enemy';
 type ServerBattleSkillActorAnchor = 'Center' | 'Bottom';
@@ -362,6 +363,8 @@ export const createBattleSessionSyncResolver = (
           playerCurrentMp: request.playerCurrentMp,
           playerCurrentPower: request.playerCurrentPower,
           enemyCurrentHp: request.enemyCurrentHp,
+          enemyCurrentMp: request.enemyCurrentMp,
+          enemyCurrentPower: request.enemyCurrentPower,
         }),
         signal: controller.signal,
       });
@@ -377,44 +380,90 @@ export const createMonsterBattleBootstrapResolver = (
   timeoutMs = 3500,
 ): ResolveMonsterBattleBootstrap => {
   const baseUrl = toHttpBaseUrl(socketUrl);
+  const client = SocketClient.getInstance();
 
   return async (
     request: MonsterBattleBootstrapRequest,
   ): Promise<MonsterBattleBootstrapResponse | null> => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
     try {
-      const response = await fetch(`${baseUrl}/battle/monster-bootstrap`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mapId: request.mapId,
-          roomId: request.roomId,
-          monsterKey: request.monsterKey,
-          initialTurnSide: request.initialTurnSide === 'enemy' ? 'Enemy' : 'Player',
-        }),
-        signal: controller.signal,
+      const socketResult = await new Promise<MonsterBattleBootstrapResponse | null>((resolve) => {
+        let settled = false;
+        const timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          client.off('monsterBootstrapResponse', handleResponse);
+          resolve(null);
+        }, timeoutMs);
+
+        const finish = (result: MonsterBattleBootstrapResponse | null) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          client.off('monsterBootstrapResponse', handleResponse);
+          resolve(result);
+        };
+
+        const handleResponse = (
+          envelope: MonsterBattleBootstrapSocketResponse<ServerMonsterBattleBootstrapResponse>,
+        ) => {
+          if (!envelope.ok || !envelope.data) {
+            finish(null);
+            return;
+          }
+
+          finish({
+            ...envelope.data,
+            initialTurnSide: mapSide(envelope.data.initialTurnSide),
+          });
+        };
+
+        client.on('monsterBootstrapResponse', handleResponse);
+        client.requestMonsterBootstrap(
+          request.mapId,
+          request.roomId,
+          request.monsterKey,
+          request.initialTurnSide,
+        );
       });
 
-      if (!response.ok) {
-        return null;
+      if (socketResult) {
+        return socketResult;
       }
 
-      const rawBody = await response.text();
-      if (!rawBody.trim()) {
-        return null;
-      }
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(`${baseUrl}/battle/monster-bootstrap`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mapId: request.mapId,
+            roomId: request.roomId,
+            monsterKey: request.monsterKey,
+            initialTurnSide: request.initialTurnSide === 'enemy' ? 'Enemy' : 'Player',
+          }),
+          signal: controller.signal,
+        });
 
-      const responseBody = JSON.parse(rawBody) as ServerMonsterBattleBootstrapResponse;
-      return {
-        ...responseBody,
-        initialTurnSide: mapSide(responseBody.initialTurnSide),
-      };
+        if (!response.ok) {
+          return null;
+        }
+
+        const rawBody = await response.text();
+        if (!rawBody.trim()) {
+          return null;
+        }
+
+        const responseBody = JSON.parse(rawBody) as ServerMonsterBattleBootstrapResponse;
+        return {
+          ...responseBody,
+          initialTurnSide: mapSide(responseBody.initialTurnSide),
+        };
+      } finally {
+        clearTimeout(timeout);
+      }
     } catch {
       return null;
-    } finally {
-      clearTimeout(timeout);
     }
   };
 };

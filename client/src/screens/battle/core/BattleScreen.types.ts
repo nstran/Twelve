@@ -225,6 +225,8 @@ export interface BattleSessionSyncRequest {
   playerCurrentMp: number;
   playerCurrentPower: number;
   enemyCurrentHp: number;
+  enemyCurrentMp: number;
+  enemyCurrentPower: number;
 }
 
 export type ResolveBattleSessionSync =

@@ -28,6 +28,8 @@ interface UseBattleMonsterTurnArgs {
   maxHP: number;
   maxMP: number;
   maxPow: number;
+  enemyMaxMP: number;
+  enemyMaxPow: number;
   monsterBaseLeft: number;
   monsterGroundOffset: number;
   monsterSize: { w: number; h: number };
@@ -46,6 +48,8 @@ interface UseBattleMonsterTurnArgs {
   setAiStep: Dispatch<SetStateAction<'think' | 'pick1' | 'pick2' | null>>;
   setCursorCell: Dispatch<SetStateAction<BattleCell>>;
   setEnemyHP: Dispatch<SetStateAction<number>>;
+  setEnemyMana: Dispatch<SetStateAction<number>>;
+  setEnemyPower: Dispatch<SetStateAction<number>>;
   setExtraTurns: Dispatch<SetStateAction<number>>;
   setHintCell: Dispatch<SetStateAction<BattleCell | null>>;
   setHintMove: Dispatch<SetStateAction<MoveSpec | null>>;
@@ -78,6 +82,8 @@ export const useBattleMonsterTurn = ({
   maxHP,
   maxMP,
   maxPow,
+  enemyMaxMP,
+  enemyMaxPow,
   monsterBaseLeft,
   monsterGroundOffset,
   monsterSize,
@@ -96,6 +102,8 @@ export const useBattleMonsterTurn = ({
   setAiStep,
   setCursorCell,
   setEnemyHP,
+  setEnemyMana,
+  setEnemyPower,
   setExtraTurns,
   setHintCell,
   setHintMove,
@@ -244,6 +252,8 @@ export const useBattleMonsterTurn = ({
       let playerManaDelta = 0;
       let playerPowerDelta = 0;
       let enemyHpDelta = 0;
+      let enemyManaDelta = 0;
+      let enemyPowerDelta = 0;
 
       for (const delta of packet.actorDeltas ?? []) {
         if (delta.side === 'player') {
@@ -254,6 +264,8 @@ export const useBattleMonsterTurn = ({
         }
 
         enemyHpDelta += delta.hpDelta;
+        enemyManaDelta += delta.manaDelta;
+        enemyPowerDelta += delta.powerDelta;
       }
 
       if (playerHpDelta < 0) {
@@ -291,6 +303,14 @@ export const useBattleMonsterTurn = ({
 
       if (enemyHpDelta !== 0) {
         setEnemyHP((hp) => Math.max(0, Math.min(maxEHP, hp + enemyHpDelta)));
+      }
+
+      if (enemyManaDelta !== 0) {
+        setEnemyMana((value) => Math.max(0, Math.min(enemyMaxMP, value + enemyManaDelta)));
+      }
+
+      if (enemyPowerDelta !== 0) {
+        setEnemyPower((value) => Math.max(0, Math.min(enemyMaxPow, value + enemyPowerDelta)));
       }
     }, cast.impactDelayMs);
 
@@ -350,6 +370,8 @@ export const useBattleMonsterTurn = ({
     maxHP,
     maxMP,
     maxPow,
+    enemyMaxMP,
+    enemyMaxPow,
     monsterBaseLeft,
     monsterGroundOffset,
     monsterSize,
@@ -363,6 +385,8 @@ export const useBattleMonsterTurn = ({
     processMatchesRef,
     setActiveSkillCasts,
     setEnemyHP,
+    setEnemyMana,
+    setEnemyPower,
     setExtraTurns,
     setMana,
     setPhase,

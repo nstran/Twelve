@@ -33,6 +33,7 @@ namespace Twelve.Application
             services.AddSingleton<CreateCharacterHandler>();
             services.AddSingleton<AllocateStatHandler>();
             services.AddSingleton<MapHandler>();
+            services.AddSingleton<MonsterEncounterHandler>();
             services.AddSingleton<MoveHandler>();
 
             // ── Wiring PacketDispatcher ────────────────────────────────────────
@@ -55,6 +56,7 @@ namespace Twelve.Application
                 dispatcher.RegisterHandler(11, sp.GetRequiredService<MapHandler>()); // To be refactored soon
                 dispatcher.RegisterHandler(13, sp.GetRequiredService<MapHandler>());
                 dispatcher.RegisterHandler(29, sp.GetRequiredService<MapHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.MonsterBootstrapRequest, sp.GetRequiredService<MonsterEncounterHandler>());
                 dispatcher.RegisterHandler(44, sp.GetRequiredService<MoveHandler>());
 
                 return dispatcher;

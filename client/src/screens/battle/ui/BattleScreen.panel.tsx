@@ -45,10 +45,14 @@ interface BattlePanelProps {
   turnTimeLeft: number;
   mana: number;
   power: number;
+  enemyMana: number;
+  enemyPower: number;
   maxHP: number;
   maxEHP: number;
   maxMP: number;
   maxPow: number;
+  enemyMaxMP: number;
+  enemyMaxPow: number;
   offsets: Animated.Value[][];
   swapOffsetsX: Animated.Value[][];
   swapOffsetsY: Animated.Value[][];
@@ -79,10 +83,14 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   turnTimeLeft,
   mana,
   power,
+  enemyMana,
+  enemyPower,
   maxHP,
   maxEHP,
   maxMP,
   maxPow,
+  enemyMaxMP,
+  enemyMaxPow,
   offsets,
   swapOffsetsX,
   swapOffsetsY,
@@ -183,7 +191,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
         <View style={{ position: 'absolute', top: enemyHud.mp.y, right: enemyHud.mp.x }}>
           <TBar
             asset={BATTLE_ASSETS.manaBar}
-            fill={0}
+            fill={enemyMaxMP <= 0 ? 0 : enemyMana / enemyMaxMP}
             w={enemyHud.mp.w}
             h={enemyHud.mp.h}
             direction="rtl"
@@ -192,7 +200,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
         <View style={{ position: 'absolute', top: enemyHud.power.y, right: enemyHud.power.x }}>
           <TBar
             asset={BATTLE_ASSETS.powerBar}
-            fill={0}
+            fill={enemyMaxPow <= 0 ? 0 : enemyPower / enemyMaxPow}
             w={enemyHud.power.w}
             h={enemyHud.power.h}
             direction="rtl"

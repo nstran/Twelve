@@ -29,7 +29,10 @@ namespace Twelve.Core.Battle
         int HitRate,
         int DodgeRate,
         int CriticalDamage,
-        IReadOnlyList<BattleSessionSkillInstance> Skills
+        IReadOnlyList<BattleSessionSkillInstance> Skills,
+        int Level = 1,
+        int IqValue = 0,
+        string? AiProfileId = null
     );
 
     public sealed record BattleSessionState(
@@ -95,6 +98,8 @@ namespace Twelve.Core.Battle
         int PlayerCurrentHp,
         int PlayerCurrentMp,
         int PlayerCurrentPower,
-        int EnemyCurrentHp
+        int EnemyCurrentHp,
+        int EnemyCurrentMp,
+        int EnemyCurrentPower
     );
 }

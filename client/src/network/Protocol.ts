@@ -23,6 +23,8 @@ export enum Command {
     ENTER_GAME          = 10,
     PLAYER_INFO         = 11,
     MAP_MONSTER_ROSTER  = 43,
+    MONSTER_BOOTSTRAP_REQUEST = 96,
+    MONSTER_BOOTSTRAP_RESPONSE = 97,
     MAP_LOAD            = 20,
     MOVE                = 44
 }

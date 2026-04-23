@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
+using Twelve.Application.Monsters;
 using Twelve.Core;
 using Twelve.Core.Interfaces;
 using Twelve.Core.Maps;
-using Twelve.Core.Monsters;
 using Twelve.Core.Tlv;
 
 namespace Twelve.Application.Handlers
@@ -33,7 +34,7 @@ namespace Twelve.Application.Handlers
                 var mapPayload = BuildMapPayload(DefaultMapId, DefaultRoomId);
                 await session.SendPacketAsync(TlvCodec.BuildPacket(11, mapPayload));
 
-                var monsterRosterPayload = BuildMonsterRosterPayload(DefaultMapId, DefaultRoomId);
+                var monsterRosterPayload = BuildMonsterRosterPayload(DefaultMapId, DefaultRoomId, mode: 3);
                 await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.MapMonsterRoster, monsterRosterPayload));
             }
             else if (request.Command == 29) // Map Join
@@ -57,42 +58,19 @@ namespace Twelve.Application.Handlers
             return tags.ToArray();
         }
 
-        private byte[] BuildMonsterRosterPayload(string mapId, int roomId)
+        private byte[] BuildMonsterRosterPayload(string mapId, int roomId, byte mode)
         {
-            var groups = _mapMonsterRosterService.GetActiveSpawnGroups(mapId, roomId);
-            var tags = new List<byte>();
-            tags.AddRange(TlvCodec.MakeTag(20, mapId));
-            tags.AddRange(TlvCodec.MakeTag(40, (byte)0));
+            var activeRoster = _mapMonsterRosterService.GetActiveRoster(mapId, roomId);
+            var spawnTemplates = _monsterSpawnCatalog
+                .GetAll()
+                .ToDictionary(template => template.SpawnTemplateKey, template => template, System.StringComparer.OrdinalIgnoreCase);
 
-            foreach (var group in groups)
-            {
-                var spawnTemplate = _monsterSpawnCatalog.GetBySpawnTemplateKey(group.SpawnTemplateKey);
-                if (spawnTemplate is null)
-                {
-                    continue;
-                }
-
-                var rosterEntryPayload = BuildMonsterRosterEntryPayload(group, spawnTemplate);
-                tags.AddRange(TlvCodec.MakeTag(9, rosterEntryPayload));
-            }
-
-            return tags.ToArray();
-        }
-
-        private static byte[] BuildMonsterRosterEntryPayload(
-            MapMonsterSpawnGroup group,
-            MonsterSpawnTemplate spawnTemplate)
-        {
-            var tags = new List<byte>();
-            tags.AddRange(TlvCodec.MakeTag(9, group.SpawnGroupKey));
-            tags.AddRange(TlvCodec.MakeTag(26, spawnTemplate.DisplayName));
-            tags.AddRange(TlvCodec.MakeTag(27, spawnTemplate.DisplayLevel));
-            tags.AddRange(TlvCodec.MakeTag(15, spawnTemplate.VisualTypeByte));
-            tags.AddRange(TlvCodec.MakeTag(129, spawnTemplate.IqValue));
-            tags.AddRange(TlvCodec.MakeTag(106, spawnTemplate.SpawnCount));
-            tags.AddRange(TlvCodec.MakeTag(107, spawnTemplate.NameColorMode));
-
-            return tags.ToArray();
+            return MonsterRuntimePacketFactory.BuildRuntimePacket(
+                mapId,
+                roomId,
+                mode,
+                activeRoster,
+                spawnTemplates);
         }
 
         private static MapRoom ResolveRoom(string mapId, int roomId)

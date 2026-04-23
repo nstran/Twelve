@@ -20,6 +20,8 @@ export interface MapInfo {
 
 export interface MapMonsterSpawnRecord {
   monsterKey: string;
+  spawnGroupKey: string;
+  spawnInstanceIndex: number;
   displayName: string;
   visualTypeByte: number;
   displayLevel: number;
@@ -30,9 +32,24 @@ export interface MapMonsterSpawnRecord {
 
 export interface MapMonsterRosterPacket {
   mapId: string;
+  roomId: number;
   mode: number;
   monsters: MapMonsterSpawnRecord[];
 }
+
+export interface MonsterBattleBootstrapSocketResponse<T = unknown> {
+  ok: boolean;
+  data: T | null;
+  error?: string | null;
+}
+
+type MonsterBattleBootstrapSocketResponseWire<T = unknown> =
+  | MonsterBattleBootstrapSocketResponse<T>
+  | {
+    Ok?: boolean;
+    Data?: T | null;
+    Error?: string | null;
+  };
 
 export class SocketClient extends EventEmitter {
   private socket: WebSocket | null = null;
@@ -170,6 +187,34 @@ export class SocketClient extends EventEmitter {
         break;
       }
 
+      case Command.MONSTER_BOOTSTRAP_RESPONSE: {
+        const rawJson = new TextDecoder().decode(payload);
+        if (!rawJson.trim()) {
+          this.emit('monsterBootstrapResponse', { ok: false, data: null, error: 'empty_payload' });
+          break;
+        }
+
+        try {
+          const parsed = JSON.parse(rawJson) as MonsterBattleBootstrapSocketResponseWire;
+          const record = parsed as Record<string, unknown>;
+          const response: MonsterBattleBootstrapSocketResponse = {
+            ok: parsed && typeof parsed === 'object' && 'ok' in record
+              ? Boolean(record.ok)
+              : Boolean(record.Ok),
+            data: parsed && typeof parsed === 'object' && 'data' in record
+              ? (record.data as unknown) ?? null
+              : (record.Data as unknown) ?? null,
+            error: parsed && typeof parsed === 'object' && 'error' in record
+              ? (record.error as string | null | undefined) ?? null
+              : (record.Error as string | null | undefined) ?? null,
+          };
+          this.emit('monsterBootstrapResponse', response);
+        } catch {
+          this.emit('monsterBootstrapResponse', { ok: false, data: null, error: 'invalid_json' });
+        }
+        break;
+      }
+
       case Command.MAP_LOAD:
         // Future map load logic
         break;
@@ -255,6 +300,22 @@ export class SocketClient extends EventEmitter {
     packet[0] = 0; packet[1] = 0; // SubCount = 0
     packet[2] = 0; packet[3] = 0; packet[4] = 0; packet[5] = 0; // PayloadLength = 0
     packet[6] = 11; // CMD
+    this.socket?.send(packet);
+  }
+
+  requestMonsterBootstrap(
+    mapId: string,
+    roomId: number,
+    monsterKey: string,
+    initialTurnSide: 'player' | 'enemy',
+  ) {
+    const payload = new Uint8Array([
+      ...this.makeStringTag(20, mapId),
+      ...this.makeIntTag(30, roomId),
+      ...this.makeStringTag(9, monsterKey),
+      ...this.makeByteTag(40, initialTurnSide === 'enemy' ? 1 : 0),
+    ]);
+    const packet = this.wrapPacket(Command.MONSTER_BOOTSTRAP_REQUEST, payload, 4);
     this.socket?.send(packet);
   }
 
@@ -407,6 +468,7 @@ export class SocketClient extends EventEmitter {
   private parseMapMonsterRoster(payload: Uint8Array): MapMonsterRosterPacket {
     let pos = 0;
     let mapId = '';
+    let roomId = 0;
     let mode = 0;
     const monsters: MapMonsterSpawnRecord[] = [];
 
@@ -419,6 +481,9 @@ export class SocketClient extends EventEmitter {
         case 20:
           mapId = new TextDecoder().decode(val);
           break;
+        case 30:
+          roomId = this.readInt(val, 0);
+          break;
         case 40:
           mode = val[0] ?? 0;
           break;
@@ -430,12 +495,14 @@ export class SocketClient extends EventEmitter {
       pos += 5 + len;
     }
 
-    return { mapId, mode, monsters };
+    return { mapId, roomId, mode, monsters };
   }
 
   private parseMapMonsterSpawnRecord(payload: Uint8Array): MapMonsterSpawnRecord {
     let pos = 0;
     let monsterKey = '';
+    let spawnGroupKey = '';
+    let spawnInstanceIndex = 0;
     let displayName = '';
     let displayLevel = 0;
     let visualTypeByte = 0;
@@ -454,6 +521,12 @@ export class SocketClient extends EventEmitter {
           break;
         case 26:
           displayName = new TextDecoder().decode(val);
+          break;
+        case 108:
+          spawnGroupKey = new TextDecoder().decode(val);
+          break;
+        case 109:
+          spawnInstanceIndex = this.readInt(val, 0);
           break;
         case 27:
           displayLevel = this.readInt(val, 0);
@@ -477,6 +550,8 @@ export class SocketClient extends EventEmitter {
 
     return {
       monsterKey,
+      spawnGroupKey,
+      spawnInstanceIndex,
       displayName,
       visualTypeByte,
       displayLevel,
