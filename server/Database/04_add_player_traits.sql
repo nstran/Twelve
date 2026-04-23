@@ -7,5 +7,3 @@ ALTER TABLE Players ADD COLUMN IF NOT EXISTS HairStyle INT;
 ALTER TABLE Players ADD COLUMN IF NOT EXISTS HairColor INT;
 ALTER TABLE Players ADD COLUMN IF NOT EXISTS SkinColor INT;
 
--- Giải thích các giá trị mặc định:
--- Element: 0=Kim, 1=Mộc, 2=Thủy, 3=Hỏa, 4=Thổ
