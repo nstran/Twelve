@@ -13,6 +13,7 @@ import { CharacterRenderer, measureCharacterRenderer } from '../character';
 import type { CharacterAppearance } from '../character/shared';
 import { loadSession } from '../../storage/SessionStorage';
 import type { MonsterBattleBootstrapResponse } from './core';
+import { resolveMonsterBadgeFromVisuals } from './core';
 
 const AUTO_ADVANCE_MS = 5000;
 const SHOW_CARDS_AFTER_MS = 1500;
@@ -133,17 +134,14 @@ export const BattleIntroScreen: React.FC<BattleIntroScreenProps> = ({
             : monsterBootstrap.iqValue === 11
               ? 'Tốc chiến'
               : 'Tuyệt đỉnh';
-      const badge = monsterBootstrap.enemy.element === 1
-        ? '⚡'
-        : monsterBootstrap.enemy.element === 2
-          ? '💧'
-          : '🔥';
-
       return {
         name: monsterBootstrap.enemy.displayName,
         level: monsterBootstrap.displayLevel,
         note: `IQ: ${iqLabel}`,
-        badge,
+        badge: resolveMonsterBadgeFromVisuals(
+          monsterBootstrap.visualTypeByte,
+          monsterBootstrap.sharedSheetFamily,
+        ),
       };
     }
 

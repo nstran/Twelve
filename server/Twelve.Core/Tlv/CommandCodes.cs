@@ -20,6 +20,7 @@ namespace Twelve.Core.Tlv
         // ── Game Commands ─────────────────────────────────────────────
         EnterGame               = 10,
         PlayerInfo              = 11,
+        MapMonsterRoster        = 43,   // Java-like lightweight monster roster packet
         MapLoad                 = 20,
 
         // ── Stat Allocation ───────────────────────────────────────────

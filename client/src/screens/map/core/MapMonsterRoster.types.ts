@@ -7,6 +7,8 @@ export interface MapMonsterRosterRequest {
 
 export interface MapMonsterRosterEntry {
   monsterKey: string;
+  spawnGroupKey: string;
+  spawnInstanceIndex: number;
   spawnTemplateKey: string;
   displayName: string;
   visualTypeByte: number;

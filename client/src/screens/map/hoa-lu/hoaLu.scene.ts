@@ -23,4 +23,33 @@ export const HOA_LU_SCENE_CONFIG: SideScrollMapSceneConfig = {
   primaryGroundSurfaceId: 'ground_main',
   assets: HOA_LU_MAP_ASSETS,
   buildSurfaces: buildHoaLuSurfaces,
+  monsterSpawnGroups: [
+    {
+      spawnGroupKey: 'hoa_lu_fire_group_a',
+      surfaceId: 'ground_main',
+      patrolStartRatio: 0.25,
+      patrolEndRatio: 0.48,
+      spawnStartRatio: 0.32,
+      spawnEndRatio: 0.46,
+      moveSpeed: 2.2,
+    },
+    {
+      spawnGroupKey: 'hoa_lu_ice_group_a',
+      surfaceId: 'ground_main',
+      patrolStartRatio: 0.48,
+      patrolEndRatio: 0.72,
+      spawnStartRatio: 0.50,
+      spawnEndRatio: 0.66,
+      moveSpeed: 2.6,
+    },
+    {
+      spawnGroupKey: 'hoa_lu_zap_group_a',
+      surfaceId: 'ground_main',
+      patrolStartRatio: 0.70,
+      patrolEndRatio: 0.92,
+      spawnStartRatio: 0.76,
+      spawnEndRatio: 0.88,
+      moveSpeed: 3.0,
+    },
+  ],
 };

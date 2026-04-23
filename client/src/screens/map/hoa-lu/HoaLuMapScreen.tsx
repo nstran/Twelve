@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
-  Animated, View, Image, ScrollView,
+  Animated, View, Image, ScrollView, Text,
   StyleSheet, Dimensions, Platform,
 } from 'react-native';
 import {
@@ -15,8 +15,10 @@ import {
   getSurfaceStartY,
 } from '../../../engine/character';
 import { CharacterRenderer, measureCharacterRenderer } from '../../character';
-import { BattleIntroScreen } from '../../battle';
-import type { MonsterSharedSheetFamily } from '../../battle';
+import {
+  BattleIntroScreen,
+  resolveMonsterTypeFromVisuals,
+} from '../../battle';
 import { MapHUD } from '../../../components/game/MapHUD/MapHUD';
 import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
 import { PopupMenu, MenuItem } from '../../../components/controls/PopupMenu/PopupMenu';
@@ -83,18 +85,6 @@ const COLLISION_DIST = 52;
 const FRAME_TICKS = 4;
 const MONSTER_TICK_MS = 50; // 20 logic ticks/sec
 
-function mapSharedSheetFamilyToMonsterType(sharedSheetFamily: MonsterSharedSheetFamily): MonsterType {
-  switch (sharedSheetFamily) {
-    case 'Ice':
-      return 'ice';
-    case 'Zap':
-      return 'zap';
-    case 'Monster':
-    default:
-      return 'fire';
-  }
-}
-
 function buildMonsterRuntimes(roster: MapMonsterRosterEntry[], surfaces: GroundSurface[]): MonsterRuntime[] {
   return roster.map((entry) => {
     const surface = surfaces.find((candidate) => candidate.id === entry.surfaceId);
@@ -106,7 +96,7 @@ function buildMonsterRuntimes(roster: MapMonsterRosterEntry[], surfaces: GroundS
     const minX = surface.x1 + Math.max(0, Math.min(1, entry.patrolStartRatio)) * span;
     const maxX = surface.x1 + Math.max(0, Math.min(1, entry.patrolEndRatio)) * span;
     const startX = minX + Math.max(0, maxX - minX) * Math.max(0, Math.min(1, entry.spawnRatio));
-    const type = mapSharedSheetFamilyToMonsterType(entry.sharedSheetFamily);
+    const type = resolveMonsterTypeFromVisuals(entry.visualTypeByte, entry.sharedSheetFamily);
     const size = monsterDisplaySize(type);
     const placement = monsterPlacementMetrics(type);
     const leftX = startX - size.w / 2;
@@ -120,7 +110,7 @@ function buildMonsterRuntimes(roster: MapMonsterRosterEntry[], surfaces: GroundS
       minX,
       maxX,
       x: startX,
-      direction: 1,
+      direction: (entry.spawnInstanceIndex & 1) === 0 ? 1 : -1,
       tickCount: 0,
       attacking: false,
       frameIndex: WALK_FRAMES[0],
@@ -149,9 +139,54 @@ function buildInitialVisuals(runtimes: MonsterRuntime[]): MonsterVisual[] {
 interface MonsterFieldProps {
   runtimes: MonsterRuntime[];
   visuals: MonsterVisual[];
+  playerLevel: number;
 }
 
-const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals }) => (
+type MonsterNameplatePalette = {
+  fillColor: string;
+  borderColor: string;
+  textColor: string;
+};
+
+function resolveMonsterNameplatePalette(
+  roster: MapMonsterRosterEntry,
+  playerLevel: number,
+): MonsterNameplatePalette {
+  const accent = (() => {
+    switch (roster.nameColorMode) {
+      case 1:
+        return '#FF0000';
+      case 2:
+        return '#897712';
+      default: {
+        const levelDelta = roster.displayLevel - playerLevel;
+        if (levelDelta >= 5) {
+          return '#1673FF';
+        }
+
+        if (levelDelta < -9) {
+          return '#AAAAAA';
+        }
+
+        return '#DDDDDD';
+      }
+    }
+  })();
+
+  const hex = accent.replace('#', '');
+  const red = parseInt(hex.slice(0, 2), 16);
+  const green = parseInt(hex.slice(2, 4), 16);
+  const blue = parseInt(hex.slice(4, 6), 16);
+  const luminance = ((red * 299) + (green * 587) + (blue * 114)) / 1000;
+
+  return {
+    fillColor: accent,
+    borderColor: '#0A0A0A',
+    textColor: luminance >= 150 ? '#111111' : '#FFFFFF',
+  };
+}
+
+const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals, playerLevel }) => (
   <>
     {runtimes.map((m, i) => {
       const vis = visuals[i] ?? {
@@ -159,19 +194,50 @@ const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals }) => (
         direction: m.direction,
         attacking: m.attacking,
       };
+      const palette = resolveMonsterNameplatePalette(m.roster, playerLevel);
       return (
         <Animated.View
           key={m.id}
           style={{
             position: 'absolute',
             left: 0,
-            top: m.topY,
-            width: m.size.w,
-            height: m.size.h,
+            top: m.topY - 24,
+            width: Math.max(m.size.w, 92),
+            height: m.size.h + 24,
             zIndex: LAYER_MONSTER,
             transform: [{ translateX: m.xAnim }],
+            overflow: 'visible',
+            alignItems: 'center',
           }}
+          pointerEvents="none"
         >
+          <View
+            style={{
+              minWidth: 54,
+              maxWidth: 112,
+              paddingHorizontal: 6,
+              height: 18,
+              borderRadius: 3,
+              borderWidth: 1,
+              borderColor: palette.borderColor,
+              backgroundColor: palette.fillColor,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 6,
+            }}
+          >
+            <Text
+              numberOfLines={1}
+              style={{
+                color: palette.textColor,
+                fontSize: 10,
+                fontWeight: '700',
+                lineHeight: 12,
+              }}
+            >
+              {m.roster.displayName}
+            </Text>
+          </View>
           <MonsterSprite
             type={m.type}
             frameIndex={vis.frameIndex}
@@ -431,6 +497,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const hudHp = appearance.hp?.cur ?? 800;
   const hudMaxHp = appearance.hp?.max ?? 1000;
   const hudExpPercent = appearance.exp?.cur ?? 45;
+  const playerLevel = appearance.level ?? 1;
 
   const scrollToCharacter = useCallback((charLeft: number) => {
     const maxScrollX = Math.max(0, mapWidth - SCREEN_W);
@@ -820,7 +887,11 @@ export const HoaLuMapScreen: React.FC<Props> = ({
 
           {/* Layer 2: Quái vật */}
           {!isEncounterActive && (
-            <MonsterField runtimes={monsterRuntimes} visuals={monsterVisuals} />
+            <MonsterField
+              runtimes={monsterRuntimes}
+              visuals={monsterVisuals}
+              playerLevel={playerLevel}
+            />
           )}
 
           {/* Layer 3: Nhân vật */}

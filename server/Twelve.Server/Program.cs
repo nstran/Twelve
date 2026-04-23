@@ -129,6 +129,8 @@ app.MapGet("/map/monster-roster", (
         var sharedSheetFamily = ResolveSharedSheetFamily(spawnTemplate, assetCatalog);
         responseEntries.Add(new MapMonsterRosterEntry(
             MonsterKey: encounter.MonsterKey,
+            SpawnGroupKey: encounter.SpawnGroupKey,
+            SpawnInstanceIndex: encounter.SpawnInstanceIndex,
             SpawnTemplateKey: encounter.SpawnTemplateKey,
             DisplayName: spawnTemplate.DisplayName,
             VisualTypeByte: spawnTemplate.VisualTypeByte,

@@ -31,6 +31,8 @@ namespace Twelve.Core.Monsters
 
     public sealed record MapMonsterEncounter(
         string MonsterKey,
+        string SpawnGroupKey,
+        int SpawnInstanceIndex,
         string MapId,
         int RoomId,
         string SpawnTemplateKey,
@@ -44,8 +46,26 @@ namespace Twelve.Core.Monsters
         bool IsActive = true
     );
 
+    public sealed record MapMonsterSpawnGroup(
+        string SpawnGroupKey,
+        string MapId,
+        int RoomId,
+        string SpawnTemplateKey,
+        int SpawnCellRow,
+        int SpawnCellCol,
+        string SurfaceId,
+        float PatrolStartRatio,
+        float PatrolEndRatio,
+        float SpawnStartRatio,
+        float SpawnEndRatio,
+        float MoveSpeed,
+        bool IsActive = true
+    );
+
     public sealed record MapMonsterRosterEntry(
         string MonsterKey,
+        string SpawnGroupKey,
+        int SpawnInstanceIndex,
         string SpawnTemplateKey,
         string DisplayName,
         byte VisualTypeByte,

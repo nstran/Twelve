@@ -7,6 +7,16 @@ export type MapSceneAssetBundle = {
   groundRight: ReturnType<typeof require>;
 };
 
+export type LocalMonsterSpawnGroupProfile = {
+  spawnGroupKey: string;
+  surfaceId: string;
+  patrolStartRatio: number;
+  patrolEndRatio: number;
+  spawnStartRatio: number;
+  spawnEndRatio: number;
+  moveSpeed: number;
+};
+
 export type SideScrollMapSceneConfig = {
   mapId: string;
   roomId: number;
@@ -28,4 +38,5 @@ export type SideScrollMapSceneConfig = {
   primaryGroundSurfaceId: string;
   assets: MapSceneAssetBundle;
   buildSurfaces: (mapScale: number) => GroundSurface[];
+  monsterSpawnGroups?: ReadonlyArray<LocalMonsterSpawnGroupProfile>;
 };

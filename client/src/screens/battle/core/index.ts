@@ -8,3 +8,4 @@ export * from './BattleScreen.shared';
 export * from './BattleScreen.skills';
 export * from './BattleScreen.styles';
 export * from './BattleScreen.types';
+export * from './MonsterVisualFamily';

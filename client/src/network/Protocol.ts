@@ -22,6 +22,7 @@ export enum Command {
     // ── Game Commands ─────────────────────────────────────────────
     ENTER_GAME          = 10,
     PLAYER_INFO         = 11,
+    MAP_MONSTER_ROSTER  = 43,
     MAP_LOAD            = 20,
     MOVE                = 44
 }

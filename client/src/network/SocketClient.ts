@@ -18,6 +18,22 @@ export interface MapInfo {
   tiles: number[];
 }
 
+export interface MapMonsterSpawnRecord {
+  monsterKey: string;
+  displayName: string;
+  visualTypeByte: number;
+  displayLevel: number;
+  iqValue: number;
+  spawnCount: number;
+  nameColorMode: number;
+}
+
+export interface MapMonsterRosterPacket {
+  mapId: string;
+  mode: number;
+  monsters: MapMonsterSpawnRecord[];
+}
+
 export class SocketClient extends EventEmitter {
   private socket: WebSocket | null = null;
   private static instance: SocketClient;
@@ -147,6 +163,12 @@ export class SocketClient extends EventEmitter {
         const mapInfo = this.parseMapInfo(payload);
         this.emit('mapInfo', mapInfo);
         break;
+
+      case Command.MAP_MONSTER_ROSTER: {
+        const roster = this.parseMapMonsterRoster(payload);
+        this.emit('mapMonsterRoster', roster);
+        break;
+      }
 
       case Command.MAP_LOAD:
         // Future map load logic
@@ -382,16 +404,11 @@ export class SocketClient extends EventEmitter {
     return { name, width, height, tileSize, tiles };
   }
 
-  /**
-   * Parse actor list from CMD 43 payload.
-   * Tags per actor: 9=id, 26=label, 27=kind, 102=x, 103=y
-   * Actors share the same tag IDs, so we must parse SEQUENTIALLY (not by dictionary).
-   * A new actor starts whenever we encounter tag 9 again.
-   */
-  private parseActors(payload: Uint8Array): Actor[] {
-    const actors: Actor[] = [];
-    let current: Partial<Actor> | null = null;
+  private parseMapMonsterRoster(payload: Uint8Array): MapMonsterRosterPacket {
     let pos = 0;
+    let mapId = '';
+    let mode = 0;
+    const monsters: MapMonsterSpawnRecord[] = [];
 
     while (pos <= payload.length - 5) {
       const id = payload[pos];
@@ -399,26 +416,73 @@ export class SocketClient extends EventEmitter {
       const val = payload.slice(pos + 5, pos + 5 + len);
 
       switch (id) {
-        case 9: // Actor ID — start of a new actor block
-          if (current?.id) actors.push(current as Actor);
-          current = { id: new TextDecoder().decode(val) };
+        case 20:
+          mapId = new TextDecoder().decode(val);
           break;
-        case 26: // Label / display name
-          if (current) current.label = new TextDecoder().decode(val);
+        case 40:
+          mode = val[0] ?? 0;
           break;
-        case 27: // Kind (class/monster type)
-          if (current) current.kind = this.readInt(val, 0);
-          break;
-        case 102: // X position
-          if (current) current.x = this.readInt(val, 0);
-          break;
-        case 103: // Y position
-          if (current) current.y = this.readInt(val, 0);
+        case 9:
+          monsters.push(this.parseMapMonsterSpawnRecord(val));
           break;
       }
+
       pos += 5 + len;
     }
-    if (current?.id) actors.push(current as Actor);
-    return actors;
+
+    return { mapId, mode, monsters };
+  }
+
+  private parseMapMonsterSpawnRecord(payload: Uint8Array): MapMonsterSpawnRecord {
+    let pos = 0;
+    let monsterKey = '';
+    let displayName = '';
+    let displayLevel = 0;
+    let visualTypeByte = 0;
+    let iqValue = 0;
+    let spawnCount = 0;
+    let nameColorMode = 0;
+
+    while (pos <= payload.length - 5) {
+      const id = payload[pos];
+      const len = this.readInt(payload, pos + 1);
+      const val = payload.slice(pos + 5, pos + 5 + len);
+
+      switch (id) {
+        case 9:
+          monsterKey = new TextDecoder().decode(val);
+          break;
+        case 26:
+          displayName = new TextDecoder().decode(val);
+          break;
+        case 27:
+          displayLevel = this.readInt(val, 0);
+          break;
+        case 15:
+          visualTypeByte = val[0] ?? 0;
+          break;
+        case 129:
+          iqValue = this.readInt(val, 0);
+          break;
+        case 106:
+          spawnCount = this.readInt(val, 0);
+          break;
+        case 107:
+          nameColorMode = val[0] ?? 0;
+          break;
+      }
+
+      pos += 5 + len;
+    }
+
+    return {
+      monsterKey,
+      displayName,
+      visualTypeByte,
+      displayLevel,
+      iqValue,
+      spawnCount,
+      nameColorMode,
+    };
   }
 }

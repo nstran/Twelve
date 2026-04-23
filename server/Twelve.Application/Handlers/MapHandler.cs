@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Twelve.Core;
 using Twelve.Core.Interfaces;
 using Twelve.Core.Maps;
+using Twelve.Core.Monsters;
 using Twelve.Core.Tlv;
 
 namespace Twelve.Application.Handlers
@@ -32,8 +33,8 @@ namespace Twelve.Application.Handlers
                 var mapPayload = BuildMapPayload(DefaultMapId, DefaultRoomId);
                 await session.SendPacketAsync(TlvCodec.BuildPacket(11, mapPayload));
 
-                var actorPayload = BuildSceneActors(session.Username ?? "Player", DefaultMapId, DefaultRoomId);
-                await session.SendPacketAsync(TlvCodec.BuildPacket(43, actorPayload));
+                var monsterRosterPayload = BuildMonsterRosterPayload(DefaultMapId, DefaultRoomId);
+                await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.MapMonsterRoster, monsterRosterPayload));
             }
             else if (request.Command == 29) // Map Join
             {
@@ -56,43 +57,40 @@ namespace Twelve.Application.Handlers
             return tags.ToArray();
         }
 
-        private byte[] BuildSceneActors(string username, string mapId, int roomId)
+        private byte[] BuildMonsterRosterPayload(string mapId, int roomId)
         {
-            var room = ResolveRoom(mapId, roomId);
-            var roster = _mapMonsterRosterService.GetActiveRoster(mapId, roomId);
-            var monsterActors = new List<(string Id, string Label, int Kind, int X, int Y)>();
+            var groups = _mapMonsterRosterService.GetActiveSpawnGroups(mapId, roomId);
+            var tags = new List<byte>();
+            tags.AddRange(TlvCodec.MakeTag(20, mapId));
+            tags.AddRange(TlvCodec.MakeTag(40, (byte)0));
 
-            foreach (var encounter in roster)
+            foreach (var group in groups)
             {
-                var spawnTemplate = _monsterSpawnCatalog.GetBySpawnTemplateKey(encounter.SpawnTemplateKey);
+                var spawnTemplate = _monsterSpawnCatalog.GetBySpawnTemplateKey(group.SpawnTemplateKey);
                 if (spawnTemplate is null)
                 {
                     continue;
                 }
 
-                var (x, y) = ToWorldPosition(encounter.SpawnCellRow, encounter.SpawnCellCol, room.TileSize);
-                monsterActors.Add((encounter.MonsterKey, spawnTemplate.DisplayName, spawnTemplate.VisualTypeByte, x, y));
+                var rosterEntryPayload = BuildMonsterRosterEntryPayload(group, spawnTemplate);
+                tags.AddRange(TlvCodec.MakeTag(9, rosterEntryPayload));
             }
 
+            return tags.ToArray();
+        }
+
+        private static byte[] BuildMonsterRosterEntryPayload(
+            MapMonsterSpawnGroup group,
+            MonsterSpawnTemplate spawnTemplate)
+        {
             var tags = new List<byte>();
-            tags.AddRange(TlvCodec.MakeTag(20, mapId));
-            tags.AddRange(TlvCodec.MakeTag(40, (byte)(1 + monsterActors.Count)));
-
-            // 1. Player
-            tags.AddRange(TlvCodec.MakeTag(9, username));
-            tags.AddRange(TlvCodec.MakeTag(26, username));
-            tags.AddRange(TlvCodec.MakeTag(27, 100)); // Warrior
-            tags.AddRange(TlvCodec.MakeTag(102, room.CenterX));
-            tags.AddRange(TlvCodec.MakeTag(103, room.CenterY));
-
-            foreach (var actor in monsterActors)
-            {
-                tags.AddRange(TlvCodec.MakeTag(9, actor.Id));
-                tags.AddRange(TlvCodec.MakeTag(26, actor.Label));
-                tags.AddRange(TlvCodec.MakeTag(27, actor.Kind));
-                tags.AddRange(TlvCodec.MakeTag(102, actor.X));
-                tags.AddRange(TlvCodec.MakeTag(103, actor.Y));
-            }
+            tags.AddRange(TlvCodec.MakeTag(9, group.SpawnGroupKey));
+            tags.AddRange(TlvCodec.MakeTag(26, spawnTemplate.DisplayName));
+            tags.AddRange(TlvCodec.MakeTag(27, spawnTemplate.DisplayLevel));
+            tags.AddRange(TlvCodec.MakeTag(15, spawnTemplate.VisualTypeByte));
+            tags.AddRange(TlvCodec.MakeTag(129, spawnTemplate.IqValue));
+            tags.AddRange(TlvCodec.MakeTag(106, spawnTemplate.SpawnCount));
+            tags.AddRange(TlvCodec.MakeTag(107, spawnTemplate.NameColorMode));
 
             return tags.ToArray();
         }

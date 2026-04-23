@@ -39,7 +39,7 @@ namespace Twelve.Application.Monsters
                     VisualTypeByte: 0,
                     DisplayLevel: 7,
                     IqValue: 2,
-                    SpawnCount: 1,
+                    SpawnCount: 2,
                     NameColorMode: 1,
                     BattleTemplateId: "battle_hoa_lu_fire_basic",
                     AssetCatalogId: "monster_species_1000_slot_0"),
@@ -49,7 +49,7 @@ namespace Twelve.Application.Monsters
                     VisualTypeByte: 4,
                     DisplayLevel: 8,
                     IqValue: 8,
-                    SpawnCount: 1,
+                    SpawnCount: 2,
                     NameColorMode: 1,
                     BattleTemplateId: "battle_hoa_lu_ice_basic",
                     AssetCatalogId: "monster_species_1002_slot_0"),
@@ -139,13 +139,13 @@ namespace Twelve.Application.Monsters
                         AssetCatalogId: "monster_species_1003_slot_0")),
             };
 
-        public static IReadOnlyDictionary<string, IReadOnlyList<MapMonsterEncounter>> MapRosters { get; } =
-            new Dictionary<string, IReadOnlyList<MapMonsterEncounter>>(StringComparer.OrdinalIgnoreCase)
+        public static IReadOnlyDictionary<string, IReadOnlyList<MapMonsterSpawnGroup>> MapSpawnGroups { get; } =
+            new Dictionary<string, IReadOnlyList<MapMonsterSpawnGroup>>(StringComparer.OrdinalIgnoreCase)
             {
                 [ToRosterKey("Hoa Lu", 1)] = new[]
                 {
-                    new MapMonsterEncounter(
-                        MonsterKey: "HOA_LU_FIRE_001",
+                    new MapMonsterSpawnGroup(
+                        SpawnGroupKey: "hoa_lu_fire_group_a",
                         MapId: "Hoa Lu",
                         RoomId: 1,
                         SpawnTemplateKey: "hoa_lu_fire_basic",
@@ -154,10 +154,11 @@ namespace Twelve.Application.Monsters
                         SurfaceId: "ground_main",
                         PatrolStartRatio: 0.25f,
                         PatrolEndRatio: 0.48f,
-                        SpawnRatio: 0.40f,
+                        SpawnStartRatio: 0.32f,
+                        SpawnEndRatio: 0.46f,
                         MoveSpeed: 2.2f),
-                    new MapMonsterEncounter(
-                        MonsterKey: "HOA_LU_ICE_001",
+                    new MapMonsterSpawnGroup(
+                        SpawnGroupKey: "hoa_lu_ice_group_a",
                         MapId: "Hoa Lu",
                         RoomId: 1,
                         SpawnTemplateKey: "hoa_lu_ice_basic",
@@ -166,10 +167,11 @@ namespace Twelve.Application.Monsters
                         SurfaceId: "ground_main",
                         PatrolStartRatio: 0.48f,
                         PatrolEndRatio: 0.72f,
-                        SpawnRatio: 0.50f,
+                        SpawnStartRatio: 0.50f,
+                        SpawnEndRatio: 0.66f,
                         MoveSpeed: 2.6f),
-                    new MapMonsterEncounter(
-                        MonsterKey: "HOA_LU_ZAP_001",
+                    new MapMonsterSpawnGroup(
+                        SpawnGroupKey: "hoa_lu_zap_group_a",
                         MapId: "Hoa Lu",
                         RoomId: 1,
                         SpawnTemplateKey: "hoa_lu_zap_basic",
@@ -178,7 +180,8 @@ namespace Twelve.Application.Monsters
                         SurfaceId: "ground_main",
                         PatrolStartRatio: 0.70f,
                         PatrolEndRatio: 0.92f,
-                        SpawnRatio: 0.50f,
+                        SpawnStartRatio: 0.76f,
+                        SpawnEndRatio: 0.88f,
                         MoveSpeed: 3.0f),
                 }
             };
