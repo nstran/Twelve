@@ -16,6 +16,8 @@ const MONSTER_NORMAL_ATTACK_SWING_MS = 110;
 const MONSTER_NORMAL_ATTACK_RECOVER_MS = 70;
 const MONSTER_DEFEAT_HIT_HOLD_MS = 140;
 const MONSTER_DEFEAT_SINK_MS = 280;
+const MONSTER_DEFEAT_DROP_PX = 10;
+const MONSTER_DEFEAT_SCALE = 0.9;
 
 interface QueuedAttack {
   onImpact: () => void;
@@ -103,6 +105,7 @@ export const useBattleSwordAttacks = ({
   const monsterHitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const monsterDefeatTranslateY = useRef(new Animated.Value(0)).current;
   const monsterDefeatOpacity = useRef(new Animated.Value(1)).current;
+  const monsterDefeatScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => () => {
     playerAttackTimersRef.current.forEach(clearTimeout);
@@ -119,6 +122,7 @@ export const useBattleSwordAttacks = ({
     enemyHitTranslateX.stopAnimation();
     monsterDefeatTranslateY.stopAnimation();
     monsterDefeatOpacity.stopAnimation();
+    monsterDefeatScale.stopAnimation();
     if (monsterHitTimerRef.current) {
       clearTimeout(monsterHitTimerRef.current);
       monsterHitTimerRef.current = null;
@@ -127,6 +131,7 @@ export const useBattleSwordAttacks = ({
     enemyAttackTranslateX,
     enemyHitTranslateX,
     monsterDefeatOpacity,
+    monsterDefeatScale,
     monsterDefeatTranslateY,
     playerAttackTranslateX,
     playerHitTranslateX,
@@ -190,11 +195,13 @@ export const useBattleSwordAttacks = ({
     enemyHitTranslateX.stopAnimation();
     monsterDefeatTranslateY.stopAnimation();
     monsterDefeatOpacity.stopAnimation();
+    monsterDefeatScale.stopAnimation();
 
     enemyAttackTranslateX.setValue(0);
     enemyHitTranslateX.setValue(0);
     monsterDefeatTranslateY.setValue(0);
     monsterDefeatOpacity.setValue(1);
+    monsterDefeatScale.setValue(1);
 
     setMonAtk(false);
     setMonHit(true);
@@ -202,20 +209,26 @@ export const useBattleSwordAttacks = ({
 
     Animated.sequence([
       Animated.timing(monsterDefeatTranslateY, {
-        toValue: 4,
+        toValue: 2,
         duration: MONSTER_DEFEAT_HIT_HOLD_MS,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
       Animated.parallel([
         Animated.timing(monsterDefeatTranslateY, {
-          toValue: 28,
+          toValue: MONSTER_DEFEAT_DROP_PX,
           duration: MONSTER_DEFEAT_SINK_MS,
           easing: Easing.in(Easing.cubic),
           useNativeDriver: true,
         }),
         Animated.timing(monsterDefeatOpacity, {
           toValue: 0,
+          duration: MONSTER_DEFEAT_SINK_MS,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(monsterDefeatScale, {
+          toValue: MONSTER_DEFEAT_SCALE,
           duration: MONSTER_DEFEAT_SINK_MS,
           easing: Easing.in(Easing.quad),
           useNativeDriver: true,
@@ -230,6 +243,7 @@ export const useBattleSwordAttacks = ({
     enemyAttackTranslateX,
     enemyHitTranslateX,
     monsterDefeatOpacity,
+    monsterDefeatScale,
     monsterDefeatTranslateY,
   ]);
 
@@ -354,8 +368,10 @@ export const useBattleSwordAttacks = ({
     playerHitTranslateX.setValue(0);
     monsterDefeatTranslateY.stopAnimation();
     monsterDefeatOpacity.stopAnimation();
+    monsterDefeatScale.stopAnimation();
     monsterDefeatTranslateY.setValue(0);
     monsterDefeatOpacity.setValue(1);
+    monsterDefeatScale.setValue(1);
     monsterDefeatRunningRef.current = false;
     setMonAtk(true);
     setMonHit(false);
@@ -424,6 +440,7 @@ export const useBattleSwordAttacks = ({
     enemyAttackTranslateX,
     mountedRef,
     monsterDefeatOpacity,
+    monsterDefeatScale,
     monsterDefeatTranslateY,
     playerHitTranslateX,
     swordAttackTiming.approachMs,
@@ -440,6 +457,7 @@ export const useBattleSwordAttacks = ({
 
   return {
     monsterDefeatOpacity,
+    monsterDefeatScale,
     monsterDefeatTranslateY,
     monsterPoseKey,
     playMonsterDefeatSequence,

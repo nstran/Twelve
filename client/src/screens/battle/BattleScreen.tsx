@@ -138,10 +138,14 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   useEffect(() => {
     boardRef.current = initialBoard;
     setBoard(initialBoard);
+    setExplodeFrames({});
     setSelected(null);
     setHintCell(null);
     setHintMove(null);
   }, [initialBoard]);
+  useEffect(() => {
+    setExplodeFrames({});
+  }, [board]);
   useEffect(() => {
     if (!resolveBattleSessionSync) {
       return;
@@ -337,6 +341,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   });
   const {
     monsterDefeatOpacity,
+    monsterDefeatScale,
     monsterDefeatTranslateY,
     monsterPoseKey,
     playMonsterDefeatSequence,
@@ -624,6 +629,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         monsterAssetCatalogId={enemyAssetCatalogId}
         monsterType={monsterType}
         monsterDefeatOpacity={monsterDefeatOpacity}
+        monsterDefeatScale={monsterDefeatScale}
         monsterDefeatTranslateY={monsterDefeatTranslateY}
         monsterPoseKey={monsterPoseKey}
         playerAction={playerAction}
