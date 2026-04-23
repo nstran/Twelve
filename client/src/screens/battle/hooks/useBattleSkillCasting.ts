@@ -12,6 +12,7 @@ import {
   type BattleSkillRuntimePacket,
   type BattleTurn,
   type Board,
+  type GemType,
   type MoveSpec,
   type SkillFamilyCode,
 } from '../core';
@@ -19,6 +20,10 @@ import type { useBattleMatchFlow } from './useBattleMatchFlow';
 
 const JAVA_BATTLE_TICK_MS = 40;
 const DEFAULT_BATTLE_SKILL_LEVEL = 12;
+const JAVA_SKILL_ATTACK_FRAME_2_TICKS = 6;
+const JAVA_SKILL_ATTACK_IMPACT_TICKS = 11;
+const JAVA_SKILL_ATTACK_FRAME_4_TICKS = 16;
+const JAVA_SKILL_ATTACK_RESET_TICKS = 20;
 
 interface UseBattleSkillCastingArgs {
   applyServerPacketBoardMutation: (packet: BattleSkillRuntimePacket) => void;
@@ -27,6 +32,7 @@ interface UseBattleSkillCastingArgs {
   charsRowHeight: number;
   charsTop: number;
   cursorCell: BattleCell;
+  fireSwordMarkBaseGems: Record<string, GemType>;
   flashExtraTurnsBadge: (turns: number) => void;
   monsterBaseLeft: number;
   monsterGroundOffset: number;
@@ -39,6 +45,7 @@ interface UseBattleSkillCastingArgs {
   playEnemySkillImpact: (shakePx: number) => void;
   playerBaseLeft: number;
   playerSize: { w: number; h: number; groundOffset?: number };
+  pendingVictoryRef: MutableRefObject<boolean>;
   processMatchesRef: MutableRefObject<ReturnType<typeof useBattleMatchFlow>['processMatches'] | null>;
   resolveSkillPacket?: BattleScreenProps['resolveSkillPacket'];
   result: BattleResult | null;
@@ -50,6 +57,7 @@ interface UseBattleSkillCastingArgs {
   setPhase: Dispatch<SetStateAction<BattlePhase>>;
   setPlayerAction: Dispatch<SetStateAction<CharacterAction>>;
   setPlayerActionFrameIndex: Dispatch<SetStateAction<number | null>>;
+  setPlayerRetreatPose: Dispatch<SetStateAction<boolean>>;
   setResult: Dispatch<SetStateAction<BattleResult | null>>;
   setSelected: Dispatch<SetStateAction<BattleCell | null>>;
   setSelectedSkillFamily: Dispatch<SetStateAction<SkillFamilyCode | null>>;
@@ -71,6 +79,7 @@ export const useBattleSkillCasting = ({
   charsRowHeight,
   charsTop,
   cursorCell,
+  fireSwordMarkBaseGems,
   flashExtraTurnsBadge,
   monsterBaseLeft,
   monsterGroundOffset,
@@ -83,6 +92,7 @@ export const useBattleSkillCasting = ({
   playEnemySkillImpact,
   playerBaseLeft,
   playerSize,
+  pendingVictoryRef,
   processMatchesRef,
   resolveSkillPacket,
   result,
@@ -94,6 +104,7 @@ export const useBattleSkillCasting = ({
   setPhase,
   setPlayerAction,
   setPlayerActionFrameIndex,
+  setPlayerRetreatPose,
   setResult,
   setSelected,
   setSelectedSkillFamily,
@@ -123,7 +134,22 @@ export const useBattleSkillCasting = ({
       const packet = await resolveSkillPacket({
         familyCode,
         casterSide: 'player',
-        board: boardRef.current,
+        board: (() => {
+          if (familyCode !== 1001) {
+            return boardRef.current;
+          }
+
+          const [selectedRow, selectedCol] = cursorCell;
+          const selectedGem = boardRef.current[selectedRow]?.[selectedCol];
+          const baseGem = fireSwordMarkBaseGems[`${selectedRow},${selectedCol}`];
+          if (selectedGem !== 10 || baseGem === undefined) {
+            return boardRef.current;
+          }
+
+          const requestBoard = boardRef.current.map(row => [...row]);
+          requestBoard[selectedRow][selectedCol] = baseGem;
+          return requestBoard;
+        })(),
         selectedCell: cursorCell,
         // Battle mode currently opens the full skill sandbox without the
         // character skill tree wired in, so request the reconstructed
@@ -144,8 +170,29 @@ export const useBattleSkillCasting = ({
       setHintMove(null);
       setPhase('busy');
       phaseRef.current = 'busy';
+      setPlayerRetreatPose(false);
       setPlayerAction('attack');
       setPlayerActionFrameIndex(0);
+
+      const actorFrameTimers = [
+        setTimeout(() => {
+          if (!mountedRef.current) return;
+          setPlayerActionFrameIndex(1);
+        }, JAVA_SKILL_ATTACK_FRAME_2_TICKS * JAVA_BATTLE_TICK_MS),
+        setTimeout(() => {
+          if (!mountedRef.current) return;
+          setPlayerActionFrameIndex(2);
+        }, JAVA_SKILL_ATTACK_IMPACT_TICKS * JAVA_BATTLE_TICK_MS),
+        setTimeout(() => {
+          if (!mountedRef.current) return;
+          setPlayerActionFrameIndex(3);
+        }, JAVA_SKILL_ATTACK_FRAME_4_TICKS * JAVA_BATTLE_TICK_MS),
+        setTimeout(() => {
+          if (!mountedRef.current) return;
+          setPlayerAction('idle');
+          setPlayerActionFrameIndex(null);
+        }, JAVA_SKILL_ATTACK_RESET_TICKS * JAVA_BATTLE_TICK_MS),
+      ];
 
       const cast = buildActiveBattleSkillCastFromPacket(packet, {
         panelLeft,
@@ -183,11 +230,7 @@ export const useBattleSkillCasting = ({
           showDamagePopup('enemy', packet.impact.damage ?? 0);
           setEnemyHP(hp => {
             const next = Math.max(0, hp - (packet.impact.damage ?? 0));
-            if (next === 0 && phaseRef.current !== 'over') {
-              phaseRef.current = 'over';
-              setPhase('over');
-              setResult('victory');
-            }
+            if (next === 0) pendingVictoryRef.current = true;
             return next;
           });
         }
@@ -209,6 +252,13 @@ export const useBattleSkillCasting = ({
             return;
           }
         }
+        if (pendingVictoryRef.current) {
+          pendingVictoryRef.current = false;
+          phaseRef.current = 'over';
+          setPhase('over');
+          setResult('victory');
+          return;
+        }
         if (packet.grantsExtraTurn) {
           flashExtraTurnsBadge(1);
           turnRef.current = 'player';
@@ -226,7 +276,7 @@ export const useBattleSkillCasting = ({
         setPhase('idle');
       }, cast.durationMs);
 
-      skillCastTimersRef.current.push(...boardMutationTimers, impactTimer, finishTimer);
+      skillCastTimersRef.current.push(...actorFrameTimers, ...boardMutationTimers, impactTimer, finishTimer);
     } catch (error) {
       console.warn('[BattleScreen] resolveSkillPacket failed', error);
       if (mountedRef.current) {
@@ -242,6 +292,7 @@ export const useBattleSkillCasting = ({
     charsRowHeight,
     charsTop,
     cursorCell,
+    fireSwordMarkBaseGems,
     flashExtraTurnsBadge,
     monsterBaseLeft,
     monsterGroundOffset,
@@ -251,6 +302,7 @@ export const useBattleSkillCasting = ({
     panelTop,
     phase,
     phaseRef,
+    pendingVictoryRef,
     playEnemySkillImpact,
     playerBaseLeft,
     playerSize,
@@ -265,6 +317,7 @@ export const useBattleSkillCasting = ({
     setPhase,
     setPlayerAction,
     setPlayerActionFrameIndex,
+    setPlayerRetreatPose,
     setResult,
     setSelected,
     setSelectedSkillFamily,

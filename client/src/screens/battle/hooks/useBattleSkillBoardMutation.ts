@@ -5,6 +5,7 @@ import {
   collectSkillPacketBoardKeys,
   findMatchesFromAffected,
   type BattleCell,
+  type GemType,
   type BattleSkillRuntimePacket,
   type Board,
   type FallEntry,
@@ -29,6 +30,7 @@ interface UseBattleSkillBoardMutationArgs {
   ) => void;
   processMatchesRef: MutableRefObject<ReturnType<typeof useBattleMatchFlow>['processMatches'] | null>;
   setBoard: Dispatch<SetStateAction<Board>>;
+  setFireSwordMarkBaseGems: Dispatch<SetStateAction<Record<string, GemType>>>;
   setFireSwordMarkTriggers: Dispatch<SetStateAction<Record<string, number>>>;
 }
 
@@ -40,33 +42,38 @@ export const useBattleSkillBoardMutation = ({
   playExplosion,
   processMatchesRef,
   setBoard,
+  setFireSwordMarkBaseGems,
   setFireSwordMarkTriggers,
 }: UseBattleSkillBoardMutationArgs) => {
   const applyServerPacketMarkCell = useCallback((cell: BattleCell, stateId: number) => {
     const [row, col] = cell;
-    if (stateId === 10) {
+    const currentBoard = boardRef.current;
+    if (row < 0 || row >= currentBoard.length || col < 0 || col >= currentBoard[row].length) {
+      return;
+    }
+
+    const currentGem = currentBoard[row][col];
+    if (currentGem === stateId) {
+      return;
+    }
+
+    if (stateId === 10 && currentGem !== null) {
       const key = `${row},${col}`;
+      setFireSwordMarkBaseGems(current => ({
+        ...current,
+        [key]: currentGem,
+      }));
       setFireSwordMarkTriggers(current => ({
         ...current,
         [key]: (current[key] ?? 0) + 1,
       }));
     }
 
-    setBoard(currentBoard => {
-      if (row < 0 || row >= currentBoard.length || col < 0 || col >= currentBoard[row].length) {
-        return currentBoard;
-      }
-
-      if (currentBoard[row][col] === stateId) {
-        return currentBoard;
-      }
-
-      const nextBoard = currentBoard.map(boardRow => [...boardRow]);
-      nextBoard[row][col] = stateId as Board[number][number];
-      boardRef.current = nextBoard;
-      return nextBoard;
-    });
-  }, [boardRef, setBoard, setFireSwordMarkTriggers]);
+    const nextBoard = currentBoard.map(boardRow => [...boardRow]);
+    nextBoard[row][col] = stateId as Board[number][number];
+    boardRef.current = nextBoard;
+    setBoard(nextBoard);
+  }, [boardRef, setBoard, setFireSwordMarkBaseGems, setFireSwordMarkTriggers]);
 
   const applyServerPacketBoardMutation = useCallback((packet: BattleSkillRuntimePacket) => {
     switch (packet.boardMutation.kind) {

@@ -100,7 +100,7 @@ namespace Twelve.Application.Battle
                 filtered.Add(cell);
             }
 
-            return filtered.Count > 0 ? filtered : ordered;
+            return filtered;
         }
 
         public static IReadOnlyList<BattleSkillJavaCell> SelectNearestCellsBySelectedCategory(

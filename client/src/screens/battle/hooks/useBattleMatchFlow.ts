@@ -23,6 +23,7 @@ interface UseBattleMatchFlowArgs {
   phaseRef: MutableRefObject<BattlePhase>;
   turnRef: MutableRefObject<BattleTurn>;
   extraTurnsRef: MutableRefObject<number>;
+  pendingVictoryRef: MutableRefObject<boolean>;
   boardRef: MutableRefObject<Board>;
   boardEngineRef: MutableRefObject<JavaBoardEngine>;
   maxHP: number;
@@ -59,6 +60,7 @@ export const useBattleMatchFlow = ({
   phaseRef,
   turnRef,
   extraTurnsRef,
+  pendingVictoryRef,
   boardRef,
   boardEngineRef,
   maxHP,
@@ -95,6 +97,13 @@ export const useBattleMatchFlow = ({
     const resolved = resolveJavaBoardStep(board, scanTargets);
     if (resolved === null) {
       setBoard(board);
+      if (pendingVictoryRef.current) {
+        pendingVictoryRef.current = false;
+        phaseRef.current = 'over';
+        setPhase('over');
+        setResult('victory');
+        return;
+      }
 
       if (getAllValidMoves(board).length === 0) {
         const reshuffled = reshuffleBoard(board, boardEngineRef.current);
@@ -191,12 +200,8 @@ export const useBattleMatchFlow = ({
             if (dmg <= 0) return;
             showDamagePopup('enemy', dmg);
             setEnemyHP(hp => {
-              const next = Math.max(0, hp - dmg);
-              if (next === 0 && phaseRef.current !== 'over') {
-                phaseRef.current = 'over';
-                setPhase('over');
-                setResult('victory');
-              }
+            const next = Math.max(0, hp - dmg);
+              if (next === 0) pendingVictoryRef.current = true;
               return next;
             });
           };
@@ -248,6 +253,7 @@ export const useBattleMatchFlow = ({
     mountedRef,
     onPlayerDefeat,
     onPlayerHit,
+    pendingVictoryRef,
     phaseRef,
     playMonsterSwordAttack,
     playPlayerSwordAttack,

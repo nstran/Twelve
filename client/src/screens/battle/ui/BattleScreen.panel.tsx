@@ -15,6 +15,7 @@ import {
   type BattleCell,
   type BattleTurn,
   type Board,
+  type GemType,
   type MatchFXItem,
   BG_H,
   BG_W,
@@ -33,6 +34,7 @@ interface BattlePanelProps {
   selected: BattleCell | null;
   hintCell: BattleCell | null;
   explodeFrames: Record<string, number>;
+  fireSwordMarkBaseGems: Record<string, GemType>;
   fireSwordMarkTriggers: Record<string, number>;
   turn: BattleTurn;
   matchFX: MatchFXItem[];
@@ -66,6 +68,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
   selected,
   hintCell,
   explodeFrames,
+  fireSwordMarkBaseGems,
   fireSwordMarkTriggers,
   turn,
   matchFX,
@@ -232,12 +235,13 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
                   ],
                 }}
               >
-                <GemCell
-                  gemType={gemType}
-                  frameIndex={explodeFrames[`${r},${c}`] ?? 0}
-                  size={GEM_SIZE}
-                  fireSwordMarkTrigger={fireSwordMarkTriggers[`${r},${c}`]}
-                  selected={
+                  <GemCell
+                    gemType={gemType}
+                    frameIndex={explodeFrames[`${r},${c}`] ?? 0}
+                    fireSwordBaseGemType={fireSwordMarkBaseGems[`${r},${c}`]}
+                    size={GEM_SIZE}
+                    fireSwordMarkTrigger={fireSwordMarkTriggers[`${r},${c}`]}
+                    selected={
                     (selected?.[0] === r && selected?.[1] === c) ||
                     (hintCell?.[0] === r && hintCell?.[1] === c)
                   }

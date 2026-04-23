@@ -178,6 +178,7 @@ export const GemCell = React.memo(({
   size,
   selected,
   focusVariant,
+  fireSwordBaseGemType,
   fireSwordMarkTrigger,
   onPress,
 }: {
@@ -186,6 +187,7 @@ export const GemCell = React.memo(({
   size: number;
   selected: boolean;
   focusVariant?: 'player' | 'enemy';
+  fireSwordBaseGemType?: GemType | null;
   fireSwordMarkTrigger?: number;
   onPress: () => void;
 }) => {
@@ -200,6 +202,15 @@ export const GemCell = React.memo(({
   const [fireSwordMarkFrame, setFireSwordMarkFrame] = useState(0);
   const [showFireSwordMarkAnim, setShowFireSwordMarkAnim] = useState(false);
   const previousMarkTriggerRef = useRef(fireSwordMarkTrigger ?? 0);
+  const pendingFireSwordMarkStart =
+    gemType === FIRE_SWORD_MARK_STATE &&
+    (fireSwordMarkTrigger ?? 0) > previousMarkTriggerRef.current;
+  const fireSwordBaseGemTypeResolved =
+    gemType === FIRE_SWORD_MARK_STATE &&
+    fireSwordBaseGemType !== undefined && fireSwordBaseGemType !== null
+      ? fireSwordBaseGemType
+      : gemType;
+  const fireSwordBaseFrameIndex = fireSwordBaseGemTypeResolved === gemType ? frameIndex : 0;
 
   useEffect(() => {
     if (gemType !== FIRE_SWORD_MARK_STATE) {
@@ -237,10 +248,16 @@ export const GemCell = React.memo(({
   }, [fireSwordMarkTrigger, gemType]);
 
   const showCrystalOverlay = isCrystalGem(gemType) && gemType !== FIRE_SWORD_MARK_STATE;
+  const isFireSwordFinalFrame =
+    showFireSwordMarkAnim && fireSwordMarkFrame >= FIRE_SWORD_MARK_FRAME_COUNT - 1;
   const showFireSwordBaseGem =
     gemType !== FIRE_SWORD_MARK_STATE ||
-    !showFireSwordMarkAnim ||
-    fireSwordMarkFrame >= FIRE_SWORD_MARK_FRAME_COUNT - 1;
+    pendingFireSwordMarkStart ||
+    (showFireSwordMarkAnim && !isFireSwordFinalFrame);
+  const showPersistedFireSwordGem =
+    gemType === FIRE_SWORD_MARK_STATE &&
+    !pendingFireSwordMarkStart &&
+    (!showFireSwordMarkAnim || isFireSwordFinalFrame);
 
   return (
     <TouchableOpacity
@@ -270,8 +287,20 @@ export const GemCell = React.memo(({
         )}
         {showFireSwordBaseGem && (
           <Image
+            source={getGemSheet(fireSwordBaseGemTypeResolved)}
+            style={{
+              width: size * TOTAL_FRAMES,
+              height: size,
+              transform: [{ translateX: -fireSwordBaseFrameIndex * size }],
+            }}
+            resizeMode="stretch"
+          />
+        )}
+        {showPersistedFireSwordGem && (
+          <Image
             source={getGemSheet(gemType)}
             style={{
+              position: 'absolute',
               width: size * TOTAL_FRAMES,
               height: size,
               transform: [{ translateX: -frameIndex * size }],

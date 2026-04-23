@@ -32,6 +32,7 @@ import {
   type BattleScreenProps,
   type BattleTurn,
   type Board,
+  type GemType,
   type MoveSpec,
   s,
   BG_W,
@@ -70,6 +71,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [hintCell,      setHintCell]      = useState<BattleCell | null>(null);
   const [hintMove,      setHintMove]      = useState<MoveSpec | null>(null);
   const [explodeFrames, setExplodeFrames] = useState<Record<string, number>>({});
+  const [fireSwordMarkBaseGems, setFireSwordMarkBaseGems] = useState<Record<string, GemType>>({});
   const [fireSwordMarkTriggers, setFireSwordMarkTriggers] = useState<Record<string, number>>({});
   const [playerHP,  setPlayerHP]  = useState(maxHP);
   const [enemyHP,   setEnemyHP]   = useState(maxEHP);
@@ -98,6 +100,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const enemyHitTranslateX = useRef(new Animated.Value(0)).current;
   const skillCastTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const skillPacketRequestRef = useRef(false);
+  const pendingVictoryRef = useRef(false);
   const phaseRef   = useRef<BattlePhase>('idle');
   const mountedRef = useRef(true);
   const boardRef   = useRef<Board>(board);
@@ -241,6 +244,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     playExplosion,
     processMatchesRef,
     setBoard,
+    setFireSwordMarkBaseGems,
     setFireSwordMarkTriggers,
   });
 
@@ -285,6 +289,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     phaseRef,
     turnRef,
     extraTurnsRef,
+    pendingVictoryRef,
     boardRef,
     boardEngineRef,
     maxHP,
@@ -387,6 +392,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     charsRowHeight,
     charsTop,
     cursorCell,
+    fireSwordMarkBaseGems,
     flashExtraTurnsBadge,
     monsterBaseLeft,
     monsterGroundOffset,
@@ -396,6 +402,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     panelTop,
     phase,
     phaseRef,
+    pendingVictoryRef,
     playEnemySkillImpact,
     playerBaseLeft,
     playerSize,
@@ -410,6 +417,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setPhase,
     setPlayerAction,
     setPlayerActionFrameIndex,
+    setPlayerRetreatPose,
     setResult,
     setSelected,
     setSelectedSkillFamily,
@@ -451,6 +459,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         selected={selected}
         hintCell={hintCell}
         explodeFrames={explodeFrames}
+        fireSwordMarkBaseGems={fireSwordMarkBaseGems}
         fireSwordMarkTriggers={fireSwordMarkTriggers}
         turn={turn}
         matchFX={matchFX}

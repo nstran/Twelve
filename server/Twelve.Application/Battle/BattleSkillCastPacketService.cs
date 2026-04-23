@@ -32,10 +32,16 @@ namespace Twelve.Application.Battle
                 return null;
             }
 
-            return _packetFactory.CreatePacket(CreateSeed(request));
+            var seed = CreateSeed(request);
+            if (seed is null)
+            {
+                return null;
+            }
+
+            return _packetFactory.CreatePacket(seed);
         }
 
-        private static BattleSkillPacketSeed CreateSeed(BattleSkillCastRequest request)
+        private static BattleSkillPacketSeed? CreateSeed(BattleSkillCastRequest request)
         {
             var victimSide = request.CasterSide == BattleSide.Player
                 ? BattleSide.Enemy
@@ -48,19 +54,22 @@ namespace Twelve.Application.Battle
             var fireballClearCells = BattleSkillTargeting.ExpandTwoByTwoRegionAnchors(fireballRegionAnchors);
             var fireMarkCells = SelectSkill1001MarkedCells(request, skillLevel);
             var skill1001ExtraTurnChancePercent = CalculateSkill1001ExtraTurnChancePercent(skillLevel);
-            var skill1001GrantsExtraTurn = RollPercent(skill1001ExtraTurnChancePercent);
+            var skill1001GrantsExtraTurn =
+                fireMarkCells.Count > 0 && RollPercent(skill1001ExtraTurnChancePercent);
 
             return request.FamilyCode switch
             {
                 1000 => CreateClearSeed(request, fireballClearCells, fireballRegionAnchors, victimCenter, hitsActor: true, impactDelayMs: 10 * JavaTickMs),
-                1001 => CreateMarkSeed(
-                    request,
-                    fireMarkCells,
-                    stateId: 10,
-                    impactDelayMs: 10 * JavaTickMs,
-                    durationMs: CalculateSkill1001DurationMs(fireMarkCells.Count),
-                    grantsExtraTurn: skill1001GrantsExtraTurn,
-                    extraTurnChancePercent: skill1001ExtraTurnChancePercent),
+                1001 => fireMarkCells.Count == 0
+                    ? null
+                    : CreateMarkSeed(
+                        request,
+                        fireMarkCells,
+                        stateId: 10,
+                        impactDelayMs: 10 * JavaTickMs,
+                        durationMs: CalculateSkill1001DurationMs(fireMarkCells.Count),
+                        grantsExtraTurn: skill1001GrantsExtraTurn,
+                        extraTurnChancePercent: skill1001ExtraTurnChancePercent),
                 1002 => CreateHelperSeed(request, actorTarget: null),
                 1003 => CreateNoneSeed(request, actorTarget: null, hitsActor: false),
                 1004 => CreateNoneSeed(request, victimBottom, hitsActor: true, impactDelayMs: 16 * JavaTickMs),
