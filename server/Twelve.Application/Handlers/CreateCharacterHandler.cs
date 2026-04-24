@@ -92,7 +92,7 @@ namespace Twelve.Application.Handlers
             player.SkinColor = skinColor;
             
             player.Level       = 1;
-            player.Gold        = 500;  // Tặng chút vàng khởi nghiệp
+            player.Gold        = 0;  // Tặng chút vàng khởi nghiệp
             player.Exp         = 0;
             player.ExpFloor    = 0;
             player.ExpCeiling  = 100;
