@@ -73,6 +73,10 @@ interface RageBurstState {
   consumed: boolean;
 }
 
+interface BonusTurnState {
+  granted: boolean;
+}
+
 export const useBattleMatchFlow = ({
   mountedRef,
   phaseRef,
@@ -131,9 +135,11 @@ export const useBattleMatchFlow = ({
     chain: number,
     scanTargets?: Iterable<string | [number, number]>,
     rageBurstState?: RageBurstState,
+    bonusTurnState?: BonusTurnState,
   ) => {
     if (!mountedRef.current) return;
 
+    const activeBonusTurn = bonusTurnState ?? { granted: false };
     const activeRageBurst = rageBurstState ?? {
       active: turnRef.current === 'player'
         ? maxPow > 0 && playerPowerRef.current >= maxPow
@@ -173,6 +179,7 @@ export const useBattleMatchFlow = ({
         const nextTurn = turnRef.current === 'player' ? 'monster' : 'player';
         turnRef.current = nextTurn;
         setTurn(nextTurn);
+        setTurnCycle(v => v + 1);
         phaseRef.current = 'idle';
         setPhase('idle');
       }
@@ -186,7 +193,8 @@ export const useBattleMatchFlow = ({
       flashComboBadge(chain + 1);
     }
 
-    if (resolved.bonusTurnCandidate) {
+    if (resolved.bonusTurnCandidate && !activeBonusTurn.granted) {
+      activeBonusTurn.granted = true;
       const newExtra = extraTurnsRef.current + 1;
       extraTurnsRef.current = newExtra;
       setExtraTurns(newExtra);

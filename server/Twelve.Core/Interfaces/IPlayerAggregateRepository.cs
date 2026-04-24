@@ -8,6 +8,7 @@ namespace Twelve.Core.Interfaces
     {
         Task<PlayerAggregate?> GetByUsernameAsync(string username);
         Task<PlayerAggregate?> GetByPlayerIdAsync(int playerId);
+        Task<IReadOnlyList<PlayerAggregate>> ListAsync(int limit = 50);
         Task InitializeForCharacterAsync(Player player);
         Task SaveCollectionsAsync(
             int playerId,

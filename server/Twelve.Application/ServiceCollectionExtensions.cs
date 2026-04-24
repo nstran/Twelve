@@ -30,6 +30,7 @@ namespace Twelve.Application
             services.AddSingleton<PlayerCharacterPacketFactory>();
             services.AddSingleton<PlayerContentCatalog>();
             services.AddSingleton<IPlayerRuntimeService, PlayerRuntimeService>();
+            services.AddSingleton<IPvpArenaService, PvpArenaService>();
 
             // ── Đăng ký Handlers ───────────────────────────────────────────────
             services.AddSingleton<AuthHandler>();

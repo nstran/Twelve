@@ -1,0 +1,54 @@
+# Các thư mục chứa file thực thi và thư viện (Rất nặng, không cần AI đọc)
+bin/
+obj/
+target/
+build/
+dist/
+out/
+.gradle/
+.settings/
+.classpath
+.project
+
+# Các file thư viện và bộ nhớ tạm
+*.dll
+*.exe
+*.jar
+*.class
+*.war
+*.ear
+*.so
+*.dylib
+*.log
+*.tmp
+*.bak
+
+# Thư mục quản lý mã nguồn và IDE (Tránh AI đọc nhầm cấu hình IDE)
+.git/
+.svn/
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Thư mục web/frontend nếu có (Để AI tập trung vào logic Server Java)
+node_modules/
+bower_components/
+.npm/
+
+# Các file tài liệu lớn hoặc file media không liên quan đến code
+*.pdf
+*.doc
+*.docx
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.mp3
+*.wav
+*.zip
+*.rar
+*.7z

@@ -20,6 +20,7 @@ export interface BattleScreenProps {
   resolveEnemyTurn?: ResolveEnemyBattleTurn;
   resolveEnemyTurnPlan?: ResolveEnemyBattleTurnPlan;
   resolveBattleSessionSync?: ResolveBattleSessionSync;
+  resolveBattleSessionSnapshot?: ResolveBattleSessionSnapshot;
   resolveBattleResult?: ResolveBattleResult;
 }
 
@@ -27,6 +28,7 @@ export type BattlePhase = 'idle' | 'busy' | 'over';
 export type BattleResult = 'victory' | 'defeat';
 export type BattleSide = 'player' | 'enemy';
 export type BattleCell = [number, number];
+export type BattleKind = 'monster' | 'pvp';
 
 export interface ResultArtMeta {
   asset: any;
@@ -235,6 +237,28 @@ export type ResolveBattleSessionSync =
   (request: BattleSessionSyncRequest) =>
     void | Promise<void>;
 
+export interface BattleSessionSnapshotRequest {
+  sessionId: string;
+}
+
+export interface BattleSessionSnapshotResponse {
+  sessionId: string;
+  activeTurn: BattleSide;
+  board: Board;
+  playerCurrentHp: number;
+  playerCurrentMp: number;
+  playerCurrentPower: number;
+  enemyCurrentHp: number;
+  enemyCurrentMp: number;
+  enemyCurrentPower: number;
+  isCompleted: boolean;
+  kind: 'monster' | 'pvpShadow';
+}
+
+export type ResolveBattleSessionSnapshot =
+  (request: BattleSessionSnapshotRequest) =>
+    BattleSessionSnapshotResponse | Promise<BattleSessionSnapshotResponse | null> | null;
+
 export interface BattleResultClaimRequest {
   sessionId: string;
   result: BattleResult;
@@ -375,6 +399,7 @@ export interface MonsterBattleBootstrapResponse {
   monsterKey: string;
   spawnTemplateKey: string;
   battleTemplateId: string;
+  battleKind?: BattleKind | string;
   visualTypeByte: number;
   displayLevel: number;
   iqValue: number;
@@ -384,11 +409,99 @@ export interface MonsterBattleBootstrapResponse {
   initialBoard: Board;
   player: BattleCombatantSnapshotDto;
   enemy: MonsterBattleInstanceDto;
+  enemyPlayerAppearance?: CharacterAppearance | null;
 }
 
 export type ResolveMonsterBattleBootstrap =
   (request: MonsterBattleBootstrapRequest) =>
     MonsterBattleBootstrapResponse | Promise<MonsterBattleBootstrapResponse | null> | null;
+
+export interface PvpOpponentEntry {
+  username: string;
+  level: number;
+  statusByte: number;
+  honor: number;
+  statusMessage: string;
+  stake: number;
+  element: number;
+  currentHp: number;
+  maxHp: number;
+  appearance: CharacterAppearance;
+}
+
+export interface PvpOpponentListRequest {
+  username: string;
+  registerPresence?: boolean;
+}
+
+export interface PvpOpponentListResponse {
+  username: string;
+  opponents: PvpOpponentEntry[];
+}
+
+export interface PvpBattleBootstrapRequest {
+  username: string;
+  targetUsername: string;
+  initialTurnSide: BattleSide;
+  stake?: number;
+  allowSpectators?: boolean;
+  oneWay?: boolean;
+  disableSpecialSkills?: boolean;
+}
+
+export interface PvpChallengeTicket {
+  ticketId: string;
+  challengerUsername: string;
+  targetUsername: string;
+  stake: number;
+  state: string;
+  createdAtUnixMs: number;
+  expiresAtUnixMs: number;
+}
+
+export interface PvpChallengeInboxResponse {
+  username: string;
+  incoming: PvpChallengeTicket[];
+  outgoing: PvpChallengeTicket[];
+}
+
+export interface PvpChallengeCreateRequest {
+  username: string;
+  targetUsername: string;
+  stake?: number;
+}
+
+export interface PvpChallengeActionRequest {
+  ticketId: string;
+  username: string;
+}
+
+export interface PvpChallengeAcceptResponse {
+  ticket: PvpChallengeTicket;
+  bootstrap: MonsterBattleBootstrapResponse;
+}
+
+export interface PvpChallengeStatusResponse {
+  ticket: PvpChallengeTicket;
+  bootstrap?: MonsterBattleBootstrapResponse | null;
+}
+
+export type ResolvePvpOpponents =
+  (request: PvpOpponentListRequest) =>
+    PvpOpponentListResponse | Promise<PvpOpponentListResponse | null> | null;
+
+export type ResolvePvpBattleBootstrap =
+  (request: PvpBattleBootstrapRequest) =>
+    MonsterBattleBootstrapResponse | Promise<MonsterBattleBootstrapResponse | null> | null;
+
+export interface ResolvePvpChallengeApi {
+  create: (request: PvpChallengeCreateRequest) => Promise<PvpChallengeTicket | null>;
+  list: (username: string) => Promise<PvpChallengeInboxResponse | null>;
+  status: (ticketId: string, username: string) => Promise<PvpChallengeStatusResponse | null>;
+  accept: (request: PvpChallengeActionRequest) => Promise<PvpChallengeAcceptResponse | null>;
+  decline: (request: PvpChallengeActionRequest) => Promise<PvpChallengeTicket | null>;
+  cancel: (request: PvpChallengeActionRequest) => Promise<PvpChallengeTicket | null>;
+}
 
 export interface BattleSkillRuntimePayload {
   actorTarget: ScreenPoint | null;

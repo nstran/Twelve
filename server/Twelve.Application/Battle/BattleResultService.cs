@@ -67,6 +67,33 @@ namespace Twelve.Application.Battle
             var expBefore = player.Exp;
             var quanBefore = player.Gold;
             var clampedHp = Math.Clamp(request.PlayerCurrentHp, 0, Math.Max(1, player.MaxHp));
+
+            if (session.Kind == BattleSessionKind.PvpShadow)
+            {
+                player.Hp = player.MaxHp;
+                player.LastSeenAt = DateTime.UtcNow;
+                _playerRepository.UpdateAsync(player).GetAwaiter().GetResult();
+                _battleSessionStore.Save(session with { IsCompleted = true });
+
+                return new BattleResultRewardResponse(
+                    Result: request.Result,
+                    LevelBefore: levelBefore,
+                    LevelAfter: player.Level,
+                    LevelUps: 0,
+                    CurrentHp: player.Hp,
+                    MaxHp: player.MaxHp,
+                    ExpBefore: expBefore,
+                    ExpAfter: player.Exp,
+                    ExpFloor: player.ExpFloor,
+                    ExpCeiling: player.ExpCeiling,
+                    ExpGained: 0,
+                    QuanBefore: quanBefore,
+                    QuanAfter: player.Gold,
+                    QuanGained: 0,
+                    ItemRewards: [],
+                    EquipmentRewards: []);
+            }
+
             player.Hp = clampedHp;
 
             var expGained = 0L;

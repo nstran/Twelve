@@ -1,0 +1,33 @@
+# QUY TẮC PHÁT TRIỂN HỆ THỐNG TWELVE (BACKEND: .NET 9 | MOBILE: REACT NATIVE)
+
+## 1. CẤU TRÚC VÀ CÔNG NGHỆ
+- Backend: Sử dụng C# với .NET 9 (Minimal APIs hoặc Web API tùy theo cấu trúc hiện tại).
+- Mobile: Sử dụng React Native với TypeScript.
+- Nguyên tắc chung: Tuân thủ Clean Architecture và DRY (Don't Repeat Yourself).
+
+## 2. QUY TẮC .NET 9 (BACKEND)
+- Hiệu suất: Tận dụng các tính năng mới của .NET 9 như `SearchValues`, `LINQ` tối ưu, và Memory management tốt hơn.
+- Async/Await: Luôn sử dụng lập trình bất đồng bộ cho các tác vụ I/O (Database, Network).
+- DTOs: Sử dụng `record` thay vì `class` cho các Data Transfer Objects để đảm bảo immutability.
+- Null Safety: Tận dụng "Nullable Reference Types". Luôn kiểm tra null trước khi xử lý logic quan trọng.
+
+## 3. QUY TẮC REACT NATIVE (MOBILE)
+- TypeScript: Phải định nghĩa Type/Interface rõ ràng cho mọi Component và API Response. Tuyệt đối không dùng `any`.
+- Hooks: Sử dụng Functional Components và Hooks. Quản lý State tối ưu (tránh re-render thừa).
+- Styling: Sử dụng StyleSheet hoặc các thư viện như Tailwind (NativeWind) nếu có sẵn.
+- Performance: Sử dụng `Memo`, `useCallback` cho các danh sách dài (FlatList).
+
+## 4. QUẢN LÝ TIẾN ĐỘ VÀ TÀI LIỆU (.md files)
+- Dự án có các file .md riêng cho từng phân hệ (BATTLE_SYSTEM, SKILL_SYSTEM, v.v.).
+- SAU KHI HOÀN THÀNH MỖI TASK:
+  1. Tìm file .md tương ứng để cập nhật trạng thái đầu việc [x].
+  2. Thêm mục "Nhật ký chỉnh sửa" vào cuối file .md: Ghi rõ ngày, các file code đã sửa, và nội dung logic đã thay đổi.
+  3. Nếu cấu hình API thay đổi, phải cập nhật tài liệu API tương ứng.
+
+## 5. DEBUG & ERROR HANDLING
+- Backend: Sử dụng Global Error Handling middleware. Log lỗi chi tiết (StackTrace) nhưng trả về lỗi thân thiện cho Client.
+- Mobile: Sử dụng Try/Catch cho các hàm gọi API. Hiển thị thông báo lỗi (Alert/Toast) rõ ràng cho người dùng.
+- DLL Lock: Nếu gặp lỗi build do file .exe/.dll bị lock, tự động gợi ý lệnh `taskkill /F /IM <ProcessName>.exe` trong terminal.
+
+## 6. Note
+- Sau mỗi ngày làm việc, hãy tóm tắt các thay đổi lớn vào file CHANGELOG.md để tôi có cái nhìn tổng quan

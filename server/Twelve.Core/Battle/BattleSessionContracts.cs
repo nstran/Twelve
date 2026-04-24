@@ -4,6 +4,12 @@ using Twelve.Core.Players;
 
 namespace Twelve.Core.Battle
 {
+    public enum BattleSessionKind
+    {
+        Monster = 0,
+        PvpShadow = 1,
+    }
+
     public sealed record BattleSessionSkillInstance(
         int SkillId,
         int Level,
@@ -46,7 +52,14 @@ namespace Twelve.Core.Battle
         DateTime CreatedAtUtc,
         bool IsCompleted = false,
         string? SpawnTemplateKey = null,
-        string? BattleTemplateId = null
+        string? BattleTemplateId = null,
+        BattleSessionKind Kind = BattleSessionKind.Monster,
+        long Stake = 0,
+        bool AllowSpectators = false,
+        bool OneWay = false,
+        bool DisableSpecialSkills = false,
+        string? LinkedSessionId = null,
+        bool IsPerspectiveReversed = false
     );
 
     public sealed record BattleEnemyTurnRequest(
@@ -105,6 +118,25 @@ namespace Twelve.Core.Battle
         int EnemyCurrentMp,
         int EnemyCurrentPower
     );
+
+    public sealed record BattleSessionSnapshotRequest(
+        string SessionId
+    );
+
+    public sealed record BattleSessionSnapshotResponse(
+        string SessionId,
+        BattleSide ActiveTurn,
+        IReadOnlyList<IReadOnlyList<int?>> Board,
+        int PlayerCurrentHp,
+        int PlayerCurrentMp,
+        int PlayerCurrentPower,
+        int EnemyCurrentHp,
+        int EnemyCurrentMp,
+        int EnemyCurrentPower,
+        bool IsCompleted,
+        BattleSessionKind Kind
+    );
+
 
     public enum BattleResultKind
     {

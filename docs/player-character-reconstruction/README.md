@@ -14,6 +14,7 @@ Nguồn tách từ PLAYER_CHARACTER_RECONSTRUCTION.md, giữ nguyên nội dung 
 | [04-delta-ui-character-flows.md](04-delta-ui-character-flows.md) | delta packet, profile/status UI, inventory/equipment runtime, skill tree, create flow |
 | [05-protocol-trade-upgrade-market.md](05-protocol-trade-upgrade-market.md) | outbound/inbound protocol, trade, nâng cấp, kết hợp, market/sale |
 | [06-map-room-battle-runtime.md](06-map-room-battle-runtime.md) | map actor, room/profile runtime, battle actor/HUD/result dependencies |
+| [07-arena-pvp-flow.md](07-arena-pvp-flow.md) | kiến trúc Khiêu Chiến/PvP: lobby, challenge, match session, result/rating/reward |
 
 # Player / Character Reconstruction
 
@@ -201,4 +202,5 @@ Kết luận quan trọng:
 | `nw` | create-character UI | chứng minh role của appearance fields |
 | `de` | skill tree UI | đọc skill levels + skill points từ `lh` |
 | `ha` | encounter/versus preview | hiển thị cấp, hệ, title, IQ |
+
 

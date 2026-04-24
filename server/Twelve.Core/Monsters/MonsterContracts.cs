@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Twelve.Core.Battle;
+using Twelve.Core.Players;
 
 namespace Twelve.Core.Monsters
 {
@@ -199,6 +200,8 @@ namespace Twelve.Core.Monsters
         MonsterSharedSheetFamily? SharedSheetFamily,
         IReadOnlyList<IReadOnlyList<int?>> InitialBoard,
         BattleCombatantSnapshot Player,
-        MonsterBattleInstance Enemy
+        MonsterBattleInstance Enemy,
+        string BattleKind = "monster",
+        PvpCharacterAppearance? EnemyPlayerAppearance = null
     );
 }

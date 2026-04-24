@@ -2,6 +2,7 @@ import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import {
   Animated, View, Image, ScrollView, Text,
   StyleSheet, Dimensions, Platform,
+  ActivityIndicator, Pressable, TextInput, TouchableOpacity,
 } from 'react-native';
 import {
   MonsterSprite, MonsterType,
@@ -24,6 +25,7 @@ import { MapHUD } from '../../../components/game/MapHUD/MapHUD';
 import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
 import { PopupMenu } from '../../../components/controls/PopupMenu/PopupMenu';
 import { TouchGamepad } from '../../../components/controls/TouchGamepad';
+import { CornerFrame } from '../../../components/ui/CornerFrame/CornerFrame';
 import { clearSession } from '../../../storage/SessionStorage';
 import {
   SocketClient,
@@ -46,6 +48,11 @@ import { applyMapMonsterRuntimePacket } from '../core';
 import type { CharacterAppearance } from '../../character/shared';
 import type {
   MonsterBattleBootstrapResponse,
+  PvpOpponentEntry,
+  PvpChallengeTicket,
+  ResolvePvpBattleBootstrap,
+  ResolvePvpChallengeApi,
+  ResolvePvpOpponents,
   ResolveMonsterBattleBootstrap,
 } from '../../battle';
 
@@ -328,6 +335,9 @@ interface Props {
   ) => void;
   resolveMonsterRoster?: ResolveMapMonsterRoster;
   resolveMonsterBootstrap?: ResolveMonsterBattleBootstrap;
+  resolvePvpOpponents?: ResolvePvpOpponents;
+  resolvePvpBootstrap?: ResolvePvpBattleBootstrap;
+  resolvePvpChallengeApi?: ResolvePvpChallengeApi;
   onAllocateStat?: (stat: CharacterStatKey) => Promise<string | null>;
   onAllocateSkill?: (familyCode: number) => Promise<string | null>;
   onToggleEquipment?: (equipKey: string, equip: boolean) => Promise<string | null>;
@@ -359,6 +369,275 @@ interface EncounterPreviewState {
   monsterBootstrap: MonsterBattleBootstrapResponse | null;
 }
 
+type PvpDialogMode = 'arena' | 'challenge';
+type PvpDialogStatus = 'idle' | 'loading' | 'ready' | 'error' | 'starting';
+
+interface PvpIncomingPromptState {
+  ticket: PvpChallengeTicket;
+  status: 'pending' | 'starting';
+}
+
+interface PvpStartOptions {
+  stake: number;
+  allowSpectators: boolean;
+  oneWay: boolean;
+  disableSpecialSkills: boolean;
+}
+
+interface PvpDialogProps {
+  mode: PvpDialogMode;
+  opponents: PvpOpponentEntry[];
+  status: PvpDialogStatus;
+  error: string | null;
+  selectedTarget: string;
+  stakeThousands: string;
+  allowSpectators: boolean;
+  oneWay: boolean;
+  disableSpecialSkills: boolean;
+  onClose: () => void;
+  onRefresh: () => void;
+  onSelectTarget: (target: string) => void;
+  onStakeThousandsChange: (value: string) => void;
+  onAllowSpectatorsChange: (value: boolean) => void;
+  onOneWayChange: (value: boolean) => void;
+  onDisableSpecialSkillsChange: (value: boolean) => void;
+  onStart: (target: string, options: PvpStartOptions) => void;
+}
+
+interface PvpIncomingPromptProps {
+  prompt: PvpIncomingPromptState;
+  onAccept: (ticket: PvpChallengeTicket) => void;
+  onDecline: (ticket: PvpChallengeTicket) => void;
+}
+
+const parseStakeThousands = (value: string): number => {
+  const normalized = value.replace(/[^\d]/g, '');
+  if (!normalized) {
+    return 0;
+  }
+
+  return Math.max(0, Number(normalized)) * 1000;
+};
+
+const formatPvpStake = (stake: number): string =>
+  `${Math.max(0, Math.floor(stake / 1000)).toLocaleString('vi-VN')}.000 KEN`;
+
+const formatPvpHonorLine = (honor: number): string => `Cấp -- Danh vọng ${Math.max(0, honor)}`;
+
+const PvpCheckbox: React.FC<{
+  label: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}> = ({ label, checked, onChange }) => (
+  <TouchableOpacity
+    activeOpacity={0.85}
+    style={styles.pvpCheckRow}
+    onPress={() => onChange(!checked)}
+  >
+    <View style={[styles.pvpCheckBox, checked && styles.pvpCheckBoxActive]}>
+      {checked ? <Text style={styles.pvpCheckMark}>✓</Text> : null}
+    </View>
+    <Text style={styles.pvpCheckLabel}>{label}</Text>
+  </TouchableOpacity>
+);
+
+const PvpDialog: React.FC<PvpDialogProps> = ({
+  mode,
+  opponents,
+  status,
+  error,
+  selectedTarget,
+  stakeThousands,
+  allowSpectators,
+  oneWay,
+  disableSpecialSkills,
+  onClose,
+  onRefresh,
+  onSelectTarget,
+  onStakeThousandsChange,
+  onAllowSpectatorsChange,
+  onOneWayChange,
+  onDisableSpecialSkillsChange,
+  onStart,
+}) => {
+  const isBusy = status === 'loading' || status === 'starting';
+  const trimmedTarget = selectedTarget.trim();
+  const exactOpponent = opponents.find(
+    (opponent) => opponent.username.toLowerCase() === trimmedTarget.toLowerCase(),
+  );
+  const selectedOpponent = mode === 'arena'
+    ? exactOpponent ?? opponents[0] ?? null
+    : exactOpponent ?? null;
+  const arenaFocusCard = mode === 'arena' ? selectedOpponent : null;
+
+  return (
+    <View style={styles.pvpOverlay}>
+      <Pressable style={styles.pvpBackdrop} onPress={isBusy ? undefined : onClose} />
+      <CornerFrame style={styles.pvpFrame} contentStyle={styles.pvpContent}>
+        <View style={styles.pvpHeader}>
+          <Text style={styles.pvpTitle}>{mode === 'arena' ? 'Lôi Đài' : 'Khiêu Chiến'}</Text>
+          <TouchableOpacity activeOpacity={0.85} onPress={onRefresh} disabled={isBusy}>
+            <Text style={[styles.pvpHeaderAction, isBusy && styles.pvpActionDisabled]}>Cập nhật</Text>
+          </TouchableOpacity>
+        </View>
+
+        {mode === 'challenge' ? (
+          <View style={styles.pvpChallengeForm}>
+            <Text style={styles.pvpLabel}>Nhập nick</Text>
+            <TextInput
+              value={selectedTarget}
+              onChangeText={onSelectTarget}
+              editable={!isBusy}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.pvpInput}
+              placeholderTextColor="#9b7b51"
+              placeholder="Tên nhân vật"
+            />
+            <Text style={styles.pvpLabel}>Đặt Cược</Text>
+            <View style={styles.pvpStakeRow}>
+              <TextInput
+                value={stakeThousands}
+                onChangeText={onStakeThousandsChange}
+                editable={!isBusy}
+                keyboardType="number-pad"
+                style={[styles.pvpInput, styles.pvpStakeInput]}
+                placeholderTextColor="#9b7b51"
+                placeholder="0"
+              />
+              <Text style={styles.pvpStakeUnit}>.000 KEN</Text>
+            </View>
+            <View style={styles.pvpCheckGrid}>
+              <PvpCheckbox label="Cho xem" checked={allowSpectators} onChange={onAllowSpectatorsChange} />
+              <PvpCheckbox label="1 chiều" checked={oneWay} onChange={onOneWayChange} />
+              <PvpCheckbox
+                label="Không chơi Tuyệt Chiêu"
+                checked={disableSpecialSkills}
+                onChange={onDisableSpecialSkillsChange}
+              />
+            </View>
+          </View>
+        ) : null}
+
+        {mode === 'arena' ? (
+          <View style={styles.pvpArenaBoard}>
+            <ScrollView style={styles.pvpList} contentContainerStyle={styles.pvpListContent}>
+              {opponents.map((opponent) => {
+                const selected = opponent.username.toLowerCase() === trimmedTarget.toLowerCase();
+                return (
+                  <TouchableOpacity
+                    key={opponent.username}
+                    activeOpacity={0.86}
+                    style={[styles.pvpLegacyRow, selected && styles.pvpLegacyRowActive]}
+                    onPress={() => onSelectTarget(opponent.username)}
+                    disabled={isBusy}
+                  >
+                    <Text style={styles.pvpLegacyBadge}>{opponent.currentHp > 0 ? '><' : '[]'}</Text>
+                    <View style={styles.pvpLegacyTextWrap}>
+                      <Text style={styles.pvpLegacyName} numberOfLines={1}>{opponent.username}</Text>
+                      <Text style={styles.pvpLegacyMeta} numberOfLines={1}>{formatPvpHonorLine(opponent.honor)}</Text>
+                    </View>
+                    <Text style={styles.pvpLegacyStake}>{Math.max(0, opponent.level)}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {opponents.length === 0 ? (
+              <View style={styles.pvpArenaEmptyPanel}>
+                <Text style={styles.pvpArenaEmptyTitle}>Bảng Lôi Đài đang trống</Text>
+                <Text style={styles.pvpArenaEmptyMeta}>Bấm Cập nhật để lấy danh sách đối thủ</Text>
+              </View>
+            ) : null}
+
+            {arenaFocusCard ? (
+              <View style={styles.pvpLegacyPreviewCard}>
+                <View style={styles.pvpLegacyPreviewAvatar}>
+                  <CharacterRenderer appearance={arenaFocusCard.appearance} scale={0.88} anchorToBody facing="right" />
+                </View>
+                <View style={styles.pvpLegacyPreviewInfo}>
+                  <Text style={styles.pvpLegacyPreviewName} numberOfLines={1}>{arenaFocusCard.username}</Text>
+                  <Text style={styles.pvpLegacyPreviewMeta} numberOfLines={1}>Cấp: {arenaFocusCard.level}</Text>
+                  <Text style={styles.pvpLegacyPreviewMeta} numberOfLines={1}>{arenaFocusCard.statusMessage || 'Hào Kiệt'}</Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        ) : selectedOpponent ? (
+          <View style={styles.pvpPreviewRow}>
+            <View style={styles.pvpPreviewAvatar}>
+              <CharacterRenderer appearance={selectedOpponent.appearance} scale={0.9} anchorToBody facing="right" />
+            </View>
+            <View style={styles.pvpOpponentInfo}>
+              <Text style={styles.pvpOpponentName} numberOfLines={1}>{selectedOpponent.username}</Text>
+              <Text style={styles.pvpOpponentMeta} numberOfLines={1}>
+                Cấp {selectedOpponent.level}  |  Danh vọng {selectedOpponent.honor}
+              </Text>
+              <Text style={styles.pvpOpponentMeta} numberOfLines={1}>
+                Sinh lực {selectedOpponent.currentHp}/{selectedOpponent.maxHp}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        {status === 'loading' ? (
+          <View style={styles.pvpStatusRow}>
+            <ActivityIndicator color="#f2d383" />
+            <Text style={styles.pvpStatusText}>Đang tải...</Text>
+          </View>
+        ) : null}
+        {error ? <Text style={styles.pvpErrorText}>{error}</Text> : null}
+        {status !== 'loading' && opponents.length === 0 ? (
+          <Text style={styles.pvpEmptyText}>Chưa có đối thủ</Text>
+        ) : null}
+
+        <View style={styles.pvpFooter}>
+          <TouchableOpacity activeOpacity={0.85} style={styles.pvpButton} onPress={onClose} disabled={isBusy}>
+            <Text style={styles.pvpButtonText}>Hủy</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={[styles.pvpButton, styles.pvpButtonPrimary, isBusy && styles.pvpButtonDisabled]}
+            disabled={isBusy}
+            onPress={() => onStart(trimmedTarget, {
+              stake: parseStakeThousands(stakeThousands),
+              allowSpectators,
+              oneWay,
+              disableSpecialSkills,
+            })}
+          >
+            <Text style={styles.pvpButtonPrimaryText}>{mode === 'arena' ? 'Đánh!' : 'Gửi'}</Text>
+          </TouchableOpacity>
+        </View>
+      </CornerFrame>
+    </View>
+  );
+};
+
+const PvpIncomingPrompt: React.FC<PvpIncomingPromptProps> = ({ prompt, onAccept, onDecline }) => {
+  const busy = prompt.status === 'starting';
+  return (
+    <View style={styles.pvpOverlay} pointerEvents="box-none">
+      <View style={styles.pvpBackdrop} />
+      <CornerFrame style={styles.pvpIncomingFrame} contentStyle={styles.pvpIncomingContent}>
+        <Text style={styles.pvpTitle}>Khiêu Chiến</Text>
+        <Text style={styles.pvpIncomingText}>
+          {prompt.ticket.challengerUsername} muốn thách đấu với bạn.
+        </Text>
+        <Text style={styles.pvpIncomingMeta}>Cược: {formatPvpStake(prompt.ticket.stake)}</Text>
+        <View style={styles.pvpFooter}>
+          <TouchableOpacity activeOpacity={0.85} style={styles.pvpButton} onPress={() => onDecline(prompt.ticket)} disabled={busy}>
+            <Text style={styles.pvpButtonText}>Từ chối</Text>
+          </TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.85} style={[styles.pvpButton, styles.pvpButtonPrimary]} onPress={() => onAccept(prompt.ticket)} disabled={busy}>
+            <Text style={styles.pvpButtonPrimaryText}>{busy ? 'Đang vào...' : 'Đồng ý'}</Text>
+          </TouchableOpacity>
+        </View>
+      </CornerFrame>
+    </View>
+  );
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 export const HoaLuMapScreen: React.FC<Props> = ({
   mapId,
@@ -371,6 +650,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   onBattle,
   resolveMonsterRoster,
   resolveMonsterBootstrap,
+  resolvePvpOpponents,
+  resolvePvpBootstrap,
+  resolvePvpChallengeApi,
   onAllocateStat,
   onAllocateSkill,
   onToggleEquipment,
@@ -575,28 +857,209 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuSelectedIndex, setMenuSelectedIndex] = useState(0);
   const [activeCharacterDialog, setActiveCharacterDialog] = useState<MapCharacterDialogKind | null>(null);
+  const [activePvpDialog, setActivePvpDialog] = useState<PvpDialogMode | null>(null);
+  const [pvpOpponents, setPvpOpponents] = useState<PvpOpponentEntry[]>([]);
+  const [pvpStatus, setPvpStatus] = useState<PvpDialogStatus>('idle');
+  const [pvpError, setPvpError] = useState<string | null>(null);
+  const [pvpTarget, setPvpTarget] = useState('');
+  const [pvpStakeThousands, setPvpStakeThousands] = useState('0');
+  const [pvpAllowSpectators, setPvpAllowSpectators] = useState(true);
+  const [pvpOneWay, setPvpOneWay] = useState(false);
+  const [pvpDisableSpecialSkills, setPvpDisableSpecialSkills] = useState(false);
+  const [pvpIncomingPrompt, setPvpIncomingPrompt] = useState<PvpIncomingPromptState | null>(null);
+  const [pvpPendingTicketId, setPvpPendingTicketId] = useState<string | null>(null);
 
   const handleLogout = useCallback(async () => {
     await clearSession();
     onLogout();
   }, [onLogout]);
 
+  const loadPvpOpponents = useCallback((mode: PvpDialogMode = activePvpDialog ?? 'challenge') => {
+    const username = appearance.username?.trim();
+    if (!username) {
+      setPvpOpponents([]);
+      setPvpStatus('error');
+      setPvpError('Thiếu tên nhân vật');
+      return;
+    }
+
+    if (!resolvePvpOpponents) {
+      setPvpOpponents([]);
+      setPvpStatus('error');
+      setPvpError('Chưa có resolver Lôi Đài');
+      return;
+    }
+
+    setPvpStatus('loading');
+    setPvpError(null);
+    void Promise.resolve(resolvePvpOpponents({ username, registerPresence: mode === 'arena' }))
+      .then((response) => {
+        const opponents = response?.opponents ?? [];
+        setPvpOpponents(opponents);
+        setPvpStatus('ready');
+        setPvpTarget((current) => current.trim() || (opponents[0]?.username ?? ''));
+      })
+      .catch(() => {
+        setPvpOpponents([]);
+        setPvpStatus('error');
+        setPvpError('Không tải được danh sách');
+      });
+  }, [activePvpDialog, appearance.username, resolvePvpOpponents]);
+
+  const openPvpDialog = useCallback((mode: PvpDialogMode, target = '') => {
+    setMenuVisible(false);
+    setActiveCharacterDialog(null);
+    setActivePvpDialog(mode);
+    setPvpError(null);
+    if (mode === 'challenge') {
+      setPvpTarget(target);
+    } else if (target) {
+      setPvpTarget(target);
+    }
+    loadPvpOpponents(mode);
+  }, [loadPvpOpponents]);
+
+  const startPvpBattle = useCallback((target: string, options: PvpStartOptions) => {
+    const username = appearance.username?.trim();
+    const targetUsername = target.trim();
+    if (!username) {
+      setPvpStatus('error');
+      setPvpError('Thiếu tên nhân vật');
+      return;
+    }
+    if (!targetUsername) {
+      setPvpStatus('error');
+      setPvpError('Chưa nhập nick');
+      return;
+    }
+    if (targetUsername.toLowerCase() === username.toLowerCase()) {
+      setPvpStatus('error');
+      setPvpError('Không thể khiêu chiến chính mình');
+      return;
+    }
+    if (!resolvePvpChallengeApi || !onBattle) {
+      setPvpStatus('error');
+      setPvpError('Chưa có resolver khiêu chiến');
+      return;
+    }
+
+    const sameRoomCandidate = pvpOpponents.find(
+      (opponent) => opponent.username.toLowerCase() === targetUsername.toLowerCase(),
+    );
+    if (!sameRoomCandidate) {
+      setPvpStatus('error');
+      setPvpError('Đối thủ không ở cùng khu/phòng hoặc đang bận');
+      return;
+    }
+
+    setPvpStatus('starting');
+    setPvpError(null);
+    void Promise.resolve(resolvePvpChallengeApi.create({
+      username,
+      targetUsername,
+      stake: options.stake,
+    }))
+      .then((ticket) => {
+        if (!ticket) {
+          setPvpStatus('error');
+          setPvpError('Không gửi được lời khiêu chiến');
+          return;
+        }
+
+        setPvpPendingTicketId(ticket.ticketId);
+        setPvpStatus('ready');
+        setPvpError('Đã gửi lời mời, đang chờ đối thủ đồng ý...');
+      })
+      .catch(() => {
+        setPvpStatus('error');
+        setPvpError('Không gửi được lời khiêu chiến');
+      });
+  }, [appearance.username, onBattle, pvpOpponents, resolvePvpChallengeApi]);
+
+  const handlePvpAcceptedBootstrap = useCallback((bootstrap: MonsterBattleBootstrapResponse) => {
+    if (!onBattle) return;
+    setActivePvpDialog(null);
+    setPvpIncomingPrompt(null);
+    setPvpPendingTicketId(null);
+    setPvpStatus('idle');
+    setPvpError(null);
+    onBattle('fire', bootstrap.initialTurnSide === 'enemy' ? 'monster' : 'player', bootstrap);
+  }, [onBattle]);
+
+  const acceptPvpChallenge = useCallback((ticket: PvpChallengeTicket) => {
+    const username = appearance.username?.trim();
+    if (!username || !resolvePvpChallengeApi) return;
+    setPvpIncomingPrompt({ ticket, status: 'starting' });
+    void resolvePvpChallengeApi.accept({ ticketId: ticket.ticketId, username })
+      .then((response) => {
+        if (response?.bootstrap) {
+          handlePvpAcceptedBootstrap(response.bootstrap);
+          return;
+        }
+        setPvpIncomingPrompt(null);
+      })
+      .catch(() => setPvpIncomingPrompt(null));
+  }, [appearance.username, handlePvpAcceptedBootstrap, resolvePvpChallengeApi]);
+
+  const declinePvpChallenge = useCallback((ticket: PvpChallengeTicket) => {
+    const username = appearance.username?.trim();
+    setPvpIncomingPrompt(null);
+    if (!username || !resolvePvpChallengeApi) return;
+    void resolvePvpChallengeApi.decline({ ticketId: ticket.ticketId, username });
+  }, [appearance.username, resolvePvpChallengeApi]);
+
+  useEffect(() => {
+    const username = appearance.username?.trim();
+    if (!username || !resolvePvpChallengeApi || !onBattle) return;
+    let cancelled = false;
+    const poll = () => {
+      void resolvePvpChallengeApi.list(username).then((inbox) => {
+        if (cancelled) return;
+        const incoming = inbox?.incoming.find(ticket => ticket.state.toLowerCase() === 'pending') ?? null;
+        if (incoming && !pvpIncomingPrompt) {
+          setPvpIncomingPrompt({ ticket: incoming, status: 'pending' });
+        }
+      });
+      if (pvpPendingTicketId) {
+        void resolvePvpChallengeApi.status(pvpPendingTicketId, username).then((status) => {
+          if (cancelled || !status) return;
+          if (status.bootstrap) {
+            handlePvpAcceptedBootstrap(status.bootstrap);
+          } else if (!status.ticket.state.toLowerCase().includes('pending')) {
+            setPvpPendingTicketId(null);
+            setPvpError(status.ticket.state === 'Declined' ? 'Đối thủ đã từ chối' : 'Lời mời đã hết hiệu lực');
+          }
+        });
+      }
+    };
+    poll();
+    const timer = setInterval(poll, 1200);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [appearance.username, handlePvpAcceptedBootstrap, onBattle, pvpIncomingPrompt, pvpPendingTicketId, resolvePvpChallengeApi]);
+
   const menuItems = useMemo(
     () => createMapGameMenuItems({
       onLogout: handleLogout,
+      onOpenArena: () => openPvpDialog('arena'),
+      onOpenChallenge: () => openPvpDialog('challenge'),
       onOpenCharacterInfo: () => setActiveCharacterDialog('info'),
       onOpenPotential: () => setActiveCharacterDialog('potential'),
       onOpenSkills: () => setActiveCharacterDialog('skills'),
       onOpenEquipment: () => setActiveCharacterDialog('equipment'),
       onOpenInventory: () => setActiveCharacterDialog('inventory'),
     }),
-    [handleLogout],
+    [handleLogout, openPvpDialog],
   );
 
   const isEncounterActive = encounterPreview !== null;
   const isCharacterDialogActive = activeCharacterDialog !== null;
-  const showTouchGamepad = !menuVisible && !isEncounterActive && !defeatRecoveryActive && !isCharacterDialogActive;
-  const allowMapPointerInput = Platform.OS !== 'web' && !defeatRecoveryActive && !isCharacterDialogActive;
+  const isPvpDialogActive = activePvpDialog !== null;
+  const isPvpPromptActive = pvpIncomingPrompt !== null;
+  const showTouchGamepad = !menuVisible && !isEncounterActive && !defeatRecoveryActive && !isCharacterDialogActive && !isPvpDialogActive && !isPvpPromptActive;
+  const allowMapPointerInput = Platform.OS !== 'web' && !defeatRecoveryActive && !isCharacterDialogActive && !isPvpDialogActive && !isPvpPromptActive;
   const playerSpriteSize = useMemo(
     () => {
       // anchorToBody=true: groundOffset = maxBelowBody * CHAR_SCALE
@@ -1258,6 +1721,36 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         onRepairEquipment={onRepairEquipment}
       />
 
+      {activePvpDialog && (
+        <PvpDialog
+          mode={activePvpDialog}
+          opponents={pvpOpponents}
+          status={pvpStatus}
+          error={pvpError}
+          selectedTarget={pvpTarget}
+          stakeThousands={pvpStakeThousands}
+          allowSpectators={pvpAllowSpectators}
+          oneWay={pvpOneWay}
+          disableSpecialSkills={pvpDisableSpecialSkills}
+          onClose={() => setActivePvpDialog(null)}
+          onRefresh={() => loadPvpOpponents(activePvpDialog ?? 'challenge')}
+          onSelectTarget={setPvpTarget}
+          onStakeThousandsChange={setPvpStakeThousands}
+          onAllowSpectatorsChange={setPvpAllowSpectators}
+          onOneWayChange={setPvpOneWay}
+          onDisableSpecialSkillsChange={setPvpDisableSpecialSkills}
+          onStart={startPvpBattle}
+        />
+      )}
+
+      {pvpIncomingPrompt && (
+        <PvpIncomingPrompt
+          prompt={pvpIncomingPrompt}
+          onAccept={acceptPvpChallenge}
+          onDecline={declinePvpChallenge}
+        />
+      )}
+
       {encounterPreview && (
         <BattleIntroScreen
           monsterType={encounterPreview.monsterType}
@@ -1297,11 +1790,20 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         width={SCREEN_W}
         centerLabel={isEncounterActive ? 'Vào ngay' : undefined}
         onLeftPress={() => {
+          if (isPvpDialogActive || isPvpPromptActive) return;
           if (isCharacterDialogActive) return;
           if (isEncounterActive) return;
           setMenuVisible(prev => !prev);
         }}
-        onRightPress={menuVisible || isEncounterActive || isCharacterDialogActive ? () => {
+        onRightPress={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive ? () => {
+          if (isPvpPromptActive) {
+            declinePvpChallenge(pvpIncomingPrompt.ticket);
+            return;
+          }
+          if (isPvpDialogActive) {
+            setActivePvpDialog(null);
+            return;
+          }
           if (isCharacterDialogActive) {
             setActiveCharacterDialog(null);
             return;
@@ -1315,6 +1817,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           }
         } : undefined}
         onCenterPress={() => {
+          if (isPvpDialogActive || isPvpPromptActive) {
+            return;
+          }
           if (isCharacterDialogActive) {
             return;
           }
@@ -1345,8 +1850,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
             }
           }
         }}
-        leftIcon={menuVisible ? ASSET_SOFTKEY_OK : isEncounterActive || isCharacterDialogActive ? undefined : ASSET_SOFTKEY_MENU}
-        rightIcon={menuVisible || isEncounterActive || isCharacterDialogActive ? ASSET_SOFTKEY_CANCEL : undefined}
+        leftIcon={menuVisible ? ASSET_SOFTKEY_OK : isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive ? undefined : ASSET_SOFTKEY_MENU}
+        rightIcon={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive ? ASSET_SOFTKEY_CANCEL : undefined}
       />
 
     </View>
@@ -1359,4 +1864,376 @@ const styles = StyleSheet.create({
 
   scroll: { flex: 1 },
   bg: { position: 'absolute', top: 0, left: 0, zIndex: LAYER_BG },
+  pvpOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pvpBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+  },
+  pvpFrame: {
+    width: Math.min(SCREEN_W * 0.94, 448),
+    maxHeight: Math.min(SCREEN_H * 0.58, 380),
+  },
+  pvpContent: {
+    padding: 8,
+    backgroundColor: '#dfe9f7',
+  },
+  pvpIncomingFrame: {
+    width: Math.min(SCREEN_W * 0.86, 340),
+  },
+  pvpIncomingContent: {
+    padding: 12,
+    backgroundColor: '#fff4d8',
+  },
+  pvpIncomingText: {
+    color: '#2f1d12',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 8,
+  },
+  pvpIncomingMeta: {
+    color: '#7b4c18',
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 6,
+  },
+  pvpHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  pvpTitle: {
+    color: '#8a5700',
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  pvpHeaderAction: {
+    color: '#313338',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  pvpActionDisabled: {
+    opacity: 0.45,
+  },
+  pvpArenaBoard: {
+    position: 'relative',
+    marginTop: 2,
+    borderWidth: 1,
+    borderColor: '#96add3',
+    backgroundColor: '#f2f8ff',
+  },
+  pvpList: {
+    maxHeight: 220,
+    width: '100%',
+  },
+  pvpListContent: {
+    gap: 0,
+    paddingBottom: 2,
+  },
+  pvpLegacyRow: {
+    minHeight: 42,
+    borderBottomWidth: 1,
+    borderBottomColor: '#b9c7df',
+    backgroundColor: '#f7fbff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  pvpLegacyRowActive: {
+    backgroundColor: '#fff9df',
+    borderTopWidth: 2,
+    borderTopColor: '#f0b73d',
+    borderBottomColor: '#f0b73d',
+  },
+  pvpLegacyBadge: {
+    width: 28,
+    color: '#2d64b5',
+    fontSize: 10,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  pvpLegacyTextWrap: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 2,
+  },
+  pvpLegacyName: {
+    color: '#1d2f59',
+    fontSize: 16,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  pvpLegacyMeta: {
+    color: '#2b5ec4',
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 15,
+    marginTop: 1,
+  },
+  pvpLegacyStake: {
+    width: 34,
+    color: '#486ea8',
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  pvpLegacyPreviewCard: {
+    position: 'absolute',
+    right: 12,
+    top: 74,
+    width: Math.min(SCREEN_W * 0.54, 212),
+    minHeight: 74,
+    borderWidth: 2,
+    borderColor: '#5ca3ee',
+    backgroundColor: '#f6fbff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  pvpArenaEmptyPanel: {
+    minHeight: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f6fbff',
+    borderTopWidth: 1,
+    borderTopColor: '#b9c7df',
+    paddingHorizontal: 12,
+  },
+  pvpArenaEmptyTitle: {
+    color: '#1f2f4d',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  pvpArenaEmptyMeta: {
+    color: '#496ca5',
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  pvpLegacyPreviewAvatar: {
+    width: 62,
+    height: 70,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginRight: 8,
+  },
+  pvpLegacyPreviewInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  pvpLegacyPreviewName: {
+    color: '#1f2f4d',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  pvpLegacyPreviewMeta: {
+    color: '#2c3a52',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  pvpOpponentRow: {
+    minHeight: 70,
+    borderWidth: 1,
+    borderColor: '#6f5535',
+    backgroundColor: '#f2e0b8',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  pvpOpponentRowActive: {
+    borderColor: '#f1c15a',
+    backgroundColor: '#fff0c6',
+  },
+  pvpOpponentAvatar: {
+    width: 42,
+    height: 58,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginRight: 8,
+  },
+  pvpPreviewRow: {
+    minHeight: 74,
+    borderWidth: 1,
+    borderColor: '#6f5535',
+    backgroundColor: '#f2e0b8',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    marginTop: 8,
+  },
+  pvpPreviewAvatar: {
+    width: 54,
+    height: 68,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginRight: 10,
+  },
+  pvpOpponentInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  pvpOpponentName: {
+    color: '#2f1d12',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  pvpOpponentMeta: {
+    color: '#5d4327',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  pvpMiniButton: {
+    minWidth: 48,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#7c3f21',
+    borderWidth: 1,
+    borderColor: '#d8a95d',
+  },
+  pvpMiniButtonText: {
+    color: '#fff2d0',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  pvpChallengeForm: {
+    gap: 6,
+  },
+  pvpLabel: {
+    color: '#f8e8be',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  pvpInput: {
+    minHeight: 34,
+    borderWidth: 1,
+    borderColor: '#7e5d37',
+    backgroundColor: '#f8e8be',
+    color: '#2f1d12',
+    paddingHorizontal: 10,
+    fontSize: 14,
+  },
+  pvpStakeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pvpStakeInput: {
+    flex: 1,
+  },
+  pvpStakeUnit: {
+    width: 86,
+    color: '#f8e8be',
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  pvpCheckGrid: {
+    marginTop: 4,
+    gap: 6,
+  },
+  pvpCheckRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 24,
+  },
+  pvpCheckBox: {
+    width: 18,
+    height: 18,
+    borderWidth: 1,
+    borderColor: '#d8a95d',
+    backgroundColor: '#1d1712',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  pvpCheckBoxActive: {
+    backgroundColor: '#a8642b',
+  },
+  pvpCheckMark: {
+    color: '#fff4c9',
+    fontSize: 12,
+    fontWeight: '900',
+    lineHeight: 14,
+  },
+  pvpCheckLabel: {
+    color: '#f8e8be',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  pvpStatusRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  pvpStatusText: {
+    color: '#f8e8be',
+    fontSize: 12,
+  },
+  pvpErrorText: {
+    color: '#ff9f9f',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  pvpEmptyText: {
+    color: '#33486c',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  pvpFooter: {
+    marginTop: 8,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  pvpButton: {
+    minWidth: 82,
+    minHeight: 30,
+    borderWidth: 1,
+    borderColor: '#c88b2f',
+    backgroundColor: '#fff1cd',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  pvpButtonPrimary: {
+    backgroundColor: '#b26a2f',
+  },
+  pvpButtonDisabled: {
+    opacity: 0.55,
+  },
+  pvpButtonText: {
+    color: '#5a3a0f',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  pvpButtonPrimaryText: {
+    color: '#fff4c9',
+    fontSize: 14,
+    fontWeight: '900',
+  },
 });

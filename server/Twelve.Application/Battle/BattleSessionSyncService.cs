@@ -50,8 +50,50 @@ namespace Twelve.Application.Battle
                 Enemy = updatedEnemy,
             });
 
+            MirrorLinkedPvpSession(session, normalizedBoard, request.ActiveTurn, updatedPlayer, updatedEnemy);
+
             return true;
         }
+
+        private void MirrorLinkedPvpSession(
+            BattleSessionState sourceSession,
+            System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<int?>> board,
+            BattleSide activeTurn,
+            BattleSessionCombatantState updatedPlayer,
+            BattleSessionCombatantState updatedEnemy)
+        {
+            if (sourceSession.Kind != BattleSessionKind.PvpShadow || string.IsNullOrWhiteSpace(sourceSession.LinkedSessionId))
+            {
+                return;
+            }
+
+            var linked = _battleSessionStore.Get(sourceSession.LinkedSessionId);
+            if (linked is null || linked.Kind != BattleSessionKind.PvpShadow)
+            {
+                return;
+            }
+
+            _battleSessionStore.Save(linked with
+            {
+                Board = board,
+                ActiveTurn = FlipSide(activeTurn),
+                Player = CopyRuntimeBars(linked.Player, updatedEnemy),
+                Enemy = CopyRuntimeBars(linked.Enemy, updatedPlayer),
+            });
+        }
+
+        private static BattleSessionCombatantState CopyRuntimeBars(
+            BattleSessionCombatantState target,
+            BattleSessionCombatantState source) =>
+            target with
+            {
+                CurrentHp = Clamp(source.CurrentHp, target.MaxHp),
+                CurrentMp = Clamp(source.CurrentMp, target.MaxMp),
+                CurrentPower = Clamp(source.CurrentPower, target.MaxPower),
+            };
+
+        private static BattleSide FlipSide(BattleSide side) =>
+            side == BattleSide.Player ? BattleSide.Enemy : BattleSide.Player;
 
         private static int Clamp(int current, int max) =>
             System.Math.Clamp(current, 0, max);

@@ -15,6 +15,7 @@ Trạng thái: **100% thực dụng trong phạm vi player/character server cont
 | [`04-delta-ui-character-flows.md`](docs/player-character-reconstruction/04-delta-ui-character-flows.md) | delta packet, profile/status UI, inventory/equipment runtime, skill tree, create flow |
 | [`05-protocol-trade-upgrade-market.md`](docs/player-character-reconstruction/05-protocol-trade-upgrade-market.md) | outbound/inbound protocol, trade, nâng cấp, kết hợp, market/sale |
 | [`06-map-room-battle-runtime.md`](docs/player-character-reconstruction/06-map-room-battle-runtime.md) | map actor, room/profile runtime, battle actor/HUD/result dependencies |
+| [`07-arena-pvp-flow.md`](docs/player-character-reconstruction/07-arena-pvp-flow.md) | kiến trúc Khiêu Chiến/PvP: lobby, challenge, match session, result/rating/reward |
 
 ## Nguyên Tắc Chính
 

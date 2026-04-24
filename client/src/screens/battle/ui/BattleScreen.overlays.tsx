@@ -66,6 +66,7 @@ interface BattleActorsRowProps {
   charsTop: number;
   charsHeight: number;
   appearance: CharacterAppearance;
+  enemyAppearance?: CharacterAppearance | null;
   monsterAssetCatalogId?: string | null;
   monsterType: MonsterType;
   monsterDefeatOpacity: Animated.Value;
@@ -93,6 +94,7 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
   charsTop,
   charsHeight,
   appearance,
+  enemyAppearance,
   monsterAssetCatalogId,
   monsterType,
   monsterDefeatOpacity,
@@ -220,13 +222,32 @@ export const BattleActorsRow: React.FC<BattleActorsRowProps> = ({
             }}
           />
         )}
-        <BattleMonsterSprite
-          assetCatalogId={monsterAssetCatalogId}
-          fallbackType={monsterType}
-          frameIndex={0}
-          poseKey={monsterPoseKey}
-          facingRight={false}
-        />
+        {enemyAppearance ? (
+          <View
+            style={{
+              position: 'absolute',
+              left: Math.max(0, (monsterWidth - playerSize.w) / 2),
+              bottom: Math.max(0, monsterGroundOffset - playerSize.groundOffset),
+              width: playerSize.w,
+              height: playerSize.h,
+            }}
+          >
+            <CharacterRenderer
+              appearance={enemyAppearance}
+              scale={BATTLE_PLAYER_SCALE}
+              anchorToBody
+              facing="left"
+            />
+          </View>
+        ) : (
+          <BattleMonsterSprite
+            assetCatalogId={monsterAssetCatalogId}
+            fallbackType={monsterType}
+            frameIndex={0}
+            poseKey={monsterPoseKey}
+            facingRight={false}
+          />
+        )}
       </Animated.View>
     </View>
   );

@@ -173,6 +173,8 @@ namespace Twelve.Application.Battle
                 IsCompleted = isCompleted,
             });
 
+            MirrorLinkedPvpSession(session, baseSeed, updatedPlayer, updatedEnemy, nextTurn, isCompleted);
+
             return baseSeed with
             {
                 ActorDeltas = actorDeltas.Count == 0 ? null : actorDeltas,
@@ -184,6 +186,45 @@ namespace Twelve.Application.Battle
                 },
             };
         }
+
+        private void MirrorLinkedPvpSession(
+            BattleSessionState sourceSession,
+            BattleSkillPacketSeed baseSeed,
+            BattleSessionCombatantState updatedPlayer,
+            BattleSessionCombatantState updatedEnemy,
+            BattleSide nextTurn,
+            bool isCompleted)
+        {
+            if (sourceSession.Kind != BattleSessionKind.PvpShadow || string.IsNullOrWhiteSpace(sourceSession.LinkedSessionId))
+            {
+                return;
+            }
+
+            var linked = _battleSessionStore.Get(sourceSession.LinkedSessionId);
+            if (linked is null || linked.Kind != BattleSessionKind.PvpShadow)
+            {
+                return;
+            }
+
+            _battleSessionStore.Save(linked with
+            {
+                Board = ApplyBoardMutation(sourceSession.Board, baseSeed),
+                Player = CopyRuntimeBars(linked.Player, updatedEnemy),
+                Enemy = CopyRuntimeBars(linked.Enemy, updatedPlayer),
+                ActiveTurn = FlipSide(nextTurn),
+                IsCompleted = isCompleted,
+            });
+        }
+
+        private static BattleSessionCombatantState CopyRuntimeBars(
+            BattleSessionCombatantState target,
+            BattleSessionCombatantState source) =>
+            target with
+            {
+                CurrentHp = Math.Clamp(source.CurrentHp, 0, target.MaxHp),
+                CurrentMp = Math.Clamp(source.CurrentMp, 0, target.MaxMp),
+                CurrentPower = Math.Clamp(source.CurrentPower, 0, target.MaxPower),
+            };
 
         private static BattleSessionCombatantState ApplyDeltas(
             BattleSessionCombatantState state,

@@ -14,13 +14,19 @@ import type {
   BattleEnemyTurnPlanRequest,
   BattleEnemyTurnPlanResponse,
   BattleSessionSyncRequest,
+  BattleSessionSnapshotRequest,
+  BattleSessionSnapshotResponse,
   BattleResultClaimRequest,
   BattleResultRewardResponse,
   ResolveMonsterBattleBootstrap,
+  ResolvePvpBattleBootstrap,
+  ResolvePvpChallengeApi,
+  ResolvePvpOpponents,
   ResolveBattleResult,
   ResolveBattleSkillPacket,
   ResolveEnemyBattleMove,
   ResolveBattleSessionSync,
+  ResolveBattleSessionSnapshot,
   ResolveEnemyBattleTurn,
   ResolveEnemyBattleTurnPlan,
 } from './BattleScreen.types';
@@ -82,6 +88,11 @@ type ServerBattleEnemyTurnPlanResponse = {
   skillPacket?: ServerBattleSkillRuntimePacket | null;
 };
 
+type ServerBattleSessionSnapshotResponse = Omit<BattleSessionSnapshotResponse, 'activeTurn' | 'kind'> & {
+  activeTurn: ServerBattleSide;
+  kind: 'Monster' | 'PvpShadow';
+};
+
 type ServerMonsterBattleBootstrapResponse = Omit<MonsterBattleBootstrapResponse, 'initialTurnSide'> & {
   initialTurnSide: ServerBattleSide;
 };
@@ -115,6 +126,13 @@ const mapSkillLevelSource = (source?: ServerBattleSkillLevelSource | null): Batt
 };
 
 const mapCell = (cell: ServerBattleCell): BattleCell => [cell.row, cell.col];
+
+const mapBootstrapResponse = (
+  response: ServerMonsterBattleBootstrapResponse,
+): MonsterBattleBootstrapResponse => ({
+  ...response,
+  initialTurnSide: mapSide(response.initialTurnSide),
+});
 
 const mapRuntimePacket = (
   packet: ServerBattleSkillRuntimePacket,
@@ -378,6 +396,37 @@ export const createBattleSessionSyncResolver = (
   };
 };
 
+export const createBattleSessionSnapshotResolver = (
+  socketUrl: string,
+  timeoutMs = 2000,
+): ResolveBattleSessionSnapshot => {
+  const baseUrl = toHttpBaseUrl(socketUrl);
+
+  return async (request: BattleSessionSnapshotRequest): Promise<BattleSessionSnapshotResponse | null> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const url = `${baseUrl}/battle/session-snapshot?sessionId=${encodeURIComponent(request.sessionId)}`;
+      const response = await fetch(url, { method: 'GET', signal: controller.signal });
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json() as ServerBattleSessionSnapshotResponse;
+      return {
+        ...data,
+        activeTurn: mapSide(data.activeTurn),
+        kind: data.kind === 'PvpShadow' ? 'pvpShadow' : 'monster',
+      };
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+};
+
 type ServerBattleResultKind = 'Victory' | 'Defeat';
 type ServerBattleResultRewardResponse = Omit<BattleResultRewardResponse, 'result'> & {
   result: ServerBattleResultKind;
@@ -459,10 +508,7 @@ export const createMonsterBattleBootstrapResolver = (
             return;
           }
 
-          finish({
-            ...envelope.data,
-            initialTurnSide: mapSide(envelope.data.initialTurnSide),
-          });
+          finish(mapBootstrapResponse(envelope.data));
         };
 
         client.on('monsterBootstrapResponse', handleResponse);
@@ -503,15 +549,178 @@ export const createMonsterBattleBootstrapResolver = (
         }
 
         const responseBody = JSON.parse(rawBody) as ServerMonsterBattleBootstrapResponse;
-        return {
-          ...responseBody,
-          initialTurnSide: mapSide(responseBody.initialTurnSide),
-        };
+        return mapBootstrapResponse(responseBody);
       } finally {
         clearTimeout(timeout);
       }
     } catch {
       return null;
     }
+  };
+};
+
+export const createPvpOpponentListResolver = (
+  socketUrl: string,
+  timeoutMs = 3500,
+): ResolvePvpOpponents => {
+  const baseUrl = toHttpBaseUrl(socketUrl);
+
+  return async (request) => {
+    if (!request.username.trim()) {
+      return null;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      if (request.registerPresence) {
+        const enterResponse = await fetch(`${baseUrl}/pvp/arena/enter`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: request.username }),
+          signal: controller.signal,
+        });
+
+        if (!enterResponse.ok) {
+          return null;
+        }
+      }
+
+      const query = new URLSearchParams({ username: request.username });
+      const response = await fetch(`${baseUrl}/pvp/opponents?${query.toString()}`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const rawBody = await response.text();
+      if (!rawBody.trim()) {
+        return null;
+      }
+
+      return JSON.parse(rawBody);
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+};
+
+export const createPvpBattleBootstrapResolver = (
+  socketUrl: string,
+  timeoutMs = 3500,
+): ResolvePvpBattleBootstrap => {
+  const baseUrl = toHttpBaseUrl(socketUrl);
+
+  return async (request) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(`${baseUrl}/pvp/bootstrap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: request.username,
+          targetUsername: request.targetUsername,
+          initialTurnSide: request.initialTurnSide === 'enemy' ? 'Enemy' : 'Player',
+          stake: request.stake ?? 0,
+          allowSpectators: request.allowSpectators ?? true,
+          oneWay: request.oneWay ?? false,
+          disableSpecialSkills: request.disableSpecialSkills ?? false,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const rawBody = await response.text();
+      if (!rawBody.trim()) {
+        return null;
+      }
+
+      const responseBody = JSON.parse(rawBody) as ServerMonsterBattleBootstrapResponse;
+      return mapBootstrapResponse(responseBody);
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+};
+
+export const createPvpChallengeApi = (
+  socketUrl: string,
+  timeoutMs = 3500,
+): ResolvePvpChallengeApi => {
+  const baseUrl = toHttpBaseUrl(socketUrl);
+
+  const fetchJson = async <T,>(path: string, init: RequestInit): Promise<T | null> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(`${baseUrl}${path}`, { ...init, signal: controller.signal });
+      if (!response.ok) return null;
+      const rawBody = await response.text();
+      if (!rawBody.trim()) return null;
+      return JSON.parse(rawBody) as T;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  return {
+    create: (request) => fetchJson('/pvp/challenges', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: request.username,
+        targetUsername: request.targetUsername,
+        stake: request.stake ?? 0,
+      }),
+    }),
+    list: (username) => fetchJson('/pvp/challenges/inbox', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    }),
+    status: async (ticketId, username) => {
+      const response = await fetchJson<any>(`/pvp/challenges/${ticketId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      return response?.bootstrap
+        ? { ...response, bootstrap: mapBootstrapResponse(response.bootstrap) }
+        : response;
+    },
+    accept: async (request) => {
+      const response = await fetchJson<any>(`/pvp/challenges/${request.ticketId}/accept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: request.username }),
+      });
+      return response?.bootstrap
+        ? { ...response, bootstrap: mapBootstrapResponse(response.bootstrap) }
+        : response;
+    },
+    decline: (request) => fetchJson(`/pvp/challenges/${request.ticketId}/decline`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: request.username }),
+    }),
+    cancel: (request) => fetchJson(`/pvp/challenges/${request.ticketId}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: request.username }),
+    }),
   };
 };

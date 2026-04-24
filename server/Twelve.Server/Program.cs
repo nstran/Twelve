@@ -97,6 +97,28 @@ app.MapPost("/battle/session-sync", (BattleSessionSyncRequest request, IBattleSe
     return synced ? Results.Ok() : Results.NotFound();
 });
 
+app.MapGet("/battle/session-snapshot", (string sessionId, IBattleSessionStore store) =>
+{
+    var session = store.Get(sessionId);
+    if (session is null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(new BattleSessionSnapshotResponse(
+        SessionId: session.SessionId,
+        ActiveTurn: session.ActiveTurn,
+        Board: session.Board,
+        PlayerCurrentHp: session.Player.CurrentHp,
+        PlayerCurrentMp: session.Player.CurrentMp,
+        PlayerCurrentPower: session.Player.CurrentPower,
+        EnemyCurrentHp: session.Enemy.CurrentHp,
+        EnemyCurrentMp: session.Enemy.CurrentMp,
+        EnemyCurrentPower: session.Enemy.CurrentPower,
+        IsCompleted: session.IsCompleted,
+        Kind: session.Kind));
+});
+
 app.MapPost("/battle/result", (BattleResultClaimRequest request, IBattleResultService service) =>
 {
     var response = service.Claim(request);
@@ -112,6 +134,78 @@ app.MapPost("/battle/enemy-turn", (BattleEnemyTurnRequest request, IBattleEnemyT
 app.MapPost("/battle/monster-bootstrap", (MonsterBattleBootstrapRequest request, IMonsterBattleBootstrapService service) =>
 {
     var response = service.Bootstrap(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapGet("/pvp/opponents", async (string username, IPvpArenaService service) =>
+{
+    var response = await service.ListOpponentsAsync(new PvpOpponentListRequest(username));
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/pvp/arena/enter", async (PvpArenaPresenceRequest request, IPvpArenaService service) =>
+{
+    var response = await service.EnterArenaAsync(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/pvp/arena/leave", async (PvpArenaPresenceRequest request, IPvpArenaService service) =>
+{
+    var response = await service.LeaveArenaAsync(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/pvp/bootstrap", async (PvpBattleBootstrapRequest request, IPvpArenaService service) =>
+{
+    var response = await service.BootstrapAsync(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/pvp/challenges", async (PvpChallengeCreateRequest request, IPvpArenaService service) =>
+{
+    var response = await service.CreateChallengeAsync(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapGet("/pvp/challenges", async (string username, IPvpArenaService service) =>
+{
+    var response = await service.ListChallengesAsync(username);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/pvp/challenges/inbox", async (PvpChallengeActionRequest request, IPvpArenaService service) =>
+{
+    var response = await service.ListChallengesAsync(request.Username);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapGet("/pvp/challenges/{ticketId}", async (string ticketId, string username, IPvpArenaService service) =>
+{
+    var response = await service.GetChallengeStatusAsync(ticketId, username);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/pvp/challenges/{ticketId}/status", async (string ticketId, PvpChallengeStatusRequest request, IPvpArenaService service) =>
+{
+    var response = await service.GetChallengeStatusAsync(ticketId, request.Username);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/pvp/challenges/{ticketId}/accept", async (string ticketId, PvpChallengeActionRequest request, IPvpArenaService service) =>
+{
+    var response = await service.AcceptChallengeAsync(ticketId, request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/pvp/challenges/{ticketId}/decline", async (string ticketId, PvpChallengeActionRequest request, IPvpArenaService service) =>
+{
+    var response = await service.DeclineChallengeAsync(ticketId, request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/pvp/challenges/{ticketId}/cancel", async (string ticketId, PvpChallengeActionRequest request, IPvpArenaService service) =>
+{
+    var response = await service.CancelChallengeAsync(ticketId, request);
     return response is null ? Results.NotFound() : Results.Ok(response);
 });
 

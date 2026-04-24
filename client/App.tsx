@@ -3,11 +3,15 @@ import { SafeAreaView, StatusBar, StyleSheet, View, Text } from 'react-native';
 import {
   BattleScreen,
   createBattleResultResolver,
+  createBattleSessionSnapshotResolver,
   createBattleSessionSyncResolver,
   createBattleSkillPacketResolver,
   createEnemyBattleTurnPlanResolver,
   createMapMonsterRosterResolver,
   createMonsterBattleBootstrapResolver,
+  createPvpChallengeApi,
+  createPvpBattleBootstrapResolver,
+  createPvpOpponentListResolver,
   HoaLuMapScreen,
   LoginScreen,
   MainScreen,
@@ -77,6 +81,10 @@ export default function App() {
     () => createBattleSessionSyncResolver(SERVER_URL),
     [],
   );
+  const resolveBattleSessionSnapshot = React.useMemo(
+    () => createBattleSessionSnapshotResolver(SERVER_URL),
+    [],
+  );
   const resolveBattleResult = React.useMemo(
     () => createBattleResultResolver(SERVER_URL),
     [],
@@ -87,6 +95,18 @@ export default function App() {
   );
   const resolveMonsterBootstrap = React.useMemo(
     () => createMonsterBattleBootstrapResolver(SERVER_URL),
+    [],
+  );
+  const resolvePvpOpponents = React.useMemo(
+    () => createPvpOpponentListResolver(SERVER_URL),
+    [],
+  );
+  const resolvePvpBootstrap = React.useMemo(
+    () => createPvpBattleBootstrapResolver(SERVER_URL),
+    [],
+  );
+  const resolvePvpChallengeApi = React.useMemo(
+    () => createPvpChallengeApi(SERVER_URL),
     [],
   );
   const resolveMapMonsterRoster = React.useMemo(
@@ -340,6 +360,9 @@ export default function App() {
             }}
             resolveMonsterRoster={resolveMapMonsterRoster}
             resolveMonsterBootstrap={resolveMonsterBootstrap}
+            resolvePvpOpponents={resolvePvpOpponents}
+            resolvePvpBootstrap={resolvePvpBootstrap}
+              resolvePvpChallengeApi={resolvePvpChallengeApi}
             defeatBlinkToken={defeatBlinkToken}
             onAllocateStat={async (stat) => {
               const username = playerAppearance.username;
@@ -435,6 +458,7 @@ export default function App() {
             resolveSkillPacket={resolveSkillPacket}
             resolveEnemyTurnPlan={resolveEnemyTurnPlan}
             resolveBattleSessionSync={resolveBattleSessionSync}
+            resolveBattleSessionSnapshot={resolveBattleSessionSnapshot}
             resolveBattleResult={resolveBattleResult}
             onBattleResult={queueBattleResult}
             onVictory={leaveBattle}

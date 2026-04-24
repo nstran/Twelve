@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dapper;
@@ -40,6 +41,25 @@ namespace Twelve.Infrastructure.Repositories
             }
 
             return await GetByPlayerInternalAsync(player);
+        }
+
+        public async Task<IReadOnlyList<PlayerAggregate>> ListAsync(int limit = 50)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            var players = await connection.QueryAsync<Player>(
+                @"SELECT *
+                  FROM Players
+                  ORDER BY LastSeenAt DESC, Level DESC, Username
+                  LIMIT @Limit",
+                new { Limit = Math.Max(1, Math.Min(200, limit)) });
+
+            var aggregates = new List<PlayerAggregate>();
+            foreach (var player in players)
+            {
+                aggregates.Add(await GetByPlayerInternalAsync(player));
+            }
+
+            return aggregates;
         }
 
         private async Task<PlayerAggregate> GetByPlayerInternalAsync(Player player)
