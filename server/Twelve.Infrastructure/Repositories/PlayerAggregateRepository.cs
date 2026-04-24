@@ -154,6 +154,7 @@ namespace Twelve.Infrastructure.Repositories
             IReadOnlyList<PlayerSkillEntry> skills)
         {
             using var connection = _connectionFactory.CreateConnection();
+            connection.Open();
             using var transaction = connection.BeginTransaction();
 
             await connection.ExecuteAsync(
