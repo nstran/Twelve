@@ -11,7 +11,9 @@ export interface CharacterAppearance {
   xepHang?: string;
   danhVong?: number;
   thangThua?: string;
-  ken?: string;
+  quan?: string;
+  walletQuan?: number;
+  quanProgress?: { cur: number; max: number };
   hp?: { cur: number; max: number };
   exp?: { cur: number; max: number };
   power?: { cur: number; max: number };

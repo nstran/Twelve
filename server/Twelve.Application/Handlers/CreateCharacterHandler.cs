@@ -92,12 +92,12 @@ namespace Twelve.Application.Handlers
             player.SkinColor = skinColor;
             
             player.Level       = 1;
-            player.Gold        = 0;  // Tặng chút vàng khởi nghiệp
+            player.Gold        = 0;
             player.Exp         = 0;
             player.ExpFloor    = 0;
             player.ExpCeiling  = 100;
-            player.KenProgress = 0;
-            player.KenProgressCap = 10000;
+            player.QuanProgress = 0;
+            player.QuanProgressCap = 10000;
             player.CurrentMap  = "M1"; // Bản đồ tân thủ
             player.CurrentRoom = 1;
 

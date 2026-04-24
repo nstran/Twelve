@@ -28,6 +28,9 @@ const toBarPct = (cur: number, max: number) => {
   return Math.max(0, Math.min(100, (cur * 100) / max));
 };
 
+const formatQuan = (value: number) =>
+  `${String(Math.max(0, Math.floor(value))).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} Quan`;
+
 interface StatusScreenProps {
   onStart:    () => void;
   onLogout:   () => void;
@@ -141,7 +144,9 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({
     xepHang:   appearance.xepHang ?? 'Chưa có',
     danhVong:  appearance.danhVong ?? 0,
     thangThua: appearance.thangThua ?? '0/0',
-    ken:       appearance.ken ?? '0 KEN',
+    quan:      appearance.quan ?? '0 Quan',
+    walletQuan: appearance.walletQuan ?? 0,
+    quanProgress: appearance.quanProgress ?? { cur: 0, max: 10000 },
     hp:    appearance.hp ?? { cur: 100,  max: 100 },
     exp:   appearance.exp ?? { cur: 0, max: 100 },
     power: appearance.power ?? { cur: 0,  max: 100 },
@@ -177,22 +182,27 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({
           </View>
 
           <View style={styles.headerContent}>
-              <View style={styles.avatarBox}>
-                <View style={{ 
-                  width: '100%',
-                  height: '100%',
-                  alignItems: 'center',
-                  justifyContent: 'flex-end',
-                }}>
-                  <CreateCharacterPreview
-                    genderIndex={appearance.genderIndex}
-                    faceIndex={appearance.faceIndex}
-                    hairIndex={appearance.hairIndex}
-                    hairColorIndex={appearance.hairColorIndex}
-                    skinColorIndex={appearance.skinColorIndex}
-                    scale={1.5}
-                    style={{ position: 'relative', bottom: 4 }}
-                  />
+              <View style={styles.avatarPanel}>
+                <View style={styles.avatarBox}>
+                  <View style={{ 
+                    width: '100%',
+                    height: '100%',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                  }}>
+                    <CreateCharacterPreview
+                      genderIndex={appearance.genderIndex}
+                      faceIndex={appearance.faceIndex}
+                      hairIndex={appearance.hairIndex}
+                      hairColorIndex={appearance.hairColorIndex}
+                      skinColorIndex={appearance.skinColorIndex}
+                      scale={1.5}
+                      style={{ position: 'relative', bottom: 4 }}
+                    />
+                  </View>
+                </View>
+                <View style={styles.walletRow}>
+                  <Text style={styles.walletText} numberOfLines={1}>{formatQuan(player.walletQuan)}</Text>
                 </View>
               </View>
 
@@ -225,8 +235,8 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({
           <BarRow
             icon={CHARACTER_STATUS_ASSETS.gold}    iconW={13} iconH={9}
             color="#e6cc9d"
-            text={`${player.power.cur}/${player.power.max}`}
-            pct={toBarPct(player.power.cur, player.power.max)}
+            text={`${player.quanProgress.cur}/${player.quanProgress.max}`}
+            pct={toBarPct(player.quanProgress.cur, player.quanProgress.max)}
           />
         </View>
 

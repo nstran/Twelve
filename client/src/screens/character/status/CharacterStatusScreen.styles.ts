@@ -50,6 +50,11 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
 
+  avatarPanel: {
+    width: 80,
+    gap: 3,
+  },
+
   avatarBox: {
     width: 80,
     height: 100,
@@ -59,6 +64,19 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center', // Center for better scaling/positioning
+  },
+
+  walletRow: {
+    height: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  walletText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#5c3600',
+    textAlign: 'left',
   },
 
   infoPanel: {

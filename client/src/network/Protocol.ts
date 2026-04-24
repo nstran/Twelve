@@ -55,7 +55,7 @@ export enum Tag {
     CURRENT_MP      = 18,
     LEVEL           = 27,
     EXP_VALUE       = 42,
-    KEN_PROGRESS    = 43,
+    QUAN_PROGRESS   = 43,
     CURRENT_POWER   = 45,
     MAX_HP          = 47,
     MAX_MP          = 48,
@@ -64,7 +64,7 @@ export enum Tag {
     EXP_FLOOR       = 73,
     EXP_CEILING     = 74,
     SKILL_POINTS    = 76,
-    KEN_CAP         = 99,
+    QUAN_CAP        = 99,
     CUONG_LUC       = 118,
     THAN_PHAP       = 119,
     NOI_LUC         = 120,
@@ -76,5 +76,6 @@ export enum Tag {
     CRIT            = 135,
     HONOR           = 160,
     TITLE_PRIMARY   = 209,
-    TITLE_SECONDARY = 210
+    TITLE_SECONDARY = 210,
+    WALLET_QUAN     = 211
 }

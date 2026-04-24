@@ -58,7 +58,7 @@ namespace Twelve.Core.Tlv
         CurrentMp       = 18,   // lh.u
         Level           = 27,   // lh.G
         ExperienceValue = 42,   // lh.J
-        KenProgress     = 43,   // lh.H
+        QuanProgress    = 43,   // lh.H
         CurrentPower    = 45,   // lh.w
         JavaMaxHp       = 47,   // lh.r
         MaxMp           = 48,   // lh.t
@@ -66,10 +66,11 @@ namespace Twelve.Core.Tlv
         ExperienceFloor = 73,   // lh.M
         ExperienceCeiling = 74, // lh.N
         SkillPoints     = 76,   // lh.L
-        KenProgressCap  = 99,   // lh.I
+        QuanProgressCap = 99,   // lh.I
         Honor           = 160,  // lh.ab
         TitlePrimary    = 209,  // lh.S
         TitleSecondary  = 210,  // lh.R
+        WalletQuan      = 211,  // client-new: separate wallet value
 
         // Stat Allocation (CMD 50 / 180)
         StatChoice      = 50,   // 0=CuongLuc, 1=ThanPhap, 2=NoiLuc, 3=TheLuc

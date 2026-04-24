@@ -43,8 +43,8 @@ namespace Twelve.Application.Players
                 TlvCodec.MakeTag((int)TagCode.ExperienceValue, player.Exp),
                 TlvCodec.MakeTag((int)TagCode.ExperienceFloor, player.ExpFloor),
                 TlvCodec.MakeTag((int)TagCode.ExperienceCeiling, player.ExpCeiling),
-                TlvCodec.MakeTag((int)TagCode.KenProgress, player.KenProgress),
-                TlvCodec.MakeTag((int)TagCode.KenProgressCap, player.KenProgressCap),
+                TlvCodec.MakeTag((int)TagCode.QuanProgress, player.QuanProgress),
+                TlvCodec.MakeTag((int)TagCode.QuanProgressCap, player.QuanProgressCap),
                 TlvCodec.MakeTag((int)TagCode.CuongLuc, player.CuongLuc),
                 TlvCodec.MakeTag((int)TagCode.ThanPhap, player.ThanPhap),
                 TlvCodec.MakeTag((int)TagCode.NoiLuc, player.NoiLuc),
@@ -58,6 +58,7 @@ namespace Twelve.Application.Players
                 TlvCodec.MakeTag((int)TagCode.Honor, player.Honor),
                 TlvCodec.MakeTag((int)TagCode.TitlePrimary, ResolveTitlePrimary(player)),
                 TlvCodec.MakeTag((int)TagCode.TitleSecondary, player.TitleSub ?? string.Empty),
+                TlvCodec.MakeTag((int)TagCode.WalletQuan, player.Gold),
 
                 // Temporary client-new combat tags until Java-faithful derived tags are finalized.
                 TlvCodec.MakeTag((int)TagCode.TanCong, player.DerivedMinDamage),

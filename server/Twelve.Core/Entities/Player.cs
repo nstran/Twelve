@@ -11,8 +11,8 @@ namespace Twelve.Core.Entities
         public long Exp { get; set; } = 0;
         public long ExpFloor { get; set; } = 0;
         public long ExpCeiling { get; set; } = 100;
-        public long KenProgress { get; set; } = 0;
-        public long KenProgressCap { get; set; } = 10000;
+        public long QuanProgress { get; set; } = 0;
+        public long QuanProgressCap { get; set; } = 10000;
         
         // Location info
         public string CurrentMap { get; set; } = "M99";

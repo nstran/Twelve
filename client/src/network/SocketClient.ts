@@ -152,7 +152,8 @@ export class SocketClient extends EventEmitter {
         const expValue       = this.parseLongTag(payload, Tag.EXP_VALUE);
         const expFloor       = this.parseLongTag(payload, Tag.EXP_FLOOR);
         const expCeiling     = this.parseLongTag(payload, Tag.EXP_CEILING);
-        const kenProgress    = this.parseLongTag(payload, Tag.KEN_PROGRESS);
+        const quanProgress   = this.parseLongTag(payload, Tag.QUAN_PROGRESS);
+        const quanCap        = this.parseLongTag(payload, Tag.QUAN_CAP);
         const cuongLuc       = this.parseIntTag(payload, Tag.CUONG_LUC);
         const thanPhap       = this.parseIntTag(payload, Tag.THAN_PHAP);
         const noiLuc         = this.parseIntTag(payload, Tag.NOI_LUC);
@@ -166,6 +167,7 @@ export class SocketClient extends EventEmitter {
         const danhVong       = this.parseIntTag(payload, Tag.HONOR);
         const titlePrimary   = this.parseStringTag(payload, Tag.TITLE_PRIMARY);
         const titleSecondary = this.parseStringTag(payload, Tag.TITLE_SECONDARY);
+        const walletQuan     = this.parseLongTag(payload, Tag.WALLET_QUAN);
         const expDenominator = Math.max(1, expCeiling - expFloor);
         const expPct = Math.max(0, Math.min(100, Math.floor(((expValue - expFloor) * 100) / expDenominator)));
 
@@ -183,7 +185,9 @@ export class SocketClient extends EventEmitter {
           quanHam: titlePrimary || titleSecondary || undefined,
           xepHang: titleSecondary || undefined,
           danhVong,
-          ken: `${kenProgress} KEN`,
+          walletQuan,
+          quan: `${quanProgress}/${quanCap || 10000} Quan`,
+          quanProgress: { cur: quanProgress, max: quanCap || 10000 },
           hp: { cur: hpCur, max: hpMax },
           exp: { cur: expPct, max: 100 },
           power: { cur: powerCur, max: powerMax },

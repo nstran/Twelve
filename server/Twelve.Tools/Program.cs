@@ -135,7 +135,11 @@ async Task RunSetup()
         ? Path.Combine(currentDir, "server", "Database")
         : Path.Combine(currentDir, "..", "Database");
 
-    string[] schemaFiles = { "01_accounts.sql", "02_players.sql" };
+    string[] schemaFiles = Directory.GetFiles(dbDir, "*.sql")
+        .Select(Path.GetFileName)
+        .Where(file => !string.IsNullOrWhiteSpace(file))
+        .OrderBy(file => file, StringComparer.OrdinalIgnoreCase)
+        .ToArray()!;
     
     foreach (var file in schemaFiles)
     {

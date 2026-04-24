@@ -27,7 +27,7 @@ namespace Twelve.Infrastructure.Repositories
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
                 INSERT INTO Players (
-                    Username, Level, Gold, Exp, ExpFloor, ExpCeiling, KenProgress, KenProgressCap,
+                    Username, Level, Gold, Exp, ExpFloor, ExpCeiling, QuanProgress, QuanProgressCap,
                     CurrentMap, CurrentRoom,
                     Hp, MaxHp, Mp, MaxMp, Power, MaxPower,
                     CuongLuc, ThanPhap, NoiLuc, TheLuc, FreePoints,
@@ -40,7 +40,7 @@ namespace Twelve.Infrastructure.Repositories
                     CreatedAt, LastSeenAt
                 )
                 VALUES (
-                    @Username, @Level, @Gold, @Exp, @ExpFloor, @ExpCeiling, @KenProgress, @KenProgressCap,
+                    @Username, @Level, @Gold, @Exp, @ExpFloor, @ExpCeiling, @QuanProgress, @QuanProgressCap,
                     @CurrentMap, @CurrentRoom,
                     @Hp, @MaxHp, @Mp, @MaxMp, @Power, @MaxPower,
                     @CuongLuc, @ThanPhap, @NoiLuc, @TheLuc, @FreePoints,
@@ -66,8 +66,8 @@ namespace Twelve.Infrastructure.Repositories
                     Exp        = @Exp,
                     ExpFloor   = @ExpFloor,
                     ExpCeiling = @ExpCeiling,
-                    KenProgress = @KenProgress,
-                    KenProgressCap = @KenProgressCap,
+                    QuanProgress = @QuanProgress,
+                    QuanProgressCap = @QuanProgressCap,
                     CurrentMap = @CurrentMap,
                     CurrentRoom= @CurrentRoom,
                     Hp = @Hp, MaxHp = @MaxHp,
