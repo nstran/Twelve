@@ -43,7 +43,9 @@ namespace Twelve.Core.Battle
         BattleSessionCombatantState Player,
         BattleSessionCombatantState Enemy,
         DateTime CreatedAtUtc,
-        bool IsCompleted = false
+        bool IsCompleted = false,
+        string? SpawnTemplateKey = null,
+        string? BattleTemplateId = null
     );
 
     public sealed record BattleEnemyTurnRequest(
@@ -101,5 +103,36 @@ namespace Twelve.Core.Battle
         int EnemyCurrentHp,
         int EnemyCurrentMp,
         int EnemyCurrentPower
+    );
+
+    public enum BattleResultKind
+    {
+        Victory = 0,
+        Defeat = 1,
+    }
+
+    public sealed record BattleResultClaimRequest(
+        string SessionId,
+        BattleResultKind Result,
+        int PlayerCurrentHp,
+        int PlayerCurrentMp,
+        int PlayerCurrentPower
+    );
+
+    public sealed record BattleResultRewardResponse(
+        BattleResultKind Result,
+        int LevelBefore,
+        int LevelAfter,
+        int LevelUps,
+        int CurrentHp,
+        int MaxHp,
+        long ExpBefore,
+        long ExpAfter,
+        long ExpFloor,
+        long ExpCeiling,
+        long ExpGained,
+        long QuanBefore,
+        long QuanAfter,
+        long QuanGained
     );
 }

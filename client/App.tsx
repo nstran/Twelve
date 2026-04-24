@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, View, Text } from 'react-native';
 import {
   BattleScreen,
+  createBattleResultResolver,
   createBattleSessionSyncResolver,
   createBattleSkillPacketResolver,
   createEnemyBattleTurnPlanResolver,
@@ -13,6 +14,7 @@ import {
   MapSelectionScreen,
   RegisterScreen,
   type MonsterBattleBootstrapResponse,
+  type BattleResultRewardResponse,
 } from './src/screens';
 import { CreateCharacterScreen } from './src/screens/character/create';
 import { CharacterStatusScreen, type PlayerAppearance } from './src/screens/character/status';
@@ -68,6 +70,10 @@ export default function App() {
   );
   const resolveBattleSessionSync = React.useMemo(
     () => createBattleSessionSyncResolver(SERVER_URL),
+    [],
+  );
+  const resolveBattleResult = React.useMemo(
+    () => createBattleResultResolver(SERVER_URL),
     [],
   );
   const resolveEnemyTurnPlan = React.useMemo(
@@ -210,6 +216,25 @@ export default function App() {
     setScreen('hoaLuMap');
   };
 
+  const applyBattleResult = (result: BattleResultRewardResponse) => {
+    setPlayerAppearance((current) => {
+      const expDenominator = Math.max(1, result.expCeiling - result.expFloor);
+      const expPct = Math.max(
+        0,
+        Math.min(100, Math.floor(((result.expAfter - result.expFloor) * 100) / expDenominator)),
+      );
+
+      return {
+        ...current,
+        level: result.levelAfter,
+        walletQuan: result.quanAfter,
+        quan: `${result.quanAfter} Quan`,
+        hp: { cur: result.currentHp, max: result.maxHp },
+        exp: { cur: expPct, max: 100 },
+      };
+    });
+  };
+
   const renderScreen = () => {
     if (!isConnected) {
       return (
@@ -286,6 +311,8 @@ export default function App() {
             resolveSkillPacket={resolveSkillPacket}
             resolveEnemyTurnPlan={resolveEnemyTurnPlan}
             resolveBattleSessionSync={resolveBattleSessionSync}
+            resolveBattleResult={resolveBattleResult}
+            onBattleResult={applyBattleResult}
             onVictory={leaveBattle}
             onDefeat={leaveBattle}
             onFlee={leaveBattle}

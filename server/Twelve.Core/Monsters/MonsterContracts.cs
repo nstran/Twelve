@@ -124,7 +124,9 @@ namespace Twelve.Core.Monsters
         int CriticalDamage,
         IReadOnlyList<MonsterSkillTemplate> Skills,
         MonsterAppearanceTemplate Appearance,
-        string? AiProfileId = null
+        string? AiProfileId = null,
+        int ExpReward = 0,
+        int QuanReward = 0
     );
 
     public sealed record MonsterBattleInstance(

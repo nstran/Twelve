@@ -93,7 +93,39 @@ namespace Twelve.Application.Monsters
                 CriticalDamage: criticalDamage,
                 Skills: skills,
                 Appearance: new MonsterAppearanceTemplate(AssetCatalogId: spec.AssetCatalogId),
-                AiProfileId: ResolveAiProfileId(spec));
+                AiProfileId: ResolveAiProfileId(spec),
+                ExpReward: ResolveExpReward(spec),
+                QuanReward: ResolveQuanReward(spec));
+        }
+
+        private static int ResolveExpReward(MonsterBattleRuleSpec spec)
+        {
+            var tierMultiplier = spec.ThreatTier switch
+            {
+                MonsterThreatTier.Elite => 150,
+                MonsterThreatTier.Standard => 120,
+                _ => 100,
+            };
+            var skillBonus = spec.SkillTier switch
+            {
+                MonsterSkillTier.Advanced => 8,
+                MonsterSkillTier.Basic => 4,
+                _ => 0,
+            };
+
+            return Math.Max(1, ((12 + (spec.Level * 3) + skillBonus) * tierMultiplier) / 100);
+        }
+
+        private static int ResolveQuanReward(MonsterBattleRuleSpec spec)
+        {
+            var tierBonus = spec.ThreatTier switch
+            {
+                MonsterThreatTier.Elite => 8,
+                MonsterThreatTier.Standard => 4,
+                _ => 0,
+            };
+
+            return Math.Max(0, 2 + spec.Level + tierBonus);
         }
 
         private static (int Strength, int Agility, int Magic, int Vitality) ResolveStats(MonsterBattleRuleSpec spec)

@@ -13,12 +13,14 @@ export interface BattleScreenProps {
   initialTurn?: BattleTurn;
   onVictory: () => void;
   onDefeat: () => void;
+  onBattleResult?: (result: BattleResultRewardResponse) => void;
   onFlee: () => void;
   resolveSkillPacket?: ResolveBattleSkillPacket;
   resolveEnemyMove?: ResolveEnemyBattleMove;
   resolveEnemyTurn?: ResolveEnemyBattleTurn;
   resolveEnemyTurnPlan?: ResolveEnemyBattleTurnPlan;
   resolveBattleSessionSync?: ResolveBattleSessionSync;
+  resolveBattleResult?: ResolveBattleResult;
 }
 
 export type BattlePhase = 'idle' | 'busy' | 'over';
@@ -232,6 +234,35 @@ export interface BattleSessionSyncRequest {
 export type ResolveBattleSessionSync =
   (request: BattleSessionSyncRequest) =>
     void | Promise<void>;
+
+export interface BattleResultClaimRequest {
+  sessionId: string;
+  result: BattleResult;
+  playerCurrentHp: number;
+  playerCurrentMp: number;
+  playerCurrentPower: number;
+}
+
+export interface BattleResultRewardResponse {
+  result: BattleResult;
+  levelBefore: number;
+  levelAfter: number;
+  levelUps: number;
+  currentHp: number;
+  maxHp: number;
+  expBefore: number;
+  expAfter: number;
+  expFloor: number;
+  expCeiling: number;
+  expGained: number;
+  quanBefore: number;
+  quanAfter: number;
+  quanGained: number;
+}
+
+export type ResolveBattleResult =
+  (request: BattleResultClaimRequest) =>
+    BattleResultRewardResponse | Promise<BattleResultRewardResponse | null> | null;
 
 export type MonsterSharedSheetFamily = 'Monster' | 'Zap' | 'Ice';
 

@@ -14,7 +14,10 @@ import type {
   BattleEnemyTurnPlanRequest,
   BattleEnemyTurnPlanResponse,
   BattleSessionSyncRequest,
+  BattleResultClaimRequest,
+  BattleResultRewardResponse,
   ResolveMonsterBattleBootstrap,
+  ResolveBattleResult,
   ResolveBattleSkillPacket,
   ResolveEnemyBattleMove,
   ResolveBattleSessionSync,
@@ -369,6 +372,51 @@ export const createBattleSessionSyncResolver = (
         signal: controller.signal,
       });
     } catch {
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+};
+
+type ServerBattleResultKind = 'Victory' | 'Defeat';
+type ServerBattleResultRewardResponse = Omit<BattleResultRewardResponse, 'result'> & {
+  result: ServerBattleResultKind;
+};
+
+export const createBattleResultResolver = (
+  socketUrl: string,
+  timeoutMs = 3500,
+): ResolveBattleResult => {
+  const baseUrl = toHttpBaseUrl(socketUrl);
+
+  return async (request: BattleResultClaimRequest): Promise<BattleResultRewardResponse | null> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(`${baseUrl}/battle/result`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: request.sessionId,
+          result: request.result === 'victory' ? 'Victory' : 'Defeat',
+          playerCurrentHp: request.playerCurrentHp,
+          playerCurrentMp: request.playerCurrentMp,
+          playerCurrentPower: request.playerCurrentPower,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json() as ServerBattleResultRewardResponse;
+      return {
+        ...data,
+        result: data.result === 'Victory' ? 'victory' : 'defeat',
+      };
+    } catch {
+      return null;
     } finally {
       clearTimeout(timeout);
     }

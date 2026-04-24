@@ -22,6 +22,7 @@ import {
   PLAYER_SPRITE_SHIFT_X,
   PLAYER_SPRITE_SHIFT_Y,
   type BattleResult,
+  type BattleResultRewardResponse,
   type CollectFXItem,
   type DamagePopupItem,
   type GainPopupItem,
@@ -451,6 +452,7 @@ interface BattleResultOverlayProps {
   resultArtLift: Animated.AnimatedInterpolation<number>;
   resultArtScale: Animated.AnimatedInterpolation<number>;
   resultArtTilt: Animated.AnimatedInterpolation<string>;
+  reward: BattleResultRewardResponse | null;
   onVictory: () => void;
   onDefeat: () => void;
 }
@@ -463,10 +465,21 @@ export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
   resultArtLift,
   resultArtScale,
   resultArtTilt,
+  reward,
   onVictory,
   onDefeat,
 }) => {
   if (result === null || resultMeta === null) return null;
+
+  const currentHp = reward?.currentHp ?? 0;
+  const maxHp = Math.max(1, reward?.maxHp ?? 1);
+  const expFloor = reward?.expFloor ?? 0;
+  const expCeiling = Math.max(expFloor + 1, reward?.expCeiling ?? 100);
+  const expAfter = reward?.expAfter ?? expFloor;
+  const quanAfter = reward?.quanAfter ?? 0;
+  const hpPercent = Math.max(0, Math.min(100, (currentHp * 100) / maxHp));
+  const expPercent = Math.max(0, Math.min(100, ((expAfter - expFloor) * 100) / (expCeiling - expFloor)));
+  const close = result === 'victory' ? onVictory : onDefeat;
 
   return (
     <View pointerEvents="box-none" style={s.resultBannerLayer}>
@@ -484,26 +497,104 @@ export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
             ],
           },
         ]}
-        onPress={result === 'victory' ? onVictory : onDefeat}
+        onPress={reward ? close : undefined}
       >
-        <View
-          style={{
+        <View style={{
+          width: 184,
+          minHeight: 198,
+          backgroundColor: '#E7F4FF',
+          borderWidth: 2,
+          borderColor: '#4895FF',
+          padding: 6,
+        }}>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: '#202020', marginBottom: 5 }}>
+            Cấp: {reward?.levelAfter ?? '-'}
+          </Text>
+          <ResultBar color="#D23A32" value={hpPercent} label={`${currentHp}/${maxHp}`} />
+          <ResultBar color="#3CBD38" value={expPercent} label={`${Math.floor(expPercent * 10) / 10}%`} />
+          <ResultBar color="#C99A2E" value={Math.min(100, (quanAfter % 10000) / 100)} label={`${quanAfter}/10000`} />
+
+          <Text style={{ fontSize: 12, fontWeight: '700', color: '#333', marginTop: 10, marginBottom: 4 }}>
+            Điểm Thu Thập
+          </Text>
+          <ResultRewardLine color="#C99A2E" label={`${reward?.quanGained ?? 0}`} />
+          <ResultRewardLine color="#3CBD38" label={`${reward?.expGained ?? 0}`} />
+
+          <Text style={{ fontSize: 12, fontWeight: '700', color: '#333', marginTop: 8 }}>
+            Thưởng
+          </Text>
+          <ResultRewardLine color="#3CBD38" label={`+${reward?.expGained ?? 0}`} />
+          {reward && reward.levelUps > 0 ? (
+            <Text style={{ fontSize: 11, color: '#D05500', fontWeight: '700', marginTop: 2 }}>
+              Lên cấp +{reward.levelUps}
+            </Text>
+          ) : null}
+
+          <View style={{
+            position: 'absolute',
+            right: 6,
+            bottom: 18,
             width: resultMeta.frameWidth * BOARD_SCALE,
             height: resultMeta.frameHeight * BOARD_SCALE,
             overflow: 'hidden',
-          }}
-        >
-          <Image
-            source={resultMeta.asset}
-            resizeMode="stretch"
+          }}>
+            <Image
+              source={resultMeta.asset}
+              resizeMode="stretch"
+              style={{
+                width: resultMeta.sheetWidth * BOARD_SCALE,
+                height: resultMeta.sheetHeight * BOARD_SCALE,
+                transform: [{ translateX: -RESULT_ART_INDEX * resultMeta.frameWidth * BOARD_SCALE }],
+              }}
+            />
+          </View>
+          <Text
             style={{
-              width: resultMeta.sheetWidth * BOARD_SCALE,
-              height: resultMeta.sheetHeight * BOARD_SCALE,
-              transform: [{ translateX: -RESULT_ART_INDEX * resultMeta.frameWidth * BOARD_SCALE }],
+              position: 'absolute',
+              bottom: 2,
+              left: 0,
+              right: 0,
+              textAlign: 'center',
+              color: '#516070',
+              fontSize: 11,
             }}
-          />
+          >
+            {reward ? 'Đóng' : 'Đang nhận...'}
+          </Text>
         </View>
       </TouchableOpacity>
     </View>
   );
 };
+
+const ResultBar: React.FC<{ color: string; value: number; label: string }> = ({ color, value, label }) => (
+  <View style={{
+    height: 16,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: '#94A8B8',
+    backgroundColor: '#FFF8E8',
+    overflow: 'hidden',
+  }}>
+    <View style={{ width: `${Math.max(0, Math.min(100, value))}%`, height: '100%', backgroundColor: color }} />
+    <Text style={{
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 1,
+      textAlign: 'center',
+      fontSize: 10,
+      fontWeight: '700',
+      color: '#6E1818',
+    }}>
+      {label}
+    </Text>
+  </View>
+);
+
+const ResultRewardLine: React.FC<{ color: string; label: string }> = ({ color, label }) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center', height: 16 }}>
+    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color, marginRight: 8 }} />
+    <Text style={{ fontSize: 12, color: '#222', fontWeight: '600' }}>{label}</Text>
+  </View>
+);

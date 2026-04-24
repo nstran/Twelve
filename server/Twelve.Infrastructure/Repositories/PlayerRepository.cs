@@ -22,6 +22,13 @@ namespace Twelve.Infrastructure.Repositories
             return await connection.QueryFirstOrDefaultAsync<Player>(sql, new { Username = username });
         }
 
+        public async Task<Player?> GetByIdAsync(int id)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            const string sql = "SELECT * FROM Players WHERE Id = @Id";
+            return await connection.QueryFirstOrDefaultAsync<Player>(sql, new { Id = id });
+        }
+
         public async Task<int> CreateAsync(Player player)
         {
             using var connection = _connectionFactory.CreateConnection();

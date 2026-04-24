@@ -82,6 +82,34 @@ Chưa xong:
 - `actionState` mới lưu/echo, chưa là state machine đầy đủ walk/jump/attack/hit/dead
 - Khiêu Chiến/PvP chưa tách thành flow riêng để tìm người chơi và đấu với nhau
 
+## Battle Result / EXP / Quan Reward
+
+Sau khi battle kết thúc, client không tự cộng thưởng. Client gọi `/battle/result` với `sessionId`, kết quả thắng/thua và HP/MP/Power còn lại. Server claim session một lần, cập nhật DB rồi trả payload để client hiển thị bảng kết quả.
+
+Quy định level hiện tại:
+
+- EXP là tổng tích lũy, không reset khi lên cấp
+- mốc bắt đầu level `N` = `100 * (N - 1)^2`
+- mốc lên level kế tiếp = `100 * N^2`
+- ví dụ level 1: `0/100`, level 2: `100/400`, level 3: `400/900`
+- mỗi lần lên cấp: `+5` điểm tiềm năng, `+1` điểm kỹ năng
+
+Quy định monster reward hiện tại:
+
+- reward nằm trong `MonsterBattleTemplate`
+- factory tính mặc định từ level/threat/skill tier
+- EXP cơ bản = `12 + level * 3`, nhân threat: Minor `100%`, Standard `120%`, Elite `150%`, cộng skill bonus
+- Quan cơ bản = `2 + level`, cộng threat: Standard `+4`, Elite `+8`
+- thua trận: không cộng EXP/Quan, chỉ lưu HP/MP/Power còn lại
+
+Đã xong:
+
+- `BattleResultService` claim kết quả và chống claim lại session đã hoàn tất
+- `/battle/result` HTTP endpoint
+- client gọi result endpoint khi `victory/defeat`
+- popup kết quả hiển thị HP còn lại, EXP, Quan và thưởng nhận được
+- App cập nhật HUD/appearance sau result response
+
 ### `kl` actor state chi tiết
 
 `kl.a(lh)` rebuild toàn bộ actor visual:

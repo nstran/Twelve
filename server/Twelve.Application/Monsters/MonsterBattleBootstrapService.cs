@@ -98,7 +98,9 @@ namespace Twelve.Application.Monsters
                 Board: initialBoard,
                 Player: playerState,
                 Enemy: enemyState,
-                CreatedAtUtc: DateTime.UtcNow));
+                CreatedAtUtc: DateTime.UtcNow,
+                SpawnTemplateKey: encounter.SpawnTemplateKey,
+                BattleTemplateId: battleTemplate.BattleTemplateId));
 
             return new MonsterBattleBootstrapResponse(
                 SessionId: sessionId,

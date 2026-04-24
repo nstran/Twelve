@@ -96,6 +96,12 @@ app.MapPost("/battle/session-sync", (BattleSessionSyncRequest request, IBattleSe
     return synced ? Results.Ok() : Results.NotFound();
 });
 
+app.MapPost("/battle/result", (BattleResultClaimRequest request, IBattleResultService service) =>
+{
+    var response = service.Claim(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
 app.MapPost("/battle/enemy-turn", (BattleEnemyTurnRequest request, IBattleEnemyTurnPacketService service) =>
 {
     var packet = service.CreatePacket(request);

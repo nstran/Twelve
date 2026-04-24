@@ -28,6 +28,7 @@ import {
   type BattleCell,
   type BattlePhase,
   type BattleResult,
+  type BattleResultRewardResponse,
   type BattleScreenProps,
   type BattleTurn,
   type Board,
@@ -63,7 +64,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   initialTurn = 'player',
   onVictory,
   onDefeat,
+  onBattleResult,
   onFlee,
+  resolveBattleResult,
   resolveBattleSessionSync,
   resolveEnemyMove,
   resolveSkillPacket,
@@ -123,6 +126,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const enemyRageReady = enemyMaxPow > 0 && enemyPower >= enemyMaxPow;
   const [phase,     setPhase]     = useState<BattlePhase>('idle');
   const [result,    setResult]    = useState<BattleResult | null>(null);
+  const [battleReward, setBattleReward] = useState<BattleResultRewardResponse | null>(null);
   const [playerAction, setPlayerAction] = useState<CharacterAction>('idle');
   const [playerActionFrameIndex, setPlayerActionFrameIndex] = useState<number | null>(null);
   const aiLevel: AILevel | null = resolveEnemyTurnPlan ? null : 'linh_canh';
@@ -145,6 +149,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const skillCastTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const skillPacketRequestRef = useRef(false);
   const pendingVictoryRef = useRef(false);
+  const resultClaimedRef = useRef<string | null>(null);
   const phaseRef   = useRef<BattlePhase>('idle');
   const mountedRef = useRef(true);
   const boardRef   = useRef<Board>(board);
@@ -171,6 +176,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setEnemyHP(Math.min(monsterBootstrap.enemy.currentHp, maxEHP));
     setEnemyMana(Math.min(monsterBootstrap.enemy.currentMp, enemyMaxMP));
     setEnemyPower(Math.min(monsterBootstrap.enemy.currentPower, enemyMaxPow));
+    setResult(null);
+    setBattleReward(null);
+    resultClaimedRef.current = null;
   }, [
     enemyMaxMP,
     enemyMaxPow,
@@ -232,6 +240,64 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   useEffect(() => { hintMoveRef.current = hintMove; }, [hintMove]);
   useEffect(() => { turnRef.current = turn; }, [turn]);
   useEffect(() => { extraTurnsRef.current = extraTurns; }, [extraTurns]);
+  useEffect(() => {
+    if (result === null || resultClaimedRef.current === monsterBootstrap.sessionId) {
+      return;
+    }
+
+    resultClaimedRef.current = monsterBootstrap.sessionId;
+    const fallback: BattleResultRewardResponse = {
+      result,
+      levelBefore: appearance.level ?? monsterBootstrap.player.level,
+      levelAfter: appearance.level ?? monsterBootstrap.player.level,
+      levelUps: 0,
+      currentHp: playerHP,
+      maxHp: maxHP,
+      expBefore: 0,
+      expAfter: 0,
+      expFloor: 0,
+      expCeiling: 100,
+      expGained: 0,
+      quanBefore: appearance.walletQuan ?? 0,
+      quanAfter: appearance.walletQuan ?? 0,
+      quanGained: 0,
+    };
+
+    if (!resolveBattleResult) {
+      setBattleReward(fallback);
+      onBattleResult?.(fallback);
+      return;
+    }
+
+    void Promise.resolve(resolveBattleResult({
+      sessionId: monsterBootstrap.sessionId,
+      result,
+      playerCurrentHp: playerHP,
+      playerCurrentMp: mana,
+      playerCurrentPower: power,
+    }))
+      .then((response) => {
+        const resolved = response ?? fallback;
+        setBattleReward(resolved);
+        onBattleResult?.(resolved);
+      })
+      .catch(() => {
+        setBattleReward(fallback);
+        onBattleResult?.(fallback);
+      });
+  }, [
+    appearance.level,
+    appearance.walletQuan,
+    mana,
+    maxHP,
+    monsterBootstrap.player.level,
+    monsterBootstrap.sessionId,
+    onBattleResult,
+    playerHP,
+    power,
+    resolveBattleResult,
+    result,
+  ]);
   useEffect(() => () => {
     skillCastTimersRef.current.forEach(clearTimeout);
     skillCastTimersRef.current = [];
@@ -775,6 +841,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
         resultArtLift={resultArtLift}
         resultArtScale={resultArtScale}
         resultArtTilt={resultArtTilt}
+        reward={battleReward}
         onVictory={onVictory}
         onDefeat={onDefeat}
       />
