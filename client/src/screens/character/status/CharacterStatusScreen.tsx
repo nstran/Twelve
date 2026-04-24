@@ -41,6 +41,8 @@ interface StatusScreenProps {
   onAllocateStat?: (stat: 'CuongLuc' | 'ThanPhap' | 'NoiLuc' | 'TheLuc') => Promise<string | null>;
   onAllocateSkill?: (familyCode: number) => Promise<string | null>;
   onToggleEquipment?: (equipKey: string, equip: boolean) => Promise<string | null>;
+  onPreviewEquipmentLoadout?: (equipKeys: string[]) => Promise<PlayerAppearance | null>;
+  onCommitEquipmentLoadout?: (equipKeys: string[]) => Promise<string | null>;
   onUseItem?: (itemId: number) => Promise<string | null>;
 }
 

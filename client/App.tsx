@@ -362,6 +362,21 @@ export default function App() {
               applyRuntimeResponse(response);
               return response?.message ?? null;
             }}
+            onPreviewEquipmentLoadout={async (equipKeys) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.previewEquipmentLoadout(username, equipKeys);
+              return response?.snapshot
+                ? mergePlayerRuntimeAppearance(playerAppearanceRef.current, response.snapshot)
+                : null;
+            }}
+            onCommitEquipmentLoadout={async (equipKeys) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.commitEquipmentLoadout(username, equipKeys);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
             onUseItem={async (itemId) => {
               const username = playerAppearance.username;
               if (!username) return null;
@@ -451,6 +466,21 @@ export default function App() {
               const username = playerAppearance.username;
               if (!username) return null;
               const response = await playerRuntimeApi.toggleEquipment(username, equipKey, equip);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
+            onPreviewEquipmentLoadout={async (equipKeys) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.previewEquipmentLoadout(username, equipKeys);
+              return response?.snapshot
+                ? mergePlayerRuntimeAppearance(playerAppearanceRef.current, response.snapshot)
+                : null;
+            }}
+            onCommitEquipmentLoadout={async (equipKeys) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.commitEquipmentLoadout(username, equipKeys);
               applyRuntimeResponse(response);
               return response?.message ?? null;
             }}

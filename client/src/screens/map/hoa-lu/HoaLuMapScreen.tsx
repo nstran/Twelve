@@ -331,6 +331,8 @@ interface Props {
   onAllocateStat?: (stat: CharacterStatKey) => Promise<string | null>;
   onAllocateSkill?: (familyCode: number) => Promise<string | null>;
   onToggleEquipment?: (equipKey: string, equip: boolean) => Promise<string | null>;
+  onPreviewEquipmentLoadout?: (equipKeys: string[]) => Promise<CharacterAppearance | null>;
+  onCommitEquipmentLoadout?: (equipKeys: string[]) => Promise<string | null>;
   onUseItem?: (itemId: number) => Promise<string | null>;
 }
 
@@ -369,6 +371,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   onAllocateStat,
   onAllocateSkill,
   onToggleEquipment,
+  onPreviewEquipmentLoadout,
+  onCommitEquipmentLoadout,
   onUseItem,
 }) => {
   const sceneConfig = useMemo(
@@ -1240,6 +1244,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         onAllocateStat={onAllocateStat}
         onAllocateSkill={onAllocateSkill}
         onToggleEquipment={onToggleEquipment}
+        onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
+        onCommitEquipmentLoadout={onCommitEquipmentLoadout}
         onUseItem={onUseItem}
       />
 

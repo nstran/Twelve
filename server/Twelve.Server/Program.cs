@@ -182,6 +182,18 @@ app.MapPost("/player/runtime/equipment", (PlayerEquipmentRuntimeRequest request,
     return response is null ? Results.NotFound() : Results.Ok(response);
 });
 
+app.MapPost("/player/runtime/equipment/preview", (PlayerEquipmentLoadoutRuntimeRequest request, IPlayerRuntimeService service) =>
+{
+    var response = service.PreviewEquipmentLoadout(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/player/runtime/equipment/loadout", (PlayerEquipmentLoadoutRuntimeRequest request, IPlayerRuntimeService service) =>
+{
+    var response = service.CommitEquipmentLoadout(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
 app.MapPost("/player/runtime/item-use", (PlayerUseItemRuntimeRequest request, IPlayerRuntimeService service) =>
 {
     var response = service.UseItem(request);

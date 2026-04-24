@@ -39,7 +39,7 @@ export const resolveEquipmentFamilyIconAsset = (key: EquipmentFamilyKey) => {
 };
 
 export const isWeaponEquipment = (entry: CharacterEquipmentItem) =>
-  entry.iconKind === 'weapon' || entry.slot === 4;
+  entry.iconKind === 'weapon' || entry.slot === 1;
 
 const EQUIPMENT_RENDER_SLOT: Record<number, {
   key: string;

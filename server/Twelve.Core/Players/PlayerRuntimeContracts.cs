@@ -32,6 +32,8 @@ namespace Twelve.Core.Players
         bool IsEquipped,
         string IconKind,
         int Rank,
+        int ElementIcon,
+        int Gender,
         int Durability,
         int MaxDurability,
         bool Tradeable,
@@ -112,6 +114,11 @@ namespace Twelve.Core.Players
         string Username,
         string EquipKey,
         bool Equip
+    );
+
+    public sealed record PlayerEquipmentLoadoutRuntimeRequest(
+        string Username,
+        IReadOnlyList<string> EquipKeys
     );
 
     public sealed record PlayerUseItemRuntimeRequest(

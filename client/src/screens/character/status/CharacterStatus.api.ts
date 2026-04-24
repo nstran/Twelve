@@ -48,6 +48,8 @@ export interface PlayerRuntimeApi {
   allocateStat: (username: string, stat: 'CuongLuc' | 'ThanPhap' | 'NoiLuc' | 'TheLuc') => Promise<PlayerRuntimeResponse | null>;
   allocateSkill: (username: string, familyCode: number) => Promise<PlayerRuntimeResponse | null>;
   toggleEquipment: (username: string, equipKey: string, equip: boolean) => Promise<PlayerRuntimeResponse | null>;
+  previewEquipmentLoadout: (username: string, equipKeys: string[]) => Promise<PlayerRuntimeResponse | null>;
+  commitEquipmentLoadout: (username: string, equipKeys: string[]) => Promise<PlayerRuntimeResponse | null>;
   useItem: (username: string, itemId: number) => Promise<PlayerRuntimeResponse | null>;
 }
 
@@ -103,6 +105,20 @@ export const createPlayerRuntimeApi = (socketUrl: string): PlayerRuntimeApi => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, equipKey, equip }),
+      }),
+
+    previewEquipmentLoadout: (username, equipKeys) =>
+      requestJson<PlayerRuntimeResponse>(`${baseUrl}/player/runtime/equipment/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, equipKeys }),
+      }),
+
+    commitEquipmentLoadout: (username, equipKeys) =>
+      requestJson<PlayerRuntimeResponse>(`${baseUrl}/player/runtime/equipment/loadout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, equipKeys }),
       }),
 
     useItem: (username, itemId) =>

@@ -149,32 +149,60 @@ namespace Twelve.Application.Players
                 return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong tim thay trang bi.");
             }
 
-            var targetView = _contentCatalog.ToEquipmentView(equipment[index]);
-            if (request.Equip && player.Level < targetView.RequiredLevel)
-            {
-                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), $"Can cap {targetView.RequiredLevel} de mac.");
-            }
+            var desiredKeys = equipment
+                .Where(entry => entry.IsEquipped)
+                .Select(entry => entry.EquipKey)
+                .ToHashSet(System.StringComparer.Ordinal);
 
-            var target = equipment[index];
             if (request.Equip)
             {
-                for (var i = 0; i < equipment.Count; i++)
+                var target = equipment[index];
+                foreach (var entry in equipment)
                 {
-                    if (equipment[i].Slot == target.Slot && equipment[i].IsEquipped)
+                    if (entry.Slot == target.Slot)
                     {
-                        equipment[i] = CloneEquipmentEntry(equipment[i], isEquipped: false);
+                        desiredKeys.Remove(entry.EquipKey);
                     }
                 }
+
+                desiredKeys.Add(target.EquipKey);
+            }
+            else
+            {
+                desiredKeys.Remove(equipment[index].EquipKey);
             }
 
-            equipment[index] = CloneEquipmentEntry(target, isEquipped: request.Equip);
-
-            _playerAggregateRepository.SaveCollectionsAsync(player.Id, equipment, aggregate.Inventory, aggregate.Skills).GetAwaiter().GetResult();
-            RecalculateAndSave(player, equipment);
-
-            return new PlayerRuntimeResponse(
-                BuildSnapshot(ReloadAggregate(player.Id)),
+            return CommitEquipmentLoadoutInternal(
+                aggregate,
+                desiredKeys,
                 request.Equip ? "Da mac trang bi." : "Da thao trang bi.");
+        }
+
+        public PlayerRuntimeResponse? CommitEquipmentLoadout(PlayerEquipmentLoadoutRuntimeRequest request)
+        {
+            var aggregate = LoadAggregate(request.Username);
+            if (aggregate is null)
+            {
+                return null;
+            }
+
+            var equipKeys = request.EquipKeys ?? System.Array.Empty<string>();
+            return CommitEquipmentLoadoutInternal(
+                aggregate,
+                equipKeys.ToHashSet(System.StringComparer.Ordinal),
+                "Da cap nhat trang bi.");
+        }
+
+        public PlayerRuntimeResponse? PreviewEquipmentLoadout(PlayerEquipmentLoadoutRuntimeRequest request)
+        {
+            var aggregate = LoadAggregate(request.Username);
+            if (aggregate is null)
+            {
+                return null;
+            }
+
+            var equipKeys = request.EquipKeys ?? System.Array.Empty<string>();
+            return PreviewEquipmentLoadoutInternal(aggregate, equipKeys.ToHashSet(System.StringComparer.Ordinal));
         }
 
         public PlayerRuntimeResponse? UseItem(PlayerUseItemRuntimeRequest request)
@@ -274,6 +302,187 @@ namespace Twelve.Application.Players
             PlayerStatPipeline.RecalculateAndApply(player, _contentCatalog.GetEquippedModifiers(equipment));
             _playerRepository.UpdateAsync(player).GetAwaiter().GetResult();
         }
+
+        private PlayerRuntimeResponse PreviewEquipmentLoadoutInternal(
+            PlayerAggregate aggregate,
+            IReadOnlySet<string> desiredEquipKeys)
+        {
+            var player = ClonePlayer(aggregate.Core);
+            var equipment = aggregate.Equipment.ToList();
+            var equippedSlots = new HashSet<int>();
+
+            foreach (var equipKey in desiredEquipKeys)
+            {
+                var target = equipment.FirstOrDefault(entry => entry.EquipKey == equipKey);
+                if (target is null)
+                {
+                    return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong tim thay trang bi.");
+                }
+
+                var targetView = _contentCatalog.ToEquipmentView(target);
+                var validationMessage = ValidateEquipmentForEquip(player, targetView);
+                if (validationMessage is not null)
+                {
+                    return new PlayerRuntimeResponse(BuildSnapshot(aggregate), validationMessage);
+                }
+
+                if (!equippedSlots.Add(target.Slot))
+                {
+                    return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Moi o chi duoc mac mot trang bi.");
+                }
+            }
+
+            for (var i = 0; i < equipment.Count; i++)
+            {
+                equipment[i] = CloneEquipmentEntry(
+                    equipment[i],
+                    isEquipped: desiredEquipKeys.Contains(equipment[i].EquipKey));
+            }
+
+            PlayerStatPipeline.RecalculateAndApply(player, _contentCatalog.GetEquippedModifiers(equipment));
+
+            var previewAggregate = new PlayerAggregate
+            {
+                Core = player,
+                Appearance = aggregate.Appearance,
+                Stats = aggregate.Stats,
+                Equipment = equipment,
+                Inventory = aggregate.Inventory,
+                Skills = aggregate.Skills,
+                MapOverlays = aggregate.MapOverlays,
+                WorldState = aggregate.WorldState
+            };
+
+            return new PlayerRuntimeResponse(BuildSnapshot(previewAggregate), "Xem truoc trang bi.");
+        }
+
+        private PlayerRuntimeResponse CommitEquipmentLoadoutInternal(
+            PlayerAggregate aggregate,
+            IReadOnlySet<string> desiredEquipKeys,
+            string successMessage)
+        {
+            var player = aggregate.Core;
+            var equipment = aggregate.Equipment.ToList();
+            var equippedSlots = new HashSet<int>();
+
+            foreach (var equipKey in desiredEquipKeys)
+            {
+                var target = equipment.FirstOrDefault(entry => entry.EquipKey == equipKey);
+                if (target is null)
+                {
+                    return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong tim thay trang bi.");
+                }
+
+                var targetView = _contentCatalog.ToEquipmentView(target);
+                var validationMessage = ValidateEquipmentForEquip(player, targetView);
+                if (validationMessage is not null)
+                {
+                    return new PlayerRuntimeResponse(BuildSnapshot(aggregate), validationMessage);
+                }
+
+                if (!equippedSlots.Add(target.Slot))
+                {
+                    return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Moi o chi duoc mac mot trang bi.");
+                }
+            }
+
+            for (var i = 0; i < equipment.Count; i++)
+            {
+                equipment[i] = CloneEquipmentEntry(
+                    equipment[i],
+                    isEquipped: desiredEquipKeys.Contains(equipment[i].EquipKey));
+            }
+
+            _playerAggregateRepository.SaveCollectionsAsync(player.Id, equipment, aggregate.Inventory, aggregate.Skills).GetAwaiter().GetResult();
+            RecalculateAndSave(player, equipment);
+
+            return new PlayerRuntimeResponse(
+                BuildSnapshot(ReloadAggregate(player.Id)),
+                successMessage);
+        }
+
+        private static string? ValidateEquipmentForEquip(Player player, PlayerEquipmentItemView equipment)
+        {
+            if (!IsValidEquipmentSlot(equipment.Slot))
+            {
+                return "O trang bi khong hop le.";
+            }
+
+            if (player.Level < equipment.RequiredLevel)
+            {
+                return $"Can cap {equipment.RequiredLevel} de mac.";
+            }
+
+            if (equipment.Gender != 2 && equipment.Gender != player.Gender)
+            {
+                return "Trang bi khong dung gioi tinh.";
+            }
+
+            if (equipment.MaxDurability > 0 && equipment.Durability <= 0)
+            {
+                return "Trang bi da hong, can sua truoc khi mac.";
+            }
+
+            return null;
+        }
+
+        private static bool IsValidEquipmentSlot(int slot) =>
+            slot is 0 or 1 or 2 or 3 or 4 or 5 or 7 or 8;
+
+        private static Player ClonePlayer(Player source) =>
+            new()
+            {
+                Id = source.Id,
+                Username = source.Username,
+                Level = source.Level,
+                Gold = source.Gold,
+                Exp = source.Exp,
+                ExpFloor = source.ExpFloor,
+                ExpCeiling = source.ExpCeiling,
+                QuanProgress = source.QuanProgress,
+                QuanProgressCap = source.QuanProgressCap,
+                CurrentMap = source.CurrentMap,
+                CurrentRoom = source.CurrentRoom,
+                Hp = source.Hp,
+                MaxHp = source.MaxHp,
+                Mp = source.Mp,
+                MaxMp = source.MaxMp,
+                Power = source.Power,
+                MaxPower = source.MaxPower,
+                CuongLuc = source.CuongLuc,
+                ThanPhap = source.ThanPhap,
+                NoiLuc = source.NoiLuc,
+                TheLuc = source.TheLuc,
+                FreePoints = source.FreePoints,
+                BonusCuongLuc = source.BonusCuongLuc,
+                BonusThanPhap = source.BonusThanPhap,
+                BonusNoiLuc = source.BonusNoiLuc,
+                BonusTheLuc = source.BonusTheLuc,
+                SkillPoints = source.SkillPoints,
+                Honor = source.Honor,
+                DerivedMinDamage = source.DerivedMinDamage,
+                DerivedMaxDamage = source.DerivedMaxDamage,
+                DerivedDefense = source.DerivedDefense,
+                DerivedDodge = source.DerivedDodge,
+                DerivedHit = source.DerivedHit,
+                DerivedCrit = source.DerivedCrit,
+                Gender = source.Gender,
+                Element = source.Element,
+                RawElementCode = source.RawElementCode,
+                FaceStyle = source.FaceStyle,
+                HairStyle = source.HairStyle,
+                HairColor = source.HairColor,
+                SkinColor = source.SkinColor,
+                AppearanceHidden0 = source.AppearanceHidden0,
+                AppearanceHidden1 = source.AppearanceHidden1,
+                SpecialActorForm = source.SpecialActorForm,
+                AppearanceJson = source.AppearanceJson,
+                TitleMain = source.TitleMain,
+                TitleSub = source.TitleSub,
+                TitleRank = source.TitleRank,
+                CreatedAt = source.CreatedAt,
+                LastSeenAt = source.LastSeenAt
+            };
 
         private static PlayerEquipmentEntry CloneEquipmentEntry(PlayerEquipmentEntry source, bool isEquipped) =>
             new()

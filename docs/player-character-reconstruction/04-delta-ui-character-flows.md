@@ -331,8 +331,11 @@ Java cũ có chain refresh khá rõ:
 - phân điểm tiềm năng cập nhật thẳng player DB rồi recalc derived stats với equip đang mặc
 - skill allocation dùng pool `SkillPoints` riêng, giới hạn theo element + level requirement
 - equipment có trạng thái `IsEquipped` để tách loadout đang mặc với đồ đang nằm trong túi
+- inventory/equipment UI đã bám flow Java `hh` hơn: click ô đồ mở menu dọc kiểu softbar; detail panel chỉ hiển thị thông tin; mặc/tháo là local preview trước, `Cập nhật` mới commit full loadout
+- server đã có `/player/runtime/equipment/preview` để clone loadout nháp, chạy `PlayerStatPipeline`, trả stat/sprite preview; `/player/runtime/equipment/loadout` commit danh sách equip key đang mặc
 - dùng item hiện chỉ hỗ trợ consumable hồi HP ngoài battle; quantity trừ thật trong `PlayerInventory`
 - battle panel tuyệt chiêu chỉ hiện các family code mà player đã học trong aggregate
+- các menu `Sửa chữa`, `Nâng cấp`, `Rao bán`, `Vứt bỏ` mới là UI shell để giữ đúng surface Java; nghiệp vụ server tương ứng còn pending
 
 ## Create Character Flow
 

@@ -128,6 +128,8 @@ namespace Twelve.Application.Players
                 IsEquipped: entry.IsEquipped,
                 IconKind: definition.IconKind,
                 Rank: definition.Rank,
+                ElementIcon: definition.ElementIcon,
+                Gender: definition.Gender,
                 Durability: definition.Durability,
                 MaxDurability: definition.MaxDurability,
                 Tradeable: definition.Tradeable,

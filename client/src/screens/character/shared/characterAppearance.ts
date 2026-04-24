@@ -20,6 +20,8 @@ export interface CharacterEquipmentItem {
   isEquipped: boolean;
   iconKind: string;
   rank: number;
+  elementIcon: number;
+  gender: number;
   durability: number;
   maxDurability: number;
   tradeable: boolean;

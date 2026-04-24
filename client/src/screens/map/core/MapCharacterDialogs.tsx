@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -64,6 +64,8 @@ interface MapCharacterDialogsProps {
   onAllocateStat?: (stat: CharacterStatKey) => Promise<string | null>;
   onAllocateSkill?: (familyCode: number) => Promise<string | null>;
   onToggleEquipment?: (equipKey: string, equip: boolean) => Promise<string | null>;
+  onPreviewEquipmentLoadout?: (equipKeys: string[]) => Promise<CharacterAppearance | null>;
+  onCommitEquipmentLoadout?: (equipKeys: string[]) => Promise<string | null>;
   onUseItem?: (itemId: number) => Promise<string | null>;
 }
 
@@ -109,6 +111,35 @@ const getEquipmentBonusRows = (entry: CharacterEquipmentItem) => [
   entry.bonusCrit ? `Chí Mạng ${formatSigned(entry.bonusCrit, '%')}` : null,
   entry.bonusMaxHp ? `Sinh lực ${formatSigned(entry.bonusMaxHp)}` : null,
 ].filter((row): row is string => Boolean(row));
+
+const parseCombatNumber = (value: number | string | undefined) => {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  const parsed = Number(String(value ?? '0').replace(/[^\d-]/g, ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const getCombatPreviewRows = (
+  current?: CharacterAppearance['combat'],
+  preview?: CharacterAppearance['combat'],
+) => {
+  if (!current || !preview) {
+    return [];
+  }
+
+  const rows = [
+    ['Tấn Công', parseCombatNumber(preview.attack) - parseCombatNumber(current.attack)],
+    ['P.Thủ', parseCombatNumber(preview.def) - parseCombatNumber(current.def)],
+    ['Sinh lực', parseCombatNumber(preview.hp) - parseCombatNumber(current.hp)],
+    ['Né Tránh', parseCombatNumber(preview.dodge) - parseCombatNumber(current.dodge)],
+    ['Chính xác', parseCombatNumber(preview.acc) - parseCombatNumber(current.acc)],
+    ['Chí Mạng', parseCombatNumber(preview.crit) - parseCombatNumber(current.crit)],
+  ] as const;
+
+  return rows.filter(([, delta]) => delta !== 0);
+};
 
 const resolveEquipmentIcon = (entry: CharacterEquipmentItem) => resolveEquipmentIconAsset(entry);
 
@@ -473,14 +504,18 @@ const EquipmentDialog: React.FC<{
   pending: string | null;
   onRunAction: (key: string, runner?: DialogActionRunner) => void;
   onToggleEquipment?: (equipKey: string, equip: boolean) => Promise<string | null>;
+  onPreviewEquipmentLoadout?: (equipKeys: string[]) => Promise<CharacterAppearance | null>;
+  onCommitEquipmentLoadout?: (equipKeys: string[]) => Promise<string | null>;
   onUseItem?: (itemId: number) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment, onUseItem }) => {
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem }) => {
   return (
     <InventoryShell
       appearance={appearance}
       pending={pending}
       onRunAction={onRunAction}
       onToggleEquipment={onToggleEquipment}
+      onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
+      onCommitEquipmentLoadout={onCommitEquipmentLoadout}
       onUseItem={onUseItem}
     />
   );
@@ -491,6 +526,18 @@ type InventoryCell =
   | { kind: 'item'; key: string; item: CharacterInventoryItem }
   | { kind: 'empty'; key: string };
 type EquipmentCell = Extract<InventoryCell, { kind: 'equipment' }>;
+const EMPTY_EQUIPMENT: CharacterEquipmentItem[] = [];
+type InventoryActionMenuState = {
+  cellKey: string;
+  left: number;
+  top: number;
+};
+type InventoryActionMenuItem = {
+  id: string;
+  label: string;
+  disabled?: boolean;
+  onPress?: () => void;
+};
 
 const HiddenEquipmentIcon: React.FC<{ slot: number }> = ({ slot }) => (
   <View style={styles.hiddenEquipmentIcon}>
@@ -549,27 +596,66 @@ const InventoryGridCell: React.FC<{
   </Pressable>
 );
 
+const InventoryActionMenu: React.FC<{
+  left: number;
+  top: number;
+  items: InventoryActionMenuItem[];
+}> = ({ left, top, items }) => {
+  const selectedIndex = Math.max(0, items.findIndex(item => !item.disabled));
+
+  return (
+    <View style={[styles.inventoryActionMenu, { left, top }]}>
+      {items.map((item, index) => {
+        const selected = index === selectedIndex && !item.disabled;
+        return (
+          <TouchableOpacity
+            key={item.id}
+            activeOpacity={1}
+            disabled={item.disabled}
+            onPress={item.onPress}
+            style={[styles.inventoryActionMenuItem, selected && styles.inventoryActionMenuItemSelected]}
+          >
+            <Text
+              style={[
+                styles.inventoryActionMenuText,
+                selected && styles.inventoryActionMenuTextSelected,
+                item.disabled && styles.inventoryActionMenuTextDisabled,
+              ]}
+              numberOfLines={1}
+            >
+              {item.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+};
+
 const InventoryDetailPanel: React.FC<{
   playerLevel: number;
+  playerGender: number;
+  currentCombat?: CharacterAppearance['combat'];
+  previewCombat?: CharacterAppearance['combat'];
   selected?: InventoryCell;
-  selectedIsEquipped: boolean;
   pending: string | null;
-  onRunAction: (key: string, runner?: DialogActionRunner) => void;
-  onToggleEquipment?: (equipKey: string, equip: boolean) => Promise<string | null>;
-  onUseItem?: (itemId: number) => Promise<string | null>;
 }> = ({
   playerLevel,
+  playerGender,
+  currentCombat,
+  previewCombat,
   selected,
-  selectedIsEquipped,
   pending,
-  onRunAction,
-  onToggleEquipment,
-  onUseItem,
 }) => {
   if (selected?.kind === 'equipment') {
     const entry = selected.entry;
-    const canEquip = selectedIsEquipped || playerLevel >= entry.requiredLevel;
+    const canEquip = entry.isEquipped || (
+      playerLevel >= entry.requiredLevel
+      && (entry.gender === 2 || entry.gender === undefined || entry.gender === playerGender)
+      && !(entry.maxDurability > 0 && entry.durability <= 0)
+    );
     const bonusRows = getEquipmentBonusRows(entry);
+    const previewRows = getCombatPreviewRows(currentCombat, previewCombat);
 
     return (
       <View style={styles.inventoryDetailPanel}>
@@ -583,20 +669,20 @@ const InventoryDetailPanel: React.FC<{
           Yêu cầu cấp {entry.requiredLevel}  Bền {entry.durability}/{entry.maxDurability}  {entry.isEquipped ? 'Đang mặc' : 'Trong túi'}
         </Text>
         <View style={styles.inventoryBonusGrid}>
-          {(bonusRows.length > 0 ? bonusRows : [entry.summary]).slice(0, 6).map(row => (
+          {(previewRows.length > 0
+            ? previewRows.map(([label, delta]) => `${label} ${formatSigned(delta)}`)
+            : bonusRows.length > 0
+              ? bonusRows
+              : [entry.summary]
+          ).slice(0, 6).map(row => (
             <Text key={row} style={styles.inventoryBonusText} numberOfLines={1}>{row}</Text>
           ))}
         </View>
-        <View style={styles.inventoryDetailActions}>
-          <ActionButton
-            label={selectedIsEquipped ? 'Tháo' : 'Trang bị'}
-            disabled={pending !== null || !canEquip || !onToggleEquipment}
-            onPress={() => onRunAction(
-              `${selectedIsEquipped ? 'unequip' : 'equip'}-${entry.equipKey}`,
-              () => onToggleEquipment?.(entry.equipKey, !selectedIsEquipped),
-            )}
-          />
-        </View>
+        {!canEquip && pending === null ? (
+          <Text style={styles.inventoryDetailWarn} numberOfLines={1}>
+            Chưa đủ điều kiện trang bị.
+          </Text>
+        ) : null}
       </View>
     );
   }
@@ -614,13 +700,6 @@ const InventoryDetailPanel: React.FC<{
         {item.isUsable ? (
           <Text style={styles.inventoryBonusText} numberOfLines={1}>Hồi {item.healAmount} sinh lực</Text>
         ) : null}
-        <View style={styles.inventoryDetailActions}>
-          <ActionButton
-            label={item.isUsable ? 'Dùng' : 'Giữ'}
-            disabled={pending !== null || !item.isUsable || !onUseItem}
-            onPress={() => onRunAction(`item-${item.itemId}`, () => onUseItem?.(item.itemId))}
-          />
-        </View>
       </View>
     );
   }
@@ -628,22 +707,70 @@ const InventoryDetailPanel: React.FC<{
   return <View style={styles.inventoryDetailPanel} />;
 };
 
+const buildEquippedKeySet = (equipment: CharacterEquipmentItem[]) =>
+  new Set(equipment.filter(entry => entry.isEquipped).map(entry => entry.equipKey));
+
+const sameKeySet = (left: Set<string>, right: Set<string>) => {
+  if (left.size !== right.size) {
+    return false;
+  }
+
+  for (const key of left) {
+    if (!right.has(key)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const clampActionMenuLeft = (left: number) => Math.max(6, Math.min(258, left));
+const clampActionMenuTop = (top: number) => Math.max(130, Math.min(430, top));
+
 const InventoryShell: React.FC<{
   appearance: CharacterAppearance;
   pending: string | null;
   onRunAction: (key: string, runner?: DialogActionRunner) => void;
   onToggleEquipment?: (equipKey: string, equip: boolean) => Promise<string | null>;
+  onPreviewEquipmentLoadout?: (equipKeys: string[]) => Promise<CharacterAppearance | null>;
+  onCommitEquipmentLoadout?: (equipKeys: string[]) => Promise<string | null>;
   onUseItem?: (itemId: number) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment, onUseItem }) => {
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem }) => {
   const player = createPlayerModel(appearance);
-  const equipped = player.equipment.filter(entry => entry.isEquipped);
-  const bagEquipment = player.equipment.filter(entry => !entry.isEquipped);
+  const equipmentSource = appearance.equipment ?? EMPTY_EQUIPMENT;
+  const serverEquippedKeys = useMemo(
+    () => buildEquippedKeySet(equipmentSource),
+    [equipmentSource],
+  );
+  const equipmentSignature = equipmentSource.map(entry => `${entry.equipKey}:${entry.isEquipped ? 1 : 0}`).join('|');
+  const [draftEquippedKeys, setDraftEquippedKeys] = useState(() => buildEquippedKeySet(equipmentSource));
+  const [previewRuntime, setPreviewRuntime] = useState<CharacterAppearance | null>(null);
+
+  useEffect(() => {
+    setDraftEquippedKeys(buildEquippedKeySet(equipmentSource));
+    setPreviewRuntime(null);
+  }, [equipmentSignature, equipmentSource]);
+
+  const previewEquipment = equipmentSource.map(entry => ({
+    ...entry,
+    isEquipped: draftEquippedKeys.has(entry.equipKey),
+  }));
+  const statPreview = previewRuntime ?? appearance;
+  const previewAppearance = {
+    ...appearance,
+    combat: statPreview.combat ?? appearance.combat,
+    hp: statPreview.hp ?? appearance.hp,
+    equipment: previewEquipment,
+  };
+  const equipped = previewEquipment.filter(entry => entry.isEquipped);
+  const bagEquipment = previewEquipment.filter(entry => !entry.isEquipped);
   const rawCells: InventoryCell[] = [
     ...bagEquipment.map((entry): InventoryCell => ({ kind: 'equipment', key: `equip-${entry.equipKey}`, entry })),
     ...player.inventory.map((item): InventoryCell => ({ kind: 'item', key: `item-${item.itemId}`, item })),
   ];
   const cells = Array.from({ length: Math.max(36, rawCells.length) }, (_, index) => rawCells[index] ?? { kind: 'empty' as const, key: `empty-${index}` });
   const [selectedKey, setSelectedKey] = useState<string>(rawCells[0]?.key ?? '');
+  const [actionMenu, setActionMenu] = useState<InventoryActionMenuState | null>(null);
   const equippedCells = equipped.map((entry): EquipmentCell => ({ kind: 'equipment', key: `equipped-${entry.equipKey}`, entry }));
   const selected = rawCells.find(cell => cell.key === selectedKey)
     ?? equippedCells.find(cell => cell.key === selectedKey)
@@ -651,21 +778,146 @@ const InventoryShell: React.FC<{
     ?? equippedCells.find(cell => selectedKey.endsWith(cell.entry.equipKey));
   const selectedIsEquipped = selected?.kind === 'equipment' && selected.entry.isEquipped;
   const getEquipped = (slot: number) => equipped.find(entry => entry.slot === slot);
-  const selectEquipped = (slot: number) => {
+  const hasLoadoutChanges = !sameKeySet(serverEquippedKeys, draftEquippedKeys);
+  const previewEquipmentChange = (entry: CharacterEquipmentItem, equip: boolean) => {
+    setDraftEquippedKeys((current) => {
+      const next = new Set(current);
+      if (equip) {
+        for (const other of previewEquipment) {
+          if (other.slot === entry.slot) {
+            next.delete(other.equipKey);
+          }
+        }
+
+        next.add(entry.equipKey);
+      } else {
+        next.delete(entry.equipKey);
+      }
+
+      return next;
+    });
+  };
+  useEffect(() => {
+    if (!onPreviewEquipmentLoadout || !hasLoadoutChanges) {
+      setPreviewRuntime(null);
+      return;
+    }
+
+    let active = true;
+    const timer = setTimeout(() => {
+      void onPreviewEquipmentLoadout(Array.from(draftEquippedKeys)).then((preview) => {
+        if (active) {
+          setPreviewRuntime(preview);
+        }
+      });
+    }, 120);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [draftEquippedKeys, hasLoadoutChanges, onPreviewEquipmentLoadout]);
+  const commitLoadout = onCommitEquipmentLoadout
+    ? () => onCommitEquipmentLoadout(Array.from(draftEquippedKeys))
+    : undefined;
+  const openActionMenu = (cell: InventoryCell, left: number, top: number) => {
+    if (cell.kind === 'empty') {
+      setActionMenu(null);
+      return;
+    }
+
+    setSelectedKey(cell.key);
+    setActionMenu({
+      cellKey: cell.key,
+      left: clampActionMenuLeft(left),
+      top: clampActionMenuTop(top),
+    });
+  };
+  const selectEquipped = (slot: number, left: number, top: number) => {
     const entry = getEquipped(slot);
     if (entry) {
-      setSelectedKey(`equipped-${entry.equipKey}`);
+      openActionMenu({ kind: 'equipment', key: `equipped-${entry.equipKey}`, entry }, left, top);
+    } else {
+      setActionMenu(null);
     }
   };
-  const renderEquipSlot = (slot: number, style: object) => (
+  const renderEquipSlot = (slot: number, style: object, left: number, top: number) => (
     <EquipmentSlot
       slot={slot}
       entry={getEquipped(slot)}
       selected={selectedIsEquipped && selected?.kind === 'equipment' && selected.entry.slot === slot}
-      onPress={() => selectEquipped(slot)}
+      onPress={() => selectEquipped(slot, left + 52, top)}
       style={style}
     />
   );
+  const renderActionMenu = () => {
+    if (!actionMenu || !selected || selected.kind === 'empty') {
+      return null;
+    }
+
+    if (selected.kind === 'equipment') {
+      const entry = selected.entry;
+      const canEquip = selectedIsEquipped || (
+        player.level >= entry.requiredLevel
+        && (entry.gender === 2 || entry.gender === undefined || entry.gender === appearance.genderIndex)
+        && !(entry.maxDurability > 0 && entry.durability <= 0)
+      );
+
+      return (
+        <InventoryActionMenu
+          left={actionMenu.left}
+          top={actionMenu.top}
+          items={[
+            { id: 'repair', label: 'Sửa chữa', onPress: () => setActionMenu(null) },
+            {
+              id: 'equip',
+              label: selectedIsEquipped ? 'Tháo' : 'Trang bị',
+              disabled: pending !== null || !canEquip,
+              onPress: () => {
+              previewEquipmentChange(entry, !selectedIsEquipped);
+              setActionMenu(null);
+              },
+            },
+            { id: 'detail', label: 'Chi Tiết', onPress: () => setActionMenu(null) },
+            { id: 'upgrade', label: 'Nâng cấp', onPress: () => setActionMenu(null) },
+            { id: 'sell', label: 'Rao bán', onPress: () => setActionMenu(null) },
+            { id: 'drop', label: 'Vứt bỏ', onPress: () => setActionMenu(null) },
+            ...(hasLoadoutChanges ? [{
+              id: 'commit',
+              label: 'Cập nhật',
+              disabled: pending !== null || !hasLoadoutChanges || !commitLoadout,
+              onPress: () => {
+              setActionMenu(null);
+              onRunAction('equipment-loadout', commitLoadout);
+              },
+            }] : []),
+          ]}
+        />
+      );
+    }
+
+    const item = selected.item;
+    return (
+      <InventoryActionMenu
+        left={actionMenu.left}
+        top={actionMenu.top}
+        items={[
+          {
+            id: 'use',
+            label: item.isUsable ? 'Dùng' : 'Giữ',
+            disabled: pending !== null || !item.isUsable || !onUseItem,
+            onPress: () => {
+            setActionMenu(null);
+            onRunAction(`item-${item.itemId}`, () => onUseItem?.(item.itemId));
+            },
+          },
+          { id: 'detail', label: 'Chi Tiết', onPress: () => setActionMenu(null) },
+          { id: 'sell', label: 'Rao bán', onPress: () => setActionMenu(null) },
+          { id: 'drop', label: 'Vứt bỏ', onPress: () => setActionMenu(null) },
+        ]}
+      />
+    );
+  };
 
   return (
     <View style={styles.inventoryBody}>
@@ -673,15 +925,15 @@ const InventoryShell: React.FC<{
         <Text style={styles.inventoryName} numberOfLines={1}>{player.username}</Text>
         <Text style={styles.inventoryLevel}>Cấp:{player.level}</Text>
       </View>
-      {renderEquipSlot(0, styles.equipSlotArmor)}
-      {renderEquipSlot(1, styles.equipSlotWeapon)}
-      {renderEquipSlot(2, styles.equipSlotHat)}
-      {renderEquipSlot(3, styles.equipSlotBoot)}
-      {renderEquipSlot(4, styles.equipSlotMount)}
-      {renderEquipSlot(5, styles.equipSlotRing)}
+      {renderEquipSlot(0, styles.equipSlotArmor, 56, 46)}
+      {renderEquipSlot(1, styles.equipSlotWeapon, 56, 102)}
+      {renderEquipSlot(2, styles.equipSlotHat, 194, 46)}
+      {renderEquipSlot(3, styles.equipSlotBoot, 194, 102)}
+      {renderEquipSlot(4, styles.equipSlotMount, 250, 46)}
+      {renderEquipSlot(5, styles.equipSlotRing, 250, 102)}
       <View style={styles.inventoryAvatarBox}>
         <CharacterRenderer
-          appearance={appearance}
+          appearance={previewAppearance}
           scale={1.45}
           style={{ position: 'relative', bottom: 2 }}
         />
@@ -694,7 +946,11 @@ const InventoryShell: React.FC<{
             key={cell.key}
             cell={cell}
             selected={selectedKey === cell.key}
-            onPress={() => setSelectedKey(cell.key)}
+            onPress={() => openActionMenu(
+              cell,
+              22 + (index % 6) * 51 + 34,
+              178 + Math.floor(index / 6) * 51,
+            )}
             style={{
               left: (index % 6) * 51,
               top: Math.floor(index / 6) * 51,
@@ -705,13 +961,13 @@ const InventoryShell: React.FC<{
 
       <InventoryDetailPanel
         playerLevel={player.level}
+        playerGender={appearance.genderIndex}
+        currentCombat={appearance.combat}
+        previewCombat={previewRuntime?.combat}
         selected={selected}
-        selectedIsEquipped={selectedIsEquipped}
         pending={pending}
-        onRunAction={onRunAction}
-        onToggleEquipment={onToggleEquipment}
-        onUseItem={onUseItem}
       />
+      {renderActionMenu()}
     </View>
   );
 };
@@ -721,14 +977,18 @@ const InventoryDialog: React.FC<{
   pending: string | null;
   onRunAction: (key: string, runner?: DialogActionRunner) => void;
   onToggleEquipment?: (equipKey: string, equip: boolean) => Promise<string | null>;
+  onPreviewEquipmentLoadout?: (equipKeys: string[]) => Promise<CharacterAppearance | null>;
+  onCommitEquipmentLoadout?: (equipKeys: string[]) => Promise<string | null>;
   onUseItem?: (itemId: number) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment, onUseItem }) => {
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem }) => {
   return (
     <InventoryShell
       appearance={appearance}
       pending={pending}
       onRunAction={onRunAction}
       onToggleEquipment={onToggleEquipment}
+      onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
+      onCommitEquipmentLoadout={onCommitEquipmentLoadout}
       onUseItem={onUseItem}
     />
   );
@@ -741,6 +1001,8 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
   onAllocateStat,
   onAllocateSkill,
   onToggleEquipment,
+  onPreviewEquipmentLoadout,
+  onCommitEquipmentLoadout,
   onUseItem,
 }) => {
   const [pending, setPending] = useState<string | null>(null);
@@ -813,6 +1075,8 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
               pending={pending}
               onRunAction={runAction}
               onToggleEquipment={onToggleEquipment}
+              onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
+              onCommitEquipmentLoadout={onCommitEquipmentLoadout}
               onUseItem={onUseItem}
             />
           )}
@@ -822,6 +1086,8 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
               pending={pending}
               onRunAction={runAction}
               onToggleEquipment={onToggleEquipment}
+              onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
+              onCommitEquipmentLoadout={onCommitEquipmentLoadout}
               onUseItem={onUseItem}
             />
           )}
