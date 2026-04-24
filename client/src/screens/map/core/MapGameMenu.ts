@@ -45,7 +45,6 @@ export const createMapGameMenuItems = (actions: MapGameMenuActions): MenuItem[] 
       { id: 'thong-tin', label: 'Thông tin', onPress: run(actions.onOpenCharacterInfo) },
       { id: 'tiem-nang', label: 'Tiềm năng', onPress: run(actions.onOpenPotential) },
       { id: 'tuyet-chieu', label: 'Tuyệt Chiêu', onPress: run(actions.onOpenSkills) },
-      { id: 'trang-bi', label: 'Trang bị', onPress: run(actions.onOpenEquipment) },
       { id: 'tui-do', label: 'Túi đồ', onPress: run(actions.onOpenInventory) },
       { id: 'che-tao', label: 'Chế tạo', onPress: run(actions.onOpenCrafting) },
       { id: 'xep-hang', label: 'Xếp hạng', onPress: run(actions.onOpenRanking) },
