@@ -8,9 +8,14 @@ export type {
 export {
   getEquipmentBandId,
   getEquipmentIconId,
+  normalizeEquipmentFamilyKey,
+  resolveEquipmentFamilyAssets,
+  resolveEquipmentFamilyIconAsset,
   buildEquippedCharacterEquipmentLayers,
   resolveEquipmentIconAsset,
+  isWeaponEquipment,
 } from './equipmentAssets';
+export type { EquipmentFamilyKey } from './equipmentAssets';
 export {
   buildSheetFamilyAssets,
 } from './characterEquipmentLayer';

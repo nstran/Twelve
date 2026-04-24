@@ -15,7 +15,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Image, View, type ImageSourcePropType, type StyleProp, type ViewStyle } from 'react-native';
 import type { CharacterAction, CharacterPoseFamilySlot } from '../../../engine/character';
-import { styles } from './CreateCharacterScreen.styles';
 import {
   DEFAULT_OVERLAY,
   EYE_STYLE_OPTIONS,
