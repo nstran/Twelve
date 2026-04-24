@@ -27,17 +27,29 @@ namespace Twelve.Infrastructure.Repositories
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
                 INSERT INTO Players (
-                    Username, Level, Gold, Exp, CurrentMap, CurrentRoom,
+                    Username, Level, Gold, Exp, ExpFloor, ExpCeiling, KenProgress, KenProgressCap,
+                    CurrentMap, CurrentRoom,
                     Hp, MaxHp, Mp, MaxMp, Power, MaxPower,
                     CuongLuc, ThanPhap, NoiLuc, TheLuc, FreePoints,
-                    Gender, Element, FaceStyle, HairStyle, HairColor, SkinColor,
+                    BonusCuongLuc, BonusThanPhap, BonusNoiLuc, BonusTheLuc,
+                    SkillPoints, Honor,
+                    DerivedMinDamage, DerivedMaxDamage, DerivedDefense, DerivedDodge, DerivedHit, DerivedCrit,
+                    Gender, Element, RawElementCode, FaceStyle, HairStyle, HairColor, SkinColor,
+                    AppearanceHidden0, AppearanceHidden1, SpecialActorForm, AppearanceJson,
+                    TitleMain, TitleSub, TitleRank,
                     CreatedAt, LastSeenAt
                 )
                 VALUES (
-                    @Username, @Level, @Gold, @Exp, @CurrentMap, @CurrentRoom,
+                    @Username, @Level, @Gold, @Exp, @ExpFloor, @ExpCeiling, @KenProgress, @KenProgressCap,
+                    @CurrentMap, @CurrentRoom,
                     @Hp, @MaxHp, @Mp, @MaxMp, @Power, @MaxPower,
                     @CuongLuc, @ThanPhap, @NoiLuc, @TheLuc, @FreePoints,
-                    @Gender, @Element, @FaceStyle, @HairStyle, @HairColor, @SkinColor,
+                    @BonusCuongLuc, @BonusThanPhap, @BonusNoiLuc, @BonusTheLuc,
+                    @SkillPoints, @Honor,
+                    @DerivedMinDamage, @DerivedMaxDamage, @DerivedDefense, @DerivedDodge, @DerivedHit, @DerivedCrit,
+                    @Gender, @Element, @RawElementCode, @FaceStyle, @HairStyle, @HairColor, @SkinColor,
+                    @AppearanceHidden0, @AppearanceHidden1, @SpecialActorForm, CAST(@AppearanceJson AS jsonb),
+                    @TitleMain, @TitleSub, @TitleRank,
                     @CreatedAt, @LastSeenAt
                 )
                 RETURNING Id";
@@ -52,6 +64,10 @@ namespace Twelve.Infrastructure.Repositories
                 SET Level      = @Level,
                     Gold       = @Gold,
                     Exp        = @Exp,
+                    ExpFloor   = @ExpFloor,
+                    ExpCeiling = @ExpCeiling,
+                    KenProgress = @KenProgress,
+                    KenProgressCap = @KenProgressCap,
                     CurrentMap = @CurrentMap,
                     CurrentRoom= @CurrentRoom,
                     Hp = @Hp, MaxHp = @MaxHp,
@@ -62,12 +78,32 @@ namespace Twelve.Infrastructure.Repositories
                     NoiLuc     = @NoiLuc,
                     TheLuc     = @TheLuc,
                     FreePoints = @FreePoints,
+                    BonusCuongLuc = @BonusCuongLuc,
+                    BonusThanPhap = @BonusThanPhap,
+                    BonusNoiLuc = @BonusNoiLuc,
+                    BonusTheLuc = @BonusTheLuc,
+                    SkillPoints = @SkillPoints,
+                    Honor = @Honor,
+                    DerivedMinDamage = @DerivedMinDamage,
+                    DerivedMaxDamage = @DerivedMaxDamage,
+                    DerivedDefense = @DerivedDefense,
+                    DerivedDodge = @DerivedDodge,
+                    DerivedHit = @DerivedHit,
+                    DerivedCrit = @DerivedCrit,
                     Gender     = @Gender,
                     Element    = @Element,
+                    RawElementCode = @RawElementCode,
                     FaceStyle  = @FaceStyle,
                     HairStyle  = @HairStyle,
                     HairColor  = @HairColor,
                     SkinColor  = @SkinColor,
+                    AppearanceHidden0 = @AppearanceHidden0,
+                    AppearanceHidden1 = @AppearanceHidden1,
+                    SpecialActorForm = @SpecialActorForm,
+                    AppearanceJson = CAST(@AppearanceJson AS jsonb),
+                    TitleMain = @TitleMain,
+                    TitleSub = @TitleSub,
+                    TitleRank = @TitleRank,
                     LastSeenAt = @LastSeenAt
                 WHERE Id = @Id";
             await connection.ExecuteAsync(sql, player);

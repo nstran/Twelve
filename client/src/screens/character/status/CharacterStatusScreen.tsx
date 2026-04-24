@@ -23,6 +23,11 @@ const EI_DISP_H  = Math.round(EI_H       * EI_SCALE); // 19.5px
 // Hỏa(0)→row0=CườngLực, Lôi(1)→row2=ThânPháp, Thủy(2)→row1=NộiLực
 const PRIMARY_STAT: Record<number, number> = { 0: 0, 1: 2, 2: 1 };
 
+const toBarPct = (cur: number, max: number) => {
+  if (max <= 0) return 0;
+  return Math.max(0, Math.min(100, (cur * 100) / max));
+};
+
 interface StatusScreenProps {
   onStart:    () => void;
   onLogout:   () => void;
@@ -121,7 +126,7 @@ const CombatStat: React.FC<{ label: string; value: string }> = ({ label, value }
 
 // ── Main Screen ──────────────────────────────────────────────────────────────
 export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({
-  onStart, onLogout, appearance, username = 'Loạn 12 sứ quân 2024',
+  onStart, onLogout, appearance, username,
 }) => {
   const [menuVisible,   setMenuVisible]   = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -167,7 +172,7 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({
           {/* Dòng tên và Cấp — Nằm trên cùng */}
           <View style={styles.nameRow}>
             <ElementIcon elementIndex={elementIndex} />
-            <Text style={styles.username} numberOfLines={1}>{username}</Text>
+            <Text style={styles.username} numberOfLines={1}>{username ?? appearance.username ?? 'Nhân vật'}</Text>
             <Text style={styles.levelText}>Cấp:{player.level}</Text>
           </View>
 
@@ -178,7 +183,6 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({
                   height: '100%',
                   alignItems: 'center',
                   justifyContent: 'flex-end',
-                  transform: [{ scaleX: -1 }] 
                 }}>
                   <CreateCharacterPreview
                     genderIndex={appearance.genderIndex}
@@ -210,7 +214,7 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({
             icon={CHARACTER_STATUS_ASSETS.heart}   iconW={13} iconH={13}
             color="#dd1111"
             text={`${player.hp.cur}/${player.hp.max}`}
-            pct={player.hp.cur * 100 / player.hp.max}
+            pct={toBarPct(player.hp.cur, player.hp.max)}
           />
           <BarRow
             icon={CHARACTER_STATUS_ASSETS.expicon}  iconW={12} iconH={12}
@@ -222,7 +226,7 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({
             icon={CHARACTER_STATUS_ASSETS.gold}    iconW={13} iconH={9}
             color="#e6cc9d"
             text={`${player.power.cur}/${player.power.max}`}
-            pct={player.power.cur * 100 / player.power.max}
+            pct={toBarPct(player.power.cur, player.power.max)}
           />
         </View>
 

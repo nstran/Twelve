@@ -19,12 +19,17 @@ namespace Twelve.Core.GameLogic
         /// </summary>
         public static CombatStats Calculate(Player player)
         {
-            int str = player.CuongLuc; // jp.a
-            int agi = player.ThanPhap; // jp.b
-            int mag = player.NoiLuc;   // jp.c
-            int vit = player.TheLuc;   // jp.d
+            return Calculate(
+                player.Element ?? ElementMapper.StorageHoa,
+                player.CuongLuc,
+                player.ThanPhap,
+                player.NoiLuc,
+                player.TheLuc);
+        }
 
-            return player.Element switch
+        public static CombatStats Calculate(int storageElement, int str, int agi, int mag, int vit)
+        {
+            return storageElement switch
             {
                 0 => CalculateHoa(str, agi, mag, vit),
                 1 => CalculateLoi(str, agi, mag, vit),

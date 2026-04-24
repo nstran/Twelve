@@ -9,6 +9,10 @@ namespace Twelve.Core.Entities
         public int Level { get; set; } = 1;
         public long Gold { get; set; } = 0;
         public long Exp { get; set; } = 0;
+        public long ExpFloor { get; set; } = 0;
+        public long ExpCeiling { get; set; } = 100;
+        public long KenProgress { get; set; } = 0;
+        public long KenProgressCap { get; set; } = 10000;
         
         // Location info
         public string CurrentMap { get; set; } = "M99";
@@ -29,14 +33,35 @@ namespace Twelve.Core.Entities
         public int NoiLuc   { get; set; } = 10;   // lh.i / jp.c — Magic
         public int TheLuc   { get; set; } = 10;   // lh.k / jp.d — Vitality
         public int FreePoints { get; set; } = 5;  // lh.K / Tag 53 — điểm chưa phân
+        public int BonusCuongLuc { get; set; } = 0; // lh.l
+        public int BonusThanPhap { get; set; } = 0; // lh.m
+        public int BonusNoiLuc { get; set; } = 0;   // lh.n
+        public int BonusTheLuc { get; set; } = 0;   // lh.o
+        public int SkillPoints { get; set; } = 0;   // lh.L
+        public int Honor { get; set; } = 0;         // lh.ab
+        public int DerivedMinDamage { get; set; } = 0; // lh.x
+        public int DerivedMaxDamage { get; set; } = 0; // lh.y
+        public int DerivedDefense { get; set; } = 0;   // lh.z
+        public int DerivedDodge { get; set; } = 0;     // lh.A
+        public int DerivedHit { get; set; } = 0;       // lh.B
+        public int DerivedCrit { get; set; } = 0;      // lh.C
 
         // Visual & Elemental Traits
         public int Gender { get; set; } = 0;   // 0=Nam, 1=Nữ
-        public int? Element { get; set; }       // 0=Hỏa, 1=Lôi, 2=Thủy
+        public int? Element { get; set; }       // storage: 0=Hỏa, 1=Lôi, 2=Thủy
+        public int RawElementCode { get; set; } = 1; // Java wire: 1=Hỏa, 2=Lôi, 4=Thủy
         public int? FaceStyle { get; set; }
         public int? HairStyle { get; set; }
         public int? HairColor { get; set; }
         public int? SkinColor { get; set; }
+        public bool AppearanceHidden0 { get; set; } = false; // lh.Z
+        public bool AppearanceHidden1 { get; set; } = false; // lh.aa
+        public int SpecialActorForm { get; set; } = 0;       // lh.Y
+        public string AppearanceJson { get; set; } = "{}";
+
+        public string? TitleMain { get; set; }
+        public string? TitleSub { get; set; }
+        public string? TitleRank { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime LastSeenAt { get; set; } = DateTime.UtcNow;

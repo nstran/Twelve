@@ -143,9 +143,61 @@ export class SocketClient extends EventEmitter {
         const hairIndex      = this.parseIntTag(payload, Tag.HAIR_STYLE);
         const hairColorIndex = this.parseIntTag(payload, Tag.HAIR_COLOR);
         const skinColorIndex = this.parseIntTag(payload, Tag.SKIN_COLOR);
-        console.log('[SocketClient] ← CHARACTER_INFO g=%d e=%d f=%d h=%d c=%d s=%d',
-          genderIndex, elementIndex, faceIndex, hairIndex, hairColorIndex, skinColorIndex);
-        this.emit('characterInfo', { genderIndex, elementIndex, faceIndex, hairIndex, hairColorIndex, skinColorIndex });
+        const username       = this.parseStringTag(payload, Tag.USERNAME);
+        const level          = this.parseIntTag(payload, Tag.LEVEL);
+        const hpCur          = this.parseIntTag(payload, Tag.CURRENT_HP);
+        const hpMax          = this.parseIntTag(payload, Tag.MAX_HP);
+        const powerCur       = this.parseIntTag(payload, Tag.CURRENT_POWER);
+        const powerMax       = this.parseIntTag(payload, Tag.MAX_POWER);
+        const expValue       = this.parseLongTag(payload, Tag.EXP_VALUE);
+        const expFloor       = this.parseLongTag(payload, Tag.EXP_FLOOR);
+        const expCeiling     = this.parseLongTag(payload, Tag.EXP_CEILING);
+        const kenProgress    = this.parseLongTag(payload, Tag.KEN_PROGRESS);
+        const cuongLuc       = this.parseIntTag(payload, Tag.CUONG_LUC);
+        const thanPhap       = this.parseIntTag(payload, Tag.THAN_PHAP);
+        const noiLuc         = this.parseIntTag(payload, Tag.NOI_LUC);
+        const theLuc         = this.parseIntTag(payload, Tag.THE_LUC);
+        const points         = this.parseIntTag(payload, Tag.FREE_POINTS);
+        const attack         = this.parseIntTag(payload, Tag.ATTACK);
+        const accuracy       = this.parseIntTag(payload, Tag.ACCURACY);
+        const defense        = this.parseIntTag(payload, Tag.DEFENSE);
+        const dodge          = this.parseIntTag(payload, Tag.DODGE);
+        const crit           = this.parseIntTag(payload, Tag.CRIT);
+        const danhVong       = this.parseIntTag(payload, Tag.HONOR);
+        const titlePrimary   = this.parseStringTag(payload, Tag.TITLE_PRIMARY);
+        const titleSecondary = this.parseStringTag(payload, Tag.TITLE_SECONDARY);
+        const expDenominator = Math.max(1, expCeiling - expFloor);
+        const expPct = Math.max(0, Math.min(100, Math.floor(((expValue - expFloor) * 100) / expDenominator)));
+
+        console.log('[SocketClient] ← CHARACTER_INFO g=%d e=%d level=%d hp=%d/%d atk=%d',
+          genderIndex, elementIndex, level, hpCur, hpMax, attack);
+        this.emit('characterInfo', {
+          genderIndex,
+          elementIndex,
+          faceIndex,
+          hairIndex,
+          hairColorIndex,
+          skinColorIndex,
+          username,
+          level,
+          quanHam: titlePrimary || titleSecondary || undefined,
+          xepHang: titleSecondary || undefined,
+          danhVong,
+          ken: `${kenProgress} KEN`,
+          hp: { cur: hpCur, max: hpMax },
+          exp: { cur: expPct, max: 100 },
+          power: { cur: powerCur, max: powerMax },
+          stats: { cuongLuc, noiLuc, thanPhap, theLuc },
+          points,
+          combat: {
+            attack,
+            def: defense,
+            acc: accuracy,
+            dodge,
+            hp: hpMax,
+            crit: `${crit}%`,
+          },
+        });
         break;
       }
 

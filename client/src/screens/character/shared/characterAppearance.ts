@@ -4,6 +4,7 @@ export interface CharacterAppearance {
   hairIndex: number;
   hairColorIndex: number;
   skinColorIndex: number;
+  username?: string;
   elementIndex?: number;
   level?: number;
   quanHam?: string;

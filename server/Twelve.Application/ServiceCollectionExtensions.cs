@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Twelve.Application.Battle;
 using Twelve.Application.Handlers;
 using Twelve.Application.Monsters;
+using Twelve.Application.Players;
 using Twelve.Core.Interfaces;
 using Twelve.Core.Tlv;
 
@@ -25,6 +26,7 @@ namespace Twelve.Application
             services.AddSingleton<IMonsterBattleCatalog, InMemoryMonsterBattleCatalog>();
             services.AddSingleton<IMapMonsterRosterService, InMemoryMapMonsterRosterService>();
             services.AddSingleton<IMonsterBattleBootstrapService, MonsterBattleBootstrapService>();
+            services.AddSingleton<PlayerCharacterPacketFactory>();
 
             // ── Đăng ký Handlers ───────────────────────────────────────────────
             services.AddSingleton<AuthHandler>();

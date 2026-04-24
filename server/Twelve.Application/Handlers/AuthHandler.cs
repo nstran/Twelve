@@ -5,6 +5,7 @@ using Twelve.Core;
 using Twelve.Core.Tlv;
 using Twelve.Core.Entities;
 using Twelve.Core.Interfaces;
+using Twelve.Application.Players;
 
 namespace Twelve.Application.Handlers
 {
@@ -134,20 +135,26 @@ namespace Twelve.Application.Handlers
         private readonly IAccountRepository   _accountRepository;
         private readonly IPasswordHasher      _passwordHasher;
         private readonly IPlayerRepository    _playerRepository;
+        private readonly IPlayerAggregateRepository _playerAggregateRepository;
         private readonly ISessionTokenStore   _tokenStore;
+        private readonly PlayerCharacterPacketFactory _characterPacketFactory;
         private readonly ILogger<AuthHandler> _logger;
 
         public AuthHandler(
             IAccountRepository   accountRepository,
             IPasswordHasher      passwordHasher,
             IPlayerRepository    playerRepository,
+            IPlayerAggregateRepository playerAggregateRepository,
             ISessionTokenStore   tokenStore,
+            PlayerCharacterPacketFactory characterPacketFactory,
             ILogger<AuthHandler> logger)
         {
             _accountRepository = accountRepository;
             _passwordHasher    = passwordHasher;
             _playerRepository  = playerRepository;
+            _playerAggregateRepository = playerAggregateRepository;
             _tokenStore        = tokenStore;
+            _characterPacketFactory = characterPacketFactory;
             _logger            = logger;
         }
 
@@ -212,19 +219,18 @@ namespace Twelve.Application.Handlers
             }
             else
             {
-                // Gửi CMD 7 (CharacterInfo) với đầy đủ diện mạo để client hiển thị màn thông tin nhân vật
-                _logger.LogInformation("[Login] → CharacterInfo cho '{Username}' (Element={El}, Gender={G})",
-                    username, player!.Element, player.Gender);
+                var aggregate = await _playerAggregateRepository.GetByUsernameAsync(username);
+                if (aggregate is null)
+                {
+                    _logger.LogWarning("[Login] Character aggregate missing for '{Username}'", username);
+                    await session.SendPacketAsync(TlvCodec.BuildEmptyPacket(CommandCode.CharacterRequired));
+                    return;
+                }
 
-                var charPayload = ConcatBytes(
-                    TlvCodec.MakeTag((int)TagCode.GenderStyle, player.Gender),
-                    TlvCodec.MakeTag((int)TagCode.Element,     player.Element!.Value),
-                    TlvCodec.MakeTag((int)TagCode.Face,        player.FaceStyle ?? 0),
-                    TlvCodec.MakeTag((int)TagCode.HairStyle,   player.HairStyle ?? 0),
-                    TlvCodec.MakeTag((int)TagCode.HairColor,   player.HairColor ?? 0),
-                    TlvCodec.MakeTag((int)TagCode.SkinColor,   player.SkinColor ?? 0)
-                );
-                await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.CharacterInfo, charPayload, subCount: 6));
+                _logger.LogInformation("[Login] → CharacterInfo cho '{Username}' (Element={El}, Gender={G}, Level={Level})",
+                    username, player!.Element, player.Gender, player.Level);
+
+                await session.SendPacketAsync(_characterPacketFactory.CreateCharacterInfoPacket(aggregate));
             }
         }
 

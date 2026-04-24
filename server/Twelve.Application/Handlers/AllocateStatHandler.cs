@@ -28,13 +28,16 @@ namespace Twelve.Application.Handlers
     public class AllocateStatHandler : IPacketHandler
     {
         private readonly IPlayerRepository _playerRepository;
+        private readonly IPlayerAggregateRepository _playerAggregateRepository;
         private readonly ILogger<AllocateStatHandler> _logger;
 
         public AllocateStatHandler(
             IPlayerRepository playerRepository,
+            IPlayerAggregateRepository playerAggregateRepository,
             ILogger<AllocateStatHandler> logger)
         {
             _playerRepository = playerRepository;
+            _playerAggregateRepository = playerAggregateRepository;
             _logger = logger;
         }
 
@@ -58,6 +61,7 @@ namespace Twelve.Application.Handlers
                 await SendError(session, "Nhan vat chua duoc khoi tao.");
                 return;
             }
+            var aggregate = await _playerAggregateRepository.GetByUsernameAsync(session.Username);
 
             // ── Validate FreePoints ───────────────────────────────────────────
             if (player.FreePoints <= 0)
@@ -92,10 +96,11 @@ namespace Twelve.Application.Handlers
                 player.CuongLuc, player.ThanPhap, player.NoiLuc, player.TheLuc, player.FreePoints);
 
             // ── Tính lại combat stats + cập nhật MaxHp ───────────────────────
-            var combat = StatCalculator.RecalculateAndApply(player);
+            var equipmentModifiers = aggregate?.Equipment.Select(e => EquipmentStatModifierParser.Parse(e.RawJson));
+            var combat = PlayerStatPipeline.RecalculateAndApply(player, equipmentModifiers);
 
             _logger.LogInformation("[AllocateStat] Combat recalc → MaxHp={Hp} TanCong={TC} ChinhXac={CX} PThu={PT} NeTranh={NT} ChiMang={CM}%",
-                combat.MaxHp, combat.TanCong, combat.ChinhXac, combat.PThu, combat.NeTranh, combat.ChiMang);
+                combat.MaxHp, combat.MinDamage, combat.Hit, combat.Defense, combat.Dodge, combat.Crit);
 
             // ── Lưu DB ────────────────────────────────────────────────────────
             try
@@ -119,11 +124,11 @@ namespace Twelve.Application.Handlers
                 TlvCodec.MakeTag((int)TagCode.TheLuc,    player.TheLuc),
                 TlvCodec.MakeTag((int)TagCode.FreePoints, player.FreePoints),
                 TlvCodec.MakeTag((int)TagCode.MaxHp,     combat.MaxHp),
-                TlvCodec.MakeTag((int)TagCode.TanCong,   combat.TanCong),
-                TlvCodec.MakeTag((int)TagCode.ChinhXac,  combat.ChinhXac),
-                TlvCodec.MakeTag((int)TagCode.PThu,      combat.PThu),
-                TlvCodec.MakeTag((int)TagCode.NeTranh,   combat.NeTranh),
-                TlvCodec.MakeTag((int)TagCode.ChiMang,   combat.ChiMang),
+                TlvCodec.MakeTag((int)TagCode.TanCong,   combat.MinDamage),
+                TlvCodec.MakeTag((int)TagCode.ChinhXac,  combat.Hit),
+                TlvCodec.MakeTag((int)TagCode.PThu,      combat.Defense),
+                TlvCodec.MakeTag((int)TagCode.NeTranh,   combat.Dodge),
+                TlvCodec.MakeTag((int)TagCode.ChiMang,   combat.Crit),
             };
 
             byte[] payload = tags.SelectMany(t => t).ToArray();

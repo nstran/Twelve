@@ -51,6 +51,26 @@ namespace Twelve.Core.Tlv
         SkinColor       = 24,
         GenderStyle     = 25,   // 0=Nam, 1=Nữ (diện mạo nhân vật)
 
+        // Java lh identity / bars
+        RawElement      = 15,   // lh.g — 1=Hoa, 2=Loi, 4=Thuy
+        RawGender       = 16,   // lh.f
+        CurrentHp       = 17,   // lh.s
+        CurrentMp       = 18,   // lh.u
+        Level           = 27,   // lh.G
+        ExperienceValue = 42,   // lh.J
+        KenProgress     = 43,   // lh.H
+        CurrentPower    = 45,   // lh.w
+        JavaMaxHp       = 47,   // lh.r
+        MaxMp           = 48,   // lh.t
+        MaxPower        = 49,   // lh.v
+        ExperienceFloor = 73,   // lh.M
+        ExperienceCeiling = 74, // lh.N
+        SkillPoints     = 76,   // lh.L
+        KenProgressCap  = 99,   // lh.I
+        Honor           = 160,  // lh.ab
+        TitlePrimary    = 209,  // lh.S
+        TitleSecondary  = 210,  // lh.R
+
         // Stat Allocation (CMD 50 / 180)
         StatChoice      = 50,   // 0=CuongLuc, 1=ThanPhap, 2=NoiLuc, 3=TheLuc
 
@@ -61,6 +81,10 @@ namespace Twelve.Core.Tlv
         ThanPhap        = 119,  // lh.j  — Agility
         NoiLuc          = 120,  // lh.i  — Magic
         TheLuc          = 121,  // lh.k  — Vitality
+        BonusCuongLuc   = 196,  // lh.l
+        BonusThanPhap   = 197,  // lh.m
+        BonusNoiLuc     = 198,  // lh.n
+        BonusTheLuc     = 199,  // lh.o
 
         // Combat stats (response tags — server-computed)
         MaxHp           = 130,

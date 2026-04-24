@@ -163,12 +163,10 @@ export default function App() {
       setScreen('createCharacter');
     };
 
-    const onCharacterInfo = (appearance: {
-      genderIndex: number; elementIndex: number; faceIndex: number;
-      hairIndex: number; hairColorIndex: number; skinColorIndex: number;
-    }) => {
+    const onCharacterInfo = (appearance: PlayerAppearance) => {
       addLog(`[App] CharacterInfo → characterStatus (element=${appearance.elementIndex})`);
       setPlayerAppearance({
+        ...appearance,
         genderIndex:    appearance.genderIndex,
         faceIndex:      appearance.faceIndex,
         hairIndex:      appearance.hairIndex,

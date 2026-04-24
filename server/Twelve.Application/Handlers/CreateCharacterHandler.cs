@@ -1,10 +1,13 @@
 using System;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Twelve.Core;
 using Twelve.Core.Tlv;
 using Twelve.Core.Entities;
 using Twelve.Core.Interfaces;
+using Twelve.Core.GameLogic;
+using Twelve.Application.Players;
 
 namespace Twelve.Application.Handlers
 {
@@ -21,13 +24,19 @@ namespace Twelve.Application.Handlers
     public class CreateCharacterHandler : IPacketHandler
     {
         private readonly IPlayerRepository _playerRepository;
+        private readonly IPlayerAggregateRepository _playerAggregateRepository;
+        private readonly PlayerCharacterPacketFactory _characterPacketFactory;
         private readonly ILogger<CreateCharacterHandler> _logger;
 
         public CreateCharacterHandler(
             IPlayerRepository playerRepository,
+            IPlayerAggregateRepository playerAggregateRepository,
+            PlayerCharacterPacketFactory characterPacketFactory,
             ILogger<CreateCharacterHandler> logger)
         {
             _playerRepository = playerRepository;
+            _playerAggregateRepository = playerAggregateRepository;
+            _characterPacketFactory = characterPacketFactory;
             _logger = logger;
         }
 
@@ -60,6 +69,10 @@ namespace Twelve.Application.Handlers
             // ── Đọc các trường đặc tính (Trait tags) ─────────────────────────
             int gender    = request.GetIntTag((int)TagCode.GenderStyle) ?? 0;
             int element   = request.GetIntTag((int)TagCode.Element)     ?? 0;
+            if (!ElementMapper.IsValidStorageCode(element))
+            {
+                element = ElementMapper.StorageHoa;
+            }
             int faceStyle = request.GetIntTag((int)TagCode.Face)        ?? 0;
             int hairStyle = request.GetIntTag((int)TagCode.HairStyle)   ?? 0;
             int hairColor = request.GetIntTag((int)TagCode.HairColor)   ?? 0;
@@ -70,10 +83,21 @@ namespace Twelve.Application.Handlers
 
             // ── Khởi tạo hoặc Cập nhật nhân vật trong Database ──────────────────────────
             var player = isNewRecord ? new Player { Username = session.Username } : existing!;
+            player.Gender    = gender;
+            player.Element   = element;
+            player.RawElementCode = ElementMapper.ToRawJavaCode(element);
+            player.FaceStyle = faceStyle;
+            player.HairStyle = hairStyle;
+            player.HairColor = hairColor;
+            player.SkinColor = skinColor;
             
             player.Level       = 1;
             player.Gold        = 500;  // Tặng chút vàng khởi nghiệp
             player.Exp         = 0;
+            player.ExpFloor    = 0;
+            player.ExpCeiling  = 100;
+            player.KenProgress = 0;
+            player.KenProgressCap = 10000;
             player.CurrentMap  = "M1"; // Bản đồ tân thủ
             player.CurrentRoom = 1;
 
@@ -88,6 +112,15 @@ namespace Twelve.Application.Handlers
                 _ => (10, 10, 10, 10),  // fallback cân bằng
             };
             player.FreePoints = 5;
+            player.SkillPoints = 0;
+            player.Honor = 0;
+            player.TitleMain = ResolveDefaultTitle(player.Level);
+            player.TitleSub = string.Empty;
+            player.TitleRank = string.Empty;
+            player.BonusCuongLuc = 0;
+            player.BonusThanPhap = 0;
+            player.BonusNoiLuc = 0;
+            player.BonusTheLuc = 0;
 
             // ── HP/Mana tính từ công thức Java (combat-formulas.md § 4) ──────
             // Sinh Lực (MaxHP) = TheLuc × hệ số theo type (6/4/5)
@@ -99,21 +132,34 @@ namespace Twelve.Application.Handlers
             player.MaxMp  = 0;
             player.Power  = 0;
             player.MaxPower = 0;
+            PlayerStatPipeline.RecalculateAndApply(player);
+            player.Hp = player.MaxHp;
 
             // ── Lưu diện mạo ──────────────────────────────────────────────────
-            player.Gender    = gender;
-            player.Element   = element;
-            player.FaceStyle = faceStyle;
-            player.HairStyle = hairStyle;
-            player.HairColor = hairColor;
-            player.SkinColor = skinColor;
+            player.AppearanceHidden0 = false;
+            player.AppearanceHidden1 = false;
+            player.SpecialActorForm = 0;
+            player.AppearanceJson = JsonSerializer.Serialize(new
+            {
+                source = "create-character",
+                gender,
+                storageElement = element,
+                rawElementCode = player.RawElementCode,
+                faceStyle,
+                hairStyle,
+                hairColor,
+                skinColor
+            });
 
             try
             {
                 if (isNewRecord)
-                    await _playerRepository.CreateAsync(player);
+                    player.Id = await _playerRepository.CreateAsync(player);
                 else
                     await _playerRepository.UpdateAsync(player);
+
+                await _playerAggregateRepository.InitializeForCharacterAsync(player);
+                var aggregate = await _playerAggregateRepository.GetByUsernameAsync(session.Username);
 
                 _logger.LogInformation("[CreateChar] ✓ Success: Player {Mode} for '{Username}'", 
                     isNewRecord ? "Created" : "Updated", session.Username);
@@ -124,6 +170,11 @@ namespace Twelve.Application.Handlers
                     TagCode.Message, 
                     "Khoi tao nhan vat thanh cong!")
                 );
+
+                if (aggregate is not null)
+                {
+                    await session.SendPacketAsync(_characterPacketFactory.CreateCharacterInfoPacket(aggregate));
+                }
             }
             catch (Exception ex)
             {
@@ -135,5 +186,13 @@ namespace Twelve.Application.Handlers
                 );
             }
         }
+
+        private static string ResolveDefaultTitle(int level) =>
+            level switch
+            {
+                >= 20 => "Cao thu",
+                >= 10 => "Hao kiet",
+                _ => "Tan thu"
+            };
     }
 }

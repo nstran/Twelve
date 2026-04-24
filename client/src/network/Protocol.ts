@@ -46,5 +46,35 @@ export enum Tag {
     HAIR_STYLE      = 22,
     HAIR_COLOR      = 23,
     SKIN_COLOR      = 24,
-    GENDER_STYLE    = 25    // 0=Nam, 1=Nữ (diện mạo nhân vật)
+    GENDER_STYLE    = 25,   // 0=Nam, 1=Nữ (diện mạo nhân vật)
+
+    // Java lh character truth tags
+    RAW_ELEMENT     = 15,
+    RAW_GENDER      = 16,
+    CURRENT_HP      = 17,
+    CURRENT_MP      = 18,
+    LEVEL           = 27,
+    EXP_VALUE       = 42,
+    KEN_PROGRESS    = 43,
+    CURRENT_POWER   = 45,
+    MAX_HP          = 47,
+    MAX_MP          = 48,
+    MAX_POWER       = 49,
+    FREE_POINTS     = 53,
+    EXP_FLOOR       = 73,
+    EXP_CEILING     = 74,
+    SKILL_POINTS    = 76,
+    KEN_CAP         = 99,
+    CUONG_LUC       = 118,
+    THAN_PHAP       = 119,
+    NOI_LUC         = 120,
+    THE_LUC         = 121,
+    ATTACK          = 131,
+    ACCURACY        = 132,
+    DEFENSE         = 133,
+    DODGE           = 134,
+    CRIT            = 135,
+    HONOR           = 160,
+    TITLE_PRIMARY   = 209,
+    TITLE_SECONDARY = 210
 }
