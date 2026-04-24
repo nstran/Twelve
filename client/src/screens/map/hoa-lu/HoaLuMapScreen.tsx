@@ -334,6 +334,9 @@ interface Props {
   onPreviewEquipmentLoadout?: (equipKeys: string[]) => Promise<CharacterAppearance | null>;
   onCommitEquipmentLoadout?: (equipKeys: string[]) => Promise<string | null>;
   onUseItem?: (itemId: number) => Promise<string | null>;
+  onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
+  onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
+  onRepairEquipment?: (equipKey: string) => Promise<string | null>;
 }
 
 interface EncounterPreviewState {
@@ -374,6 +377,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   onPreviewEquipmentLoadout,
   onCommitEquipmentLoadout,
   onUseItem,
+  onDiscardEquipment,
+  onDiscardItem,
+  onRepairEquipment,
 }) => {
   const sceneConfig = useMemo(
     () => resolveSideScrollMapSceneConfig(mapId, roomId),
@@ -1247,6 +1253,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
         onCommitEquipmentLoadout={onCommitEquipmentLoadout}
         onUseItem={onUseItem}
+        onDiscardEquipment={onDiscardEquipment}
+        onDiscardItem={onDiscardItem}
+        onRepairEquipment={onRepairEquipment}
       />
 
       {encounterPreview && (

@@ -200,6 +200,27 @@ app.MapPost("/player/runtime/item-use", (PlayerUseItemRuntimeRequest request, IP
     return response is null ? Results.NotFound() : Results.Ok(response);
 });
 
+// cmd 37 mode 2 — vứt bỏ equipment (chỉ khi không đang mặc)
+app.MapPost("/player/runtime/equipment/discard", (PlayerDiscardEquipmentRuntimeRequest request, IPlayerRuntimeService service) =>
+{
+    var response = service.DiscardEquipment(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+// cmd 83 — bỏ item theo quantity
+app.MapPost("/player/runtime/item/discard", (PlayerDiscardItemRuntimeRequest request, IPlayerRuntimeService service) =>
+{
+    var response = service.DiscardItem(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+// cmd 48 — sửa chữa equipment bằng vật phẩm (ll.p = ll.q)
+app.MapPost("/player/runtime/equipment/repair", (PlayerRepairEquipmentRuntimeRequest request, IPlayerRuntimeService service) =>
+{
+    var response = service.RepairEquipment(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
 app.Run();
 
 static MonsterSharedSheetFamily ResolveSharedSheetFamily(

@@ -51,6 +51,9 @@ export interface PlayerRuntimeApi {
   previewEquipmentLoadout: (username: string, equipKeys: string[]) => Promise<PlayerRuntimeResponse | null>;
   commitEquipmentLoadout: (username: string, equipKeys: string[]) => Promise<PlayerRuntimeResponse | null>;
   useItem: (username: string, itemId: number) => Promise<PlayerRuntimeResponse | null>;
+  discardEquipment: (username: string, equipKeys: string[]) => Promise<PlayerRuntimeResponse | null>;
+  discardItem: (username: string, itemId: number, quantity: number) => Promise<PlayerRuntimeResponse | null>;
+  repairEquipment: (username: string, equipKey: string, repairItemId: number) => Promise<PlayerRuntimeResponse | null>;
 }
 
 const toHttpBaseUrl = (socketUrl: string): string => {
@@ -126,6 +129,27 @@ export const createPlayerRuntimeApi = (socketUrl: string): PlayerRuntimeApi => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, itemId }),
+      }),
+
+    discardEquipment: (username, equipKeys) =>
+      requestJson<PlayerRuntimeResponse>(`${baseUrl}/player/runtime/equipment/discard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, equipKeys }),
+      }),
+
+    discardItem: (username, itemId, quantity) =>
+      requestJson<PlayerRuntimeResponse>(`${baseUrl}/player/runtime/item/discard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, itemId, quantity }),
+      }),
+
+    repairEquipment: (username, equipKey, repairItemId) =>
+      requestJson<PlayerRuntimeResponse>(`${baseUrl}/player/runtime/equipment/repair`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, equipKey, repairItemId }),
       }),
   };
 };

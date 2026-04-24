@@ -125,4 +125,24 @@ namespace Twelve.Core.Players
         string Username,
         int ItemId
     );
+
+    // cmd 37 mode 2 — vứt bỏ equipment theo key, chỉ cho phép khi không đang mặc
+    public sealed record PlayerDiscardEquipmentRuntimeRequest(
+        string Username,
+        IReadOnlyList<string> EquipKeys
+    );
+
+    // cmd 83 — bỏ item theo quantity
+    public sealed record PlayerDiscardItemRuntimeRequest(
+        string Username,
+        int ItemId,
+        int Quantity
+    );
+
+    // cmd 48 — áp vật phẩm sửa chữa lên equipment, khôi phục ll.p = ll.q
+    public sealed record PlayerRepairEquipmentRuntimeRequest(
+        string Username,
+        string EquipKey,
+        int RepairItemId
+    );
 }

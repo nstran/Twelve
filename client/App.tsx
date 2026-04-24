@@ -384,6 +384,27 @@ export default function App() {
               applyRuntimeResponse(response);
               return response?.message ?? null;
             }}
+            onDiscardEquipment={async (equipKey) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.discardEquipment(username, [equipKey]);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
+            onDiscardItem={async (itemId, quantity) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.discardItem(username, itemId, quantity);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
+            onRepairEquipment={async (equipKey) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.repairEquipment(username, equipKey, 5010);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
             onBattle={(type, initialTurn, monsterBootstrap) => {
               setBattleMonster(type as MonsterTypeNav);
               setBattleInitialTurn(

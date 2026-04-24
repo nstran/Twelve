@@ -68,6 +68,9 @@ interface MapCharacterDialogsProps {
   onPreviewEquipmentLoadout?: (equipKeys: string[]) => Promise<CharacterAppearance | null>;
   onCommitEquipmentLoadout?: (equipKeys: string[]) => Promise<string | null>;
   onUseItem?: (itemId: number) => Promise<string | null>;
+  onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
+  onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
+  onRepairEquipment?: (equipKey: string) => Promise<string | null>;
 }
 
 const PRIMARY_STAT: Record<number, number> = { 0: 0, 1: 2, 2: 1 };
@@ -516,7 +519,10 @@ const EquipmentDialog: React.FC<{
   onPreviewEquipmentLoadout?: (equipKeys: string[]) => Promise<CharacterAppearance | null>;
   onCommitEquipmentLoadout?: (equipKeys: string[]) => Promise<string | null>;
   onUseItem?: (itemId: number) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem }) => {
+  onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
+  onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
+  onRepairEquipment?: (equipKey: string) => Promise<string | null>;
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment }) => {
   return (
     <InventoryShell
       appearance={appearance}
@@ -526,6 +532,9 @@ const EquipmentDialog: React.FC<{
       onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
       onCommitEquipmentLoadout={onCommitEquipmentLoadout}
       onUseItem={onUseItem}
+      onDiscardEquipment={onDiscardEquipment}
+      onDiscardItem={onDiscardItem}
+      onRepairEquipment={onRepairEquipment}
     />
   );
 };
@@ -771,6 +780,8 @@ const sameKeySet = (left: Set<string>, right: Set<string>) => {
 const clampActionMenuLeft = (left: number) => Math.max(6, Math.min(258, left));
 const clampActionMenuTop = (top: number) => Math.max(130, Math.min(430, top));
 
+const REPAIR_HAMMER_ITEM_ID = 5010;
+
 const InventoryShell: React.FC<{
   appearance: CharacterAppearance;
   pending: string | null;
@@ -779,7 +790,10 @@ const InventoryShell: React.FC<{
   onPreviewEquipmentLoadout?: (equipKeys: string[]) => Promise<CharacterAppearance | null>;
   onCommitEquipmentLoadout?: (equipKeys: string[]) => Promise<string | null>;
   onUseItem?: (itemId: number) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem }) => {
+  onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
+  onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
+  onRepairEquipment?: (equipKey: string) => Promise<string | null>;
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment }) => {
   const player = createPlayerModel(appearance);
   const equipmentSource = appearance.equipment ?? EMPTY_EQUIPMENT;
   const serverEquippedKeys = useMemo(
@@ -914,8 +928,22 @@ const InventoryShell: React.FC<{
         && !(entry.maxDurability > 0 && entry.durability <= 0)
       );
 
+      const isBroken = entry.maxDurability > 0 && entry.durability <= 0;
+      const hasHammer = (appearance.inventory ?? []).some(
+        (i) => i.itemId === REPAIR_HAMMER_ITEM_ID && i.quantity > 0,
+      );
+      const canRepair = isBroken && hasHammer && !!onRepairEquipment;
+
       items = [
-        { id: 'repair', label: 'Sửa chữa', onPress: () => setActionMenu(null) },
+        {
+          id: 'repair',
+          label: 'Sửa chữa',
+          disabled: pending !== null || !canRepair,
+          onPress: () => {
+            setActionMenu(null);
+            onRunAction(`repair-${entry.equipKey}`, () => onRepairEquipment?.(entry.equipKey));
+          },
+        },
         {
           id: 'equip',
           label: selectedIsEquipped ? 'Tháo' : 'Trang bị',
@@ -928,7 +956,15 @@ const InventoryShell: React.FC<{
         { id: 'detail', label: 'Chi Tiết', onPress: () => { setActionMenu(null); setShowDetail(true); } },
         { id: 'upgrade', label: 'Nâng cấp', onPress: () => setActionMenu(null) },
         { id: 'sell', label: 'Rao bán', onPress: () => setActionMenu(null) },
-        { id: 'drop', label: 'Vứt bỏ', onPress: () => setActionMenu(null) },
+        {
+          id: 'drop',
+          label: 'Vứt bỏ',
+          disabled: pending !== null || selectedIsEquipped || !onDiscardEquipment,
+          onPress: () => {
+            setActionMenu(null);
+            onRunAction(`discard-equip-${entry.equipKey}`, () => onDiscardEquipment?.(entry.equipKey));
+          },
+        },
         ...(hasLoadoutChanges ? [{
           id: 'commit',
           label: 'Cập nhật',
@@ -953,7 +989,15 @@ const InventoryShell: React.FC<{
         },
         { id: 'detail', label: 'Chi Tiết', onPress: () => setActionMenu(null) },
         { id: 'sell', label: 'Rao bán', onPress: () => setActionMenu(null) },
-        { id: 'drop', label: 'Vứt bỏ', onPress: () => setActionMenu(null) },
+        {
+          id: 'drop',
+          label: 'Vứt bỏ',
+          disabled: pending !== null || !onDiscardItem,
+          onPress: () => {
+            setActionMenu(null);
+            onRunAction(`discard-item-${item.itemId}`, () => onDiscardItem?.(item.itemId, item.quantity));
+          },
+        },
       ];
     }
 
@@ -1036,7 +1080,10 @@ const InventoryDialog: React.FC<{
   onPreviewEquipmentLoadout?: (equipKeys: string[]) => Promise<CharacterAppearance | null>;
   onCommitEquipmentLoadout?: (equipKeys: string[]) => Promise<string | null>;
   onUseItem?: (itemId: number) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem }) => {
+  onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
+  onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
+  onRepairEquipment?: (equipKey: string) => Promise<string | null>;
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment }) => {
   return (
     <InventoryShell
       appearance={appearance}
@@ -1046,6 +1093,9 @@ const InventoryDialog: React.FC<{
       onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
       onCommitEquipmentLoadout={onCommitEquipmentLoadout}
       onUseItem={onUseItem}
+      onDiscardEquipment={onDiscardEquipment}
+      onDiscardItem={onDiscardItem}
+      onRepairEquipment={onRepairEquipment}
     />
   );
 };
@@ -1060,6 +1110,9 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
   onPreviewEquipmentLoadout,
   onCommitEquipmentLoadout,
   onUseItem,
+  onDiscardEquipment,
+  onDiscardItem,
+  onRepairEquipment,
 }) => {
   const [pending, setPending] = useState<string | null>(null);
 
@@ -1134,6 +1187,9 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
               onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
               onCommitEquipmentLoadout={onCommitEquipmentLoadout}
               onUseItem={onUseItem}
+              onDiscardEquipment={onDiscardEquipment}
+              onDiscardItem={onDiscardItem}
+              onRepairEquipment={onRepairEquipment}
             />
           )}
           {activeDialog === 'inventory' && (
@@ -1145,6 +1201,9 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
               onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
               onCommitEquipmentLoadout={onCommitEquipmentLoadout}
               onUseItem={onUseItem}
+              onDiscardEquipment={onDiscardEquipment}
+              onDiscardItem={onDiscardItem}
+              onRepairEquipment={onRepairEquipment}
             />
           )}
         </ScrollView>

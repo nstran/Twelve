@@ -240,6 +240,25 @@ namespace Twelve.Application.Players
                 .Where(entry => entry.IsEquipped)
                 .Select(entry => EquipmentStatModifierParser.Parse(entry.RawJson));
 
+        // cmd 48: khôi phục ll.p = ll.q (current durability = max durability)
+        public PlayerEquipmentEntry RestoreDurability(PlayerEquipmentEntry entry)
+        {
+            var definition = ResolveEquipment(entry);
+            var fullyRepaired = definition with { Durability = definition.MaxDurability };
+            return new PlayerEquipmentEntry
+            {
+                EquipKey = entry.EquipKey,
+                TemplateKey = entry.TemplateKey,
+                Slot = entry.Slot,
+                ResourceId = entry.ResourceId,
+                Level = entry.Level,
+                IsEquipped = entry.IsEquipped,
+                RawJson = BuildEquipmentRawJson(fullyRepaired)
+            };
+        }
+
+        public bool IsRepairMaterial(int itemId) => itemId == 5010;
+
         private PlayerEquipmentEntry CreateStarterEquipmentEntry(
             PlayerEquipmentDefinition definition,
             string uniqueSeed,
@@ -469,6 +488,7 @@ namespace Twelve.Application.Players
                 [5003] = new PlayerItemDefinition(5003, "Băng Tủy", "Tinh hoa lạnh dùng cho nâng cấp sau này.", 99, false, 0, "ice"),
                 [5004] = new PlayerItemDefinition(5004, "Lôi Nha", "Mảnh sừng sét cất vào túi đồ.", 99, false, 0, "zap"),
                 [5005] = new PlayerItemDefinition(5005, "Trung Hồi Phục", "Khôi phục 70 HP ngoài battle.", 20, true, 70, "potion_blue"),
+                [5010] = new PlayerItemDefinition(5010, "Búa Sửa Chữa", "Dùng để sửa chữa trang bị đã hư hỏng. Khôi phục độ bền về mức tối đa.", 20, false, 0, "hammer"),
             };
 
         private static IReadOnlyDictionary<int, IReadOnlyList<PlayerSkillDefinition>> CreateSkillDefinitions() =>

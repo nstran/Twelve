@@ -252,6 +252,151 @@ namespace Twelve.Application.Players
                 $"Da dung {definition.DisplayName}.");
         }
 
+        public PlayerRuntimeResponse? DiscardEquipment(PlayerDiscardEquipmentRuntimeRequest request)
+        {
+            var aggregate = LoadAggregate(request.Username);
+            if (aggregate is null)
+            {
+                return null;
+            }
+
+            var equipKeys = request.EquipKeys ?? System.Array.Empty<string>();
+            if (equipKeys.Count == 0)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong co trang bi nao duoc chon.");
+            }
+
+            var equipment = aggregate.Equipment.ToList();
+            var equippedKeys = equipment
+                .Where(entry => entry.IsEquipped)
+                .Select(entry => entry.EquipKey)
+                .ToHashSet(System.StringComparer.Ordinal);
+
+            foreach (var key in equipKeys)
+            {
+                if (equippedKeys.Contains(key))
+                {
+                    return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Phai thao trang bi truoc khi vut bo.");
+                }
+            }
+
+            var discardSet = equipKeys.ToHashSet(System.StringComparer.Ordinal);
+            var remaining = equipment.Where(entry => !discardSet.Contains(entry.EquipKey)).ToList();
+
+            _playerAggregateRepository.SaveCollectionsAsync(
+                aggregate.Core.Id, remaining, aggregate.Inventory, aggregate.Skills).GetAwaiter().GetResult();
+
+            return new PlayerRuntimeResponse(
+                BuildSnapshot(ReloadAggregate(aggregate.Core.Id)),
+                "Da vut bo trang bi.");
+        }
+
+        public PlayerRuntimeResponse? DiscardItem(PlayerDiscardItemRuntimeRequest request)
+        {
+            var aggregate = LoadAggregate(request.Username);
+            if (aggregate is null)
+            {
+                return null;
+            }
+
+            var inventory = aggregate.Inventory.ToList();
+            var index = inventory.FindIndex(entry => entry.ItemId == request.ItemId);
+            if (index < 0)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong tim thay vat pham.");
+            }
+
+            var qty = System.Math.Max(1, request.Quantity);
+            var current = inventory[index];
+            var nextQty = current.Quantity - qty;
+
+            if (nextQty <= 0)
+            {
+                inventory.RemoveAt(index);
+            }
+            else
+            {
+                inventory[index] = new PlayerItemStack
+                {
+                    ItemId = current.ItemId,
+                    Quantity = nextQty,
+                    RawJson = current.RawJson
+                };
+            }
+
+            _playerAggregateRepository.SaveCollectionsAsync(
+                aggregate.Core.Id, aggregate.Equipment, inventory, aggregate.Skills).GetAwaiter().GetResult();
+
+            return new PlayerRuntimeResponse(
+                BuildSnapshot(ReloadAggregate(aggregate.Core.Id)),
+                "Da vut bo vat pham.");
+        }
+
+        // cmd 48: áp vật phẩm sửa chữa lên equipment → ll.p = ll.q
+        public PlayerRuntimeResponse? RepairEquipment(PlayerRepairEquipmentRuntimeRequest request)
+        {
+            var aggregate = LoadAggregate(request.Username);
+            if (aggregate is null)
+            {
+                return null;
+            }
+
+            var equipment = aggregate.Equipment.ToList();
+            var equipIndex = equipment.FindIndex(entry => entry.EquipKey == request.EquipKey);
+            if (equipIndex < 0)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong tim thay trang bi.");
+            }
+
+            if (!_contentCatalog.IsRepairMaterial(request.RepairItemId))
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Vat pham nay khong phai nguyen lieu sua chua.");
+            }
+
+            var targetView = _contentCatalog.ToEquipmentView(equipment[equipIndex]);
+            if (targetView.MaxDurability <= 0)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Trang bi nay khong co do ben.");
+            }
+
+            if (targetView.Durability >= targetView.MaxDurability)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Trang bi van con nguyen ven.");
+            }
+
+            var inventory = aggregate.Inventory.ToList();
+            var repairItemIndex = inventory.FindIndex(entry => entry.ItemId == request.RepairItemId);
+            if (repairItemIndex < 0)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Can 1 bua sua chua trong tui do.");
+            }
+
+            equipment[equipIndex] = _contentCatalog.RestoreDurability(equipment[equipIndex]);
+
+            var repairItem = inventory[repairItemIndex];
+            var nextQty = repairItem.Quantity - 1;
+            if (nextQty <= 0)
+            {
+                inventory.RemoveAt(repairItemIndex);
+            }
+            else
+            {
+                inventory[repairItemIndex] = new PlayerItemStack
+                {
+                    ItemId = repairItem.ItemId,
+                    Quantity = nextQty,
+                    RawJson = repairItem.RawJson
+                };
+            }
+
+            _playerAggregateRepository.SaveCollectionsAsync(
+                aggregate.Core.Id, equipment, inventory, aggregate.Skills).GetAwaiter().GetResult();
+
+            return new PlayerRuntimeResponse(
+                BuildSnapshot(ReloadAggregate(aggregate.Core.Id)),
+                "Da sua chua trang bi.");
+        }
+
         private PlayerAggregate? LoadAggregate(string username) =>
             string.IsNullOrWhiteSpace(username)
                 ? null
