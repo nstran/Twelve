@@ -41,6 +41,47 @@ Kết luận cho remake:
 - map player phải có `x/y/direction/action/visibility/aura/weapon overlay`
 - khi stat/equip/appearance đổi phải có packet delta và actor rebuild
 
+### Map mới trong remake
+
+Không có server/map cũ để khôi phục nguyên trạng. `MapDataStore` hiện chỉ là lớp dữ liệu tile thử nghiệm kiểu cũ, không được dùng làm nguồn truth cho tọa độ side-scroll mới.
+
+Nguồn truth runtime hiện tại là `RuntimeMapCatalog` ở server:
+
+- khai báo map/room mới theo kích thước native, ví dụ Hoa Lu `1536x1024`
+- lưu world-state player theo tọa độ native map, không theo pixel đã scale trên màn hình client
+- `MapHandler` trả spawn/current position từ catalog/runtime state
+- `MoveHandler` clamp tọa độ theo kích thước native của room
+
+Client tự scale tọa độ native sang màn hình theo `mapScale`. Khi tạo map mới, thêm config ở client và thêm room tương ứng vào `RuntimeMapCatalog`, thay vì dựa vào grid/tile cũ.
+
+Quy ước mở rộng nhiều map:
+
+- server: thêm `RuntimeMapRoom` vào `RoomDefinitions`; handler không cần sửa
+- client: thêm scene config vào `SIDE_SCROLL_MAP_SCENES`; resolver dùng index theo `mapId:roomId`
+- quái: spawn group nên đi theo scene config/map catalog, không hard-code trong màn hình
+- DB: world-state luôn lưu `mapId`, `roomId`, `x/y` native để đổi kích thước màn hình không làm lệch vị trí
+
+Luật gameplay hiện tại: map train là PvE instance của chính player, không phải nơi nhiều người chơi đứng cùng nhau. Người chơi chỉ tìm/gặp nhau qua flow Khiêu Chiến/PvP riêng; không tạo player roster/broadcast co-presence trên map train.
+
+### Trạng thái triển khai map runtime
+
+Đã xong:
+
+- player trên map lấy character thật từ DB cho appearance/stat/HUD
+- world-state player lưu DB theo `mapId`, `roomId`, `x/y`, `direction`, `actionState`
+- `MapHandler` trả map info + vị trí spawn/current từ `RuntimeMapCatalog`
+- `MoveHandler` nhận move theo tọa độ native, clamp qua `RuntimeMapRoom.ClampPosition`, lưu DB và echo canonical move ack
+- client Hoa Lu scale tọa độ native server sang display pixel, và gửi ngược display pixel về native trước khi move
+- client nghe cả `mapInfo` và `playerMapState` để snap về vị trí server duyệt
+- `RuntimeMapCatalog` đã có surface metadata native cho Hoa Lu, chuẩn bị cho collision/path nhiều map
+
+Chưa xong:
+
+- server chưa có collision nâng cao theo platform/vertical physics; hiện mới kiểm soát bounds và horizontal surface range
+- monster movement/AI vẫn chủ yếu chạy client-side, server mới quản lý roster/encounter
+- `actionState` mới lưu/echo, chưa là state machine đầy đủ walk/jump/attack/hit/dead
+- Khiêu Chiến/PvP chưa tách thành flow riêng để tìm người chơi và đấu với nhau
+
 ### `kl` actor state chi tiết
 
 `kl.a(lh)` rebuild toàn bộ actor visual:

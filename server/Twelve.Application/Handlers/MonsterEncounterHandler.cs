@@ -28,15 +28,18 @@ namespace Twelve.Application.Handlers
         private readonly IMonsterBattleBootstrapService _monsterBattleBootstrapService;
         private readonly IMapMonsterRosterService _mapMonsterRosterService;
         private readonly IMonsterSpawnCatalog _monsterSpawnCatalog;
+        private readonly IPlayerAggregateRepository _playerAggregateRepository;
 
         public MonsterEncounterHandler(
             IMonsterBattleBootstrapService monsterBattleBootstrapService,
             IMapMonsterRosterService mapMonsterRosterService,
-            IMonsterSpawnCatalog monsterSpawnCatalog)
+            IMonsterSpawnCatalog monsterSpawnCatalog,
+            IPlayerAggregateRepository playerAggregateRepository)
         {
             _monsterBattleBootstrapService = monsterBattleBootstrapService;
             _mapMonsterRosterService = mapMonsterRosterService;
             _monsterSpawnCatalog = monsterSpawnCatalog;
+            _playerAggregateRepository = playerAggregateRepository;
         }
 
         public async Task HandleAsync(GameSession session, PacketRequest request)
@@ -57,6 +60,19 @@ namespace Twelve.Application.Handlers
                 return;
             }
 
+            if (!session.IsAuthenticated || string.IsNullOrWhiteSpace(session.Username))
+            {
+                await SendBootstrapResponseAsync(session, ok: false, data: null, error: "unauthenticated");
+                return;
+            }
+
+            var playerAggregate = await _playerAggregateRepository.GetByUsernameAsync(session.Username);
+            if (playerAggregate is null)
+            {
+                await SendBootstrapResponseAsync(session, ok: false, data: null, error: "character_not_found");
+                return;
+            }
+
             var bootstrapRequest = new MonsterBattleBootstrapRequest(
                 MapId: mapId,
                 RoomId: roomId.Value,
@@ -65,7 +81,7 @@ namespace Twelve.Application.Handlers
                     ? BattleSide.Enemy
                     : BattleSide.Player);
 
-            var response = _monsterBattleBootstrapService.Bootstrap(bootstrapRequest);
+            var response = _monsterBattleBootstrapService.Bootstrap(bootstrapRequest, playerAggregate);
             if (response is null)
             {
                 await SendBootstrapResponseAsync(session, ok: false, data: null, error: "not_found");

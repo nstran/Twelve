@@ -91,7 +91,7 @@ namespace Twelve.Server.Middleware
             }
             finally
             {
-                 _logger.LogInformation("WebSocket session ended: {Username}", session.Username);
+                _logger.LogInformation("WebSocket session ended: {Username}", session.Username);
             }
         }
     }

@@ -53,7 +53,7 @@ Chi tiết tag theo từng bit:
 Vì vậy server mới nên tách packet builder theo use-case:
 
 - `FullPlayerSnapshot` cho login/profile/char status
-- `PlayerMapSnapshot` cho map/room actor
+- `PlayerTrainMapSnapshot` cho actor local trên map train PvE
 - `PlayerBattleSnapshot` cho battle bootstrap
 - `PlayerDelta` cho các thay đổi nhỏ
 

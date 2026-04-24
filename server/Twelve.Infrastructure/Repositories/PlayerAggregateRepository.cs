@@ -130,6 +130,45 @@ namespace Twelve.Infrastructure.Repositories
                     RoomId = player.CurrentRoom
                 });
         }
+
+        public async Task UpsertWorldStateAsync(
+            int playerId,
+            string mapId,
+            int roomId,
+            int x,
+            int y,
+            int direction,
+            int actionState)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+
+            await connection.ExecuteAsync(
+                @"UPDATE Players
+                  SET CurrentMap = @MapId,
+                      CurrentRoom = @RoomId,
+                      LastSeenAt = CURRENT_TIMESTAMP
+                  WHERE Id = @PlayerId;
+
+                  INSERT INTO PlayerWorldState (PlayerId, MapId, RoomId, X, Y, Direction, ActionState)
+                  VALUES (@PlayerId, @MapId, @RoomId, @X, @Y, @Direction, @ActionState)
+                  ON CONFLICT (PlayerId) DO UPDATE
+                  SET MapId = EXCLUDED.MapId,
+                      RoomId = EXCLUDED.RoomId,
+                      X = EXCLUDED.X,
+                      Y = EXCLUDED.Y,
+                      Direction = EXCLUDED.Direction,
+                      ActionState = EXCLUDED.ActionState,
+                      UpdatedAt = CURRENT_TIMESTAMP",
+                new
+                {
+                    PlayerId = playerId,
+                    MapId = mapId,
+                    RoomId = roomId,
+                    X = x,
+                    Y = y,
+                    Direction = direction,
+                    ActionState = actionState
+                });
+        }
     }
 }
-

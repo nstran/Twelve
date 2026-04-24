@@ -19,3 +19,7 @@ Trạng thái: **100% thực dụng trong phạm vi player/character server cont
 ## Nguyên Tắc Chính
 
 Không có server cũ, nên mọi logic server-side phải suy luận từ Java client: parser `ky`, encoder `ks/kw`, state bridge `go`/`com.mg.sq.a`, UI flows, map/battle runtime và asset offline. Phần nào Java client không đủ bằng chứng để đặt tên nghiệp vụ thì lưu raw id/tag, cấu hình rule server mới, và ghi rõ nguồn suy luận.
+
+Riêng map trong remake là map mới, không có map cũ để bám theo. Runtime map server dùng `RuntimeMapCatalog` với kích thước native/tọa độ native; `MapDataStore` tile cũ chỉ còn là tham chiếu thử nghiệm, không phải nguồn truth cho player movement side-scroll.
+
+Tiến độ map player hiện tại: player trên map đã dùng character thật và world-state DB; move được server clamp/echo theo tọa độ native map; client đã snap theo move ack canonical. Map train là PvE của chính player để đánh quái kiếm EXP, không có co-presence người chơi trên map. Người chơi chỉ gặp nhau qua flow Khiêu Chiến/PvP riêng. Phần chưa hoàn tất là collision platform nâng cao, server-authoritative monster AI và flow Khiêu Chiến/PvP.

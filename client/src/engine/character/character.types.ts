@@ -92,6 +92,8 @@ export interface CharacterControllerRef {
 export interface CharacterControllerProps {
   /** Initial X position (pixel) */
   initialX: number;
+  /** Initial facing direction */
+  initialFacing?: FacingDirection;
   /** Ground Y position (pixel, bottom of character) */
   groundY: number;
   /** Input mode for the controller */

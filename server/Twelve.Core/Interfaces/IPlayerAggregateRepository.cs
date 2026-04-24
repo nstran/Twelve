@@ -7,6 +7,13 @@ namespace Twelve.Core.Interfaces
     {
         Task<PlayerAggregate?> GetByUsernameAsync(string username);
         Task InitializeForCharacterAsync(Player player);
+        Task UpsertWorldStateAsync(
+            int playerId,
+            string mapId,
+            int roomId,
+            int x,
+            int y,
+            int direction,
+            int actionState);
     }
 }
-

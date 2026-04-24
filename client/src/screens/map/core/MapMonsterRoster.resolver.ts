@@ -224,7 +224,7 @@ export const createMapMonsterRosterResolver = (
         };
 
         client.on('mapMonsterRoster', handleRoster);
-        client.joinMap();
+        client.joinMap(request.mapId, request.roomId);
       });
 
       if (socketResult) {

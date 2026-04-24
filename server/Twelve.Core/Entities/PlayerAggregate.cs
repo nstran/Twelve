@@ -91,5 +91,5 @@ namespace Twelve.Core.Entities
         public int ActionState { get; init; }
         public string? ActiveBattleSessionId { get; init; }
     }
-}
 
+}

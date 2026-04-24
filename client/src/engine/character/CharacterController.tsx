@@ -101,6 +101,7 @@ const DIRECTIONAL_JUMP_DISTANCE_RATIO = 1.25;
 
 export const CharacterController = forwardRef<CharacterControllerRef, CharacterControllerProps>(({
   initialX,
+  initialFacing = 'right',
   groundY,
   controlMode = 'swipe',
   speed = DEFAULT_SPEED,
@@ -133,8 +134,8 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
   const surfacesRef = useRef<GroundSurface[]>([]);
 
   // Facing is rare state change — keep in React state so sprite flips.
-  const [facing, setFacing] = useState<FacingDirection>('right');
-  const facingRef = useRef<FacingDirection>('right');
+  const [facing, setFacing] = useState<FacingDirection>(initialFacing);
+  const facingRef = useRef<FacingDirection>(initialFacing);
   const [jumpPoseState, setJumpPoseState] = useState<JumpPoseState | null>(null);
   const currentGroundYRef = useRef(groundY);
 
@@ -890,11 +891,13 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     posXRef.current = initialX;
     lastEmittedXRef.current = initialX;
     posAnim.setValue(initialX);
+    facingRef.current = initialFacing;
+    setFacing(initialFacing);
     currentGroundYRef.current = groundY;
     groundOffsetAnim.setValue(0);
     clearJumpState();
     syncGroundFromX(initialX);
-  }, [clearJumpState, groundOffsetAnim, groundY, initialX, posAnim, syncGroundFromX]);
+  }, [clearJumpState, groundOffsetAnim, groundY, initialFacing, initialX, posAnim, syncGroundFromX]);
 
   useEffect(() => {
     if (jumpRef.current) return;

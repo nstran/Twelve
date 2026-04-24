@@ -12,10 +12,26 @@ export interface Actor {
 
 export interface MapInfo {
   name: string;
+  roomId: number;
   width: number;
   height: number;
   tileSize: number;
   tiles: number[];
+  playerWorldState?: {
+    x: number;
+    y: number;
+    direction: number;
+    actionState: number;
+  };
+}
+
+export interface PlayerMapState {
+  mapId: string;
+  roomId: number;
+  x: number;
+  y: number;
+  direction: number;
+  actionState: number;
 }
 
 export interface MapMonsterSpawnRecord {
@@ -235,6 +251,13 @@ export class SocketClient extends EventEmitter {
       case Command.PLAYER_INFO:
         const mapInfo = this.parseMapInfo(payload);
         this.emit('mapInfo', mapInfo);
+        if (mapInfo.playerWorldState) {
+          this.emit('playerMapState', {
+            mapId: mapInfo.name,
+            roomId: mapInfo.roomId,
+            ...mapInfo.playerWorldState,
+          } satisfies PlayerMapState);
+        }
         break;
 
       case Command.MAP_MONSTER_ROSTER: {
@@ -277,6 +300,7 @@ export class SocketClient extends EventEmitter {
 
       case 44: // Move Ack (To be refactored)
         this.emit('moveAck', payload);
+        this.emit('playerMapState', this.parsePlayerMapState(payload));
         break;
 
       default:
@@ -350,12 +374,17 @@ export class SocketClient extends EventEmitter {
     return packet;
   }
 
-  joinMap() {
-    // CMD 11: Request map info. 7-byte header with empty payload.
-    const packet = new Uint8Array(7);
-    packet[0] = 0; packet[1] = 0; // SubCount = 0
-    packet[2] = 0; packet[3] = 0; packet[4] = 0; packet[5] = 0; // PayloadLength = 0
-    packet[6] = 11; // CMD
+  joinMap(mapId?: string, roomId?: number) {
+    const tags: number[] = [];
+    if (mapId) {
+      tags.push(...this.makeStringTag(20, mapId));
+    }
+    if (typeof roomId === 'number') {
+      tags.push(...this.makeIntTag(30, roomId));
+    }
+
+    const payload = new Uint8Array(tags);
+    const packet = this.wrapPacket(Command.PLAYER_INFO, payload, (mapId ? 1 : 0) + (typeof roomId === 'number' ? 1 : 0));
     this.socket?.send(packet);
   }
 
@@ -375,15 +404,35 @@ export class SocketClient extends EventEmitter {
     this.socket?.send(packet);
   }
 
-  move(x: number, y: number) {
+  move(x: number, y: number, mapId?: string, roomId?: number, facing?: 'left' | 'right', actionState = 0) {
     // Build payload: xTag + yTag
-    const xTag = this.makeIntTag(102, x);
-    const yTag = this.makeIntTag(103, y);
-    const payload = new Uint8Array([...xTag, ...yTag]);
+    const tags: number[] = [
+      ...this.makeIntTag(102, x),
+      ...this.makeIntTag(103, y),
+    ];
+    let tagCount = 2;
+
+    if (mapId) {
+      tags.push(...this.makeStringTag(20, mapId));
+      tagCount += 1;
+    }
+    if (typeof roomId === 'number') {
+      tags.push(...this.makeIntTag(30, roomId));
+      tagCount += 1;
+    }
+    if (facing) {
+      tags.push(...this.makeIntTag(104, facing === 'right' ? 1 : 0));
+      tagCount += 1;
+    }
+    tags.push(...this.makeIntTag(105, actionState));
+    tagCount += 1;
+
+    const payload = new Uint8Array(tags);
 
     // 7-byte header: SubCount(2) + PayloadLength(4) + Command(1)
     const packet = new Uint8Array(7 + payload.length);
-    packet[0] = 0; packet[1] = 2; // SubCount = 2 tags
+    packet[0] = (tagCount >> 8) & 0xFF;
+    packet[1] = tagCount & 0xFF;
     packet[2] = (payload.length >> 24) & 0xFF;
     packet[3] = (payload.length >> 16) & 0xFF;
     packet[4] = (payload.length >> 8) & 0xFF;
@@ -498,10 +547,12 @@ export class SocketClient extends EventEmitter {
   private parseMapInfo(payload: Uint8Array): MapInfo {
     let pos = 0;
     let name = 'Unknown';
+    let roomId = 0;
     let width = 10;
     let height = 8;
     let tileSize = 32;
     let tiles: number[] = [];
+    let playerState: PlayerMapState | null = null;
 
     while (pos <= payload.length - 5) {
       const id = payload[pos];
@@ -510,15 +561,67 @@ export class SocketClient extends EventEmitter {
 
       switch (id) {
         case 20: name = new TextDecoder().decode(val); break;
+        case 30: roomId = this.readInt(val, 0); break;
         case 56: width = this.readInt(val, 0); break;
         case 57: height = this.readInt(val, 0); break;
         case 58: tileSize = this.readInt(val, 0); break;
         case 55: tiles = Array.from(val); break; // Ground layer
+        case 102:
+        case 103:
+        case 104:
+        case 105:
+          playerState = this.parsePlayerMapState(payload);
+          pos = payload.length;
+          continue;
       }
       pos += 5 + len;
     }
 
-    return { name, width, height, tileSize, tiles };
+    return {
+      name,
+      roomId,
+      width,
+      height,
+      tileSize,
+      tiles,
+      playerWorldState: playerState
+        ? {
+            x: playerState.x,
+            y: playerState.y,
+            direction: playerState.direction,
+            actionState: playerState.actionState,
+          }
+        : undefined,
+    };
+  }
+
+  private parsePlayerMapState(payload: Uint8Array): PlayerMapState {
+    let pos = 0;
+    let mapId = '';
+    let roomId = 0;
+    let x = 0;
+    let y = 0;
+    let direction = 0;
+    let actionState = 0;
+
+    while (pos <= payload.length - 5) {
+      const id = payload[pos];
+      const len = this.readInt(payload, pos + 1);
+      const val = payload.slice(pos + 5, pos + 5 + len);
+
+      switch (id) {
+        case 20: mapId = new TextDecoder().decode(val); break;
+        case 30: roomId = this.readInt(val, 0); break;
+        case 102: x = this.readInt(val, 0); break;
+        case 103: y = this.readInt(val, 0); break;
+        case 104: direction = this.readInt(val, 0); break;
+        case 105: actionState = this.readInt(val, 0); break;
+      }
+
+      pos += 5 + len;
+    }
+
+    return { mapId, roomId, x, y, direction, actionState };
   }
 
   private parseMapMonsterRoster(payload: Uint8Array): MapMonsterRosterPacket {
@@ -616,4 +719,5 @@ export class SocketClient extends EventEmitter {
       nameColorMode,
     };
   }
+
 }

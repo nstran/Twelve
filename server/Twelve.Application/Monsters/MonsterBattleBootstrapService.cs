@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System;
 using Twelve.Core.Battle;
+using Twelve.Core.Entities;
 using Twelve.Core.Interfaces;
 using Twelve.Core.Monsters;
 
@@ -31,7 +32,9 @@ namespace Twelve.Application.Monsters
             _battleBoardService = battleBoardService;
         }
 
-        public MonsterBattleBootstrapResponse? Bootstrap(MonsterBattleBootstrapRequest request)
+        public MonsterBattleBootstrapResponse? Bootstrap(
+            MonsterBattleBootstrapRequest request,
+            PlayerAggregate? playerAggregate = null)
         {
             var encounter = _mapMonsterRosterService.FindEncounter(request.MapId, request.RoomId, request.MonsterKey);
             if (encounter is null || !encounter.IsActive)
@@ -83,7 +86,9 @@ namespace Twelve.Application.Monsters
 
             var sessionId = Guid.NewGuid().ToString("N");
             var initialBoard = _battleBoardService.CreateInitialBoard();
-            var playerState = CreateDefaultPlayerState();
+            var playerState = playerAggregate is null
+                ? CreateDefaultPlayerState()
+                : CreatePlayerSessionState(playerAggregate);
             var enemyState = CreateEnemySessionState(enemy, spawnTemplate.IqValue, battleTemplate.AiProfileId);
 
             _battleSessionStore.Save(new BattleSessionState(
@@ -109,6 +114,43 @@ namespace Twelve.Application.Monsters
                 InitialBoard: initialBoard,
                 Player: CreateCombatantSnapshot(playerState),
                 Enemy: enemy);
+        }
+
+        private static BattleSessionCombatantState CreatePlayerSessionState(PlayerAggregate aggregate)
+        {
+            var player = aggregate.Core;
+            var stats = aggregate.Stats;
+            var maxHp = Math.Max(1, player.MaxHp);
+            var currentHp = Math.Clamp(player.Hp <= 0 ? maxHp : player.Hp, 1, maxHp);
+            var maxMp = Math.Max(0, player.MaxMp);
+            var maxPower = Math.Max(0, player.MaxPower);
+            var minDamage = Math.Max(0, stats.MinDamage);
+            var maxDamage = Math.Max(minDamage, stats.MaxDamage);
+
+            return new BattleSessionCombatantState(
+                CombatantId: $"player:{player.Id}",
+                DisplayName: player.Username,
+                Side: BattleSide.Player,
+                CurrentHp: currentHp,
+                MaxHp: maxHp,
+                CurrentMp: Math.Clamp(player.Mp, 0, maxMp),
+                MaxMp: maxMp,
+                CurrentPower: Math.Clamp(player.Power, 0, maxPower),
+                MaxPower: maxPower,
+                Strength: stats.CuongLuc + stats.BonusCuongLuc,
+                Agility: stats.ThanPhap + stats.BonusThanPhap,
+                Magic: stats.NoiLuc + stats.BonusNoiLuc,
+                Vitality: stats.TheLuc + stats.BonusTheLuc,
+                MinDamage: minDamage,
+                MaxDamage: maxDamage,
+                Defense: stats.Defense,
+                HitRate: stats.Hit,
+                DodgeRate: stats.Dodge,
+                CriticalDamage: stats.Crit,
+                Skills: CreateSessionSkills(aggregate.Skills),
+                Level: player.Level,
+                IqValue: 0,
+                AiProfileId: null);
         }
 
         private static BattleSessionCombatantState CreateDefaultPlayerState() =>
@@ -201,6 +243,26 @@ namespace Twelve.Application.Monsters
                     SkillId: skill.SkillId,
                     Level: skill.Level,
                     ManaCost: skill.ManaCost));
+            }
+
+            return instances;
+        }
+
+        private static IReadOnlyList<BattleSessionSkillInstance> CreateSessionSkills(
+            IReadOnlyList<PlayerSkillEntry> skills)
+        {
+            if (skills.Count == 0)
+            {
+                return [];
+            }
+
+            var instances = new List<BattleSessionSkillInstance>(skills.Count);
+            foreach (var skill in skills)
+            {
+                instances.Add(new BattleSessionSkillInstance(
+                    SkillId: skill.SkillId,
+                    Level: Math.Max(1, skill.Level),
+                    ManaCost: 0));
             }
 
             return instances;

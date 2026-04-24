@@ -25,7 +25,12 @@ import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
 import { PopupMenu, MenuItem } from '../../../components/controls/PopupMenu/PopupMenu';
 import { TouchGamepad } from '../../../components/controls/TouchGamepad';
 import { clearSession } from '../../../storage/SessionStorage';
-import { SocketClient, type MapMonsterRosterPacket } from '../../../network/SocketClient';
+import {
+  SocketClient,
+  type MapInfo,
+  type MapMonsterRosterPacket,
+  type PlayerMapState,
+} from '../../../network/SocketClient';
 import { resolveSideScrollMapSceneConfig } from '../core';
 import type {
   MapMonsterRosterEntry,
@@ -378,7 +383,10 @@ export const HoaLuMapScreen: React.FC<Props> = ({
     * sceneConfig.playerScale
     / sceneConfig.createCharacterDefaultScale,
   );
-  const charInitX = Math.round(mapWidth * sceneConfig.playerSpawnRatio);
+  const defaultCharInitX = Math.round(mapWidth * sceneConfig.playerSpawnRatio);
+  const [serverPlayerX, setServerPlayerX] = useState<number | null>(null);
+  const [serverPlayerFacing, setServerPlayerFacing] = useState<'left' | 'right'>('right');
+  const charInitX = Math.round(Math.max(mapMinX, Math.min(mapMaxX, serverPlayerX ?? defaultCharInitX)));
   const surfacesBase = useMemo(
     () => sceneConfig.buildSurfaces(mapScale),
     [mapScale, sceneConfig],
@@ -409,6 +417,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const encounterRequestVersionRef = useRef(0);
   const charLeftRef = useRef(charInitX);
   const playerLastMovedAtRef = useRef(0);
+  const lastMovePersistRef = useRef({ x: charInitX, at: 0 });
   const cameraXRef = useRef(0);
   // Camera scroll is coalesced to 1 scrollTo per vsync via rAF, so 60Hz
   // onMove callbacks from the character controller don't hammer the JS
@@ -425,6 +434,52 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const monsterTargetsRef = useRef<MonsterTarget[]>([]);
   const [monsterVisuals, setMonsterVisuals] = useState<MonsterVisual[]>([]);
   const monsterRuntimes = monsterRuntimesRef.current;
+
+  useEffect(() => {
+    const client = socketClientRef.current;
+
+    const applyServerPlayerState = (state: PlayerMapState | undefined) => {
+      const playerX = state?.x;
+      if (typeof playerX !== 'number' || playerX <= 0) {
+        setServerPlayerX(null);
+        setServerPlayerFacing('right');
+        return;
+      }
+
+      const displayPlayerX = Math.round(playerX * mapScale);
+      setServerPlayerX(Math.max(mapMinX, Math.min(mapMaxX, displayPlayerX)));
+      setServerPlayerFacing(state?.direction === 0 ? 'left' : 'right');
+    };
+
+    const handleMapInfo = (info: MapInfo) => {
+      if (info.name !== mapId || info.roomId !== roomId) {
+        return;
+      }
+
+      applyServerPlayerState(info.playerWorldState
+        ? {
+            mapId: info.name,
+            roomId: info.roomId,
+            ...info.playerWorldState,
+          }
+        : undefined);
+    };
+
+    const handlePlayerMapState = (state: PlayerMapState) => {
+      if (state.mapId !== mapId || state.roomId !== roomId) {
+        return;
+      }
+
+      applyServerPlayerState(state);
+    };
+
+    client.on('mapInfo', handleMapInfo);
+    client.on('playerMapState', handlePlayerMapState);
+    return () => {
+      client.off('mapInfo', handleMapInfo);
+      client.off('playerMapState', handlePlayerMapState);
+    };
+  }, [mapId, mapMaxX, mapMinX, mapScale, roomId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -603,6 +658,30 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       scrollRef.current?.scrollTo({ x: target, animated: false });
     });
   }, [mapWidth, playerSpriteSize.w]);
+
+  const persistPlayerWorldPosition = useCallback((
+    x: number,
+    facing: 'left' | 'right',
+    force = false,
+  ) => {
+    const now = getLoopNowMs();
+    const last = lastMovePersistRef.current;
+    if (!force && now - last.at < 750 && Math.abs(x - last.x) < 24) {
+      return;
+    }
+
+    const nativeX = Math.round(x / mapScale);
+    const nativeY = Math.round(groundTop / mapScale);
+    lastMovePersistRef.current = { x, at: now };
+    socketClientRef.current.move(
+      nativeX,
+      nativeY,
+      mapId,
+      roomId,
+      facing,
+      0,
+    );
+  }, [groundTop, mapId, mapScale, roomId]);
 
   // Cancel any pending scroll rAF on unmount to avoid leaks.
   useEffect(() => () => {
@@ -1045,6 +1124,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
             <CharacterController
               ref={characterControllerRef}
               initialX={charInitX}
+              initialFacing={serverPlayerFacing}
               groundY={groundTop}
               controlMode="tap-to-move"
               speed={sceneConfig.playerSpeed}
@@ -1073,10 +1153,14 @@ export const HoaLuMapScreen: React.FC<Props> = ({
               zIndex={LAYER_CHARACTER}
               allowPointerInput={allowMapPointerInput}
               disabled={menuVisible}
-              onMove={(x) => {
+              onMove={(x, facing) => {
                 playerLastMovedAtRef.current = getLoopNowMs();
                 charLeftRef.current = x;
                 scrollToCharacter(x);
+                persistPlayerWorldPosition(x, facing, false);
+              }}
+              onMoveEnd={(x, facing) => {
+                persistPlayerWorldPosition(x, facing, true);
               }}
               onAttackMonster={(monsterId) => {
                 if (battleTriggered.current) return;
