@@ -36,6 +36,20 @@ const INFO_ASSETS = {
   hidenobj: require('../../../../assets/ui/12_info/hidenobj.png'),
   itemchest: require('../../../../assets/ui/12_info/itemchest.png'),
 };
+const EQUIPMENT_ICON_ASSETS: Record<number, any> = {
+  4101: require('../../../../assets/equipment/03_weapon_e1/weapon_800xx/80098.png'),
+  4102: require('../../../../assets/equipment/03_weapon_e1/weapon_802xx/80298.png'),
+  4103: require('../../../../assets/equipment/07_accessory_e5_e7_e8/accessory_candidate_120xxx/120198.png'),
+  4201: require('../../../../assets/equipment/02_armor_e0/armor_701xx/70198.png'),
+  4202: require('../../../../assets/equipment/02_armor_e0/armor_703xx/70398.png'),
+  4203: require('../../../../assets/equipment/07_accessory_e5_e7_e8/accessory_candidate_120xxx/120298.png'),
+  80000: require('../../../../assets/equipment/03_weapon_e1/weapon_800xx/80098.png'),
+  80200: require('../../../../assets/equipment/03_weapon_e1/weapon_802xx/80298.png'),
+  120100: require('../../../../assets/equipment/07_accessory_e5_e7_e8/accessory_candidate_120xxx/120198.png'),
+  70100: require('../../../../assets/equipment/02_armor_e0/armor_701xx/70198.png'),
+  70300: require('../../../../assets/equipment/02_armor_e0/armor_703xx/70398.png'),
+  120200: require('../../../../assets/equipment/07_accessory_e5_e7_e8/accessory_candidate_120xxx/120298.png'),
+};
 const SKILL_UI_ASSETS = {
   increase: require('../../../../assets/skill/00_skill_tree_ui_confirmed/skill_tree_board/increase.png'),
   decrease: require('../../../../assets/skill/00_skill_tree_ui_confirmed/skill_tree_board/decrease.png'),
@@ -73,6 +87,14 @@ const STAT_ROWS: Array<{ label: string; key: CharacterStatKey; valueKey: keyof N
   { label: 'Thân Pháp', key: 'ThanPhap', valueKey: 'thanPhap' },
   { label: 'Thể Lực', key: 'TheLuc', valueKey: 'theLuc' },
 ];
+const EQUIPMENT_SLOT_NAMES: Record<number, string> = {
+  0: 'Nón',
+  1: 'Giày',
+  2: 'Áo',
+  3: 'Phụ kiện',
+  4: 'Vũ khí',
+  5: 'Bùa',
+};
 
 const formatQuan = (value: number) =>
   `${String(Math.max(0, Math.floor(value))).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} Quan`;
@@ -84,6 +106,23 @@ const toBarPct = (cur: number, max: number) => {
 
   return Math.max(0, Math.min(100, (cur * 100) / max));
 };
+
+const formatSigned = (value: number, suffix = '') => `${value > 0 ? '+' : ''}${value}${suffix}`;
+
+const getEquipmentBonusRows = (entry: CharacterEquipmentItem) => [
+  entry.bonusCuongLuc ? `Cường Lực ${formatSigned(entry.bonusCuongLuc)}` : null,
+  entry.bonusNoiLuc ? `Nội Lực ${formatSigned(entry.bonusNoiLuc)}` : null,
+  entry.bonusThanPhap ? `Thân Pháp ${formatSigned(entry.bonusThanPhap)}` : null,
+  entry.bonusTheLuc ? `Thể Lực ${formatSigned(entry.bonusTheLuc)}` : null,
+  entry.bonusAttack ? `Tấn Công ${formatSigned(entry.bonusAttack)}` : null,
+  entry.bonusDefense ? `P.Thủ ${formatSigned(entry.bonusDefense)}` : null,
+  entry.bonusDodge ? `Né Tránh ${formatSigned(entry.bonusDodge)}` : null,
+  entry.bonusCrit ? `Chí Mạng ${formatSigned(entry.bonusCrit, '%')}` : null,
+  entry.bonusMaxHp ? `Sinh lực ${formatSigned(entry.bonusMaxHp)}` : null,
+].filter((row): row is string => Boolean(row));
+
+const resolveEquipmentIcon = (entry: CharacterEquipmentItem) =>
+  EQUIPMENT_ICON_ASSETS[entry.resourceId] ?? EQUIPMENT_ICON_ASSETS[entry.resourceId - (entry.resourceId % 100)];
 
 const valueBox = (value: React.ReactNode, wide = false) => (
   <View style={[styles.valueBox, wide && styles.valueBoxWide]}>
@@ -450,13 +489,15 @@ const EquipmentDialog: React.FC<{
   pending: string | null;
   onRunAction: (key: string, runner?: DialogActionRunner) => void;
   onToggleEquipment?: (equipKey: string, equip: boolean) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment }) => {
+  onUseItem?: (itemId: number) => Promise<string | null>;
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onUseItem }) => {
   return (
     <InventoryShell
       appearance={appearance}
       pending={pending}
       onRunAction={onRunAction}
       onToggleEquipment={onToggleEquipment}
+      onUseItem={onUseItem}
     />
   );
 };
@@ -465,6 +506,7 @@ type InventoryCell =
   | { kind: 'equipment'; key: string; entry: CharacterEquipmentItem }
   | { kind: 'item'; key: string; item: CharacterInventoryItem }
   | { kind: 'empty'; key: string };
+type EquipmentCell = Extract<InventoryCell, { kind: 'equipment' }>;
 
 const HiddenEquipmentIcon: React.FC<{ slot: number }> = ({ slot }) => (
   <View style={styles.hiddenEquipmentIcon}>
@@ -494,10 +536,7 @@ const EquipmentSlot: React.FC<{
 }) => (
   <Pressable onPress={onPress} style={[styles.equipSlot, style, selected && styles.inventorySelected]}>
     {entry ? (
-      <>
-        <Image source={INFO_ASSETS.itemchest} style={styles.equipmentItemIcon} resizeMode="contain" />
-        <Text style={styles.tileLevel}>+{entry.level}</Text>
-      </>
+      <Image source={resolveEquipmentIcon(entry) ?? INFO_ASSETS.itemchest} style={styles.equipmentItemIcon} resizeMode="contain" />
     ) : (
       <HiddenEquipmentIcon slot={slot} />
     )}
@@ -513,14 +552,97 @@ const InventoryGridCell: React.FC<{
   <Pressable onPress={onPress} style={[styles.inventoryCell, style, selected && styles.inventorySelected]}>
     {cell.kind === 'empty' ? null : (
       <>
-        <Image source={INFO_ASSETS.itemchest} style={styles.inventoryCellIconImage} resizeMode="contain" />
-        <Text style={styles.inventoryCellCount} numberOfLines={1}>
-          {cell.kind === 'equipment' ? `+${cell.entry.level}` : String(cell.item.quantity)}
-        </Text>
+        <Image
+          source={cell.kind === 'equipment' ? resolveEquipmentIcon(cell.entry) ?? INFO_ASSETS.itemchest : INFO_ASSETS.itemchest}
+          style={styles.inventoryCellIconImage}
+          resizeMode="contain"
+        />
+        {cell.kind === 'item' ? (
+          <Text style={styles.inventoryCellCount} numberOfLines={1}>{cell.item.quantity}</Text>
+        ) : null}
       </>
     )}
   </Pressable>
 );
+
+const InventoryDetailPanel: React.FC<{
+  playerLevel: number;
+  selected?: InventoryCell;
+  selectedIsEquipped: boolean;
+  pending: string | null;
+  onRunAction: (key: string, runner?: DialogActionRunner) => void;
+  onToggleEquipment?: (equipKey: string, equip: boolean) => Promise<string | null>;
+  onUseItem?: (itemId: number) => Promise<string | null>;
+}> = ({
+  playerLevel,
+  selected,
+  selectedIsEquipped,
+  pending,
+  onRunAction,
+  onToggleEquipment,
+  onUseItem,
+}) => {
+  if (selected?.kind === 'equipment') {
+    const entry = selected.entry;
+    const canEquip = selectedIsEquipped || playerLevel >= entry.requiredLevel;
+    const bonusRows = getEquipmentBonusRows(entry);
+
+    return (
+      <View style={styles.inventoryDetailPanel}>
+        <View style={styles.inventoryDetailHeader}>
+          <Text style={styles.inventoryDetailTitle} numberOfLines={1}>{entry.displayName}</Text>
+          <Text style={styles.inventoryDetailMeta}>
+            {EQUIPMENT_SLOT_NAMES[entry.slot] ?? 'Trang bị'}  Cấp {entry.level}
+          </Text>
+        </View>
+        <Text style={styles.inventoryDetailText} numberOfLines={1}>
+          Yêu cầu cấp {entry.requiredLevel}  {entry.isEquipped ? 'Đang mặc' : 'Trong túi'}
+        </Text>
+        <View style={styles.inventoryBonusGrid}>
+          {(bonusRows.length > 0 ? bonusRows : [entry.summary]).slice(0, 6).map(row => (
+            <Text key={row} style={styles.inventoryBonusText} numberOfLines={1}>{row}</Text>
+          ))}
+        </View>
+        <View style={styles.inventoryDetailActions}>
+          <ActionButton
+            label={selectedIsEquipped ? 'Tháo' : 'Trang bị'}
+            disabled={pending !== null || !canEquip || !onToggleEquipment}
+            onPress={() => onRunAction(
+              `${selectedIsEquipped ? 'unequip' : 'equip'}-${entry.equipKey}`,
+              () => onToggleEquipment?.(entry.equipKey, !selectedIsEquipped),
+            )}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  if (selected?.kind === 'item') {
+    const item = selected.item;
+
+    return (
+      <View style={styles.inventoryDetailPanel}>
+        <View style={styles.inventoryDetailHeader}>
+          <Text style={styles.inventoryDetailTitle} numberOfLines={1}>{item.displayName}</Text>
+          <Text style={styles.inventoryDetailMeta}>{item.quantity}/{item.stackCap}</Text>
+        </View>
+        <Text style={styles.inventoryDetailText} numberOfLines={2}>{item.description}</Text>
+        {item.isUsable ? (
+          <Text style={styles.inventoryBonusText} numberOfLines={1}>Hồi {item.healAmount} sinh lực</Text>
+        ) : null}
+        <View style={styles.inventoryDetailActions}>
+          <ActionButton
+            label={item.isUsable ? 'Dùng' : 'Giữ'}
+            disabled={pending !== null || !item.isUsable || !onUseItem}
+            onPress={() => onRunAction(`item-${item.itemId}`, () => onUseItem?.(item.itemId))}
+          />
+        </View>
+      </View>
+    );
+  }
+
+  return <View style={styles.inventoryDetailPanel} />;
+};
 
 const InventoryShell: React.FC<{
   appearance: CharacterAppearance;
@@ -538,11 +660,12 @@ const InventoryShell: React.FC<{
   ];
   const cells = Array.from({ length: Math.max(36, rawCells.length) }, (_, index) => rawCells[index] ?? { kind: 'empty' as const, key: `empty-${index}` });
   const [selectedKey, setSelectedKey] = useState<string>(rawCells[0]?.key ?? '');
+  const equippedCells = equipped.map((entry): EquipmentCell => ({ kind: 'equipment', key: `equipped-${entry.equipKey}`, entry }));
   const selected = rawCells.find(cell => cell.key === selectedKey)
-    ?? equipped
-      .map((entry): InventoryCell => ({ kind: 'equipment', key: `equipped-${entry.equipKey}`, entry }))
-      .find(cell => cell.key === selectedKey);
-  const selectedIsEquipped = selected?.kind === 'equipment' && selectedKey.startsWith('equipped-');
+    ?? equippedCells.find(cell => cell.key === selectedKey)
+    ?? rawCells.find((cell): cell is EquipmentCell => cell.kind === 'equipment' && selectedKey.endsWith(cell.entry.equipKey))
+    ?? equippedCells.find(cell => selectedKey.endsWith(cell.entry.equipKey));
+  const selectedIsEquipped = selected?.kind === 'equipment' && selected.entry.isEquipped;
   const getEquipped = (slot: number) => equipped.find(entry => entry.slot === slot);
   const selectEquipped = (slot: number) => {
     const entry = getEquipped(slot);
@@ -600,30 +723,15 @@ const InventoryShell: React.FC<{
         ))}
       </View>
 
-      <View style={styles.inventoryActionRow}>
-        {selected?.kind === 'equipment' ? (
-          <>
-            <Text style={styles.inventorySelectionText} numberOfLines={1}>{selected.entry.displayName}</Text>
-            <ActionButton
-              label={selectedIsEquipped ? 'Tháo' : 'Trang bị'}
-              disabled={pending !== null || (!selectedIsEquipped && player.level < selected.entry.requiredLevel)}
-              onPress={() => onRunAction(
-                `${selectedIsEquipped ? 'unequip' : 'equip'}-${selected.entry.equipKey}`,
-                () => onToggleEquipment?.(selected.entry.equipKey, !selectedIsEquipped),
-              )}
-            />
-          </>
-        ) : selected?.kind === 'item' ? (
-          <>
-            <Text style={styles.inventorySelectionText} numberOfLines={1}>{selected.item.displayName}</Text>
-            <ActionButton
-              label={selected.item.isUsable ? 'Dùng' : 'Giữ'}
-              disabled={pending !== null || !selected.item.isUsable}
-              onPress={() => onRunAction(`item-${selected.item.itemId}`, () => onUseItem?.(selected.item.itemId))}
-            />
-          </>
-        ) : null}
-      </View>
+      <InventoryDetailPanel
+        playerLevel={player.level}
+        selected={selected}
+        selectedIsEquipped={selectedIsEquipped}
+        pending={pending}
+        onRunAction={onRunAction}
+        onToggleEquipment={onToggleEquipment}
+        onUseItem={onUseItem}
+      />
     </View>
   );
 };
@@ -632,13 +740,15 @@ const InventoryDialog: React.FC<{
   appearance: CharacterAppearance;
   pending: string | null;
   onRunAction: (key: string, runner?: DialogActionRunner) => void;
+  onToggleEquipment?: (equipKey: string, equip: boolean) => Promise<string | null>;
   onUseItem?: (itemId: number) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onUseItem }) => {
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onUseItem }) => {
   return (
     <InventoryShell
       appearance={appearance}
       pending={pending}
       onRunAction={onRunAction}
+      onToggleEquipment={onToggleEquipment}
       onUseItem={onUseItem}
     />
   );
@@ -679,7 +789,13 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
   const dialogWidth = Math.min(SCREEN_W * 0.94, activeDialog === 'skills' ? 480 : 430);
   const dialogMaxHeight = Math.min(
     SCREEN_H * 0.92,
-    activeDialog === 'potential' ? 720 : activeDialog === 'skills' ? 620 : 580,
+    activeDialog === 'potential'
+      ? 720
+      : activeDialog === 'skills'
+        ? 620
+        : activeDialog === 'equipment' || activeDialog === 'inventory'
+          ? 700
+          : 580,
   );
 
   return (
@@ -717,6 +833,7 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
               pending={pending}
               onRunAction={runAction}
               onToggleEquipment={onToggleEquipment}
+              onUseItem={onUseItem}
             />
           )}
           {activeDialog === 'inventory' && (
@@ -724,6 +841,7 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
               appearance={appearance}
               pending={pending}
               onRunAction={runAction}
+              onToggleEquipment={onToggleEquipment}
               onUseItem={onUseItem}
             />
           )}

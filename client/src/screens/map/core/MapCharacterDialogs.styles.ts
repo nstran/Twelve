@@ -439,7 +439,7 @@ export const styles = StyleSheet.create({
   },
   inventoryBody: {
     width: 390,
-    height: 506,
+    height: 610,
     position: 'relative',
     alignSelf: 'center',
   },
@@ -509,8 +509,8 @@ export const styles = StyleSheet.create({
     height: 32,
   },
   equipmentItemIcon: {
-    width: 25,
-    height: 18,
+    width: 32,
+    height: 32,
   },
   inventoryAvatarBox: {
     position: 'absolute',
@@ -560,8 +560,8 @@ export const styles = StyleSheet.create({
     borderWidth: 2,
   },
   inventoryCellIconImage: {
-    width: 25,
-    height: 18,
+    width: 32,
+    height: 32,
   },
   inventoryCellCount: {
     position: 'absolute',
@@ -574,28 +574,55 @@ export const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 1,
   },
-  tileLevel: {
-    position: 'absolute',
-    right: 1,
-    bottom: -1,
-    fontSize: 13,
-    color: '#d97706',
-    fontWeight: '900',
-  },
-  inventoryActionRow: {
+  inventoryDetailPanel: {
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 476,
-    minHeight: 28,
+    top: 478,
+    minHeight: 120,
+    borderTopWidth: 1,
+    borderColor: BOX_BORDER,
+    paddingTop: 7,
+    gap: 3,
+  },
+  inventoryDetailHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  inventorySelectionText: {
+  inventoryDetailTitle: {
     flex: 1,
+    fontSize: 14,
+    color: '#111',
+    fontWeight: '800',
+  },
+  inventoryDetailMeta: {
     fontSize: 12,
-    color: '#333',
+    color: '#334155',
     fontWeight: '700',
+  },
+  inventoryDetailText: {
+    fontSize: 11,
+    color: '#333',
+    lineHeight: 15,
+  },
+  inventoryBonusGrid: {
+    minHeight: 34,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: 8,
+    rowGap: 2,
+  },
+  inventoryBonusText: {
+    width: 118,
+    fontSize: 11,
+    color: VALUE_BLUE,
+    fontWeight: '700',
+  },
+  inventoryDetailActions: {
+    height: 24,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
 });

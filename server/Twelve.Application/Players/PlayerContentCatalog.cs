@@ -386,12 +386,12 @@ namespace Twelve.Application.Players
         private static IReadOnlyDictionary<string, PlayerEquipmentDefinition> CreateEquipmentDefinitions() =>
             new Dictionary<string, PlayerEquipmentDefinition>(StringComparer.OrdinalIgnoreCase)
             {
-                ["starter_fire_blade"] = new PlayerEquipmentDefinition("starter_fire_blade", "Hỏa Kiếm Tập Sự", "Vũ khí nhập môn cho hệ Hỏa.", 4, 4101, 1, 1, "weapon", new PlayerStatModifier(FlatAttack: 4, Crit: 1)),
-                ["starter_zap_blade"] = new PlayerEquipmentDefinition("starter_zap_blade", "Lôi Kiếm Tập Sự", "Vũ khí nhập môn cho hệ Lôi.", 4, 4102, 1, 1, "weapon", new PlayerStatModifier(FlatAttack: 3, Dodge: 2, ThanPhap: 1)),
-                ["starter_water_talisman"] = new PlayerEquipmentDefinition("starter_water_talisman", "Thủy Phù Tập Sự", "Phù nhập môn cho hệ Thủy.", 5, 4103, 1, 1, "talisman", new PlayerStatModifier(FlatAttack: 2, MaxHp: 12, NoiLuc: 1)),
-                ["fire_guard_vest"] = new PlayerEquipmentDefinition("fire_guard_vest", "Giáp Hỏa Vệ", "Tăng công và thủ khi train map đầu.", 2, 4201, 1, 6, "armor", new PlayerStatModifier(FlatAttack: 3, Defense: 2, MaxHp: 10)),
-                ["water_guard_cloak"] = new PlayerEquipmentDefinition("water_guard_cloak", "Băng Bào Hộ Thể", "Áo choàng tăng HP và né tránh.", 2, 4202, 1, 6, "armor", new PlayerStatModifier(MaxHp: 18, Dodge: 2, NoiLuc: 1)),
-                ["zap_hunter_boots"] = new PlayerEquipmentDefinition("zap_hunter_boots", "Ngoa Lôi Săn", "Giày tăng thân pháp và chính diện.", 1, 4203, 1, 8, "boots", new PlayerStatModifier(ThanPhap: 2, Dodge: 3, FlatAttack: 2)),
+                ["starter_fire_blade"] = new PlayerEquipmentDefinition("starter_fire_blade", "Hỏa Kiếm Tập Sự", "Vũ khí nhập môn cho hệ Hỏa.", 4, 80000, 1, 1, "weapon", new PlayerStatModifier(FlatAttack: 4, Crit: 1)),
+                ["starter_zap_blade"] = new PlayerEquipmentDefinition("starter_zap_blade", "Lôi Kiếm Tập Sự", "Vũ khí nhập môn cho hệ Lôi.", 4, 80200, 1, 1, "weapon", new PlayerStatModifier(FlatAttack: 3, Dodge: 2, ThanPhap: 1)),
+                ["starter_water_talisman"] = new PlayerEquipmentDefinition("starter_water_talisman", "Thủy Phù Tập Sự", "Phù nhập môn cho hệ Thủy.", 5, 120100, 1, 1, "talisman", new PlayerStatModifier(FlatAttack: 2, MaxHp: 12, NoiLuc: 1)),
+                ["fire_guard_vest"] = new PlayerEquipmentDefinition("fire_guard_vest", "Giáp Hỏa Vệ", "Tăng công và thủ khi train map đầu.", 2, 70100, 1, 6, "armor", new PlayerStatModifier(FlatAttack: 3, Defense: 2, MaxHp: 10)),
+                ["water_guard_cloak"] = new PlayerEquipmentDefinition("water_guard_cloak", "Băng Bào Hộ Thể", "Áo choàng tăng HP và né tránh.", 2, 70300, 1, 6, "armor", new PlayerStatModifier(MaxHp: 18, Dodge: 2, NoiLuc: 1)),
+                ["zap_hunter_boots"] = new PlayerEquipmentDefinition("zap_hunter_boots", "Ngoa Lôi Săn", "Giày tăng thân pháp và chính diện.", 1, 120200, 1, 8, "boots", new PlayerStatModifier(ThanPhap: 2, Dodge: 3, FlatAttack: 2)),
             };
 
         private static IReadOnlyDictionary<int, IReadOnlyList<PlayerSkillDefinition>> CreateSkillDefinitions() =>
