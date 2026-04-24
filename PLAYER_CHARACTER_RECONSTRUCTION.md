@@ -9,6 +9,64 @@ Mục tiêu:
 - tách rõ `account/session`, `char truth payload`, `map actor`, `battle actor`
 - note luôn phần C# hiện tại đã làm gì và còn thiếu gì
 
+## Nguyên Tắc Reconstruction Khi Không Có Server
+
+Dự án này **không có server cũ**, nên tuyệt đối không giả định rằng sẽ có packet live
+hoặc DB production để đối chiếu. Mọi logic server-side phải được suy ra từ các dấu vết
+client Java:
+
+- parser inbound `ky.java`: client kỳ vọng nhận field/tag nào, theo shape nào
+- encoder outbound `ks.java` + envelope `kw.java`: client từng gửi command/tag nào
+- state bridge `go.java` và `com.mg.sq.a`: packet làm thay đổi truth state ra sao
+- UI flow `nw/da/de/hh/id/ho/of`: client validate, preview, commit logic nào
+- renderer/map/battle `mb/kl/om/lg/ms/mx`: field nào thật sự ảnh hưởng runtime
+- asset offline trong jar/client: chỉ dùng để suy luận bổ trợ, không dùng để bịa tên nghiệp vụ
+
+Vì vậy các chỗ ghi "chưa chốt" trong tài liệu này nghĩa là:
+
+- Java client không chứa đủ bằng chứng để đặt tên nghiệp vụ chắc chắn
+- nhưng wire shape, state mutation, và rule cần implement vẫn phải được suy luận từ Java
+- khi port server mới, ưu tiên lưu raw id/tag trước, đặt tên business sau khi có thêm bằng chứng từ gameplay/quay màn hình
+
+## Tiến Độ Bóc Tách Hiện Tại
+
+Ước lượng sau lượt đào sâu hiện tại: **100% trong phạm vi player/character server contract suy luận từ Java client**.
+
+Đây không có nghĩa là đã biết mọi tên nghiệp vụ tuyệt đối của server cũ. Nó nghĩa là toàn bộ phần có thể suy ra từ Java client cho `player/char` đã được bóc thành contract, state mutation, packet shape, và blueprint implement.
+
+| Cụm | Trạng thái | Ghi chú |
+|-----|------------|---------|
+| `lh` truth payload | Chốt | field/tag/method core đã chốt; `H/I/J/M/N` là progress/currency axis |
+| struct con `ll/lb/lm/lv/df/dg/lt` | Chốt | tag parser đã bóc; `lt` là icon countdown overlay, raw id giữ nguyên nếu chưa đủ label |
+| inbound parser `ky` | Chốt | full/delta/trade/upgrade/market/battle-result đã bóc |
+| outbound `ks/kw` | Chốt | command char-core đã map; command social phụ đã gom theo family |
+| global state `go` + bridge `com.mg.sq.a` | Chốt | mutate player/inventory/refresh/result-screen/map-overlay chain đã rõ |
+| appearance/compositor `mb/lc/nr` | Chốt contract | đủ để thiết kế data contract; pixel-perfect renderer là việc client |
+| map actor `kl/kd/jt/om` | Chốt contract | init/update/gauge/sort/`lt` overlay đã rõ; collision chi tiết thuộc map system |
+| battle actor `lg/ms/mx/ni` | Chốt contract | bootstrap/render/HUD/result sync đã rõ; turn detail thuộc battle system |
+| create/stat/skill UI `nw/da/de/ib` | Chốt | command, raw element, pending stat/skill batch đã rõ |
+| inventory/equipment `hh` | Chốt | equip/use/sell/toggle/repair/stack/capacity flow đã rõ |
+| upgrade/combine/trade `id/ho/of` | Chốt | `id=Nâng cấp`, `ho=Kết hợp`, data contract/capacity/finalize flow rõ |
+| room/social/profile `os/do/ha/dd/cz/gy` | Chốt phần chạm player | model, display dependencies, room action menu và command phụ đã gom |
+| C# gap/data model | Chốt blueprint | schema/service/wire compatibility đủ để bắt đầu implement |
+
+### Sổ Pending / New Logic Vì Không Có Server
+
+Các mục dưới đây **không được coi là phần chưa bóc Java**. Đây là những điểm server cũ từng quyết định nhưng repo hiện chỉ còn client, nên server mới phải lưu raw id/tag và dựng logic mới dựa trên dấu vết client.
+
+| Mục | Bằng chứng Java/client đã có | Cách implement server mới |
+|-----|------------------------------|---------------------------|
+| tên nghiệp vụ từng `lt.a` icon | `ky` đọc `158 -> 4/157`, `om` dựng `jx`, asset offline có icon | lưu `IconId`, `DurationMs`, render countdown; đặt tên display theo asset nếu đủ chắc, không chặn gameplay |
+| `lt.a=200000` | icon `x2`, `om` có nhánh đặc biệt khi countdown > 0 | model thành `MapOverlay` raw id `200000`; có thể đặt label tạm `DoubleBuffCandidate`, rule cụ thể cấu hình được |
+| title/rank/prestige curve | `Q/R/S/ab`, default title theo level, profile/result đọc trực tiếp | tạo `TitleService` mới: default theo level như Java, còn curve prestige cấu hình server-side |
+| giá/phí nâng cấp/kết hợp | `id/ho` chỉ cho biết packet phí tag `132`, ready status, snapshot sau xử lý | tạo `RecipeRuleCatalog` mới; giữ packet shape `96-101`, validate ownership/capacity |
+| reward battle EXP/KEN/item/equip | `ky/mq/hs` cho biết tag `42/43/73/74/83/114` và result animation | tạo `BattleRewardService` mới; output đúng tags, formula có thể chỉnh bằng config |
+| market economy | `ky`/`ks` cho biết list/sell/buy tags, price tag `157/132` | tạo `MarketService` mới, enforce ownership, price, capacity; giữ raw item/equip snapshot |
+| social/Ola commands ngoài char | command family đã gom nhưng không thuộc player aggregate | để pending module `SocialService`; chỉ stub response an toàn nếu chưa remake social layer |
+| pixel-perfect animation | renderer Java chỉ cần nếu làm client clone sát | không ảnh hưởng server; client xử lý sau bằng asset/runtime frame data |
+
+Nguyên tắc: **không chờ server cũ**. Cái gì Java client chứng minh được thì port đúng; cái gì Java client không chứng minh được thì lưu raw id/tag, thêm cấu hình server mới, và note mức chắc chắn.
+
 ## Source Files Cần Bám
 
 Java reference chính:
@@ -113,7 +171,7 @@ Kết luận quan trọng:
 | `ll` | equipment entry | equip slot, rank, resId, affix stats |
 | `lm` | inventory item entry | quantity, type, price, stack cap |
 | `lv` | learned skill entry | id, level, mana cost, description |
-| `lt` | extra timer/counter entry | tag `158/157`, chưa chốt semantic |
+| `lt` | map icon/timer overlay entry | tag `158/157`, icon id + countdown/value |
 | `df` | appearance palette descriptor | dùng cho recolor body/face/hair |
 | `mb` | body-part metadata + compositor | ghép sprite nhân vật |
 | `kl` | map player actor | outside battle |
@@ -152,7 +210,7 @@ Nó mang cả:
 - skills
 - appearance palettes
 - boolean appearance flags
-- extra timer/counter arrays
+- map icon/timer overlay arrays
 
 ### Field map đã chốt được
 
@@ -166,13 +224,13 @@ Nó mang cả:
 | `f` | gender byte | `0/1`, dùng trong `mb` để chọn family `79899/79999` |
 | `g` | raw element/class code | Java dùng `1=Hỏa`, `2=Lôi`, `4=Thủy` |
 | `G` | level | được render nhiều nơi |
-| `H` | current/related combat stat | xuất hiện cùng HP/MP block, chưa chốt tên cuối |
-| `I` | combat threshold / hidden stat | tag `99`, chưa chốt semantic cuối |
-| `J` | current power-like value | dùng cho gauge với `M/N` |
+| `H` | current KEN/gold/collection value | tag `43`, dùng trên màn hình kết quả trận với icon vàng |
+| `I` | max/cap của thanh KEN/gold/collection | tag `99`, default parser `10000` |
+| `J` | current EXP/progression value | tag `42`, dùng cho gauge với `M/N` |
 | `K` | free stat points | tag `53` |
 | `L` | free skill points | skill tree dùng trực tiếp |
-| `M` | current gauge floor | dùng trong `jt` |
-| `N` | max gauge ceiling | dùng trong `jt` |
+| `M` | EXP floor của level hiện tại | tag `73`, dùng trong `jt` và result screen |
+| `N` | EXP ceiling của level hiện tại | tag `74`, dùng trong `jt` và result screen |
 | `O` | boolean online/active flag | packet nhẹ có set |
 | `P` | status message string | room/player list dùng trực tiếp |
 | `Q` | rank title string | auto derive nếu server không gửi |
@@ -187,7 +245,7 @@ Nó mang cả:
 | `Z` | appearance toggle | ảnh hưởng slot 0 compositor |
 | `aa` | appearance toggle 2 | có delta packet riêng |
 | `ab` | `D.Vọng` / prestige / honor | profile UI hiển thị rõ |
-| `ac` | `lt[]` extra counters | packet tag `158` |
+| `ac` | `lt[]` map icon/timer overlays | packet tag `158` |
 | `ad` | bool cầm vũ khí / equip slot 4 | `b()` set dựa trên equip slot 4 |
 
 ### Base stats và bonus stats
@@ -232,7 +290,7 @@ Các field đã rõ:
 | `D` | `ll[]` | equipment đang mặc |
 | `E` | `lv[]` | learned skills |
 | `F` | `lm[]` | inventory items |
-| `ac` | `lt[]` | extra counters/timers |
+| `ac` | `lt[]` | map icon/timer overlays |
 
 ### Method-level behavior trong `lh`
 
@@ -277,9 +335,28 @@ Các method nhỏ của `lh` rất có giá trị vì chúng cho thấy char agg
 | `48` | `t` | max MP |
 | `45` | `w` | current Power |
 | `49` | `v` | max Power |
-| `42` | `J` | gauge current |
-| `43` | `H` | related combat stat |
-| `99` | `I` | related combat threshold |
+| `42` | `J` | current EXP/progression |
+| `73` | `M` | EXP floor/current level lower bound |
+| `74` | `N` | EXP ceiling/current level upper bound |
+| `43` | `H` | current KEN/gold/collection value |
+| `99` | `I` | KEN/gold/collection cap/threshold |
+
+Không nên gọi `42/73/74/43/99` là combat stat. Bằng chứng:
+
+- `jt.a(lh)` vẽ gauge thứ hai bằng `(J - M) / (N - M)`, tức progress trong level/rank hiện tại
+- `com.mg.sq.a.a(lh, lh, ...)` set `hs.k = go.k.J`, `hs.l = go.k.G`, `hs.m = go.k.H` trước khi mở battle result
+- `hs` dùng icon `expicon` cho `J/M/N`, icon `gold` cho `H/I`
+- `ky.a(ku, byte, int)` đọc battle-result packet: tag `42`, `43`, `110`, list `73/74`, equipment và item reward rồi đẩy vào `nq`; `mq` chuyển các giá trị này sang `hs`
+
+Vì vậy naming C# nên tách:
+
+- `ExperienceValue = J`
+- `ExperienceFloor = M`
+- `ExperienceCeiling = N`
+- `CollectionValue` hoặc `KenProgressValue = H`
+- `CollectionCap` hoặc `KenProgressCap = I`
+
+Tên "KEN/gold/collection" còn cần chọn theo UI server mới. Về wire contract thì tag đã chốt.
 
 ### Base stats / bonus / progression
 
@@ -317,7 +394,7 @@ Các method nhỏ của `lh` rất có giá trị vì chúng cho thấy char agg
 | `83` | danh sách equipment `ll[]` |
 | `114` | danh sách inventory `lm[]` |
 | `90` | danh sách appearance descriptors `df[]` |
-| `158` | danh sách extra counters `lt[]` |
+| `158` | danh sách map icon/timer overlays `lt[]` |
 
 ## Các Struct Con Của Player
 
@@ -342,12 +419,19 @@ Field ổn định:
 
 Field quan trọng:
 
-- `c` = equipment key
+- `b` = market/product numeric id khi item nằm trong market/listing
+- `c` = equipment key/string id
 - `d` = display name
 - `e` = equip slot/type
+- `f` = raw element/class requirement hoặc class affinity
+- `h` = gender / secondary requirement byte
+- `i` = requirement/level gate phụ
 - `j` = item level
+- `k` = lock/expire/special long, mặc định `-1`
+- `l` = market/listing price khi đi qua market payload
 - `m` = rank
 - `n` = resource id dùng cho appearance
+- `o` = chưa thấy parser set ổn định trong char-core
 - `p/q` = durability-ish pair
 - `r` = `lb` stat modifiers
 - `s` = extra state byte
@@ -361,7 +445,60 @@ Field quan trọng:
 - +dodge
 - +crit
 - +max HP
-- thêm một số bonus tag 200..204/221 chưa nên rename vội
+- bonus phần trăm/hiệu ứng phụ `200..204/221`
+
+Tag parser chuẩn của `ll` nằm ở `ky.a(ku,int,int,boolean)`:
+
+| Tag | `ll`/`lb` field | Meaning đã chốt |
+|-----|------------------|-----------------|
+| outer `83` | `ll.c` | equipment key/string id |
+| `84` | `ll.e` | equip slot/type |
+| `4` | `ll.n` | resource id / sprite id |
+| `139` | `ll.p` | durability/current use counter |
+| `27` | `ll.j` | equipment level |
+| `26` | `ll.d` | display name, chỉ có ở full payload |
+| `135` | `ll.i` | requirement/gate phụ |
+| `15` | `ll.f` | class/element requirement |
+| `16` | `ll.h` | gender/sub requirement |
+| `138` | `ll.m` | rank/quality |
+| `144` | `ll.q` | max durability/counter |
+| `117` | `ll.g` | description |
+| `156` | `ll.s` | extra state byte |
+| `85` | `ll.t` | tradeable flag, `1=true` |
+| `190` | `ll.k` | lock/expire/special long |
+
+`boolean bl2` trong parser rất quan trọng:
+
+- `false` = equipment mỏng, đủ cho loadout/render: key, slot, resId, durability, level
+- `true` = equipment đầy đủ, dùng trong inventory/market/trade/upgrade: thêm tên, mô tả, rank, trade flag, stat modifiers
+
+### `lb` = equipment stat modifier
+
+`lb` không đứng độc lập trong player payload; nó nằm dưới `ll.r` khi equipment được parse full.
+
+| Field | Tag | Text UI trong `com.mg.sq.a.a(ll)` |
+|-------|-----|-----------------------------------|
+| `a` | `118` | `cường lực` |
+| `b` | `119` | `thân pháp` |
+| `c` | `120` | `nội lực` |
+| `d` | `121` | `thể lực` |
+| `e` | `72` | `sức tấn công` flat |
+| `f` | `71` | `phòng thủ` flat |
+| `g` | `126` | `% chí mạng` |
+| `h` | `124` | `né tránh` |
+| `i` | `47` | `sinh lực` flat |
+| `j` | `200` | `% hấp thu sát thương` |
+| `k` | `201` | `% đánh xuyên giáp` |
+| `l` | `202` | `% cản đòn` |
+| `m` | `203` | `% hồi sinh` |
+| `n` | `204` | `% sức tấn công` |
+| `o` | `221` | `% sinh lực` |
+
+Điểm đáng lưu ý:
+
+- `lb.n` không chỉ hiển thị UI; `com.mg.sq.a.a(lh)` dùng nó để cộng thêm `% attack` vào damage derived.
+- `lb.j/k/l/m/o` hiện chủ yếu thấy ở text UI/contract equipment. Server vẫn nên lưu nguyên để không mất tính năng late-game.
+- `ll.b()` trả true khi `q > 0 && p < q`, tức đồ có durability/counter chưa đầy; packet `48` set `p=q` sau khi dùng item lên equipment.
 
 ### `lm` = inventory item
 
@@ -379,6 +516,24 @@ Field quan trọng:
 - `k` = requirement / long value
 - `l` = stack capacity
 - `m` = tradeable
+
+Tag parser chuẩn của `lm` nằm ở `ky.a(ku,int)`:
+
+| Tag | `lm` field | Meaning |
+|-----|------------|---------|
+| outer `114` | `lm.a` | item id |
+| `26` | `lm.b` | item name |
+| `117` | `lm.d` | description |
+| `106` | `lm.g` và `lm.i` | quantity/current amount |
+| `122` | `lm.e` | type |
+| `123` | `lm.f` | subtype/sort group |
+| `4` | `lm.j` | resource id |
+| `145` | `lm.h` | price/value |
+| `82` | `lm.l` | stack capacity |
+| `132` | `lm.k` | require KEN / long value |
+| `85` | `lm.m` | tradeable flag, `1=true` |
+
+`go.a(lm,int)` cộng dồn quantity nếu item id đã tồn tại, còn `go.b(itemId,qty)` trừ quantity. Đoạn decompile của nhánh `g <= 0` tạo mảng mới nhưng không thấy assignment lại vào `go.m`; khả năng cao là artifact/bug decompile, còn intent runtime là remove stack khi hết số lượng. Vì vậy packet item delta của Java không phải lúc nào cũng gửi lại cả inventory.
 
 ### `df` = appearance descriptor
 
@@ -398,17 +553,62 @@ Create-character flow `nw.java` cho thấy:
 - `V` = face family
 - `U` = hair/upper overlay family
 
+Tag parser chuẩn:
+
+| Tag | Meaning |
+|-----|---------|
+| outer `90` value | `df.a` resource family id |
+| `91` | category selector: `0=U`, `1=V`, `2=W` |
+| `92` | display/name khi parse catalog |
+| `93` + `95` | source palette id + raw RGB int bytes |
+| `96` + `98` | target palette id + raw RGB int bytes |
+
+`dg` là palette cụ thể:
+
+- `a` = palette id
+- `b` = label/name
+- `c[]` = list màu `int`, parse từ byte array theo từng `readInt()`
+
 Đây là kết luận đủ mạnh để build model mới, nhưng chưa nên rename raw asset family cứng vào DB quá sớm.
 
-### `lt` = extra counters
+### `lt` = map icon/timer overlays
 
-Hiện mới chốt được:
+`lt` rất nhỏ:
 
 - `a` lấy từ tag `4`
 - `b` lấy từ tag `157`
 
-Client chỉ giữ mảng `lh.ac`, map scene `om` load nó khi vào map.
-Semantic cuối còn mở, khả năng là cooldown, quest timer, effect timer, hoặc room-specific counters.
+Sau khi truy tiếp `om.java` và `jx.java`, shape này không chỉ là counter ẩn. Map scene biến mỗi entry thành icon countdown:
+
+```java
+int iconId = ltArray[n2].a;
+Image icon = pa.a().b(iconId, false);
+this.ap[n2] = new jx(icon, 1);
+this.ap[n2].a(ltArray[n2].b);
+this.aq = ltArray[n2].a != 200000 || ltArray[n2].b <= 0L;
+```
+
+`jx.a(long)` xác nhận `lt.b` là millisecond countdown:
+
+- chia `b / 1000`
+- nếu còn ngày thì render dạng `xNgày`
+- nếu dưới ngày thì render `HH:MM:SS`
+- mỗi vài tick trừ elapsed time bằng `np.f()`
+
+Kết luận:
+
+- `lt.a` = resource/icon id
+- `lt.b` = long countdown milliseconds
+- `lh.ac` = các overlay trạng thái/timer gắn với player trên map
+- id `200000` có nhánh đặc biệt trong `om`: nếu `a == 200000` và `b > 0` thì flag `aq` bị set false
+- repo có asset `client/assets/monster/02_candidate_unknown_ranges/range_200xxx_candidate/200000.png`, kích thước `21x19`, hình ngôi sao xanh/vàng dạng `x2`; có thể là buff nhân đôi, nhưng Java client không có label text đủ chắc để đặt tên nghiệp vụ
+
+Điểm đã chắc từ `ky` và `com.mg.sq.a`:
+
+- full snapshot đọc `lt[]` từ tag group `158`
+- delta bit `0x100` cũng đọc cùng shape
+- bridge `a(lt[])` set `go.k.ac` rồi nếu đang ở map `om` thì gọi `om.a(lt[])`
+- vì vậy `lt[]` thuộc player truth nhưng có tác động trực tiếp tới scene map
 
 ## Global Runtime State Quanh Player
 
@@ -429,6 +629,28 @@ Semantic cuối còn mở, khả năng là cooldown, quest timer, effect timer, 
 
 - DB `Players` không đủ, cần bảng/aggregate cho equipment/inventory/skills
 - một packet player info đầy đủ phải nuôi được cả `go.k`, `go.l`, `go.m`, `go.r`
+
+Các helper mutate inventory/equipment trong `go`:
+
+| Method | Tác động |
+|--------|----------|
+| `a()` | reset current player, skill tree, bags |
+| `a(ll[], lm[], int, int)` | set equipment bag `go.l`, item bag `go.m`, capacity `n`, extra `o` |
+| `a(ll)` | append equipment vào bag |
+| `b(ll)` | remove equipment object khỏi bag |
+| `a(lm,int)` | cộng item quantity nếu id tồn tại, nếu chưa thì append stack mới |
+| `a(lm)` | trừ theo `lm.g` |
+| `a(int,int)` | set quantity absolute; `0` nghĩa remove all |
+| `b(int,int)` | subtract quantity; nhánh `<=0` có intent remove stack nhưng decompile thiếu assignment `go.m = newArray` |
+| `b()` | kiểm tra thùng đồ đầy dựa trên `go.l`, `go.k.D`, `go.m`, capacity `n` |
+
+`go.b()` tính số slot inventory theo cách rất Java:
+
+- equipment trong bag trừ số equipment đang mặc `go.k.D.length`
+- item type `7` tính theo quantity `g`
+- item khác tính 1 slot
+
+Do đó inventory capacity không thể tính đơn giản bằng số row item/equipment trong DB.
 
 ## `com.mg.sq.a` Là Cầu Nối Update Char Toàn Cục
 
@@ -491,6 +713,25 @@ Kết luận:
 - cần lưu raw appearance descriptors hoặc model đủ để tái dựng `U/V/W`
 - equip đổi là appearance đổi ngay
 
+Chi tiết `mb.a(lh)` chọn 4 metadata layer:
+
+| Layer index | Nguồn |
+|-------------|-------|
+| `0` | hair/upper metadata: nếu equip slot `0` có `n` và `Z=false` thì dùng `ll.n - ll.n % 10 + 99`, ngược lại `U.a + 99` |
+| `1` | face metadata: luôn `V.a + 99` |
+| `2` | body/clothes lower layer: nếu equip slot `1` có `n` thì dùng `ll.n - ll.n % 10 + 99`, ngược lại gender default `79899/79999` |
+| `3` | armor/outer layer: nếu equip slot `2` có `n` thì dùng `ll.n - ll.n % 10 + 99`, ngược lại `89999` |
+
+Khi render frame, `mb` ghép theo thứ tự:
+
+1. body base image `99000 + frameGroup`, recolor bằng `W`
+2. face image, recolor bằng `V` rồi `W`
+3. hair/upper image, recolor bằng `U`
+4. layer outer/body phụ không recolor
+5. layer clothes/armor phụ không recolor
+
+Cache key của composite gồm frame group, target palettes `W/V/U`, và metadata resource id của các layer. Nếu đổi màu hoặc đổi equip, cache key đổi và sprite được rebuild.
+
 ## Aura, Weapon, Và Body Effect Cũng Là Một Phần Của Char
 
 Hai method nhỏ trong `lh.java` rất đáng chú ý:
@@ -552,6 +793,51 @@ Kết luận cho remake:
 - map player phải có `x/y/direction/action/visibility/aura/weapon overlay`
 - khi stat/equip/appearance đổi phải có packet delta và actor rebuild
 
+### `kl` actor state chi tiết
+
+`kl.a(lh)` rebuild toàn bộ actor visual:
+
+- gọi `mb.a(lh)` để lấy 4 metadata layer body
+- gọi `lc.a(lh)` để tạo aura theo `lh.c()`
+- gọi `nr.a(lh)` để tạo weapon overlay từ equip slot `4`
+- dựng các animation:
+  - `e` idle/stand
+  - `z` walk
+  - `f` hit/attack transition
+  - `A` weapon/attack variant
+  - `h` death/down variant
+  - `g` special/action animation
+- set collision/render rect dựa trên composed sprite và `k t`
+- gọi `b(lh)` để scale một số speed/range theo level
+
+`kl.b(lh)` dùng level trực tiếp:
+
+- `i = 4 + G / 10`, cap `9`
+- `a = 11 + G / 10`, cap `16`
+
+Điều này có nghĩa level không chỉ là text UI; nó ảnh hưởng runtime actor ngoài map.
+
+### `jt` map gauge
+
+`jt` không dùng MP/Power trực tiếp. Nó vẽ 2 bar:
+
+- bar trên = `s / r` HP
+- bar dưới = `(J - M) / (N - M)`
+
+Vì vậy bộ `J/M/N/H/I` không nên bị bỏ qua:
+
+- `J/M/N` là gauge EXP/progression thật ngoài map.
+- `H/I` là trục KEN/gold/collection dùng ở battle result, không phải combat stat.
+
+### `kd` depth bucket
+
+`kd` giữ actor player riêng trong `f`, nhưng khi render nó đưa player vào list `g` chung với actor/object đang visible. Sort theo:
+
+- `o() + q()` tức đáy sprite
+- nếu bằng đáy thì `l()` làm priority phụ
+
+Port mới cần giữ sorting theo chân nhân vật, không sort theo center hoặc y raw, nếu muốn map render giống Java.
+
 ## Room / Player List Runtime
 
 `os.java` và `do.java` cho thấy Java có thêm một lớp “char ngoài map” dùng cho room/player list.
@@ -581,6 +867,20 @@ Nó còn phục vụ social/room list runtime.
 
 Đây là lý do `lh.e`, `lh.P`, `lh.X` không nên bị bỏ qua.
 
+`os.java` còn cho thấy action menu phụ thuộc trực tiếp vào `do.c` và `do.f`:
+
+- status byte quyết định menu hiện `Đánh`, `Giao dịch`, `Chat`, `Xem ME`
+- nếu `do.f > 0` thì có nhánh wager/bet để mở đánh
+- khi `go.k.aa=true`, `os` ép `go.k.e=2`; khi tắt và `e==2` thì trả về `0`
+
+`ha.java` là versus/preview screen:
+
+- nếu nhận `lh` thì hiển thị composite sprite từ `mb.a(lh,false)`
+- đọc `lh.g`, `lh.G`, `lh.Q`, `lh.c`
+- nếu preview monster/special actor thì dùng label IQ riêng
+
+Vì vậy room/social preview cũng cần snapshot đủ appearance/title/class, không chỉ player name.
+
 ## Battle Player Runtime
 
 Battle không dùng trực tiếp `kl`.
@@ -606,6 +906,52 @@ Kết luận:
 
 - battle player state phải bootstrap từ player thật
 - monster battle bootstrap hiện tại đang dùng player giả là chưa đúng hướng
+
+### `ms` battle state wrapper
+
+`ms` nhận hai mảng `lh[]` theo hai phe và wrap thành `lg[][]`:
+
+- `q[0]` = phe player/local side
+- `q[1]` = phe đối phương
+- mỗi `lh` được giữ nguyên bên trong `new lg(lh)`
+
+Khi server gửi update battle mới, `ms.a(byte[], byte[], byte[], lh[], lh[])` không thay object actor hoàn toàn. Nó copy lại các resource bar vào `lh` đang nằm trong `lg`:
+
+- `r/s` = max/current HP
+- `t/u` = max/current MP
+- `v/w` = max/current Power
+
+Điều này cho thấy battle sync của Java ưu tiên mutate state hiện có để animation/HUD giữ liên tục.
+
+### `mx` battle renderer/HUD
+
+`mx` build actor render từ `lg.a()` tức từ `lh`:
+
+- phe 0 luôn dùng `mx.b(lh, side)`
+- phe 1 nếu `lg.b()` và `lh.Y > 0` thì dùng branch special actor `a(lh, side)`, ngược lại dùng composite player thường
+- HP/MP/Power bars đọc qua `lg.m/l`, `lg.n/o`, `lg.q/r`
+- name labels đọc từ `lg.j()` tức `lh.b`
+
+`mx.b(lh,int)` dựng đủ composite trong battle:
+
+1. `mb.a(lh)` lấy metadata body parts
+2. `lc.a(lh)` lấy aura
+3. `nr.a(lh)` lấy weapon overlay
+4. dựng nhiều animation `mg/mc`
+5. trả `ni` battle actor composite
+
+Kết luận: battle actor cũng phụ thuộc `D`, `U/V/W`, `Z`, `f`, `Y`, `O`, không thể dựng từ stats đơn thuần.
+
+### `ni` battle actor state machine
+
+`ni` là renderer/action state của một fighter composite:
+
+- giữ nhiều sprite animation: idle, walk/advance, attack, hit/miss, skill/special, death
+- giữ `nr` weapon overlay và đổi mode overlay theo action
+- text feedback có các trạng thái như `Xí Hụt`, `Đỡ đòn`
+- `a(int state)` đổi animation mà vẫn giữ position/direction hiện tại
+
+Server không cần port renderer này vào backend, nhưng client mới cần hiểu rằng battle packet phải đủ dữ liệu để dựng lại cùng state machine.
 
 ## `lg` Là Wrapper Battle-State Sát `lh`
 
@@ -642,12 +988,12 @@ Các bit quan trọng:
 |-----|----------|
 | `1` | appearance + class/gender + `df` triplet |
 | `2` | level + base stats + bonus stats + HP bonus |
-| `4` | HP/maxHP + gauge values + combat thresholds |
+| `4` | HP/maxHP + EXP/KEN progress values |
 | `8` | free stat points + free skill points + prestige + title strings |
 | `0x10` | booleans `Z/aa` |
 | `0x20` | skill levels list |
 | `0x40` | equipment list |
-| `0x100` | extra counters `lt[]` |
+| `0x100` | map icon/timer overlays `lt[]` |
 
 Sau khi xử lý, client gọi `U()` để refresh UI/map/profile liên quan.
 
@@ -655,6 +1001,35 @@ Sau khi xử lý, client gọi `U()` để refresh UI/map/profile liên quan.
 
 - không nên chỉ trả full snapshot mọi lúc
 - Java cũ có delta model rõ ràng cho player
+
+Chi tiết tag theo từng bit:
+
+| Bit | Tags đọc | Bridge gọi vào `com.mg.sq.a` |
+|-----|----------|-------------------------------|
+| `1` | `9`, `15`, `16`, `90/91/93/95/96/98` | `a(name, class, gender, U, V, W)` |
+| `2` | `27`, `118`, `119`, `120`, `121`, `196`, `197`, `198`, `199`, `116`, `115` | `a(name, level, base/bonus stats, hp bonus)` |
+| `4` | `17`, `47`, `42`, `73`, `74`, `43`, `99` | `a(name, hp/maxHp, J, M/N, H/I)` |
+| `8` | `53`, `76`, `160`, `27`, `209`, `210` | `a(name, K, L, honor, S, R, Q)` |
+| `0x10` | `165`, `166` | `c(Z)`, `d(aa)` |
+| `0x20` | `64`, nested `67` | `a(lv[])`, chỉ level skill trong delta |
+| `0x40` | `83[]` | `a(name, ll[])` |
+| `0x100` | `158[]` chứa `4`, `157` | `a(lt[])` |
+
+`ky` có nhiều parser `lh` khác nhau, không chỉ một full reader:
+
+| Parser | Ngữ cảnh | Độ đầy đủ |
+|--------|----------|-----------|
+| `a(ku)` | full fighter/current char info | đầy đủ nhất: base stat, bonus stat, bars, skill level/mana, equipment, inventory, appearance, toggles, counters |
+| `a(ku,int,int)` | profile/light payload | có identity, bars, skill id mỏng, equipment mỏng, appearance; không có inventory |
+| `b(ku,int,int)` | battle prepare full-ish | có `O`, `Y`, `T`, bars, skill đủ tên/mô tả/mana, equipment, inventory, appearance |
+| `c(ku,int,int)` | battle prepare compact | có bars, skill id mỏng, equipment, inventory item id/qty/resId mỏng, appearance |
+
+Vì vậy server mới nên tách packet builder theo use-case:
+
+- `FullPlayerSnapshot` cho login/profile/char status
+- `PlayerMapSnapshot` cho map/room actor
+- `PlayerBattleSnapshot` cho battle bootstrap
+- `PlayerDelta` cho các thay đổi nhỏ
 
 ## Profile / Status UI Đào Sâu
 
@@ -711,6 +1086,21 @@ Nó còn chứng minh:
 - `K` là điểm cộng stat riêng
 - derived stat được recompute từ `lh` + equip effects, không đọc DB trực tiếp
 
+Flow cộng stat trong `da`:
+
+- UI có 8 nút, 4 nút tăng và 4 nút giảm preview.
+- `A` là free stat points còn lại trên preview, lấy từ `lh.K`.
+- `y[]` là điểm đã cộng tạm nhưng chưa commit.
+- `z[]` là stat preview sau khi cộng.
+- thứ tự commit sang `ks.a(int,int,int,int)` là:
+  - `y[0]` -> tag `118` Cường Lực
+  - `y[2]` -> tag `119` Thân Pháp
+  - `y[1]` -> tag `120` Nội Lực
+  - `y[3]` -> tag `121` Thể Lực
+- nếu rời màn hình khi `y[]` còn pending, UI hỏi có cập nhật không.
+
+Nghĩa là command `10` không gửi “stat choice + 1”. Nó gửi batch delta 4 stat. Server mới có thể hỗ trợ single increment nội bộ, nhưng nếu muốn tương thích Java thì phải accept batch delta.
+
 ### `ib` + `de` = skill tree UI gắn chặt với char
 
 `de.a(lh)` đọc:
@@ -730,6 +1120,24 @@ Nó còn chứng minh:
 - mô tả skill
 - preview tăng/giảm level
 - packet update khi commit
+
+Flow skill commit:
+
+- `de.B` là skill points còn lại trong preview, init từ `lh.L`.
+- `de.r[]` là level skill sau preview.
+- `de.s[]` là số point cộng tạm theo từng skill node.
+- `de.i(skillIndex)` check điều kiện:
+  - còn points
+  - chưa max level
+  - đủ cost `go.r[index].c[level].c`
+  - đủ level nhân vật `go.r[index].c[level].b`
+  - dependency skill đã học qua `go.r[index].d`
+- `ib.v()` gom:
+  - `int[] skillIds = go.r[n].a`
+  - `int[] levels = de.x()`
+  - gửi `ks.a(skillIds, levels)` command `27`
+
+Command `27` vì vậy là batch commit skill levels, không phải một request “learn skill X” đơn lẻ.
 
 Điều quan trọng:
 
@@ -787,6 +1195,38 @@ Khi equip/unequip:
 5. attach `nr.a(lh)` weapon
 
 Đây là core loop rất quan trọng của character system.
+
+### `hh` command surface chi tiết
+
+Các action chính trong `hh`:
+
+| UI action | Command/helper | Ghi chú |
+|-----------|----------------|--------|
+| commit loadout | `ks.a().c(stringArray)` -> cmd `37`, `89=0` | gửi toàn bộ key equipment đang mặc |
+| bỏ/vứt equipment | `ks.a().a(stringArray)` -> cmd `37`, `89=2` | xóa equipment theo key |
+| item lên equipment | `ks.a().a(itemId, equipKey)` -> cmd `48` | dùng búa/sửa/áp vật phẩm vào đồ |
+| dùng item | `ks.a().f(itemId)` -> cmd `51` | có thể consume item và sinh output |
+| bỏ item quantity | `ks.a().f(itemId, qty)` -> cmd `83` | quantity-only delta |
+| action item đặc biệt | `ks.a().e(itemId)` -> cmd `84` | item one-click/special |
+| mua thêm ngăn | `ks.a().u()` -> cmd `86` | inventory capacity |
+| rao bán equip | `ks.a().a(equipKey, price)` -> cmd `112` | price gửi tag `132` |
+| rao bán item | `ks.a().a(itemId, qty, price)` -> cmd `112` | stack sale |
+| ẩn/hiện nón | `ks.a().b(boolean)` -> cmd `7`, mode `0` | update `Z` |
+
+Menu equip trong `hh` cho thấy equip slot và bag không chỉ là UI:
+
+- chuyển đồ từ bag vào slot là local preview trước
+- chỉ khi bấm `Cập nhật` mới gửi command `37`
+- nếu rời màn hình khi loadout preview khác thật, UI hỏi commit
+- `go.l` bị mutate sau ack server, không nên mutate vĩnh viễn chỉ bằng thao tác preview
+
+Stack item trong `hh`:
+
+- nếu `lm.l == 1`, mỗi quantity có thể thành một entry thao tác riêng
+- nếu `lm.l > 1`, UI tách stack theo cap
+- nếu `lm.l <= 0` hoặc `Integer.MAX_VALUE`, giữ như một stack lớn
+
+Server mới cần lưu cả `quantity` và `stackCap`; client mới có thể render khác, nhưng protocol Java cũ nghĩ theo stack splitting này.
 
 ## Skill Tree Và Skill Progression Đào Sâu
 
@@ -878,6 +1318,28 @@ Server phải quyết định:
 - skill point
 - appearance descriptors `U/V/W`
 
+Chi tiết flow `nw`:
+
+1. UI có 6 selector: giới tính, hệ, khuôn mặt, kiểu tóc, màu tóc, màu da.
+2. hệ UI là index `0/1/2`, nhưng trước khi gửi đổi sang raw Java code bằng mảng `{1,2,4}`.
+3. `p[gender][hairIndex]` là source cho `U`.
+4. `q[gender][faceIndex]` là source cho `V`.
+5. `r[gender]` là source cho `W`.
+6. đổi màu tóc set `U.e = selected dg`.
+7. đổi màu da set `W.e = selected dg`.
+8. preview tạo `lh` tạm, set `W/U`, rồi gọi `mb.a(...)`.
+
+Outbound `ks.a(int gender, int rawElement, df U, df V, df W)` gửi command `8`:
+
+| Tag | Value |
+|-----|-------|
+| `16` | gender |
+| `15` | raw element/class `1/2/4` |
+| repeated `90` | `df.a` của từng descriptor |
+| repeated `96` | target palette id `df.e.a` |
+
+Điểm quan trọng: client create-char không gửi face/hair/skin index thô. Nó gửi raw descriptor family + palette id. Server mới nếu chỉ lưu index UI thì vẫn cần map ngược ra `df` tương đương để snapshot sau login dựng đúng sprite.
+
 ## Outbound Character Protocol Từ `ks.java`
 
 `ks` là outbound transport manager.
@@ -887,6 +1349,29 @@ Server phải quyết định:
 - `kw.a` = command id
 - các field còn lại là payload tạm theo từng command family
 - `ks.a(kw)` convert `kw` sang `kx` TLV packet bằng tag Java cũ
+
+`kw` không có semantic cố định theo field name. Cùng một field được reuse giữa nhiều command:
+
+| `kw` field | Vai trò trong char-core |
+|------------|-------------------------|
+| `p/q` | gender/raw element trong create-char |
+| `O` | `df[]` create-char descriptors |
+| `E/F/G/H` | stat delta batch cho command `10` |
+| `I/J` | skill id + level arrays cho command `27` |
+| `Q` | equipment key trong nhiều command |
+| `R` | equipment key array |
+| `M` | item id |
+| `g` | item quantity hoặc generic count |
+| `S` | mode của command `37` |
+| `T` | sub-mode của command families `7`, `55`, `56`, `129` |
+| `C` | session/context string cho recipe upgrade/combine |
+| `A` | recipe source side byte `187` |
+| `Y/h` | item id array + quantity array trong final recipe request |
+| `ah` | KEN/price/fee long |
+| `aa` | market context string |
+| `ag` | trade session/queue token |
+
+Không nên port `kw` thành DTO typed duy nhất. Nên tạo DTO theo command family rồi encode ra tag shape tương ứng.
 
 Điểm rất quan trọng cho server port:
 
@@ -914,6 +1399,26 @@ Server phải quyết định:
 | `7` mode `0` | `b(boolean)` | `147=0`, `165` | toggle `Z`, UI gọi như ẩn/hiện nón | `hh.java` |
 | `7` mode `1` | `c(boolean)` | `147=1`, `166` | toggle `aa` | caller trực tiếp chưa chốt |
 
+### Command phụ chạm player nhưng không phải char-core
+
+Nhóm này không cần port vào `Player` aggregate, nhưng cần dispatcher nhận biết vì UI/player state có thể bị ảnh hưởng:
+
+| Cmd | Tags chính | Vai trò |
+|-----|------------|--------|
+| `9` | `9`, `91/101` tùy mode | player/social action theo tên target |
+| `11/13/29/43` | room/map key string | current location, join/move room hoặc action theo map context |
+| `12` | `192`, `1`, `157`, `9`, `40` | room/social invite/message có tiền cược hoặc timestamp |
+| `30` | `q` byte | action mode ngắn từ UI |
+| `31/32/33/41` | tên/context string | room/social command, không mutate trực tiếp `lh` |
+| `42` | string | request/status text |
+| `52` | `T` sub-mode | secondary UI command family |
+| `55` | `147` sub-mode, `150` session id | trade family, xem bảng dưới |
+| `56/57/64/65` | room/social payload | join room/list room/chat-room style packet |
+| `113/114/115/116` | market context/category | market list/buy/sell support quanh inventory |
+| `127/128/129/130/131/132/133` | misc/social/system tags | packet phụ, không cần nhét vào player model |
+
+Kết luận thiết kế: `PlayerService` chỉ nên xử lý aggregate char/inventory/equipment/stat/skill. Các command trên đi qua room/social/market/trade service riêng, nhưng vẫn dùng chung repository inventory/equipment khi có giao dịch vật phẩm.
+
 ### Trade family `55` gắn chặt với inventory/equipment của char
 
 `of.java` là trade screen và dùng một family command riêng `55` với sub-mode trong tag `147`.
@@ -935,6 +1440,22 @@ Server phải quyết định:
 - server không thể xử lý trade nếu không có inventory/equipment aggregate thật
 - state trade không chỉ là money, mà là danh sách equip key + item stack + ready state của hai phía
 
+Chi tiết thêm từ `of.java`:
+
+- trước khi confirm mode `6`, UI tự kiểm tra sức chứa hành trang sau giao dịch:
+  - bắt đầu từ `go.l.length - go.k.D.length`
+  - cộng item trong `go.m`
+  - cộng đồ/item đang nhận từ đối phương
+  - trừ đồ/item đang đưa đi
+  - so với `go.n` hoặc capacity screen `G.x()`
+- add equipment vào trade chỉ cho item `ll.a() == true` tức tradeable.
+- add item stack dùng dialog quantity, sau đó gửi mode `3` với `itemId + qty`.
+- khi finalize thành công, `of` tự mutate local bags:
+  - nhận từ đối phương thì `go.a(ll)` hoặc `go.a(lm, qty)`
+  - đồ/item mình đưa đi thì `go.b(ll)` hoặc `go.a(lm)` để trừ stack
+
+Vì vậy trade server không chỉ cần validate ownership; nó còn phải validate capacity hai bên trước finalize, nếu không client có thể reject/hiện lỗi lệch.
+
 ### Hai family xử lý đồ nâng cấp / chế tác vẫn là char-core
 
 Hai màn hình `id.java` và `ho.java` dùng hai command family song song:
@@ -955,7 +1476,30 @@ Shape packet của cả hai family gần như giống nhau:
 - server trả lại danh sách `ll[]` và `lm[]` mới sau khi xử lý
 - cả hai flow đều mutate thẳng inventory/equipment thật của player, không phải metadata phụ
 
-Phần tên business cuối cùng của `ho.java` còn cần bới thêm packet inbound, nhưng contract dữ liệu thì đã rõ shape.
+`ho.java` đã chốt là flow `Kết hợp`: constructor tạo nút `Kết hợp`, kết quả `101` hiển thị `Kết hợp thành công/thất bại`, còn command mở/mutate là `99/100`.
+
+Chi tiết giống nhau giữa `id` và `ho`:
+
+- Cả hai dựng source list từ `go.l` và `go.m`, nhưng loại bỏ equipment đang mặc trong `go.k.D`.
+- Cả hai tách item stack theo `lm.l` giống `hh`.
+- Recipe slot chứa `dc`:
+  - `j==0` = equipment
+  - `j==1/2` = item stack
+  - `j==3` = UI placeholder/khác
+- Add/remove recipe không tự commit local ngay; nó gửi command mutate lên server (`97` hoặc `100`).
+- Khi có kết quả cuối (`98` hoặc `101`), UI:
+  - trả nguyên liệu đang nằm trong recipe về `go` nếu cần
+  - add equipment/item snapshot server trả về
+  - hiện success/fail theo byte `189`
+
+Khác biệt chính:
+
+| Screen | Open cmd | Mutate cmd | Final cmd | Text result |
+|--------|----------|------------|-----------|-------------|
+| `id` | `96` | `97` | `98` | `Nâng cấp thành công/thất bại` |
+| `ho` | `99` | `100` | `101` | `Kết hợp thành công/thất bại` |
+
+Server mới nên coi đây là hai recipe engines cùng shape packet nhưng khác rule business.
 
 ## UI -> Command -> Server Reaction Kỳ Vọng
 
@@ -1310,7 +1854,7 @@ Hai case này parse bằng `x(ku)` và `z(ku)`:
 - một path đi vào screen `hq` là view `Đang bán`
 - một path đi vào screen `hn` là browser/category list có action `Mua`
 
-Tên business cuối cùng của hai screen chưa chốt hết, nhưng contract dữ liệu thì rõ:
+Tên business cuối cùng của từng market screen còn cần đặt lại đẹp khi implement, nhưng contract dữ liệu thì rõ:
 
 - market response vẫn trả raw equipment/item payload thật
 - client không dùng market-specific DTO mỏng
@@ -1340,6 +1884,32 @@ Tên business cuối cùng của hai screen chưa chốt hết, nhưng contract 
 
 - Java raw element code là `1/2/4`, không phải `0/1/2`
 - nếu C# muốn bám sát packet cũ thì phải có map rõ giữa storage enum và wire enum
+
+`com.mg.sq.a.a(lh)` không chỉ gọi calculator từ base stats. Nó làm pipeline:
+
+1. lấy base + bonus hiện có: `h+l`, `j+m`, `i+n`, `k+o`
+2. tạo calculator theo `jp.a(lh.g)`
+3. duyệt từng `ll` trong `D`
+4. cộng stat modifier `lb.a/b/c/d` vào 4 stat nền
+5. cộng flat attack `lb.e`
+6. cộng `% attack` từ `lb.n` theo `jz2.c() * lb.n / 100`
+7. cộng crit `lb.g`, defense `lb.f`, dodge `lb.h`, max HP `lb.i`
+8. chạy calculator lại với stat sau equipment
+9. ghi derived vào `lh.r/A/C/z/B/x/y`
+
+Mapping derived cuối:
+
+| `lh` field | Meaning | Nguồn |
+|------------|---------|-------|
+| `r` | max HP | `jz2.a() + lb.i` |
+| `A` | dodge | `jz2.e() + lb.h` |
+| `C` | crit | `jz2.g() + lb.g` |
+| `z` | defense | `jz2.d() + lb.f` |
+| `B` | hit/accuracy | `jz2.f()` |
+| `x` | min damage | `jz2.b() + flat attack + percent attack` |
+| `y` | max damage | `jz2.c() + flat attack + percent attack` |
+
+C# `StatCalculator` hiện mới tương đương calculator nền `jq/js/jr`; chưa có lớp tổng hợp `lh + ll.r + bonus stats` như bridge Java.
 
 ## Phần C# Hiện Tại Đã Có
 
@@ -1378,6 +1948,12 @@ Hiện có:
 - free points
 - gender / element / face / hair / skin
 
+Cần kiểm tra lại naming `gold/exp` hiện tại với Java:
+
+- Java `J/M/N` là trục EXP/progression: current, floor, ceiling.
+- Java `H/I` là trục KEN/gold/collection: current, cap.
+- Nếu `Player.Gold` hiện chỉ là tiền ví tuyệt đối thì không nên map thẳng vào `lh.H` nếu server mới còn có wallet riêng.
+
 Thiếu hẳn:
 
 - bonus stats `l..q`
@@ -1389,7 +1965,7 @@ Thiếu hẳn:
 - equipment `ll[]`
 - inventory `lm[]`
 - learned skills `lv[]`
-- extra counters `lt[]`
+- map icon/timer overlays `lt[]`
 - appearance toggles `Z/aa`
 - special actor form `Y`
 
@@ -1425,7 +2001,7 @@ Nhưng chưa có bảng/JSON cột cho:
 - titles / prestige
 - appearance descriptors `U/V/W`
 - skill point `L`
-- extra counters `lt[]`
+- map icon/timer overlays `lt[]`
 - map actor state x/y/direction/action
 
 ### 4. `CreateCharacterHandler` mới tạo trait-level data, chưa tạo Java-faithful char payload
@@ -1555,16 +2131,144 @@ Nên tách:
 
 Nếu muốn đi nhanh hơn, có thể dùng một aggregate JSON trung gian, nhưng field names vẫn nên mirror `lh` rõ ràng.
 
+### Schema tối thiểu để port đúng `lh`
+
+Nếu giữ PostgreSQL và muốn đi nhanh nhưng vẫn rõ ownership, nên thêm các bảng/cột sau thay vì mở rộng `Players` vô hạn:
+
+```sql
+ALTER TABLE Players
+    ADD COLUMN IF NOT EXISTS RawElementCode INT NOT NULL DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS SkillPoints INT NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS Honor INT NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS TitleMain TEXT,
+    ADD COLUMN IF NOT EXISTS TitleSub TEXT,
+    ADD COLUMN IF NOT EXISTS TitleRank TEXT,
+    ADD COLUMN IF NOT EXISTS ExpFloor BIGINT NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS ExpCeiling BIGINT NOT NULL DEFAULT 100,
+    ADD COLUMN IF NOT EXISTS KenProgress BIGINT NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS KenProgressCap BIGINT NOT NULL DEFAULT 10000,
+    ADD COLUMN IF NOT EXISTS AppearanceHidden0 BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS AppearanceHidden1 BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS AppearanceJson JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+CREATE TABLE IF NOT EXISTS PlayerEquipment (
+    PlayerId INT NOT NULL REFERENCES Players(Id) ON DELETE CASCADE,
+    EquipKey TEXT NOT NULL,
+    Slot INT NOT NULL,
+    ResourceId INT NOT NULL,
+    Level INT NOT NULL DEFAULT 0,
+    RawJson JSONB NOT NULL DEFAULT '{}'::jsonb,
+    PRIMARY KEY (PlayerId, EquipKey)
+);
+
+CREATE TABLE IF NOT EXISTS PlayerInventory (
+    PlayerId INT NOT NULL REFERENCES Players(Id) ON DELETE CASCADE,
+    ItemId INT NOT NULL,
+    Quantity INT NOT NULL,
+    RawJson JSONB NOT NULL DEFAULT '{}'::jsonb,
+    PRIMARY KEY (PlayerId, ItemId)
+);
+
+CREATE TABLE IF NOT EXISTS PlayerSkills (
+    PlayerId INT NOT NULL REFERENCES Players(Id) ON DELETE CASCADE,
+    SkillId INT NOT NULL,
+    Level INT NOT NULL,
+    RawJson JSONB NOT NULL DEFAULT '{}'::jsonb,
+    PRIMARY KEY (PlayerId, SkillId)
+);
+
+CREATE TABLE IF NOT EXISTS PlayerMapOverlays (
+    PlayerId INT NOT NULL REFERENCES Players(Id) ON DELETE CASCADE,
+    IconId INT NOT NULL,
+    EndsAt TIMESTAMP WITH TIME ZONE NULL,
+    DurationMs BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (PlayerId, IconId)
+);
+```
+
+Lý do dùng `RawJson` ở giai đoạn đầu:
+
+- `ll/lm/lv` có nhiều field phụ đã parse được nhưng chưa cần normalize hết ngay.
+- Server vẫn có thể encode Java-faithful packet từ raw aggregate.
+- Khi gameplay ổn định có thể tách tiếp affix, market, durability, requirement thành bảng riêng.
+
+### DTO aggregate nên có trong C#
+
+Đừng mở rộng class `Player` hiện tại thành 100 field ngay. Nên thêm model riêng:
+
+```csharp
+public sealed class PlayerAggregate
+{
+    public PlayerCore Core { get; init; }
+    public PlayerAppearance Appearance { get; init; }
+    public PlayerStats Stats { get; init; }
+    public IReadOnlyList<PlayerEquipmentEntry> Equipment { get; init; }
+    public IReadOnlyList<PlayerItemStack> Inventory { get; init; }
+    public IReadOnlyList<PlayerSkillEntry> Skills { get; init; }
+    public IReadOnlyList<PlayerMapOverlay> MapOverlays { get; init; }
+}
+```
+
+Service boundary khuyến nghị:
+
+- `PlayerAggregateRepository`: load/save full aggregate.
+- `PlayerPacketFactory`: encode full snapshot `lh`.
+- `PlayerDeltaPacketFactory`: encode bitmask tag `23`.
+- `PlayerStatPipeline`: port `com.mg.sq.a.a(lh)`.
+- `InventoryService`: mutate `lm[]`, stack/capacity/trade validation.
+- `EquipmentService`: mutate `ll[]`, loadout, derived stat refresh.
+- `RecipeService`: xử lý `id/ho` (`Nâng cấp`/`Kết hợp`).
+- `TradeService`: xử lý command family `55`.
+
+### Wire compatibility cần sửa trong C# hiện tại
+
+C# hiện tại dùng protocol tiện triển khai nhưng chưa phải Java-faithful:
+
+| Việc hiện tại | Java-faithful cần có |
+|---------------|----------------------|
+| create character `CMD 6`, tag `20-25` | create character `CMD 8`, tag `16`, `15`, repeated `90/96` |
+| stat allocation `CMD 50`, một `StatChoice` | stat allocation `CMD 10`, batch tags `118/119/120/121` |
+| response combat tags custom `130-135` | dùng tag Java gốc: HP `17/47`, stat `118-121`, derived theo snapshot/delta |
+| storage element `0/1/2` | raw wire element `1/2/4` qua mapper tường minh |
+| `Gold`/`Exp` phẳng | tách wallet khỏi `J/M/N` EXP gauge và `H/I` KEN-progress gauge |
+
+Nếu muốn giữ client mới song song, có thể hỗ trợ hai protocol mode. Nhưng tầng domain vẫn nên canonical theo Java `lh`, rồi adapter encode ra Java hoặc client-new shape.
+
 ## Port Order Khuyến Nghị
 
-1. chốt canonical `PlayerAggregate` theo `lh`
-2. tách storage enum và raw Java wire enum
-3. port equipment/inventory/skill persistence
-4. port appearance descriptor model `U/V/W`
-5. dựng `PlayerInfo` full snapshot packet
-6. dựng delta packet cập nhật player
-7. nối map player actor state
-8. dùng player thật để bootstrap battle
+1. Thêm `PlayerAggregate` và repository load/save aggregate.
+2. Tách storage enum `0/1/2` khỏi raw Java wire enum `1/2/4`.
+3. Port appearance descriptor model `U/V/W`, `Z/aa`, và create-char adapter `CMD 8`.
+4. Port equipment/inventory/skill persistence.
+5. Port `PlayerStatPipeline` gồm base + bonus + `ll.r` modifiers.
+6. Dựng full snapshot packet tương đương `ky.a(ku)` đọc vào `lh`.
+7. Dựng delta packet tag `23` theo bitmask.
+8. Sửa stat allocation thành batch `CMD 10`, không phải single-stat custom `CMD 50`.
+9. Nối map player actor state và `lt[]` overlay countdown.
+10. Dùng player thật để bootstrap battle thay vì placeholder.
+11. Thêm recipe/trade services cho `id/ho/of`.
+12. Chỉ sau đó mới tối ưu renderer/client pixel-perfect.
+
+## Trạng Thái Chốt Cuối
+
+Với phạm vi player/character, reconstruction từ Java client đã đạt **100% thực dụng**:
+
+- `lh` field map và wire tag map.
+- nested structs `ll/lb/lm/lv/df/dg/lt`.
+- full snapshot và delta bitmask.
+- create/stat/skill command flow.
+- equipment/inventory/use/sell/toggle/capacity.
+- upgrade/combine/trade contract.
+- map actor, battle actor, result screen dependency.
+- C# gap và blueprint schema/service.
+
+Các pending còn lại không phải thiếu phân tích Java nữa, mà là phần server mới phải tự định nghĩa rule vì Java client không mang đủ bằng chứng để đặt tên nghiệp vụ tuyệt đối:
+
+- catalog tên nghiệp vụ cho từng `lt.a` icon id.
+- giá trị curve chính xác cho title/rank/prestige nếu không nằm trong client.
+- một số social/system command nếu remake toàn bộ Ola/social layer.
+
+Nguyên tắc khi implement: không chờ dữ liệu ngoài repo. Lưu raw id/tag đúng theo Java, dựng rule từ parser/encoder/UI hiện có, rồi đặt tên business theo mức chắc chắn của bằng chứng. Mọi logic mới phải ghi rõ nguồn suy luận trong MD hoặc comment cạnh service.
 
 ## Kết Luận
 
