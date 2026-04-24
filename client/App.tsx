@@ -341,6 +341,34 @@ export default function App() {
             resolveMonsterRoster={resolveMapMonsterRoster}
             resolveMonsterBootstrap={resolveMonsterBootstrap}
             defeatBlinkToken={defeatBlinkToken}
+            onAllocateStat={async (stat) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.allocateStat(username, stat);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
+            onAllocateSkill={async (familyCode) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.allocateSkill(username, familyCode);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
+            onToggleEquipment={async (equipKey, equip) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.toggleEquipment(username, equipKey, equip);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
+            onUseItem={async (itemId) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.useItem(username, itemId);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
             onBattle={(type, initialTurn, monsterBootstrap) => {
               setBattleMonster(type as MonsterTypeNav);
               setBattleInitialTurn(

@@ -33,6 +33,11 @@ import {
 } from '../../../network/SocketClient';
 import { resolveSideScrollMapSceneConfig } from '../core';
 import { createMapGameMenuItems } from '../core';
+import {
+  MapCharacterDialogs,
+  type CharacterStatKey,
+  type MapCharacterDialogKind,
+} from '../core';
 import type {
   MapMonsterRosterEntry,
   ResolveMapMonsterRoster,
@@ -323,6 +328,10 @@ interface Props {
   ) => void;
   resolveMonsterRoster?: ResolveMapMonsterRoster;
   resolveMonsterBootstrap?: ResolveMonsterBattleBootstrap;
+  onAllocateStat?: (stat: CharacterStatKey) => Promise<string | null>;
+  onAllocateSkill?: (familyCode: number) => Promise<string | null>;
+  onToggleEquipment?: (equipKey: string, equip: boolean) => Promise<string | null>;
+  onUseItem?: (itemId: number) => Promise<string | null>;
 }
 
 interface EncounterPreviewState {
@@ -357,6 +366,10 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   onBattle,
   resolveMonsterRoster,
   resolveMonsterBootstrap,
+  onAllocateStat,
+  onAllocateSkill,
+  onToggleEquipment,
+  onUseItem,
 }) => {
   const sceneConfig = useMemo(
     () => resolveSideScrollMapSceneConfig(mapId, roomId),
@@ -551,6 +564,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   // ── Menu state ──────────────────────────────────────────────────────────
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuSelectedIndex, setMenuSelectedIndex] = useState(0);
+  const [activeCharacterDialog, setActiveCharacterDialog] = useState<MapCharacterDialogKind | null>(null);
 
   const handleLogout = useCallback(async () => {
     await clearSession();
@@ -558,13 +572,21 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   }, [onLogout]);
 
   const menuItems = useMemo(
-    () => createMapGameMenuItems({ onLogout: handleLogout }),
+    () => createMapGameMenuItems({
+      onLogout: handleLogout,
+      onOpenCharacterInfo: () => setActiveCharacterDialog('info'),
+      onOpenPotential: () => setActiveCharacterDialog('potential'),
+      onOpenSkills: () => setActiveCharacterDialog('skills'),
+      onOpenEquipment: () => setActiveCharacterDialog('equipment'),
+      onOpenInventory: () => setActiveCharacterDialog('inventory'),
+    }),
     [handleLogout],
   );
 
   const isEncounterActive = encounterPreview !== null;
-  const showTouchGamepad = !menuVisible && !isEncounterActive && !defeatRecoveryActive;
-  const allowMapPointerInput = Platform.OS !== 'web' && !defeatRecoveryActive;
+  const isCharacterDialogActive = activeCharacterDialog !== null;
+  const showTouchGamepad = !menuVisible && !isEncounterActive && !defeatRecoveryActive && !isCharacterDialogActive;
+  const allowMapPointerInput = Platform.OS !== 'web' && !defeatRecoveryActive && !isCharacterDialogActive;
   const playerSpriteSize = useMemo(
     () => {
       // anchorToBody=true: groundOffset = maxBelowBody * CHAR_SCALE
@@ -1161,7 +1183,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
               containerHeight={mapHeight}
               zIndex={LAYER_CHARACTER}
               allowPointerInput={allowMapPointerInput}
-              disabled={menuVisible || defeatRecoveryActive}
+              disabled={menuVisible || defeatRecoveryActive || isCharacterDialogActive}
               onMove={(x, facing) => {
                 playerLastMovedAtRef.current = getLoopNowMs();
                 charLeftRef.current = x;
@@ -1211,6 +1233,16 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         onDownPress={handleGamepadDown}
       />
 
+      <MapCharacterDialogs
+        activeDialog={activeCharacterDialog}
+        appearance={appearance}
+        onClose={() => setActiveCharacterDialog(null)}
+        onAllocateStat={onAllocateStat}
+        onAllocateSkill={onAllocateSkill}
+        onToggleEquipment={onToggleEquipment}
+        onUseItem={onUseItem}
+      />
+
       {encounterPreview && (
         <BattleIntroScreen
           monsterType={encounterPreview.monsterType}
@@ -1250,10 +1282,15 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         width={SCREEN_W}
         centerLabel={isEncounterActive ? 'Vào ngay' : undefined}
         onLeftPress={() => {
+          if (isCharacterDialogActive) return;
           if (isEncounterActive) return;
           setMenuVisible(prev => !prev);
         }}
-        onRightPress={menuVisible || isEncounterActive ? () => {
+        onRightPress={menuVisible || isEncounterActive || isCharacterDialogActive ? () => {
+          if (isCharacterDialogActive) {
+            setActiveCharacterDialog(null);
+            return;
+          }
           if (isEncounterActive) {
             cancelEncounter();
             return;
@@ -1263,6 +1300,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           }
         } : undefined}
         onCenterPress={() => {
+          if (isCharacterDialogActive) {
+            return;
+          }
           if (isEncounterActive) {
             confirmEncounter();
             return;
@@ -1290,8 +1330,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
             }
           }
         }}
-        leftIcon={menuVisible ? ASSET_SOFTKEY_OK : isEncounterActive ? undefined : ASSET_SOFTKEY_MENU}
-        rightIcon={menuVisible || isEncounterActive ? ASSET_SOFTKEY_CANCEL : undefined}
+        leftIcon={menuVisible ? ASSET_SOFTKEY_OK : isEncounterActive || isCharacterDialogActive ? undefined : ASSET_SOFTKEY_MENU}
+        rightIcon={menuVisible || isEncounterActive || isCharacterDialogActive ? ASSET_SOFTKEY_CANCEL : undefined}
       />
 
     </View>
