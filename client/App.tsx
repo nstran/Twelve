@@ -91,6 +91,8 @@ export default function App() {
 
   const client         = SocketClient.getInstance();
   const reconnectTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingBattleResultRef = useRef<BattleResultRewardResponse | null>(null);
+  const delayedBattleResultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptRef      = useRef(0);
   // Username lấy từ session đã lưu, dùng để save lại rolling token sau auto-login
   const pendingUsername = useRef<string | null>(null);
@@ -208,12 +210,25 @@ export default function App() {
       client.off('authFailed',          onAuthFailed);
       unsubAppState();
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      if (delayedBattleResultTimerRef.current) clearTimeout(delayedBattleResultTimerRef.current);
     };
   }, []);
 
   const leaveBattle = () => {
+    const pendingResult = pendingBattleResultRef.current;
+    pendingBattleResultRef.current = null;
+    if (delayedBattleResultTimerRef.current) {
+      clearTimeout(delayedBattleResultTimerRef.current);
+      delayedBattleResultTimerRef.current = null;
+    }
     setBattleBootstrap(null);
     setScreen('hoaLuMap');
+    if (pendingResult) {
+      delayedBattleResultTimerRef.current = setTimeout(() => {
+        delayedBattleResultTimerRef.current = null;
+        applyBattleResult(pendingResult);
+      }, 500);
+    }
   };
 
   const applyBattleResult = (result: BattleResultRewardResponse) => {
@@ -233,6 +248,10 @@ export default function App() {
         exp: { cur: expPct, max: 100 },
       };
     });
+  };
+
+  const queueBattleResult = (result: BattleResultRewardResponse) => {
+    pendingBattleResultRef.current = result;
   };
 
   const renderScreen = () => {
@@ -312,7 +331,7 @@ export default function App() {
             resolveEnemyTurnPlan={resolveEnemyTurnPlan}
             resolveBattleSessionSync={resolveBattleSessionSync}
             resolveBattleResult={resolveBattleResult}
-            onBattleResult={applyBattleResult}
+            onBattleResult={queueBattleResult}
             onVictory={leaveBattle}
             onDefeat={leaveBattle}
             onFlee={leaveBattle}

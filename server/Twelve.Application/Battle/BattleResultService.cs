@@ -55,8 +55,6 @@ namespace Twelve.Application.Battle
             var quanBefore = player.Gold;
             var clampedHp = Math.Clamp(request.PlayerCurrentHp, 0, Math.Max(1, player.MaxHp));
             player.Hp = clampedHp;
-            player.Mp = Math.Clamp(request.PlayerCurrentMp, 0, Math.Max(0, player.MaxMp));
-            player.Power = Math.Clamp(request.PlayerCurrentPower, 0, Math.Max(0, player.MaxPower));
 
             var expGained = 0L;
             var quanGained = 0L;
@@ -70,13 +68,15 @@ namespace Twelve.Application.Battle
                 if (player.Level > levelBefore)
                 {
                     PlayerStatPipeline.RecalculateAndApply(player);
-                    player.Hp = player.MaxHp;
                     clampedHp = player.Hp;
                 }
             }
             else
             {
-                PlayerLevelProgression.ApplyExperience(player, 0);
+                var expLost = PlayerLevelProgression.ApplyDefeatPenalty(player);
+                expGained = -expLost;
+                player.Hp = player.MaxHp;
+                clampedHp = player.Hp;
             }
 
             player.LastSeenAt = DateTime.UtcNow;

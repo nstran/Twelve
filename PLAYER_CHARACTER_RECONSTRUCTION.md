@@ -24,4 +24,4 @@ Riêng map trong remake là map mới, không có map cũ để bám theo. Runti
 
 Tiến độ map player hiện tại: player trên map đã dùng character thật và world-state DB; move được server clamp/echo theo tọa độ native map; client đã snap theo move ack canonical. Map train là PvE của chính player để đánh quái kiếm EXP, không có co-presence người chơi trên map. Người chơi chỉ gặp nhau qua flow Khiêu Chiến/PvP riêng. Phần chưa hoàn tất là collision platform nâng cao, server-authoritative monster AI và flow Khiêu Chiến/PvP.
 
-Tiến độ reward hiện tại: battle result đã có `/battle/result`; server claim session một lần, cộng EXP/Quan khi thắng, lưu HP/MP/Power còn lại, áp dụng level curve `100 * (level - 1)^2`, và client hiển thị bảng kết quả HP/EXP/Quan sau trận.
+Tiến độ reward hiện tại: battle result đã có `/battle/result`; server claim session một lần, cộng EXP/Quan khi thắng; khi thua hồi HP về đầy và trừ EXP theo defeat penalty của level hiện tại; không persist MP/Power/nộ vì reset theo từng trận; áp dụng level curve `100 * (level - 1)^2`, và client hiển thị bảng kết quả HP/EXP/Quan sau trận.

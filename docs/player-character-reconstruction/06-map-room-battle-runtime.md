@@ -84,7 +84,7 @@ Chưa xong:
 
 ## Battle Result / EXP / Quan Reward
 
-Sau khi battle kết thúc, client không tự cộng thưởng. Client gọi `/battle/result` với `sessionId`, kết quả thắng/thua và HP/MP/Power còn lại. Server claim session một lần, cập nhật DB rồi trả payload để client hiển thị bảng kết quả.
+Sau khi battle kết thúc, client không tự cộng thưởng. Client gọi `/battle/result` với `sessionId`, kết quả thắng/thua và HP còn lại. Server claim session một lần, cập nhật DB rồi trả payload để client hiển thị bảng kết quả. MP/Power/nộ là tài nguyên runtime của từng trận, reset khi bootstrap battle mới và không persist về player DB.
 
 Quy định level hiện tại:
 
@@ -100,7 +100,7 @@ Quy định monster reward hiện tại:
 - factory tính mặc định từ level/threat/skill tier
 - EXP cơ bản = `12 + level * 3`, nhân threat: Minor `100%`, Standard `120%`, Elite `150%`, cộng skill bonus
 - Quan cơ bản = `2 + level`, cộng threat: Standard `+4`, Elite `+8`
-- thua trận: không cộng EXP/Quan, chỉ lưu HP/MP/Power còn lại
+- thua trận: hồi đầy HP, không cộng Quan, và bị trừ EXP theo defeat penalty của level hiện tại
 
 Đã xong:
 
@@ -109,6 +109,12 @@ Quy định monster reward hiện tại:
 - client gọi result endpoint khi `victory/defeat`
 - popup kết quả hiển thị HP còn lại, EXP, Quan và thưởng nhận được
 - App cập nhật HUD/appearance sau result response
+
+Defeat penalty hiện tại:
+
+- HP sau thua được hồi về `MaxHp`
+- EXP bị trừ `max(10, 5% level span hiện tại)` và không tụt xuống dưới `ExpFloor` của level hiện tại
+- ví dụ level span = `400 - 100 = 300` thì phạt EXP = `15`
 
 ### `kl` actor state chi tiết
 

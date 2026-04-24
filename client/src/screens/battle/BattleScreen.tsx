@@ -10,12 +10,15 @@ import {
   BattlePanel,
   BattleActorsRow,
   BattleEffects,
+  BattleResultSplash,
   BattleSkillCastOverlay,
   BattleSkillPanel,
   BattleResultOverlay,
 } from './ui';
 import {
+  RESULT_POPUP_DELAY_AFTER_SPLASH_MS,
   RESULT_ART_META,
+  RESULT_SPLASH_HOLD_MS,
   ENEMY_HUD_LAYOUT,
   createJavaBoardEngine,
   getBattleActorLayout,
@@ -127,6 +130,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [phase,     setPhase]     = useState<BattlePhase>('idle');
   const [result,    setResult]    = useState<BattleResult | null>(null);
   const [battleReward, setBattleReward] = useState<BattleResultRewardResponse | null>(null);
+  const [resultSplashVisible, setResultSplashVisible] = useState(false);
+  const [resultPopupVisible, setResultPopupVisible] = useState(false);
   const [playerAction, setPlayerAction] = useState<CharacterAction>('idle');
   const [playerActionFrameIndex, setPlayerActionFrameIndex] = useState<number | null>(null);
   const aiLevel: AILevel | null = resolveEnemyTurnPlan ? null : 'linh_canh';
@@ -150,6 +155,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const skillPacketRequestRef = useRef(false);
   const pendingVictoryRef = useRef(false);
   const resultClaimedRef = useRef<string | null>(null);
+  const resultRevealTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const phaseRef   = useRef<BattlePhase>('idle');
   const mountedRef = useRef(true);
   const boardRef   = useRef<Board>(board);
@@ -178,6 +184,10 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setEnemyPower(Math.min(monsterBootstrap.enemy.currentPower, enemyMaxPow));
     setResult(null);
     setBattleReward(null);
+    setResultSplashVisible(false);
+    setResultPopupVisible(false);
+    resultRevealTimersRef.current.forEach(clearTimeout);
+    resultRevealTimersRef.current = [];
     resultClaimedRef.current = null;
   }, [
     enemyMaxMP,
@@ -298,9 +308,40 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     resolveBattleResult,
     result,
   ]);
+  useEffect(() => {
+    resultRevealTimersRef.current.forEach(clearTimeout);
+    resultRevealTimersRef.current = [];
+
+    if (result === null) {
+      setResultSplashVisible(false);
+      setResultPopupVisible(false);
+      return;
+    }
+
+    setResultSplashVisible(true);
+    setResultPopupVisible(false);
+
+    const hideSplashTimer = setTimeout(() => {
+      if (!mountedRef.current) return;
+      setResultSplashVisible(false);
+    }, RESULT_SPLASH_HOLD_MS);
+    const showPopupTimer = setTimeout(() => {
+      if (!mountedRef.current) return;
+      setResultPopupVisible(true);
+    }, RESULT_SPLASH_HOLD_MS + RESULT_POPUP_DELAY_AFTER_SPLASH_MS);
+
+    resultRevealTimersRef.current = [hideSplashTimer, showPopupTimer];
+
+    return () => {
+      resultRevealTimersRef.current.forEach(clearTimeout);
+      resultRevealTimersRef.current = [];
+    };
+  }, [result]);
   useEffect(() => () => {
     skillCastTimersRef.current.forEach(clearTimeout);
     skillCastTimersRef.current = [];
+    resultRevealTimersRef.current.forEach(clearTimeout);
+    resultRevealTimersRef.current = [];
   }, []);
   const {
     comboBadgeAnim,
@@ -806,6 +847,17 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
       <BattleSkillCastOverlay casts={activeSkillCasts} />
 
+      <BattleResultSplash
+        result={result}
+        resultMeta={resultMeta}
+        visible={resultSplashVisible}
+        panelTop={panelTop}
+        resultArtAnim={resultArtAnim}
+        resultArtLift={resultArtLift}
+        resultArtScale={resultArtScale}
+        resultArtTilt={resultArtTilt}
+      />
+
       <BattleSkillPanel
         visible={skillPanelVisible}
         elementIndex={appearance.elementIndex}
@@ -836,11 +888,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       <BattleResultOverlay
         result={result}
         resultMeta={resultMeta}
+        visible={resultPopupVisible}
         panelTop={panelTop}
-        resultArtAnim={resultArtAnim}
-        resultArtLift={resultArtLift}
-        resultArtScale={resultArtScale}
-        resultArtTilt={resultArtTilt}
         reward={battleReward}
         onVictory={onVictory}
         onDefeat={onDefeat}

@@ -46,5 +46,33 @@ namespace Twelve.Core.GameLogic
 
             return levelUps;
         }
+
+        public static long ApplyDefeatPenalty(Player player)
+        {
+            var safeLevel = Math.Clamp(player.Level, 1, MaxLevel);
+            player.Level = safeLevel;
+
+            var floor = GetLevelFloor(safeLevel);
+            var ceiling = GetLevelCeiling(safeLevel);
+            var levelSpan = Math.Max(1, ceiling - floor);
+            var currentExp = Math.Max(0, player.Exp);
+            var currentProgress = Math.Max(0, currentExp - floor);
+            if (currentProgress <= 0)
+            {
+                player.Exp = Math.Max(floor, currentExp);
+                player.ExpFloor = floor;
+                player.ExpCeiling = ceiling;
+                return 0;
+            }
+
+            var penalty = Math.Max(10, levelSpan / 20);
+            var appliedPenalty = Math.Min(currentProgress, penalty);
+
+            player.Exp = Math.Max(floor, currentExp - appliedPenalty);
+            player.ExpFloor = floor;
+            player.ExpCeiling = ceiling;
+
+            return appliedPenalty;
+        }
     }
 }

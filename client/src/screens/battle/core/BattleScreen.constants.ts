@@ -13,6 +13,10 @@ export const BONUS_BANNER_HOLD_MS =
 export const EXTRA_TURNS_BADGE_TOTAL_MS = 3000;
 export const COLLECT_FX_DURATION_MS = 2600;
 export const GAIN_POPUP_DURATION_MS = 1200;
+export const RESULT_SPLASH_HOLD_MS = 2000;
+export const RESULT_POPUP_DELAY_AFTER_SPLASH_MS = 1000;
+export const RESULT_REWARD_ANIMATION_MS = 1800;
+export const RESULT_AUTO_CLOSE_DELAY_MS = 700;
 export const RESULT_ART_INDEX = 1;
 
 export const RESULT_ART_META: Record<BattleResult, ResultArtMeta> = {

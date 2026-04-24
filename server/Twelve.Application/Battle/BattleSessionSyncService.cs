@@ -42,15 +42,12 @@ namespace Twelve.Application.Battle
                 CurrentMp = Clamp(request.EnemyCurrentMp, session.Enemy.MaxMp),
                 CurrentPower = Clamp(request.EnemyCurrentPower, session.Enemy.MaxPower),
             };
-            var isCompleted = updatedPlayer.CurrentHp <= 0 || updatedEnemy.CurrentHp <= 0;
-
             _battleSessionStore.Save(session with
             {
                 Board = normalizedBoard,
                 ActiveTurn = request.ActiveTurn,
                 Player = updatedPlayer,
                 Enemy = updatedEnemy,
-                IsCompleted = isCompleted,
             });
 
             return true;

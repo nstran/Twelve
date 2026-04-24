@@ -10,7 +10,9 @@ import {
   AURA1_IMG,
   AURA2_IMG,
   BATTLE_PLAYER_SCALE,
+  RESULT_AUTO_CLOSE_DELAY_MS,
   RESULT_ART_INDEX,
+  RESULT_REWARD_ANIMATION_MS,
   BOARD_TOP,
   CHARS_ROW_SHIFT_X,
   ENEMY_HUD_LAYOUT,
@@ -32,6 +34,32 @@ import {
   GEM_SIZE,
   s,
 } from '../core';
+import { resultStyles } from './BattleResultOverlay.styles';
+
+const RESULT_POPUP_ART_SCALE = 0.72;
+const RESULT_REWARD_ZERO_EPSILON = 0.002;
+const RESULT_GEM_ICON_SIZE = 16;
+const RESULT_GEM_FRAME_COUNT = 7;
+const RESULT_HP_ICON = require('../../../../assets/battle/02_chess_pieces/chess1.png');
+const RESULT_EXP_ICON = require('../../../../assets/battle/02_chess_pieces/chess5.png');
+const RESULT_GOLD_ICON = require('../../../../assets/battle/02_chess_pieces/chess6.png');
+
+function animateDeltaTowardsZero(delta: number, progress: number): number {
+  const remaining = delta * (1 - progress);
+  if (Math.abs(remaining) <= RESULT_REWARD_ZERO_EPSILON) {
+    return 0;
+  }
+
+  return remaining > 0 ? Math.ceil(remaining) : Math.floor(remaining);
+}
+
+function formatSignedDelta(delta: number): string {
+  if (delta > 0) {
+    return `+${delta}`;
+  }
+
+  return `${delta}`;
+}
 
 interface BattleActorsRowProps {
   panelLeft: number;
@@ -447,44 +475,39 @@ export const BattleEffects: React.FC<BattleEffectsProps> = ({
 interface BattleResultOverlayProps {
   result: BattleResult | null;
   resultMeta: ResultArtMeta | null;
+  visible: boolean;
   panelTop: number;
-  resultArtAnim: Animated.Value;
-  resultArtLift: Animated.AnimatedInterpolation<number>;
-  resultArtScale: Animated.AnimatedInterpolation<number>;
-  resultArtTilt: Animated.AnimatedInterpolation<string>;
   reward: BattleResultRewardResponse | null;
   onVictory: () => void;
   onDefeat: () => void;
 }
 
-export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
+interface BattleResultSplashProps {
+  result: BattleResult | null;
+  resultMeta: ResultArtMeta | null;
+  visible: boolean;
+  panelTop: number;
+  resultArtAnim: Animated.Value;
+  resultArtLift: Animated.AnimatedInterpolation<number>;
+  resultArtScale: Animated.AnimatedInterpolation<number>;
+  resultArtTilt: Animated.AnimatedInterpolation<string>;
+}
+
+export const BattleResultSplash: React.FC<BattleResultSplashProps> = ({
   result,
   resultMeta,
+  visible,
   panelTop,
   resultArtAnim,
   resultArtLift,
   resultArtScale,
   resultArtTilt,
-  reward,
-  onVictory,
-  onDefeat,
 }) => {
-  if (result === null || resultMeta === null) return null;
-
-  const currentHp = reward?.currentHp ?? 0;
-  const maxHp = Math.max(1, reward?.maxHp ?? 1);
-  const expFloor = reward?.expFloor ?? 0;
-  const expCeiling = Math.max(expFloor + 1, reward?.expCeiling ?? 100);
-  const expAfter = reward?.expAfter ?? expFloor;
-  const quanAfter = reward?.quanAfter ?? 0;
-  const hpPercent = Math.max(0, Math.min(100, (currentHp * 100) / maxHp));
-  const expPercent = Math.max(0, Math.min(100, ((expAfter - expFloor) * 100) / (expCeiling - expFloor)));
-  const close = result === 'victory' ? onVictory : onDefeat;
+  if (!visible || result === null || resultMeta === null) return null;
 
   return (
-    <View pointerEvents="box-none" style={s.resultBannerLayer}>
-      <TouchableOpacity
-        activeOpacity={1}
+    <View pointerEvents="none" style={s.resultBannerLayer}>
+      <Animated.View
         style={[
           s.resultBannerStage,
           {
@@ -497,69 +520,195 @@ export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
             ],
           },
         ]}
-        onPress={reward ? close : undefined}
       >
-        <View style={{
-          width: 184,
-          minHeight: 198,
-          backgroundColor: '#E7F4FF',
-          borderWidth: 2,
-          borderColor: '#4895FF',
-          padding: 6,
-        }}>
-          <Text style={{ fontSize: 12, fontWeight: '700', color: '#202020', marginBottom: 5 }}>
+        <View
+          style={[
+            resultStyles.splashClip,
+            {
+              width: resultMeta.frameWidth * BOARD_SCALE,
+              height: resultMeta.frameHeight * BOARD_SCALE,
+            },
+          ]}
+        >
+          <Image
+            source={resultMeta.asset}
+            resizeMode="stretch"
+            style={{
+              width: resultMeta.sheetWidth * BOARD_SCALE,
+              height: resultMeta.sheetHeight * BOARD_SCALE,
+              transform: [{ translateX: -RESULT_ART_INDEX * resultMeta.frameWidth * BOARD_SCALE }],
+            }}
+          />
+        </View>
+      </Animated.View>
+    </View>
+  );
+};
+
+export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
+  result,
+  resultMeta,
+  visible,
+  panelTop,
+  reward,
+  onVictory,
+  onDefeat,
+}) => {
+  const rewardProgress = React.useRef(new Animated.Value(0)).current;
+  const [animatedRewardProgress, setAnimatedRewardProgress] = React.useState(0);
+  const closeTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didAutoCloseRef = React.useRef(false);
+
+  React.useEffect(() => {
+    const id = rewardProgress.addListener(({ value }) => {
+      setAnimatedRewardProgress(value);
+    });
+
+    return () => {
+      rewardProgress.removeListener(id);
+    };
+  }, [rewardProgress]);
+
+  React.useEffect(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    didAutoCloseRef.current = false;
+    rewardProgress.stopAnimation();
+    rewardProgress.setValue(0);
+
+    if (!visible || result === null || reward === null) {
+      return;
+    }
+
+    Animated.timing(rewardProgress, {
+      toValue: 1,
+      duration: RESULT_REWARD_ANIMATION_MS,
+      useNativeDriver: false,
+    }).start(({ finished }) => {
+      if (!finished || didAutoCloseRef.current) {
+        return;
+      }
+
+      closeTimerRef.current = setTimeout(() => {
+        didAutoCloseRef.current = true;
+        closeTimerRef.current = null;
+        if (result === 'victory') {
+          onVictory();
+        } else {
+          onDefeat();
+        }
+      }, RESULT_AUTO_CLOSE_DELAY_MS);
+    });
+
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      rewardProgress.stopAnimation();
+    };
+  }, [onDefeat, onVictory, result, reward, rewardProgress, visible]);
+
+  if (!visible || result === null || resultMeta === null) return null;
+
+  const currentHp = reward?.currentHp ?? 0;
+  const maxHp = Math.max(1, reward?.maxHp ?? 1);
+  const expFloor = reward?.expFloor ?? 0;
+  const expCeiling = Math.max(expFloor + 1, reward?.expCeiling ?? 100);
+  const expBefore = reward?.expBefore ?? expFloor;
+  const expAfter = reward?.expAfter ?? expFloor;
+  const expNow = reward
+    ? expBefore + ((expAfter - expBefore) * animatedRewardProgress)
+    : expFloor;
+  const quanBefore = reward?.quanBefore ?? 0;
+  const quanAfter = reward?.quanAfter ?? 0;
+  const quanNow = reward
+    ? quanBefore + ((quanAfter - quanBefore) * animatedRewardProgress)
+    : quanBefore;
+  const expRewardRemaining = animateDeltaTowardsZero(reward?.expGained ?? 0, animatedRewardProgress);
+  const quanRewardRemaining = animateDeltaTowardsZero(reward?.quanGained ?? 0, animatedRewardProgress);
+  const hpPercent = Math.max(0, Math.min(100, (currentHp * 100) / maxHp));
+  const expPercent = Math.max(0, Math.min(100, ((expNow - expFloor) * 100) / (expCeiling - expFloor)));
+  const quanProgress = Math.max(0, Math.min(100, (quanNow % 10000) / 100));
+  const displayQuan = Math.max(0, Math.floor(quanNow));
+  const canClose = reward !== null && animatedRewardProgress >= 1 - RESULT_REWARD_ZERO_EPSILON;
+  const close = result === 'victory' ? onVictory : onDefeat;
+
+  return (
+    <View pointerEvents="box-none" style={s.resultBannerLayer}>
+      <TouchableOpacity
+        activeOpacity={1}
+        style={[
+          s.resultBannerStage,
+          {
+            top: panelTop + BOARD_TOP + GEM_SIZE * 4 - 34 * BOARD_SCALE,
+          },
+        ]}
+        onPress={canClose ? close : undefined}
+      >
+        <View style={resultStyles.resultCard}>
+          <Text style={resultStyles.levelText}>
             Cấp: {reward?.levelAfter ?? '-'}
           </Text>
-          <ResultBar color="#D23A32" value={hpPercent} label={`${currentHp}/${maxHp}`} />
-          <ResultBar color="#3CBD38" value={expPercent} label={`${Math.floor(expPercent * 10) / 10}%`} />
-          <ResultBar color="#C99A2E" value={Math.min(100, (quanAfter % 10000) / 100)} label={`${quanAfter}/10000`} />
+          <ResultBar
+            color="#D23A32"
+            value={hpPercent}
+            label={`${currentHp}/${maxHp}`}
+            iconSource={RESULT_HP_ICON}
+          />
+          <ResultBar
+            color="#3CBD38"
+            value={expPercent}
+            label={`${Math.floor(expPercent * 10) / 10}%`}
+            iconSource={RESULT_EXP_ICON}
+          />
+          <ResultBar
+            color="#C99A2E"
+            value={quanProgress}
+            label={`${displayQuan}/10000`}
+            iconSource={RESULT_GOLD_ICON}
+          />
 
-          <Text style={{ fontSize: 12, fontWeight: '700', color: '#333', marginTop: 10, marginBottom: 4 }}>
+          <Text style={[resultStyles.sectionTitle, resultStyles.collectionTitle]}>
             Điểm Thu Thập
           </Text>
-          <ResultRewardLine color="#C99A2E" label={`${reward?.quanGained ?? 0}`} />
-          <ResultRewardLine color="#3CBD38" label={`${reward?.expGained ?? 0}`} />
+          <ResultRewardLine iconSource={RESULT_GOLD_ICON} label={`${quanRewardRemaining}`} />
+          <ResultRewardLine iconSource={RESULT_EXP_ICON} label={`${expRewardRemaining}`} />
 
-          <Text style={{ fontSize: 12, fontWeight: '700', color: '#333', marginTop: 8 }}>
+          <Text style={[resultStyles.sectionTitle, resultStyles.rewardTitle]}>
             Thưởng
           </Text>
-          <ResultRewardLine color="#3CBD38" label={`+${reward?.expGained ?? 0}`} />
+          <ResultRewardLine iconSource={RESULT_GOLD_ICON} label={formatSignedDelta(quanRewardRemaining)} />
+          <ResultRewardLine iconSource={RESULT_EXP_ICON} label={formatSignedDelta(expRewardRemaining)} />
           {reward && reward.levelUps > 0 ? (
-            <Text style={{ fontSize: 11, color: '#D05500', fontWeight: '700', marginTop: 2 }}>
+            <Text style={resultStyles.levelUpText}>
               Lên cấp +{reward.levelUps}
             </Text>
           ) : null}
 
-          <View style={{
-            position: 'absolute',
-            right: 6,
-            bottom: 18,
-            width: resultMeta.frameWidth * BOARD_SCALE,
-            height: resultMeta.frameHeight * BOARD_SCALE,
-            overflow: 'hidden',
-          }}>
+          <View
+            style={[
+              resultStyles.resultArt,
+              {
+                width: resultMeta.frameWidth * RESULT_POPUP_ART_SCALE,
+                height: resultMeta.frameHeight * RESULT_POPUP_ART_SCALE,
+              },
+            ]}
+          >
             <Image
               source={resultMeta.asset}
               resizeMode="stretch"
               style={{
-                width: resultMeta.sheetWidth * BOARD_SCALE,
-                height: resultMeta.sheetHeight * BOARD_SCALE,
-                transform: [{ translateX: -RESULT_ART_INDEX * resultMeta.frameWidth * BOARD_SCALE }],
+                width: resultMeta.sheetWidth * RESULT_POPUP_ART_SCALE,
+                height: resultMeta.sheetHeight * RESULT_POPUP_ART_SCALE,
+                transform: [{ translateX: -RESULT_ART_INDEX * resultMeta.frameWidth * RESULT_POPUP_ART_SCALE }],
               }}
             />
           </View>
-          <Text
-            style={{
-              position: 'absolute',
-              bottom: 2,
-              left: 0,
-              right: 0,
-              textAlign: 'center',
-              color: '#516070',
-              fontSize: 11,
-            }}
-          >
-            {reward ? 'Đóng' : 'Đang nhận...'}
+          <Text style={resultStyles.closeText}>
+            {canClose ? 'Đóng' : 'Đang nhận...'}
           </Text>
         </View>
       </TouchableOpacity>
@@ -567,34 +716,49 @@ export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
   );
 };
 
-const ResultBar: React.FC<{ color: string; value: number; label: string }> = ({ color, value, label }) => (
-  <View style={{
-    height: 16,
-    marginBottom: 4,
-    borderWidth: 1,
-    borderColor: '#94A8B8',
-    backgroundColor: '#FFF8E8',
-    overflow: 'hidden',
-  }}>
-    <View style={{ width: `${Math.max(0, Math.min(100, value))}%`, height: '100%', backgroundColor: color }} />
-    <Text style={{
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      top: 1,
-      textAlign: 'center',
-      fontSize: 10,
-      fontWeight: '700',
-      color: '#6E1818',
-    }}>
-      {label}
-    </Text>
+const ResultGemIcon: React.FC<{ source: any; size?: number }> = ({ source, size = RESULT_GEM_ICON_SIZE }) => (
+  <View style={[resultStyles.barIconFrame, { width: size, height: size }]}>
+    <Image
+      source={source}
+      resizeMode="stretch"
+      style={{
+        width: size * RESULT_GEM_FRAME_COUNT,
+        height: size,
+      }}
+    />
   </View>
 );
 
-const ResultRewardLine: React.FC<{ color: string; label: string }> = ({ color, label }) => (
-  <View style={{ flexDirection: 'row', alignItems: 'center', height: 16 }}>
-    <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color, marginRight: 8 }} />
-    <Text style={{ fontSize: 12, color: '#222', fontWeight: '600' }}>{label}</Text>
+const ResultBar: React.FC<{ color: string; value: number; label: string; iconSource: any }> = ({
+  color,
+  value,
+  label,
+  iconSource,
+}) => (
+  <View style={resultStyles.barRow}>
+    <ResultGemIcon source={iconSource} />
+    <View style={[resultStyles.bar, resultStyles.barTrack]}>
+      <View
+        style={[
+          resultStyles.barFill,
+          {
+            width: `${Math.max(0, Math.min(100, value))}%`,
+            backgroundColor: color,
+          },
+        ]}
+      />
+      <Text style={resultStyles.barLabel}>
+        {label}
+      </Text>
+    </View>
+  </View>
+);
+
+const ResultRewardLine: React.FC<{ iconSource: any; label: string }> = ({ iconSource, label }) => (
+  <View style={resultStyles.rewardLine}>
+    <View style={resultStyles.rewardIconWrap}>
+      <ResultGemIcon source={iconSource} size={14} />
+    </View>
+    <Text style={resultStyles.rewardLabel}>{label}</Text>
   </View>
 );
