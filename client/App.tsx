@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, View, Text } from 'react-native';
 import {
   BattleScreen,
+  createBattlePvpActionResolver,
   createBattleResultResolver,
   createBattleSessionSnapshotResolver,
   createBattleSessionSyncResolver,
@@ -83,6 +84,10 @@ export default function App() {
   );
   const resolveBattleSessionSnapshot = React.useMemo(
     () => createBattleSessionSnapshotResolver(SERVER_URL),
+    [],
+  );
+  const resolveBattlePvpAction = React.useMemo(
+    () => createBattlePvpActionResolver(SERVER_URL),
     [],
   );
   const resolveBattleResult = React.useMemo(
@@ -459,6 +464,7 @@ export default function App() {
             resolveEnemyTurnPlan={resolveEnemyTurnPlan}
             resolveBattleSessionSync={resolveBattleSessionSync}
             resolveBattleSessionSnapshot={resolveBattleSessionSnapshot}
+            resolveBattlePvpAction={resolveBattlePvpAction}
             resolveBattleResult={resolveBattleResult}
             onBattleResult={queueBattleResult}
             onVictory={leaveBattle}

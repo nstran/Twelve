@@ -21,6 +21,7 @@ export interface BattleScreenProps {
   resolveEnemyTurnPlan?: ResolveEnemyBattleTurnPlan;
   resolveBattleSessionSync?: ResolveBattleSessionSync;
   resolveBattleSessionSnapshot?: ResolveBattleSessionSnapshot;
+  resolveBattlePvpAction?: ResolveBattlePvpAction;
   resolveBattleResult?: ResolveBattleResult;
 }
 
@@ -253,11 +254,49 @@ export interface BattleSessionSnapshotResponse {
   enemyCurrentPower: number;
   isCompleted: boolean;
   kind: 'monster' | 'pvpShadow';
+  turnSeq?: number;
+  lastPvpAction?: BattlePvpActionEvent | null;
 }
 
 export type ResolveBattleSessionSnapshot =
   (request: BattleSessionSnapshotRequest) =>
     BattleSessionSnapshotResponse | Promise<BattleSessionSnapshotResponse | null> | null;
+
+export type BattlePvpActionKind = 'swap' | 'skill' | 'pass';
+
+export interface BattlePvpActionEvent {
+  turnSeq: number;
+  actorSide: BattleSide;
+  action: BattlePvpActionKind;
+  move?: {
+    fromRow: number;
+    fromCol: number;
+    toRow: number;
+    toCol: number;
+  } | null;
+  accepted: boolean;
+  rejectReason?: string | null;
+}
+
+export interface BattlePvpActionRequest {
+  sessionId: string;
+  turnSeq: number;
+  action: BattlePvpActionKind;
+  fromRow?: number | null;
+  fromCol?: number | null;
+  toRow?: number | null;
+  toCol?: number | null;
+  skillFamilyCode?: SkillFamilyCode | null;
+}
+
+export interface BattlePvpActionResponse extends BattleSessionSnapshotResponse {
+  turnSeq: number;
+  lastAction: BattlePvpActionEvent;
+}
+
+export type ResolveBattlePvpAction =
+  (request: BattlePvpActionRequest) =>
+    BattlePvpActionResponse | Promise<BattlePvpActionResponse | null> | null;
 
 export interface BattleResultClaimRequest {
   sessionId: string;

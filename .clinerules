@@ -1,5 +1,11 @@
 # QUY TẮC PHÁT TRIỂN HỆ THỐNG TWELVE (BACKEND: .NET 9 | MOBILE: REACT NATIVE)
 
+## 0. QUY TẮC PHỤC DỰNG (RECONSTRUCTION) - TỐI THƯỢNG
+- KHÔNG CÓ SERVER MẪU: AI phải tự suy luận logic từ Client code, cấu hình data và các file .md phân tích. 
+- PHẢI BÁM SÁT LOGIC JAVA: Mọi công thức toán học, tỉ lệ (Rate), thuật toán PVP, Skill phải được tái hiện CHÍNH XÁC như bản gốc Java. Tuyệt đối không được "hiện đại hóa" làm sai lệch kết quả game.
+- REVERSE ENGINEERING: Nếu không chắc chắn về một logic, hãy yêu cầu người dùng cung cấp thêm thông tin từ Client hoặc file .md liên quan thay vì tự ý giả định.
+- TRUY XUẤT NGUỒN GỐC: Mỗi khi viết một hàm logic quan trọng (ví dụ: Dame calculation), hãy thêm comment ghi chú logic đó được suy luận từ đâu (từ file .md nào hoặc từ đoạn code Client nào).
+
 ## 1. CẤU TRÚC VÀ CÔNG NGHỆ
 - Backend: Sử dụng C# với .NET 9 (Minimal APIs hoặc Web API tùy theo cấu trúc hiện tại).
 - Mobile: Sử dụng React Native với TypeScript.
@@ -29,5 +35,9 @@
 - Mobile: Sử dụng Try/Catch cho các hàm gọi API. Hiển thị thông báo lỗi (Alert/Toast) rõ ràng cho người dùng.
 - DLL Lock: Nếu gặp lỗi build do file .exe/.dll bị lock, tự động gợi ý lệnh `taskkill /F /IM <ProcessName>.exe` trong terminal.
 
-## 6. Note
+## 6. QUY TRÌNH KẾT THÚC TASK
+- Sau khi sửa code xong, BẮT BUỘC phải chạy lệnh build tương ứng (ví dụ: `dotnet build` cho Backend hoặc `npx tsc` cho React Native).
+- Nếu build thất bại, phải phân tích lỗi và sửa lỗi cho đến khi build thành công mới được báo cáo hoàn thành nhiệm vụ.
+
+## 7. Note
 - Sau mỗi ngày làm việc, hãy tóm tắt các thay đổi lớn vào file CHANGELOG.md để tôi có cái nhìn tổng quan

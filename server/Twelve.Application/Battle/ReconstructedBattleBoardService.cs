@@ -92,6 +92,19 @@ namespace Twelve.Application.Battle
         public BattleBoardMove? SelectEnemyMove(IReadOnlyList<IReadOnlyList<int?>> board) =>
             EvaluateEnemyMove(board)?.Move;
 
+        public BattleBoardMoveEvaluation? EvaluateMove(IReadOnlyList<IReadOnlyList<int?>> board, BattleBoardMove move)
+        {
+            var normalized = NormalizeBoard(board);
+            if (normalized is null || !IsAdjacentInBounds(move))
+            {
+                return null;
+            }
+
+            return TryScoreMove(normalized, move.FromRow, move.FromCol, move.ToRow, move.ToCol, out var score, out var swordMatchCount)
+                ? new BattleBoardMoveEvaluation(move, score, swordMatchCount)
+                : null;
+        }
+
         private static IReadOnlyList<IReadOnlyList<int?>> CreateNoMatchBoard()
         {
             var board = new int?[8][];
@@ -148,6 +161,19 @@ namespace Twelve.Application.Battle
 
             return false;
         }
+
+        private static bool IsAdjacentInBounds(BattleBoardMove move)
+        {
+            if (!IsInBounds(move.FromRow, move.FromCol) || !IsInBounds(move.ToRow, move.ToCol))
+            {
+                return false;
+            }
+
+            return Math.Abs(move.FromRow - move.ToRow) + Math.Abs(move.FromCol - move.ToCol) == 1;
+        }
+
+        private static bool IsInBounds(int row, int col) =>
+            row >= 0 && row < 8 && col >= 0 && col < 8;
 
         private static bool IsValidSwap(
             IReadOnlyList<IReadOnlyList<int?>> board,

@@ -59,7 +59,53 @@ namespace Twelve.Core.Battle
         bool OneWay = false,
         bool DisableSpecialSkills = false,
         string? LinkedSessionId = null,
-        bool IsPerspectiveReversed = false
+        bool IsPerspectiveReversed = false,
+        int TurnSeq = 0,
+        BattlePvpActionEvent? LastPvpAction = null
+    );
+
+    public enum BattlePvpActionKind
+    {
+        Swap = 0,
+        Skill = 1,
+        Pass = 2,
+    }
+
+    public sealed record BattlePvpActionRequest(
+        string SessionId,
+        BattlePvpActionKind Action,
+        int TurnSeq,
+        int? FromRow = null,
+        int? FromCol = null,
+        int? ToRow = null,
+        int? ToCol = null,
+        int? SkillFamilyCode = null,
+        int? SelectedRow = null,
+        int? SelectedCol = null
+    );
+
+    public sealed record BattlePvpActionEvent(
+        int TurnSeq,
+        BattleSide ActorSide,
+        BattlePvpActionKind Action,
+        BattleBoardMove? Move,
+        bool Accepted,
+        string? RejectReason = null
+    );
+
+    public sealed record BattlePvpActionResponse(
+        string SessionId,
+        BattleSide ActiveTurn,
+        IReadOnlyList<IReadOnlyList<int?>> Board,
+        int PlayerCurrentHp,
+        int PlayerCurrentMp,
+        int PlayerCurrentPower,
+        int EnemyCurrentHp,
+        int EnemyCurrentMp,
+        int EnemyCurrentPower,
+        bool IsCompleted,
+        int TurnSeq,
+        BattlePvpActionEvent LastAction
     );
 
     public sealed record BattleEnemyTurnRequest(
@@ -134,7 +180,9 @@ namespace Twelve.Core.Battle
         int EnemyCurrentMp,
         int EnemyCurrentPower,
         bool IsCompleted,
-        BattleSessionKind Kind
+        BattleSessionKind Kind,
+        int TurnSeq = 0,
+        BattlePvpActionEvent? LastPvpAction = null
     );
 
 

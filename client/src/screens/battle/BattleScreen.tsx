@@ -33,6 +33,7 @@ import {
   type BattleResult,
   type BattleResultRewardResponse,
   type BattleScreenProps,
+  type BattleSide,
   type BattleTurn,
   type Board,
   type GemType,
@@ -72,6 +73,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   resolveBattleResult,
   resolveBattleSessionSync,
   resolveBattleSessionSnapshot,
+  resolveBattlePvpAction,
   resolveEnemyMove,
   resolveSkillPacket,
   resolveEnemyTurn,
@@ -110,6 +112,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     }),
     [monsterBootstrap.enemy.magic, monsterBootstrap.enemy.strength],
   );
+  const isPvpBattle = monsterBootstrap.battleKind === 'pvp';
 
   const boardEngineRef = useRef(createJavaBoardEngine());
   const [board,         setBoard]         = useState<Board>(() => initialBoard);
@@ -126,6 +129,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [power,     setPower]     = useState(() => Math.min(playerBootstrap.currentPower, maxPow));
   const [enemyMana, setEnemyMana] = useState(() => Math.min(monsterBootstrap.enemy.currentMp, enemyMaxMP));
   const [enemyPower, setEnemyPower] = useState(() => Math.min(monsterBootstrap.enemy.currentPower, enemyMaxPow));
+  const [pvpTurnSeq, setPvpTurnSeq] = useState(0);
   const playerRageReady = maxPow > 0 && power >= maxPow;
   const enemyRageReady = enemyMaxPow > 0 && enemyPower >= enemyMaxPow;
   const [phase,     setPhase]     = useState<BattlePhase>('idle');
@@ -190,6 +194,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     resultRevealTimersRef.current.forEach(clearTimeout);
     resultRevealTimersRef.current = [];
     resultClaimedRef.current = null;
+    setPvpTurnSeq(0);
   }, [
     enemyMaxMP,
     enemyMaxPow,
@@ -243,8 +248,42 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     turn,
     turnCycle,
   ]);
+  const applySessionSnapshot = useCallback((snapshot: {
+    board: Board;
+    activeTurn: BattleSide;
+    playerCurrentHp: number;
+    playerCurrentMp: number;
+    playerCurrentPower: number;
+    enemyCurrentHp: number;
+    enemyCurrentMp: number;
+    enemyCurrentPower: number;
+    turnSeq?: number;
+  }) => {
+    boardRef.current = snapshot.board;
+    setBoard(snapshot.board);
+    setPlayerHP(Math.max(0, Math.min(maxHP, snapshot.playerCurrentHp)));
+    setMana(Math.max(0, Math.min(maxMP, snapshot.playerCurrentMp)));
+    setPower(Math.max(0, Math.min(maxPow, snapshot.playerCurrentPower)));
+    setEnemyHP(Math.max(0, Math.min(maxEHP, snapshot.enemyCurrentHp)));
+    setEnemyMana(Math.max(0, Math.min(enemyMaxMP, snapshot.enemyCurrentMp)));
+    setEnemyPower(Math.max(0, Math.min(enemyMaxPow, snapshot.enemyCurrentPower)));
+    if (typeof snapshot.turnSeq === 'number') {
+      setPvpTurnSeq(snapshot.turnSeq);
+    }
+
+    const nextTurn = snapshot.activeTurn === 'enemy' ? 'monster' : 'player';
+    if (nextTurn !== turnRef.current) {
+      turnRef.current = nextTurn;
+      setTurn(nextTurn);
+      setTurnCycle(cycle => cycle + 1);
+    }
+  }, [enemyMaxMP, enemyMaxPow, maxEHP, maxHP, maxMP, maxPow, turnRef]);
   useEffect(() => {
-    if (!resolveBattleSessionSnapshot || phase !== 'idle' || turn !== 'monster' || result !== null) {
+    if (!resolveBattleSessionSnapshot || phase !== 'idle' || result !== null) {
+      return;
+    }
+
+    if (!isPvpBattle && turn !== 'monster') {
       return;
     }
 
@@ -256,21 +295,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
             return;
           }
 
-          boardRef.current = snapshot.board;
-          setBoard(snapshot.board);
-          setPlayerHP(Math.max(0, Math.min(maxHP, snapshot.playerCurrentHp)));
-          setMana(Math.max(0, Math.min(maxMP, snapshot.playerCurrentMp)));
-          setPower(Math.max(0, Math.min(maxPow, snapshot.playerCurrentPower)));
-          setEnemyHP(Math.max(0, Math.min(maxEHP, snapshot.enemyCurrentHp)));
-          setEnemyMana(Math.max(0, Math.min(enemyMaxMP, snapshot.enemyCurrentMp)));
-          setEnemyPower(Math.max(0, Math.min(enemyMaxPow, snapshot.enemyCurrentPower)));
-
-          const nextTurn = snapshot.activeTurn === 'enemy' ? 'monster' : 'player';
-          if (nextTurn !== turnRef.current) {
-            turnRef.current = nextTurn;
-            setTurn(nextTurn);
-            setTurnCycle(cycle => cycle + 1);
-          }
+          applySessionSnapshot(snapshot);
         });
     };
 
@@ -281,12 +306,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       clearInterval(timer);
     };
   }, [
-    enemyMaxMP,
-    enemyMaxPow,
-    maxEHP,
-    maxHP,
-    maxMP,
-    maxPow,
+    applySessionSnapshot,
+    isPvpBattle,
     monsterBootstrap.sessionId,
     phase,
     resolveBattleSessionSnapshot,
@@ -621,9 +642,33 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
 
   const doDirectSwapRef = useRef(doDirectSwap);
   useEffect(() => { doDirectSwapRef.current = doDirectSwap; }, [doDirectSwap]);
+  const submitPlayerSwap = useCallback((r1: number, c1: number, r2: number, c2: number) => {
+    if (!isPvpBattle || !resolveBattlePvpAction) {
+      doDirectSwapRef.current(r1, c1, r2, c2);
+      return;
+    }
+
+    void Promise.resolve(resolveBattlePvpAction({
+      sessionId: monsterBootstrap.sessionId,
+      turnSeq: pvpTurnSeq,
+      action: 'swap',
+      fromRow: r1,
+      fromCol: c1,
+      toRow: r2,
+      toCol: c2,
+    })).then((response) => {
+      if (!response || !response.lastAction.accepted) {
+        return;
+      }
+
+      applySessionSnapshot(response);
+    });
+  }, [applySessionSnapshot, isPvpBattle, monsterBootstrap.sessionId, pvpTurnSeq, resolveBattlePvpAction]);
+  const submitPlayerSwapRef = useRef(submitPlayerSwap);
+  useEffect(() => { submitPlayerSwapRef.current = submitPlayerSwap; }, [submitPlayerSwap]);
   useEffect(() => { processMatchesRef.current = processMatches; }, [processMatches]);
   const { handleGemPress } = useBattlePlayerInput({
-    doDirectSwapRef,
+    doDirectSwapRef: submitPlayerSwapRef,
     phase,
     selected,
     setCursorCell,

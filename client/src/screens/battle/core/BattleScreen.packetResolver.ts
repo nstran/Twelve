@@ -16,9 +16,12 @@ import type {
   BattleSessionSyncRequest,
   BattleSessionSnapshotRequest,
   BattleSessionSnapshotResponse,
+  BattlePvpActionRequest,
+  BattlePvpActionResponse,
   BattleResultClaimRequest,
   BattleResultRewardResponse,
   ResolveMonsterBattleBootstrap,
+  ResolveBattlePvpAction,
   ResolvePvpBattleBootstrap,
   ResolvePvpChallengeApi,
   ResolvePvpOpponents,
@@ -89,6 +92,11 @@ type ServerBattleEnemyTurnPlanResponse = {
 };
 
 type ServerBattleSessionSnapshotResponse = Omit<BattleSessionSnapshotResponse, 'activeTurn' | 'kind'> & {
+  activeTurn: ServerBattleSide;
+  kind: 'Monster' | 'PvpShadow';
+};
+
+type ServerBattlePvpActionResponse = Omit<BattlePvpActionResponse, 'activeTurn' | 'kind'> & {
   activeTurn: ServerBattleSide;
   kind: 'Monster' | 'PvpShadow';
 };
@@ -414,6 +422,50 @@ export const createBattleSessionSnapshotResolver = (
       }
 
       const data = await response.json() as ServerBattleSessionSnapshotResponse;
+      return {
+        ...data,
+        activeTurn: mapSide(data.activeTurn),
+        kind: data.kind === 'PvpShadow' ? 'pvpShadow' : 'monster',
+      };
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+};
+
+export const createBattlePvpActionResolver = (
+  socketUrl: string,
+  timeoutMs = 2000,
+): ResolveBattlePvpAction => {
+  const baseUrl = toHttpBaseUrl(socketUrl);
+
+  return async (request: BattlePvpActionRequest): Promise<BattlePvpActionResponse | null> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(`${baseUrl}/battle/pvp-action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: request.sessionId,
+          turnSeq: request.turnSeq,
+          action: request.action === 'swap' ? 'Swap' : request.action === 'skill' ? 'Skill' : 'Pass',
+          fromRow: request.fromRow ?? null,
+          fromCol: request.fromCol ?? null,
+          toRow: request.toRow ?? null,
+          toCol: request.toCol ?? null,
+          skillFamilyCode: request.skillFamilyCode ?? null,
+        }),
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json() as ServerBattlePvpActionResponse;
       return {
         ...data,
         activeTurn: mapSide(data.activeTurn),

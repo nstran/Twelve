@@ -17,6 +17,7 @@ namespace Twelve.Application
             services.AddSingleton<IBattleSessionSyncService, BattleSessionSyncService>();
             services.AddSingleton<IBattleResultService, BattleResultService>();
             services.AddSingleton<IBattleTurnEngine, BattleTurnEngine>();
+            services.AddSingleton<IBattlePvpActionService, BattlePvpActionService>();
             services.AddSingleton<IBattleEnemyMoveService, BattleEnemyMoveService>();
             services.AddSingleton<IBattleEnemyTurnPlannerService, BattleEnemyTurnPlannerService>();
             services.AddSingleton<IBattleSkillPacketFactory, BattleSkillPacketFactory>();

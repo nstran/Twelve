@@ -97,6 +97,12 @@ app.MapPost("/battle/session-sync", (BattleSessionSyncRequest request, IBattleSe
     return synced ? Results.Ok() : Results.NotFound();
 });
 
+app.MapPost("/battle/pvp-action", (BattlePvpActionRequest request, IBattlePvpActionService service) =>
+{
+    var response = service.Submit(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
 app.MapGet("/battle/session-snapshot", (string sessionId, IBattleSessionStore store) =>
 {
     var session = store.Get(sessionId);
@@ -116,7 +122,9 @@ app.MapGet("/battle/session-snapshot", (string sessionId, IBattleSessionStore st
         EnemyCurrentMp: session.Enemy.CurrentMp,
         EnemyCurrentPower: session.Enemy.CurrentPower,
         IsCompleted: session.IsCompleted,
-        Kind: session.Kind));
+        Kind: session.Kind,
+        TurnSeq: session.TurnSeq,
+        LastPvpAction: session.LastPvpAction));
 });
 
 app.MapPost("/battle/result", (BattleResultClaimRequest request, IBattleResultService service) =>
