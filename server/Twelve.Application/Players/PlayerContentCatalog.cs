@@ -37,7 +37,9 @@ namespace Twelve.Application.Players
 
             return new[]
             {
-                CreateStarterEquipmentEntry(GetRequiredEquipmentDefinition(templateKey), $"starter-{player.Username}")
+                CreateStarterEquipmentEntry(GetRequiredEquipmentDefinition(templateKey), $"starter-{player.Username}", isEquipped: true),
+                CreateStarterEquipmentEntry(GetRequiredEquipmentDefinition("fire_guard_vest"), $"starter-{player.Username}", isEquipped: false),
+                CreateStarterEquipmentEntry(GetRequiredEquipmentDefinition("zap_hunter_helm"), $"starter-{player.Username}", isEquipped: false)
             };
         }
 
@@ -236,7 +238,10 @@ namespace Twelve.Application.Players
                 .Where(entry => entry.IsEquipped)
                 .Select(entry => EquipmentStatModifierParser.Parse(entry.RawJson));
 
-        private PlayerEquipmentEntry CreateStarterEquipmentEntry(PlayerEquipmentDefinition definition, string uniqueSeed)
+        private PlayerEquipmentEntry CreateStarterEquipmentEntry(
+            PlayerEquipmentDefinition definition,
+            string uniqueSeed,
+            bool isEquipped)
         {
             var entry = BuildEquipmentEntry(definition, uniqueSeed);
             return new PlayerEquipmentEntry
@@ -246,7 +251,7 @@ namespace Twelve.Application.Players
                 Slot = entry.Slot,
                 ResourceId = entry.ResourceId,
                 Level = entry.Level,
-                IsEquipped = true,
+                IsEquipped = isEquipped,
                 RawJson = entry.RawJson
             };
         }
