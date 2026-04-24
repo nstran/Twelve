@@ -10,9 +10,8 @@ export const styles = StyleSheet.create({
   // Khung viền ngoài
   menuBox: {
     position: 'absolute',
-    bottom: 26, // BOTTOM_BAR_H
     left: 4,
-    minWidth: 120, // Enough for "Đăng xuất"
+    minWidth: 120,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#2255bb',
@@ -69,10 +68,11 @@ export const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 14,
     fontWeight: 'bold',
-    textAlign: 'left',
-    paddingLeft: 15,
+    textAlign: 'center',
+    paddingLeft: 0,
     fontFamily: Platform.OS === 'android' ? 'sans-serif-medium' : 'System',
     zIndex: 4, 
+    flex: 1,
   },
   menuItemTextSelected: {
     color: '#ffffff',

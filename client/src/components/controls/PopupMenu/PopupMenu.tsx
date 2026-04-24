@@ -28,6 +28,8 @@ interface PopupMenuProps {
   onSelect: (item: MenuItem) => void;
   onClose: () => void;
   bottomOffset?: number;
+  top?: number;
+  left?: number;
 }
 
 export const PopupMenu: React.FC<PopupMenuProps> = ({
@@ -38,7 +40,9 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
   onIndexChange,
   onSelect,
   onClose,
-  bottomOffset = 26,
+  bottomOffset,
+  top,
+  left,
 }) => {
   const [navStack, setNavStack] = useState<{ items: MenuItem[]; title: string; openedIndex: number }[]>([]);
 
@@ -84,11 +88,11 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
             style={[
               styles.menuBox, 
               { 
-                bottom: Math.max(0, bottomOffset - depth * 15), 
-                left: 4 + depth * 15,
                 zIndex: 1001 + depth,
-                elevation: 1001 + depth
-              }
+                elevation: 1001 + depth,
+              },
+              top !== undefined ? { top: top + depth * 15, bottom: undefined } : { bottom: Math.max(0, (bottomOffset ?? 26) - depth * 15) },
+              left !== undefined ? { left: left + depth * 15 } : { left: 4 + depth * 15 }
             ]}
           >
             <View style={styles.menuInnerBox}>

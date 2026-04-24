@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { PopupMenu } from '../../../components/controls/PopupMenu/PopupMenu';
 import { CornerFrame } from '../../../components/ui/CornerFrame/CornerFrame';
 import { CharacterRenderer } from '../../character/CharacterRenderer';
 import { CHARACTER_STATUS_ASSETS } from '../../character/status/assets';
@@ -44,7 +45,7 @@ const SKILL_UI_ASSETS = {
 const HUD_ASSETS = {
   btinscrease: require('../../../../assets/hud/01_button_markers/btinscrease.png'),
 };
-const HIDDEN_SLOT_SIZE = 32;
+const HIDDEN_SLOT_SIZE = 47;
 const STAT_ARROW_FRAME_SIZE = 12;
 
 export type MapCharacterDialogKind =
@@ -408,7 +409,7 @@ const SkillNode: React.FC<{
   return (
     <Pressable onPress={onPress} style={[styles.skillNode, style]}>
       {selected && (
-        <View style={styles.skillNodeSelectedFrame} pointerEvents="none">
+        <View style={styles.inventorySelectedFrame} pointerEvents="none">
           <View style={[styles.skillNodeCorner, styles.skillNodeCornerTopLeft]} />
           <View style={[styles.skillNodeCorner, styles.skillNodeCornerTopRight]} />
           <View style={[styles.skillNodeCorner, styles.skillNodeCornerBottomLeft]} />
@@ -566,14 +567,16 @@ const EquipmentSlot: React.FC<{
   selected?: boolean;
   onPress?: () => void;
   style?: object;
-}> = ({
-  slot,
-  entry,
-  selected,
-  onPress,
-  style,
-}) => (
-  <Pressable onPress={onPress} style={[styles.equipSlot, style, selected && styles.inventorySelected]}>
+}> = ({ slot, entry, selected, onPress, style }) => (
+  <Pressable onPress={onPress} style={[styles.inventoryCell, entry ? styles.inventoryCellFilled : styles.inventoryCellEmpty, style]}>
+    {selected && (
+      <View style={styles.inventorySelectedFrame} pointerEvents="none">
+        <View style={[styles.skillNodeCorner, styles.skillNodeCornerTopLeft]} />
+        <View style={[styles.skillNodeCorner, styles.skillNodeCornerTopRight]} />
+        <View style={[styles.skillNodeCorner, styles.skillNodeCornerBottomLeft]} />
+        <View style={[styles.skillNodeCorner, styles.skillNodeCornerBottomRight]} />
+      </View>
+    )}
     {entry ? (
       <Image source={resolveEquipmentIcon(entry) ?? INFO_ASSETS.itemchest} style={styles.equipmentItemIcon} resizeMode="contain" />
     ) : (
@@ -588,7 +591,15 @@ const InventoryGridCell: React.FC<{
   onPress: () => void;
   style: object;
 }> = ({ cell, selected, onPress, style }) => (
-  <Pressable onPress={onPress} style={[styles.inventoryCell, style, selected && styles.inventorySelected]}>
+  <Pressable onPress={onPress} style={[styles.inventoryCell, cell.kind !== 'empty' ? styles.inventoryCellFilled : styles.inventoryCellEmpty, style]}>
+    {selected && (
+      <View style={styles.inventorySelectedFrame} pointerEvents="none">
+        <View style={[styles.skillNodeCorner, styles.skillNodeCornerTopLeft]} />
+        <View style={[styles.skillNodeCorner, styles.skillNodeCornerTopRight]} />
+        <View style={[styles.skillNodeCorner, styles.skillNodeCornerBottomLeft]} />
+        <View style={[styles.skillNodeCorner, styles.skillNodeCornerBottomRight]} />
+      </View>
+    )}
     {cell.kind === 'empty' ? null : (
       <>
         <Image
@@ -641,6 +652,8 @@ const InventoryActionMenu: React.FC<{
 };
 
 const InventoryDetailPanel: React.FC<{
+  visible: boolean;
+  onClose: () => void;
   playerLevel: number;
   playerGender: number;
   currentCombat?: CharacterAppearance['combat'];
@@ -648,6 +661,8 @@ const InventoryDetailPanel: React.FC<{
   selected?: InventoryCell;
   pending: string | null;
 }> = ({
+  visible,
+  onClose,
   playerLevel,
   playerGender,
   currentCombat,
@@ -655,7 +670,11 @@ const InventoryDetailPanel: React.FC<{
   selected,
   pending,
 }) => {
-  if (selected?.kind === 'equipment') {
+  if (!visible || !selected) {
+    return null;
+  }
+
+  if (selected.kind === 'equipment') {
     const entry = selected.entry;
     const canEquip = entry.isEquipped || (
       playerLevel >= entry.requiredLevel
@@ -664,47 +683,64 @@ const InventoryDetailPanel: React.FC<{
     );
     const bonusRows = getEquipmentBonusRows(entry);
     const previewRows = getCombatPreviewRows(currentCombat, previewCombat);
+    const isBroken = entry.maxDurability > 0 && entry.durability < entry.maxDurability / 4;
 
     return (
-      <View style={styles.inventoryDetailPanel}>
+      <View style={[styles.inventoryDetailPanel, { backgroundColor: '#ffffff', zIndex: 10000 }]}>
         <View style={styles.inventoryDetailHeader}>
-          <Text style={styles.inventoryDetailTitle} numberOfLines={1}>{entry.displayName}</Text>
-          <Text style={styles.inventoryDetailMeta}>
-            {EQUIPMENT_SLOT_NAMES[entry.slot] ?? 'Trang bị'}  Cấp {entry.level}
-          </Text>
+          <Text style={styles.inventoryDetailTitle} numberOfLines={1}>🔥 {entry.displayName}</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Image source={require('../../../../assets/ui/11_softkey_icons_confirmed/icon_cancel.png')} style={styles.inventoryDetailCloseIcon} />
+          </TouchableOpacity>
         </View>
-        <Text style={styles.inventoryDetailText} numberOfLines={1}>
-          Yêu cầu cấp {entry.requiredLevel}  Bền {entry.durability}/{entry.maxDurability}  {entry.isEquipped ? 'Đang mặc' : 'Trong túi'}
-        </Text>
-        <View style={styles.inventoryBonusGrid}>
-          {(previewRows.length > 0
-            ? previewRows.map(([label, delta]) => `${label} ${formatSigned(delta)}`)
-            : bonusRows.length > 0
-              ? bonusRows
-              : [entry.summary]
-          ).slice(0, 6).map(row => (
-            <Text key={row} style={styles.inventoryBonusText} numberOfLines={1}>{row}</Text>
-          ))}
-        </View>
-        {!canEquip && pending === null ? (
-          <Text style={styles.inventoryDetailWarn} numberOfLines={1}>
-            Chưa đủ điều kiện trang bị.
+        <View style={styles.inventoryDetailContent}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+            <Text style={styles.inventoryDetailMeta}>
+              {EQUIPMENT_SLOT_NAMES[entry.slot] ?? 'Trang bị'}
+            </Text>
+            <Text style={styles.inventoryDetailMeta}>
+              Cấp {entry.level}
+            </Text>
+          </View>
+          <Text style={styles.inventoryDetailText}>
+            Yêu cầu cấp: {entry.requiredLevel}
           </Text>
-        ) : null}
+          <Text style={[styles.inventoryDetailText, isBroken && { color: '#ef4444', fontWeight: 'bold' }]}>
+            Độ bền: {entry.durability}/{entry.maxDurability} {isBroken ? '(Đã hư hỏng nặng)' : ''}
+          </Text>
+          <View style={styles.inventoryBonusGrid}>
+            {(previewRows.length > 0
+              ? previewRows.map(([label, delta]) => `${label} ${formatSigned(delta)}`)
+              : bonusRows.length > 0
+                ? bonusRows
+                : [entry.summary]
+            ).map(row => (
+              <Text key={row} style={styles.inventoryBonusText} numberOfLines={1}>+ {row}</Text>
+            ))}
+          </View>
+          {!canEquip && pending === null ? (
+            <Text style={styles.inventoryDetailWarn} numberOfLines={1}>
+              Cần 1 búa để sửa chữa
+            </Text>
+          ) : null}
+        </View>
       </View>
     );
   }
 
-  if (selected?.kind === 'item') {
+  if (selected.kind === 'item') {
     const item = selected.item;
 
     return (
-      <View style={styles.inventoryDetailPanel}>
+      <View style={[styles.inventoryDetailPanel, { backgroundColor: '#ffffff', zIndex: 10000 }]}>
+        <TouchableOpacity style={styles.inventoryDetailClose} onPress={onClose}>
+          <Image source={require('../../../../assets/ui/11_softkey_icons_confirmed/icon_cancel.png')} style={styles.inventoryDetailCloseIcon} />
+        </TouchableOpacity>
         <View style={styles.inventoryDetailHeader}>
-          <Text style={styles.inventoryDetailTitle} numberOfLines={1}>{item.displayName}</Text>
-          <Text style={styles.inventoryDetailMeta}>{item.quantity}/{item.stackCap}</Text>
+          <Text style={styles.inventoryDetailTitle} numberOfLines={1}>📦 {item.displayName}</Text>
         </View>
-        <Text style={styles.inventoryDetailText} numberOfLines={2}>{item.description}</Text>
+        <Text style={styles.inventoryDetailMeta}>Số lượng: {item.quantity}/{item.stackCap}</Text>
+        <Text style={styles.inventoryDetailText} numberOfLines={3}>{item.description}</Text>
         {item.isUsable ? (
           <Text style={styles.inventoryBonusText} numberOfLines={1}>Hồi {item.healAmount} sinh lực</Text>
         ) : null}
@@ -712,7 +748,7 @@ const InventoryDetailPanel: React.FC<{
     );
   }
 
-  return <View style={styles.inventoryDetailPanel} />;
+  return null;
 };
 
 const buildEquippedKeySet = (equipment: CharacterEquipmentItem[]) =>
@@ -779,6 +815,8 @@ const InventoryShell: React.FC<{
   const cells = Array.from({ length: Math.max(36, rawCells.length) }, (_, index) => rawCells[index] ?? { kind: 'empty' as const, key: `empty-${index}` });
   const [selectedKey, setSelectedKey] = useState<string>(rawCells[0]?.key ?? '');
   const [actionMenu, setActionMenu] = useState<InventoryActionMenuState | null>(null);
+  const [actionMenuSelectedIndex, setActionMenuSelectedIndex] = useState<number>(0);
+  const [showDetail, setShowDetail] = useState(false);
   const equippedCells = equipped.map((entry): EquipmentCell => ({ kind: 'equipment', key: `equipped-${entry.equipKey}`, entry }));
   const selected = rawCells.find(cell => cell.key === selectedKey)
     ?? equippedCells.find(cell => cell.key === selectedKey)
@@ -831,6 +869,8 @@ const InventoryShell: React.FC<{
   const openActionMenu = (cell: InventoryCell, left: number, top: number) => {
     if (cell.kind === 'empty') {
       setActionMenu(null);
+      setSelectedKey('');
+      setShowDetail(false);
       return;
     }
 
@@ -840,6 +880,7 @@ const InventoryShell: React.FC<{
       left: clampActionMenuLeft(left),
       top: clampActionMenuTop(top),
     });
+    setShowDetail(true);
   };
   const selectEquipped = (slot: number, left: number, top: number) => {
     const entry = getEquipped(slot);
@@ -863,6 +904,8 @@ const InventoryShell: React.FC<{
       return null;
     }
 
+    let items: any[] = [];
+
     if (selected.kind === 'equipment') {
       const entry = selected.entry;
       const canEquip = selectedIsEquipped || (
@@ -871,58 +914,61 @@ const InventoryShell: React.FC<{
         && !(entry.maxDurability > 0 && entry.durability <= 0)
       );
 
-      return (
-        <InventoryActionMenu
-          left={actionMenu.left}
-          top={actionMenu.top}
-          items={[
-            { id: 'repair', label: 'Sửa chữa', onPress: () => setActionMenu(null) },
-            {
-              id: 'equip',
-              label: selectedIsEquipped ? 'Tháo' : 'Trang bị',
-              disabled: pending !== null || !canEquip,
-              onPress: () => {
-              previewEquipmentChange(entry, !selectedIsEquipped);
-              setActionMenu(null);
-              },
-            },
-            { id: 'detail', label: 'Chi Tiết', onPress: () => setActionMenu(null) },
-            { id: 'upgrade', label: 'Nâng cấp', onPress: () => setActionMenu(null) },
-            { id: 'sell', label: 'Rao bán', onPress: () => setActionMenu(null) },
-            { id: 'drop', label: 'Vứt bỏ', onPress: () => setActionMenu(null) },
-            ...(hasLoadoutChanges ? [{
-              id: 'commit',
-              label: 'Cập nhật',
-              disabled: pending !== null || !hasLoadoutChanges || !commitLoadout,
-              onPress: () => {
-              setActionMenu(null);
-              onRunAction('equipment-loadout', commitLoadout);
-              },
-            }] : []),
-          ]}
-        />
-      );
-    }
-
-    const item = selected.item;
-    return (
-      <InventoryActionMenu
-        left={actionMenu.left}
-        top={actionMenu.top}
-        items={[
-          {
-            id: 'use',
-            label: item.isUsable ? 'Dùng' : 'Giữ',
-            disabled: pending !== null || !item.isUsable || !onUseItem,
-            onPress: () => {
+      items = [
+        { id: 'repair', label: 'Sửa chữa', onPress: () => setActionMenu(null) },
+        {
+          id: 'equip',
+          label: selectedIsEquipped ? 'Tháo' : 'Trang bị',
+          disabled: pending !== null || !canEquip,
+          onPress: () => {
+            previewEquipmentChange(entry, !selectedIsEquipped);
+            setActionMenu(null);
+          },
+        },
+        { id: 'detail', label: 'Chi Tiết', onPress: () => { setActionMenu(null); setShowDetail(true); } },
+        { id: 'upgrade', label: 'Nâng cấp', onPress: () => setActionMenu(null) },
+        { id: 'sell', label: 'Rao bán', onPress: () => setActionMenu(null) },
+        { id: 'drop', label: 'Vứt bỏ', onPress: () => setActionMenu(null) },
+        ...(hasLoadoutChanges ? [{
+          id: 'commit',
+          label: 'Cập nhật',
+          disabled: pending !== null || !hasLoadoutChanges || !commitLoadout,
+          onPress: () => {
+            setActionMenu(null);
+            onRunAction('equipment-loadout', commitLoadout);
+          },
+        }] : []),
+      ];
+    } else {
+      const item = selected.item;
+      items = [
+        {
+          id: 'use',
+          label: item.isUsable ? 'Dùng' : 'Giữ',
+          disabled: pending !== null || !item.isUsable || !onUseItem,
+          onPress: () => {
             setActionMenu(null);
             onRunAction(`item-${item.itemId}`, () => onUseItem?.(item.itemId));
-            },
           },
-          { id: 'detail', label: 'Chi Tiết', onPress: () => setActionMenu(null) },
-          { id: 'sell', label: 'Rao bán', onPress: () => setActionMenu(null) },
-          { id: 'drop', label: 'Vứt bỏ', onPress: () => setActionMenu(null) },
-        ]}
+        },
+        { id: 'detail', label: 'Chi Tiết', onPress: () => setActionMenu(null) },
+        { id: 'sell', label: 'Rao bán', onPress: () => setActionMenu(null) },
+        { id: 'drop', label: 'Vứt bỏ', onPress: () => setActionMenu(null) },
+      ];
+    }
+
+    const menuItems = items.filter(i => !i.disabled);
+
+    return (
+      <PopupMenu
+        visible={true}
+        left={actionMenu.left}
+        top={actionMenu.top}
+        items={menuItems}
+        selectedIndex={actionMenuSelectedIndex}
+        onIndexChange={setActionMenuSelectedIndex}
+        onSelect={(item) => {}}
+        onClose={() => { setActionMenu(null); setActionMenuSelectedIndex(0); }}
       />
     );
   };
@@ -968,6 +1014,8 @@ const InventoryShell: React.FC<{
       </View>
 
       <InventoryDetailPanel
+        visible={showDetail}
+        onClose={() => setShowDetail(false)}
         playerLevel={player.level}
         playerGender={appearance.genderIndex}
         currentCombat={appearance.combat}
