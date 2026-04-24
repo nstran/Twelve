@@ -1,5 +1,10 @@
 export * from './characterAssets';
 export type { CharacterAppearance } from './characterAppearance';
+export type {
+  CharacterInventoryItem,
+  CharacterEquipmentItem,
+  CharacterSkillNode,
+} from './characterAppearance';
 export {
   buildSheetFamilyAssets,
 } from './characterEquipmentLayer';

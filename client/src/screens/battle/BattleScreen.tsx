@@ -861,6 +861,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       <BattleSkillPanel
         visible={skillPanelVisible}
         elementIndex={appearance.elementIndex}
+        availableFamilyCodes={monsterBootstrap.player.skills.map((skill) => skill.skillId)}
         selectedFamily={selectedSkillFamily}
         onHighlight={setSelectedSkillFamily}
         onCast={handleSkillCast}

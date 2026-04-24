@@ -32,6 +32,9 @@ export const resultStyles = StyleSheet.create({
   rewardTitle: {
     marginTop: 8,
   },
+  lootTitle: {
+    marginTop: 8,
+  },
   levelUpText: {
     fontSize: 11,
     color: '#D05500',
@@ -113,5 +116,10 @@ export const resultStyles = StyleSheet.create({
     fontSize: 12,
     color: '#222',
     fontWeight: '600',
+  },
+  lootText: {
+    fontSize: 10,
+    color: '#30435f',
+    lineHeight: 13,
   },
 });

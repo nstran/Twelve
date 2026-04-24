@@ -1,0 +1,458 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using Twelve.Core.Battle;
+using Twelve.Core.Entities;
+using Twelve.Core.GameLogic;
+using Twelve.Core.Monsters;
+using Twelve.Core.Players;
+
+namespace Twelve.Application.Players
+{
+    public sealed class PlayerContentCatalog
+    {
+        private readonly IReadOnlyDictionary<int, PlayerItemDefinition> _items;
+        private readonly IReadOnlyDictionary<string, PlayerEquipmentDefinition> _equipment;
+        private readonly IReadOnlyDictionary<int, IReadOnlyList<PlayerSkillDefinition>> _skillsByElement;
+
+        public PlayerContentCatalog()
+        {
+            _items = CreateItemDefinitions();
+            _equipment = CreateEquipmentDefinitions();
+            _skillsByElement = CreateSkillDefinitions();
+        }
+
+        public IReadOnlyList<PlayerEquipmentEntry> CreateStarterEquipment(Player player)
+        {
+            var templateKey = (player.Element ?? 0) switch
+            {
+                1 => "starter_zap_blade",
+                2 => "starter_water_talisman",
+                _ => "starter_fire_blade"
+            };
+
+            return new[]
+            {
+                CreateStarterEquipmentEntry(_equipment[templateKey], $"starter-{player.Username}")
+            };
+        }
+
+        public IReadOnlyList<PlayerItemStack> CreateStarterInventory(Player player)
+        {
+            var potionId = player.Level >= 10 ? 5005 : 5001;
+            return new[]
+            {
+                BuildInventoryStack(_items[potionId], quantity: 3)
+            };
+        }
+
+        public IReadOnlyList<PlayerSkillEntry> CreateStarterSkills(Player player)
+        {
+            var starterFamily = (player.Element ?? 0) switch
+            {
+                1 => 2000,
+                2 => 4000,
+                _ => 1000
+            };
+
+            return new[]
+            {
+                new PlayerSkillEntry
+                {
+                    SkillId = starterFamily,
+                    Level = 1,
+                    RawJson = JsonSerializer.Serialize(new
+                    {
+                        familyCode = starterFamily,
+                        source = "starter"
+                    })
+                }
+            };
+        }
+
+        public IReadOnlyList<PlayerSkillNodeView> BuildSkillViews(Player player, IReadOnlyList<PlayerSkillEntry> learnedSkills)
+        {
+            var learned = learnedSkills.ToDictionary(skill => skill.SkillId, skill => skill.Level);
+            var definitions = GetSkillDefinitionsForElement(player.Element ?? 0);
+
+            return definitions
+                .Select(definition =>
+                {
+                    learned.TryGetValue(definition.FamilyCode, out var level);
+                    var canUpgrade = player.SkillPoints >= definition.Cost
+                        && player.Level >= definition.RequiredLevel
+                        && level < definition.MaxLevel;
+
+                    return new PlayerSkillNodeView(
+                        FamilyCode: definition.FamilyCode,
+                        Level: level,
+                        MaxLevel: definition.MaxLevel,
+                        RequiredLevel: definition.RequiredLevel,
+                        Cost: definition.Cost,
+                        CanUpgrade: canUpgrade);
+                })
+                .ToArray();
+        }
+
+        public PlayerInventoryItemView ToInventoryView(PlayerItemStack stack)
+        {
+            var definition = ResolveItem(stack.ItemId, stack.RawJson);
+            return new PlayerInventoryItemView(
+                ItemId: stack.ItemId,
+                DisplayName: definition.DisplayName,
+                Description: definition.Description,
+                Quantity: stack.Quantity,
+                StackCap: definition.StackCap,
+                IsUsable: definition.IsUsable,
+                HealAmount: definition.HealAmount,
+                IconKind: definition.IconKind);
+        }
+
+        public PlayerEquipmentItemView ToEquipmentView(PlayerEquipmentEntry entry)
+        {
+            var definition = ResolveEquipment(entry.ResourceId, entry.RawJson);
+            return new PlayerEquipmentItemView(
+                EquipKey: entry.EquipKey,
+                DisplayName: definition.DisplayName,
+                Summary: definition.Summary,
+                Slot: entry.Slot,
+                ResourceId: entry.ResourceId,
+                Level: entry.Level,
+                RequiredLevel: definition.RequiredLevel,
+                IsEquipped: entry.IsEquipped,
+                IconKind: definition.IconKind,
+                BonusCuongLuc: definition.Modifier.CuongLuc,
+                BonusThanPhap: definition.Modifier.ThanPhap,
+                BonusNoiLuc: definition.Modifier.NoiLuc,
+                BonusTheLuc: definition.Modifier.TheLuc,
+                BonusAttack: definition.Modifier.FlatAttack,
+                BonusDefense: definition.Modifier.Defense,
+                BonusDodge: definition.Modifier.Dodge,
+                BonusCrit: definition.Modifier.Crit,
+                BonusMaxHp: definition.Modifier.MaxHp);
+        }
+
+        public PlayerSkillDefinition? GetSkillDefinition(int element, int familyCode) =>
+            GetSkillDefinitionsForElement(element)
+                .FirstOrDefault(definition => definition.FamilyCode == familyCode);
+
+        public PlayerItemDefinition? GetItemDefinition(int itemId) =>
+            _items.TryGetValue(itemId, out var definition) ? definition : null;
+
+        public BattleLootReward CreateBattleLoot(BattleSessionState session, MonsterBattleTemplate battleTemplate)
+        {
+            var itemDefinitions = new List<PlayerItemDefinition>();
+            var quantity = battleTemplate.Level >= 9 ? 2 : 1;
+
+            itemDefinitions.Add((battleTemplate.Element & 0xFF) switch
+            {
+                1 => _items[5004],
+                2 => _items[5003],
+                _ => _items[5002]
+            });
+
+            if (battleTemplate.Level >= 8)
+            {
+                itemDefinitions.Add(_items[battleTemplate.Level >= 9 ? 5005 : 5001]);
+            }
+
+            var itemRewards = itemDefinitions
+                .GroupBy(definition => definition.ItemId)
+                .Select(group =>
+                {
+                    var definition = group.First();
+                    var rewardQuantity = definition.IsUsable ? 1 : quantity;
+                    return new BattleLootItemReward(
+                        Stack: BuildInventoryStack(definition, rewardQuantity),
+                        View: ToInventoryView(BuildInventoryStack(definition, rewardQuantity)));
+                })
+                .ToArray();
+
+            var equipmentRewards = Array.Empty<BattleLootEquipmentReward>();
+            var dropRoll = StablePercent($"{session.SessionId}:{session.MonsterKey}:{battleTemplate.BattleTemplateId}");
+            if (battleTemplate.Level >= 8 && dropRoll < (battleTemplate.Level >= 9 ? 45 : 22))
+            {
+                var template = (battleTemplate.Element & 0xFF) switch
+                {
+                    1 => _equipment["zap_hunter_boots"],
+                    2 => _equipment["water_guard_cloak"],
+                    _ => _equipment["fire_guard_vest"]
+                };
+
+                var equipmentEntry = BuildEquipmentEntry(template, session.SessionId);
+                equipmentRewards =
+                [
+                    new BattleLootEquipmentReward(
+                        Entry: equipmentEntry,
+                        View: ToEquipmentView(equipmentEntry))
+                ];
+            }
+
+            return new BattleLootReward(itemRewards, equipmentRewards);
+        }
+
+        public PlayerEquipmentEntry BuildEquipmentEntry(PlayerEquipmentDefinition definition, string uniqueSeed)
+        {
+            var normalizedSeed = string.IsNullOrWhiteSpace(uniqueSeed)
+                ? "loot"
+                : uniqueSeed[..Math.Min(uniqueSeed.Length, 8)];
+            var guidSuffix = Guid.NewGuid().ToString("N")[..10];
+            var equipKey = $"{definition.TemplateKey}-{normalizedSeed}-{guidSuffix}";
+            if (equipKey.Length > 48)
+            {
+                equipKey = equipKey[..48];
+            }
+
+            return new PlayerEquipmentEntry
+            {
+                EquipKey = equipKey,
+                Slot = definition.Slot,
+                ResourceId = definition.ResourceId,
+                Level = definition.Level,
+                IsEquipped = false,
+                RawJson = BuildEquipmentRawJson(definition)
+            };
+        }
+
+        public PlayerItemStack BuildInventoryStack(PlayerItemDefinition definition, int quantity) =>
+            new()
+            {
+                ItemId = definition.ItemId,
+                Quantity = quantity,
+                RawJson = BuildItemRawJson(definition)
+            };
+
+        public IEnumerable<PlayerStatModifier> GetEquippedModifiers(IEnumerable<PlayerEquipmentEntry> equipment) =>
+            equipment
+                .Where(entry => entry.IsEquipped)
+                .Select(entry => EquipmentStatModifierParser.Parse(entry.RawJson));
+
+        private PlayerEquipmentEntry CreateStarterEquipmentEntry(PlayerEquipmentDefinition definition, string uniqueSeed)
+        {
+            var entry = BuildEquipmentEntry(definition, uniqueSeed);
+            return new PlayerEquipmentEntry
+            {
+                EquipKey = entry.EquipKey,
+                Slot = entry.Slot,
+                ResourceId = entry.ResourceId,
+                Level = entry.Level,
+                IsEquipped = true,
+                RawJson = entry.RawJson
+            };
+        }
+
+        private IReadOnlyList<PlayerSkillDefinition> GetSkillDefinitionsForElement(int element) =>
+            _skillsByElement.TryGetValue(element, out var definitions)
+                ? definitions
+                : _skillsByElement[0];
+
+        private PlayerItemDefinition ResolveItem(int itemId, string rawJson)
+        {
+            if (_items.TryGetValue(itemId, out var definition))
+            {
+                return definition;
+            }
+
+            var payload = ParseRawPayload(rawJson);
+            return new PlayerItemDefinition(
+                ItemId: itemId,
+                DisplayName: payload.TryGetValue("displayName", out var displayName) ? displayName : $"Vật phẩm {itemId}",
+                Description: payload.TryGetValue("description", out var description) ? description : string.Empty,
+                StackCap: ParseInt(payload, "stackCap", 99),
+                IsUsable: ParseBool(payload, "isUsable"),
+                HealAmount: ParseInt(payload, "healAmount", 0),
+                IconKind: payload.TryGetValue("iconKind", out var iconKind) ? iconKind : "item");
+        }
+
+        private PlayerEquipmentDefinition ResolveEquipment(int resourceId, string rawJson)
+        {
+            var payload = ParseRawPayload(rawJson);
+            var templateKey = payload.TryGetValue("templateKey", out var resolvedTemplateKey)
+                ? resolvedTemplateKey
+                : string.Empty;
+            if (!string.IsNullOrWhiteSpace(templateKey) &&
+                _equipment.TryGetValue(templateKey, out var definition))
+            {
+                return definition;
+            }
+
+            return new PlayerEquipmentDefinition(
+                TemplateKey: templateKey,
+                DisplayName: payload.TryGetValue("displayName", out var displayName) ? displayName : $"Trang bị {resourceId}",
+                Summary: payload.TryGetValue("summary", out var summary) ? summary : string.Empty,
+                Slot: ParseInt(payload, "slot", 0),
+                ResourceId: resourceId,
+                Level: ParseInt(payload, "level", 1),
+                RequiredLevel: ParseInt(payload, "requiredLevel", 1),
+                IconKind: payload.TryGetValue("iconKind", out var iconKind) ? iconKind : "equipment",
+                Modifier: EquipmentStatModifierParser.Parse(rawJson));
+        }
+
+        private static string BuildItemRawJson(PlayerItemDefinition definition) =>
+            JsonSerializer.Serialize(new
+            {
+                displayName = definition.DisplayName,
+                description = definition.Description,
+                stackCap = definition.StackCap,
+                isUsable = definition.IsUsable,
+                healAmount = definition.HealAmount,
+                iconKind = definition.IconKind
+            });
+
+        private static string BuildEquipmentRawJson(PlayerEquipmentDefinition definition) =>
+            JsonSerializer.Serialize(new
+            {
+                templateKey = definition.TemplateKey,
+                displayName = definition.DisplayName,
+                summary = definition.Summary,
+                slot = definition.Slot,
+                resourceId = definition.ResourceId,
+                level = definition.Level,
+                requiredLevel = definition.RequiredLevel,
+                iconKind = definition.IconKind,
+                modifier = new
+                {
+                    cuongLuc = definition.Modifier.CuongLuc,
+                    thanPhap = definition.Modifier.ThanPhap,
+                    noiLuc = definition.Modifier.NoiLuc,
+                    theLuc = definition.Modifier.TheLuc,
+                    attack = definition.Modifier.FlatAttack,
+                    attackPercent = definition.Modifier.AttackPercent,
+                    crit = definition.Modifier.Crit,
+                    defense = definition.Modifier.Defense,
+                    dodge = definition.Modifier.Dodge,
+                    maxHp = definition.Modifier.MaxHp
+                }
+            });
+
+        private static int StablePercent(string value)
+        {
+            unchecked
+            {
+                var hash = 17;
+                foreach (var ch in value)
+                {
+                    hash = hash * 31 + ch;
+                }
+
+                return Math.Abs(hash % 100);
+            }
+        }
+
+        private static Dictionary<string, string> ParseRawPayload(string rawJson)
+        {
+            if (string.IsNullOrWhiteSpace(rawJson) || rawJson == "{}")
+            {
+                return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            try
+            {
+                using var document = JsonDocument.Parse(rawJson);
+                return document.RootElement.ValueKind == JsonValueKind.Object
+                    ? document.RootElement.EnumerateObject()
+                        .Where(property => property.Value.ValueKind is JsonValueKind.String or JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False)
+                        .ToDictionary(
+                            property => property.Name,
+                            property => property.Value.ToString(),
+                            StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            }
+            catch (JsonException)
+            {
+                return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        private static int ParseInt(IReadOnlyDictionary<string, string> payload, string key, int fallback = 0) =>
+            payload.TryGetValue(key, out var value) && int.TryParse(value, out var parsed)
+                ? parsed
+                : fallback;
+
+        private static bool ParseBool(IReadOnlyDictionary<string, string> payload, string key) =>
+            payload.TryGetValue(key, out var value) && bool.TryParse(value, out var parsed) && parsed;
+
+        private static IReadOnlyDictionary<int, PlayerItemDefinition> CreateItemDefinitions() =>
+            new Dictionary<int, PlayerItemDefinition>
+            {
+                [5001] = new PlayerItemDefinition(5001, "Tiểu Hồi Phục", "Khôi phục 35 HP ngoài battle.", 20, true, 35, "potion_red"),
+                [5002] = new PlayerItemDefinition(5002, "Hỏa Tinh Thạch", "Tinh thạch rơi từ quái hệ Hỏa.", 99, false, 0, "ember"),
+                [5003] = new PlayerItemDefinition(5003, "Băng Tủy", "Tinh hoa lạnh dùng cho nâng cấp sau này.", 99, false, 0, "ice"),
+                [5004] = new PlayerItemDefinition(5004, "Lôi Nha", "Mảnh sừng sét cất vào túi đồ.", 99, false, 0, "zap"),
+                [5005] = new PlayerItemDefinition(5005, "Trung Hồi Phục", "Khôi phục 70 HP ngoài battle.", 20, true, 70, "potion_blue"),
+            };
+
+        private static IReadOnlyDictionary<string, PlayerEquipmentDefinition> CreateEquipmentDefinitions() =>
+            new Dictionary<string, PlayerEquipmentDefinition>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["starter_fire_blade"] = new PlayerEquipmentDefinition("starter_fire_blade", "Hỏa Kiếm Tập Sự", "Vũ khí nhập môn cho hệ Hỏa.", 4, 4101, 1, 1, "weapon", new PlayerStatModifier(FlatAttack: 4, Crit: 1)),
+                ["starter_zap_blade"] = new PlayerEquipmentDefinition("starter_zap_blade", "Lôi Kiếm Tập Sự", "Vũ khí nhập môn cho hệ Lôi.", 4, 4102, 1, 1, "weapon", new PlayerStatModifier(FlatAttack: 3, Dodge: 2, ThanPhap: 1)),
+                ["starter_water_talisman"] = new PlayerEquipmentDefinition("starter_water_talisman", "Thủy Phù Tập Sự", "Phù nhập môn cho hệ Thủy.", 5, 4103, 1, 1, "talisman", new PlayerStatModifier(FlatAttack: 2, MaxHp: 12, NoiLuc: 1)),
+                ["fire_guard_vest"] = new PlayerEquipmentDefinition("fire_guard_vest", "Giáp Hỏa Vệ", "Tăng công và thủ khi train map đầu.", 2, 4201, 1, 6, "armor", new PlayerStatModifier(FlatAttack: 3, Defense: 2, MaxHp: 10)),
+                ["water_guard_cloak"] = new PlayerEquipmentDefinition("water_guard_cloak", "Băng Bào Hộ Thể", "Áo choàng tăng HP và né tránh.", 2, 4202, 1, 6, "armor", new PlayerStatModifier(MaxHp: 18, Dodge: 2, NoiLuc: 1)),
+                ["zap_hunter_boots"] = new PlayerEquipmentDefinition("zap_hunter_boots", "Ngoa Lôi Săn", "Giày tăng thân pháp và chính diện.", 1, 4203, 1, 8, "boots", new PlayerStatModifier(ThanPhap: 2, Dodge: 3, FlatAttack: 2)),
+            };
+
+        private static IReadOnlyDictionary<int, IReadOnlyList<PlayerSkillDefinition>> CreateSkillDefinitions() =>
+            new Dictionary<int, IReadOnlyList<PlayerSkillDefinition>>
+            {
+                [0] =
+                [
+                    new PlayerSkillDefinition(1000, 3, 1, 1),
+                    new PlayerSkillDefinition(1006, 3, 6, 1),
+                    new PlayerSkillDefinition(1007, 2, 12, 1),
+                ],
+                [1] =
+                [
+                    new PlayerSkillDefinition(2000, 3, 1, 1),
+                    new PlayerSkillDefinition(2003, 3, 6, 1),
+                    new PlayerSkillDefinition(2006, 2, 12, 1),
+                ],
+                [2] =
+                [
+                    new PlayerSkillDefinition(4000, 3, 1, 1),
+                    new PlayerSkillDefinition(4006, 3, 6, 1),
+                    new PlayerSkillDefinition(4007, 2, 12, 1),
+                ],
+            };
+
+        public sealed record BattleLootReward(
+            IReadOnlyList<BattleLootItemReward> Items,
+            IReadOnlyList<BattleLootEquipmentReward> Equipment);
+
+        public sealed record BattleLootItemReward(
+            PlayerItemStack Stack,
+            PlayerInventoryItemView View);
+
+        public sealed record BattleLootEquipmentReward(
+            PlayerEquipmentEntry Entry,
+            PlayerEquipmentItemView View);
+
+        public sealed record PlayerItemDefinition(
+            int ItemId,
+            string DisplayName,
+            string Description,
+            int StackCap,
+            bool IsUsable,
+            int HealAmount,
+            string IconKind);
+
+        public sealed record PlayerEquipmentDefinition(
+            string TemplateKey,
+            string DisplayName,
+            string Summary,
+            int Slot,
+            int ResourceId,
+            int Level,
+            int RequiredLevel,
+            string IconKind,
+            PlayerStatModifier Modifier);
+
+        public sealed record PlayerSkillDefinition(
+            int FamilyCode,
+            int MaxLevel,
+            int RequiredLevel,
+            int Cost);
+    }
+}

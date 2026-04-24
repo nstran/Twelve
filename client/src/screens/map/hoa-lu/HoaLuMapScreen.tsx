@@ -22,7 +22,7 @@ import {
 } from '../../battle';
 import { MapHUD } from '../../../components/game/MapHUD/MapHUD';
 import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
-import { PopupMenu, MenuItem } from '../../../components/controls/PopupMenu/PopupMenu';
+import { PopupMenu } from '../../../components/controls/PopupMenu/PopupMenu';
 import { TouchGamepad } from '../../../components/controls/TouchGamepad';
 import { clearSession } from '../../../storage/SessionStorage';
 import {
@@ -32,6 +32,7 @@ import {
   type PlayerMapState,
 } from '../../../network/SocketClient';
 import { resolveSideScrollMapSceneConfig } from '../core';
+import { createMapGameMenuItems } from '../core';
 import type {
   MapMonsterRosterEntry,
   ResolveMapMonsterRoster,
@@ -312,6 +313,7 @@ interface Props {
   roomId: number;
   roomLabel?: string;
   appearance: CharacterAppearance;
+  defeatBlinkToken?: number;
   onBack:    () => void;
   onLogout:  () => void;
   onBattle?: (
@@ -349,6 +351,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   roomId,
   roomLabel,
   appearance,
+  defeatBlinkToken = 0,
   onBack,
   onLogout,
   onBattle,
@@ -412,6 +415,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const scrollRef = useRef<ScrollView>(null);
   const socketClientRef = useRef(SocketClient.getInstance());
   const characterControllerRef = useRef<CharacterControllerRef>(null);
+  const defeatBlinkAnim = useRef(new Animated.Value(1)).current;
+  const defeatBlinkLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  const defeatBlinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const battleTriggered = useRef(false);
   const engagedMonsterIdRef = useRef<string | null>(null);
   const encounterRequestVersionRef = useRef(0);
@@ -428,6 +434,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const [activeMoveDirection, setActiveMoveDirection] = useState<'left' | 'right' | null>(null);
   const [monsterRoster, setMonsterRoster] = useState<MapMonsterRosterEntry[]>([]);
   const [monsterRuntimeVersion, setMonsterRuntimeVersion] = useState(0);
+  const [defeatRecoveryActive, setDefeatRecoveryActive] = useState(false);
 
   // ── Monster runtime (stable identity, mutated in place) ─────────────────
   const monsterRuntimesRef = useRef<MonsterRuntime[]>([]);
@@ -545,72 +552,19 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuSelectedIndex, setMenuSelectedIndex] = useState(0);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await clearSession();
     onLogout();
-  };
+  }, [onLogout]);
 
-  // ── Build game menu structure (standardized) ─────────────────────────────
-  const menuItems: MenuItem[] = useMemo(() => [
-    {
-      id: 'loi-dai',
-      label: 'Lôi Đài',
-      onPress: () => { /* TODO: Navigate to Loi Dai */ },
-    },
-    {
-      id: 'khieu-chien',
-      label: 'Khiêu Chiến',
-      onPress: () => { /* TODO: PvP challenge */ },
-    },
-    {
-      id: 'nhan-vat',
-      label: 'Nhân Vật',
-      children: [
-        { id: 'thong-tin', label: 'Thông tin', onPress: () => {} },
-        { id: 'tuyet-chieu', label: 'Tuyệt Chiêu', onPress: () => {} },
-        { id: 'ruong-do', label: 'Rương Đồ', onPress: () => {} },
-        { id: 'che-tao', label: 'Chế tạo', onPress: () => {} },
-        { id: 'xep-hang', label: 'Xếp hạng', onPress: () => {} },
-      ],
-    },
-    {
-      id: 'mua-ban',
-      label: 'Mua bán',
-      children: [
-        { id: 'cua-hang', label: 'Cửa hàng', children: [
-          { id: 'cua-hang-vu-khi', label: 'Vũ khí', onPress: () => {} },
-          { id: 'cua-hang-giap', label: 'Giáp', onPress: () => {} },
-          { id: 'cua-hang-tieu-hao', label: 'Tiêu hao', onPress: () => {} },
-        ]},
-        { id: 'cho-troi', label: 'Chợ trời', onPress: () => {} },
-        { id: 'giao-dich', label: 'Giao dịch', onPress: () => {} },
-      ],
-    },
-    {
-      id: 'nhiem-vu',
-      label: 'Nhiệm Vụ',
-      onPress: () => { /* TODO: Quest screen */ },
-    },
-    {
-      id: 'ho-tro',
-      label: 'Hỗ trợ',
-      children: [
-        { id: 'gioi-thieu', label: 'Giới thiệu', onPress: () => {} },
-        { id: 'ho-tro-sub', label: 'Hỗ trợ', onPress: () => {} },
-        { id: 'doi-sdt', label: 'Đổi SĐT', onPress: () => {} },
-        { id: 'cai-dat', label: 'Cài đặt', onPress: () => {} },
-      ],
-    },
-    {
-      id: 'dang-xuat',
-      label: 'Đăng Xuất',
-      onPress: handleLogout,
-    },
-  ], [handleLogout]);
+  const menuItems = useMemo(
+    () => createMapGameMenuItems({ onLogout: handleLogout }),
+    [handleLogout],
+  );
 
   const isEncounterActive = encounterPreview !== null;
-  const showTouchGamepad = !menuVisible && !isEncounterActive;
-  const allowMapPointerInput = Platform.OS !== 'web';
+  const showTouchGamepad = !menuVisible && !isEncounterActive && !defeatRecoveryActive;
+  const allowMapPointerInput = Platform.OS !== 'web' && !defeatRecoveryActive;
   const playerSpriteSize = useMemo(
     () => {
       // anchorToBody=true: groundOffset = maxBelowBody * CHAR_SCALE
@@ -635,6 +589,59 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const hudMaxHp = appearance.hp?.max ?? 1000;
   const hudExpPercent = appearance.exp?.cur ?? 45;
   const playerLevel = appearance.level ?? 1;
+
+  useEffect(() => {
+    if (defeatBlinkToken <= 0) {
+      return;
+    }
+
+    setDefeatRecoveryActive(true);
+    setMenuVisible(false);
+    setActiveMoveDirection(null);
+    characterControllerRef.current?.stopMove();
+    defeatBlinkLoopRef.current?.stop();
+    if (defeatBlinkTimerRef.current) {
+      clearTimeout(defeatBlinkTimerRef.current);
+      defeatBlinkTimerRef.current = null;
+    }
+
+    defeatBlinkAnim.setValue(1);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(defeatBlinkAnim, {
+          toValue: 0.18,
+          duration: 110,
+          useNativeDriver: true,
+        }),
+        Animated.timing(defeatBlinkAnim, {
+          toValue: 1,
+          duration: 110,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    defeatBlinkLoopRef.current = loop;
+    loop.start();
+
+    defeatBlinkTimerRef.current = setTimeout(() => {
+      defeatBlinkLoopRef.current?.stop();
+      defeatBlinkLoopRef.current = null;
+      defeatBlinkAnim.setValue(1);
+      setDefeatRecoveryActive(false);
+      defeatBlinkTimerRef.current = null;
+    }, 1500);
+
+    return () => {
+      defeatBlinkLoopRef.current?.stop();
+      defeatBlinkLoopRef.current = null;
+      if (defeatBlinkTimerRef.current) {
+        clearTimeout(defeatBlinkTimerRef.current);
+        defeatBlinkTimerRef.current = null;
+      }
+      defeatBlinkAnim.setValue(1);
+      setDefeatRecoveryActive(false);
+    };
+  }, [defeatBlinkAnim, defeatBlinkToken]);
 
   const scrollToCharacter = useCallback((charLeft: number) => {
     const maxScrollX = Math.max(0, mapWidth - SCREEN_W);
@@ -1131,16 +1138,18 @@ export const HoaLuMapScreen: React.FC<Props> = ({
               scale={sceneConfig.playerScale}
               spriteSize={playerSpriteSize}
               renderSprite={({ action, actionFrameIndex, facing, scale, poseFamilySlot, poseFrameIndex }) => (
-                <CharacterRenderer
-                  appearance={appearance}
-                  scale={scale}
-                  anchorToBody
-                  action={action}
-                  actionFrameIndex={actionFrameIndex}
-                  facing={facing}
-                  poseFamilySlotOverride={poseFamilySlot}
-                  poseFrameIndexOverride={poseFrameIndex}
-                />
+                <Animated.View style={{ opacity: defeatRecoveryActive ? defeatBlinkAnim : 1 }}>
+                  <CharacterRenderer
+                    appearance={appearance}
+                    scale={scale}
+                    anchorToBody
+                    action={action}
+                    actionFrameIndex={actionFrameIndex}
+                    facing={facing}
+                    poseFamilySlotOverride={poseFamilySlot}
+                    poseFrameIndexOverride={poseFrameIndex}
+                  />
+                </Animated.View>
               )}
               monsters={monsterTargets}
               surfaces={sceneSurfaces}
@@ -1152,7 +1161,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
               containerHeight={mapHeight}
               zIndex={LAYER_CHARACTER}
               allowPointerInput={allowMapPointerInput}
-              disabled={menuVisible}
+              disabled={menuVisible || defeatRecoveryActive}
               onMove={(x, facing) => {
                 playerLastMovedAtRef.current = getLoopNowMs();
                 charLeftRef.current = x;
@@ -1231,7 +1240,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         items={menuItems}
         selectedIndex={menuSelectedIndex}
         onIndexChange={setMenuSelectedIndex}
-        onSelect={(item: MenuItem) => { /* handle specific items if needed */ }}
+        onSelect={() => {}}
         onClose={() => setMenuVisible(false)}
         bottomOffset={27} 
       />

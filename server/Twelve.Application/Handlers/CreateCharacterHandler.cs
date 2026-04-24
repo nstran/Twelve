@@ -26,17 +26,20 @@ namespace Twelve.Application.Handlers
         private readonly IPlayerRepository _playerRepository;
         private readonly IPlayerAggregateRepository _playerAggregateRepository;
         private readonly PlayerCharacterPacketFactory _characterPacketFactory;
+        private readonly PlayerContentCatalog _contentCatalog;
         private readonly ILogger<CreateCharacterHandler> _logger;
 
         public CreateCharacterHandler(
             IPlayerRepository playerRepository,
             IPlayerAggregateRepository playerAggregateRepository,
             PlayerCharacterPacketFactory characterPacketFactory,
+            PlayerContentCatalog contentCatalog,
             ILogger<CreateCharacterHandler> logger)
         {
             _playerRepository = playerRepository;
             _playerAggregateRepository = playerAggregateRepository;
             _characterPacketFactory = characterPacketFactory;
+            _contentCatalog = contentCatalog;
             _logger = logger;
         }
 
@@ -159,6 +162,11 @@ namespace Twelve.Application.Handlers
                     await _playerRepository.UpdateAsync(player);
 
                 await _playerAggregateRepository.InitializeForCharacterAsync(player);
+                await _playerAggregateRepository.SaveCollectionsAsync(
+                    player.Id,
+                    _contentCatalog.CreateStarterEquipment(player),
+                    _contentCatalog.CreateStarterInventory(player),
+                    _contentCatalog.CreateStarterSkills(player));
                 var aggregate = await _playerAggregateRepository.GetByUsernameAsync(session.Username);
 
                 _logger.LogInformation("[CreateChar] ✓ Success: Player {Mode} for '{Username}'", 

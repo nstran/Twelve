@@ -13,6 +13,7 @@ const PANEL_CORNER = require('../../../../assets/ui/00_corner_frames/4.png');
 interface BattleSkillPanelProps {
   visible: boolean;
   elementIndex?: number;
+  availableFamilyCodes?: number[];
   selectedFamily: SkillFamilyCode | null;
   onHighlight: (familyCode: SkillFamilyCode) => void;
   onCast: (familyCode: SkillFamilyCode) => void;
@@ -81,12 +82,21 @@ const SkillTile: React.FC<{
 export const BattleSkillPanel: React.FC<BattleSkillPanelProps> = ({
   visible,
   elementIndex,
+  availableFamilyCodes,
   selectedFamily,
   onHighlight,
   onCast,
   onClose,
 }) => {
-  const skills = React.useMemo(() => getSkillFamiliesForElement(elementIndex), [elementIndex]);
+  const skills = React.useMemo(() => {
+    const families = getSkillFamiliesForElement(elementIndex);
+    if (!availableFamilyCodes || availableFamilyCodes.length === 0) {
+      return families;
+    }
+
+    const allowed = new Set(availableFamilyCodes);
+    return families.filter((skill) => allowed.has(skill.familyCode));
+  }, [availableFamilyCodes, elementIndex]);
   const selectedSkill = React.useMemo(
     () => skills.find(skill => skill.familyCode === selectedFamily) ?? skills[0] ?? null,
     [selectedFamily, skills],

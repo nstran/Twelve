@@ -1,14 +1,13 @@
-import { StyleSheet, Dimensions } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-const BOX_BG       = '#e8f4ff';
-const BOX_BORDER   = '#2255bb';
-const SUB_BOX_BG   = '#f0f4ff';
-const PRIMARY_BG   = '#fff3cc';
+const BOX_BORDER = '#2255bb';
+const SUB_BOX_BG = '#f0f4ff';
+const PRIMARY_BG = '#fff3cc';
 const PRIMARY_BORDER = '#cc9900';
 const PRIMARY_TEXT = '#cc6600';
-const VALUE_BLUE   = '#1e40af'; // Blue for values in boxes
+const VALUE_BLUE = '#1e40af';
 
 export const styles = StyleSheet.create({
   container: {
@@ -18,43 +17,42 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bgWrapper: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   background: {
-    width: '100%', height: '100%', resizeMode: 'cover',
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
-
-  // ── Khung ngoài ─────────────────────────────────────────────────────
   outerBox: {
     width: width * 0.94,
     alignSelf: 'center',
     marginTop: 20,
-    height: 'auto', // Override CornerFrame height: 100%
+    height: 'auto',
   },
   innerBox: {
     paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 6,
-    height: 'auto', // Ensure inner box wraps content
+    height: 'auto',
   },
-
-  // ── Header ──────────────────────────────────────────────────────────
   header: {
     gap: 6,
     alignItems: 'stretch',
   },
-
   headerContent: {
     flexDirection: 'row',
     gap: 12,
     alignItems: 'flex-start',
   },
-
   avatarPanel: {
     width: 80,
     gap: 3,
   },
-
   avatarBox: {
     width: 80,
     height: 100,
@@ -63,9 +61,14 @@ export const styles = StyleSheet.create({
     backgroundColor: '#fff',
     overflow: 'hidden',
     alignItems: 'center',
-    justifyContent: 'center', // Center for better scaling/positioning
+    justifyContent: 'center',
   },
-
+  avatarInner: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
   walletRow: {
     height: 15,
     flexDirection: 'row',
@@ -78,12 +81,10 @@ export const styles = StyleSheet.create({
     color: '#5c3600',
     textAlign: 'left',
   },
-
   infoPanel: {
     flex: 1,
     gap: 3,
   },
-
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -101,11 +102,10 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#666',
   },
-
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 20, 
+    height: 20,
     gap: 6,
   },
   infoLabel: {
@@ -134,8 +134,6 @@ export const styles = StyleSheet.create({
   infoValueRed: {
     color: '#ef4444',
   },
-
-  // ── Divider ─────────────────────────────────────────────────────────
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -154,8 +152,6 @@ export const styles = StyleSheet.create({
     marginHorizontal: 4,
     fontWeight: 'bold',
   },
-
-  // ── Progress bars ────────────────────────────────────────────────────
   barsSection: {
     gap: 4,
     marginVertical: 4,
@@ -178,7 +174,8 @@ export const styles = StyleSheet.create({
   },
   barFill: {
     position: 'absolute',
-    left: 0, top: 0,
+    left: 0,
+    top: 0,
     height: '100%',
     borderRightWidth: 1,
     borderRightColor: 'rgba(0,0,0,0.1)',
@@ -190,15 +187,13 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     zIndex: 2,
   },
-
-  // ── 4 chỉ số cơ bản ─────────────────────────────────────────────────
   attrSection: {
     gap: 4,
   },
   attrItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 20, 
+    height: 20,
     gap: 10,
   },
   attrLabel: {
@@ -233,8 +228,6 @@ export const styles = StyleSheet.create({
   attrValuePrimary: {
     color: PRIMARY_TEXT,
   },
-
-  // ── Điểm phân bổ ────────────────────────────────────────────────────
   pointsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -249,7 +242,7 @@ export const styles = StyleSheet.create({
   },
   pointsBox: {
     width: 80,
-    height: 20, 
+    height: 20,
     backgroundColor: '#dcc69d',
     borderWidth: 1,
     borderColor: '#8B4513',
@@ -262,8 +255,6 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#5c3600',
   },
-
-  // ── Combat stats ────────────────────────────────────────────────────
   combatGrid: {
     flexDirection: 'row',
     gap: 6,
@@ -275,7 +266,7 @@ export const styles = StyleSheet.create({
   combatItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 20, 
+    height: 20,
     gap: 3,
   },
   combatLabel: {
@@ -298,11 +289,11 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: VALUE_BLUE,
   },
-
-  // ── Softkey bar ──────────────────────────────────────────────────────
   softKeyBar: {
     position: 'absolute',
-    bottom: 0, left: 0, right: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     height: 40,
   },
 });

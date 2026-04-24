@@ -56,6 +56,7 @@ namespace Twelve.Core.Entities
         public int Slot { get; init; }
         public int ResourceId { get; init; }
         public int Level { get; init; }
+        public bool IsEquipped { get; init; }
         public string RawJson { get; init; } = "{}";
     }
 

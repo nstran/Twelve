@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Twelve.Core.Battle;
 using Twelve.Core.GameLogic;
 using Twelve.Core.Interfaces;
 using Twelve.Core.Monsters;
+using Twelve.Application.Players;
 
 namespace Twelve.Application.Battle
 {
@@ -12,17 +15,23 @@ namespace Twelve.Application.Battle
         private readonly IMonsterSpawnCatalog _monsterSpawnCatalog;
         private readonly IMonsterBattleCatalog _monsterBattleCatalog;
         private readonly IPlayerRepository _playerRepository;
+        private readonly IPlayerAggregateRepository _playerAggregateRepository;
+        private readonly PlayerContentCatalog _contentCatalog;
 
         public BattleResultService(
             IBattleSessionStore battleSessionStore,
             IMonsterSpawnCatalog monsterSpawnCatalog,
             IMonsterBattleCatalog monsterBattleCatalog,
-            IPlayerRepository playerRepository)
+            IPlayerRepository playerRepository,
+            IPlayerAggregateRepository playerAggregateRepository,
+            PlayerContentCatalog contentCatalog)
         {
             _battleSessionStore = battleSessionStore;
             _monsterSpawnCatalog = monsterSpawnCatalog;
             _monsterBattleCatalog = monsterBattleCatalog;
             _playerRepository = playerRepository;
+            _playerAggregateRepository = playerAggregateRepository;
+            _contentCatalog = contentCatalog;
         }
 
         public BattleResultRewardResponse? Claim(BattleResultClaimRequest request)
@@ -49,6 +58,10 @@ namespace Twelve.Application.Battle
             {
                 return null;
             }
+            var aggregate = _playerAggregateRepository.GetByPlayerIdAsync(player.Id).GetAwaiter().GetResult();
+            var equipment = aggregate?.Equipment.ToList() ?? [];
+            var inventory = aggregate?.Inventory.ToList() ?? [];
+            var skills = aggregate?.Skills ?? [];
 
             var levelBefore = player.Level;
             var expBefore = player.Exp;
@@ -58,6 +71,7 @@ namespace Twelve.Application.Battle
 
             var expGained = 0L;
             var quanGained = 0L;
+            var loot = new PlayerContentCatalog.BattleLootReward([], []);
             if (request.Result == BattleResultKind.Victory)
             {
                 var rewards = ResolveRewards(session);
@@ -65,11 +79,18 @@ namespace Twelve.Application.Battle
                 quanGained = rewards.Quan;
                 player.Gold += quanGained;
                 PlayerLevelProgression.ApplyExperience(player, expGained);
+                loot = ResolveLoot(session);
+                ApplyLoot(inventory, equipment, loot);
                 if (player.Level > levelBefore)
                 {
-                    PlayerStatPipeline.RecalculateAndApply(player);
+                    PlayerStatPipeline.RecalculateAndApply(player, _contentCatalog.GetEquippedModifiers(equipment));
                     clampedHp = player.Hp;
                 }
+
+                _playerAggregateRepository
+                    .SaveCollectionsAsync(player.Id, equipment, inventory, skills)
+                    .GetAwaiter()
+                    .GetResult();
             }
             else
             {
@@ -83,7 +104,7 @@ namespace Twelve.Application.Battle
             _playerRepository.UpdateAsync(player).GetAwaiter().GetResult();
             _battleSessionStore.Save(session with { IsCompleted = true });
 
-            return new BattleResultRewardResponse(
+        return new BattleResultRewardResponse(
                 Result: request.Result,
                 LevelBefore: levelBefore,
                 LevelAfter: player.Level,
@@ -97,7 +118,9 @@ namespace Twelve.Application.Battle
                 ExpGained: expGained,
                 QuanBefore: quanBefore,
                 QuanAfter: player.Gold,
-                QuanGained: quanGained);
+                QuanGained: quanGained,
+                ItemRewards: loot.Items.Select(reward => reward.View).ToArray(),
+                EquipmentRewards: loot.Equipment.Select(reward => reward.View).ToArray());
         }
 
         private (long Exp, long Quan) ResolveRewards(BattleSessionState session)
@@ -135,6 +158,54 @@ namespace Twelve.Application.Battle
             return int.TryParse(combatantId[prefix.Length..], out var playerId)
                 ? playerId
                 : null;
+        }
+
+        private PlayerContentCatalog.BattleLootReward ResolveLoot(BattleSessionState session)
+        {
+            var battleTemplateId = session.BattleTemplateId;
+            if (string.IsNullOrWhiteSpace(battleTemplateId) && !string.IsNullOrWhiteSpace(session.SpawnTemplateKey))
+            {
+                battleTemplateId = _monsterSpawnCatalog.GetBySpawnTemplateKey(session.SpawnTemplateKey)?.BattleTemplateId;
+            }
+
+            if (string.IsNullOrWhiteSpace(battleTemplateId))
+            {
+                return new PlayerContentCatalog.BattleLootReward([], []);
+            }
+
+            var battleTemplate = _monsterBattleCatalog.GetByBattleTemplateId(battleTemplateId);
+            return battleTemplate is null
+                ? new PlayerContentCatalog.BattleLootReward([], [])
+                : _contentCatalog.CreateBattleLoot(session, battleTemplate);
+        }
+
+        private static void ApplyLoot(
+            List<Twelve.Core.Entities.PlayerItemStack> inventory,
+            List<Twelve.Core.Entities.PlayerEquipmentEntry> equipment,
+            PlayerContentCatalog.BattleLootReward loot)
+        {
+            foreach (var itemReward in loot.Items)
+            {
+                var existingIndex = inventory.FindIndex(stack => stack.ItemId == itemReward.Stack.ItemId);
+                if (existingIndex >= 0)
+                {
+                    inventory[existingIndex] = new Twelve.Core.Entities.PlayerItemStack
+                    {
+                        ItemId = inventory[existingIndex].ItemId,
+                        Quantity = inventory[existingIndex].Quantity + itemReward.Stack.Quantity,
+                        RawJson = itemReward.Stack.RawJson
+                    };
+                }
+                else
+                {
+                    inventory.Add(itemReward.Stack);
+                }
+            }
+
+            foreach (var equipmentReward in loot.Equipment)
+            {
+                equipment.Add(equipmentReward.Entry);
+            }
         }
     }
 }

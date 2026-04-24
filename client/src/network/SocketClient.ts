@@ -175,6 +175,7 @@ export class SocketClient extends EventEmitter {
         const noiLuc         = this.parseIntTag(payload, Tag.NOI_LUC);
         const theLuc         = this.parseIntTag(payload, Tag.THE_LUC);
         const points         = this.parseIntTag(payload, Tag.FREE_POINTS);
+        const skillPoints    = this.parseIntTag(payload, Tag.SKILL_POINTS);
         const attack         = this.parseIntTag(payload, Tag.ATTACK);
         const accuracy       = this.parseIntTag(payload, Tag.ACCURACY);
         const defense        = this.parseIntTag(payload, Tag.DEFENSE);
@@ -206,9 +207,12 @@ export class SocketClient extends EventEmitter {
           quanProgress: { cur: quanProgress, max: quanCap || 10000 },
           hp: { cur: hpCur, max: hpMax },
           exp: { cur: expPct, max: 100 },
+          expRange: { value: expValue, floor: expFloor, ceiling: expCeiling },
           power: { cur: powerCur, max: powerMax },
           stats: { cuongLuc, noiLuc, thanPhap, theLuc },
           points,
+          freePoints: points,
+          skillPoints,
           combat: {
             attack,
             def: defense,

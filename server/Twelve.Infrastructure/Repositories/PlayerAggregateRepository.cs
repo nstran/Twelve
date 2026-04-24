@@ -28,13 +28,29 @@ namespace Twelve.Infrastructure.Repositories
                 return null;
             }
 
+            return await GetByPlayerInternalAsync(player);
+        }
+
+        public async Task<PlayerAggregate?> GetByPlayerIdAsync(int playerId)
+        {
+            var player = await _playerRepository.GetByIdAsync(playerId);
+            if (player is null)
+            {
+                return null;
+            }
+
+            return await GetByPlayerInternalAsync(player);
+        }
+
+        private async Task<PlayerAggregate> GetByPlayerInternalAsync(Player player)
+        {
             using var connection = _connectionFactory.CreateConnection();
 
             var equipment = await connection.QueryAsync<PlayerEquipmentEntry>(
-                @"SELECT EquipKey, Slot, ResourceId, Level, RawJson::text AS RawJson
+                @"SELECT EquipKey, Slot, ResourceId, Level, IsEquipped, RawJson::text AS RawJson
                   FROM PlayerEquipment
                   WHERE PlayerId = @PlayerId
-                  ORDER BY Slot, EquipKey",
+                  ORDER BY IsEquipped DESC, Slot, EquipKey",
                 new { PlayerId = player.Id });
 
             var inventory = await connection.QueryAsync<PlayerItemStack>(
@@ -129,6 +145,82 @@ namespace Twelve.Infrastructure.Repositories
                     MapId = player.CurrentMap,
                     RoomId = player.CurrentRoom
                 });
+        }
+
+        public async Task SaveCollectionsAsync(
+            int playerId,
+            IReadOnlyList<PlayerEquipmentEntry> equipment,
+            IReadOnlyList<PlayerItemStack> inventory,
+            IReadOnlyList<PlayerSkillEntry> skills)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            using var transaction = connection.BeginTransaction();
+
+            await connection.ExecuteAsync(
+                @"DELETE FROM PlayerEquipment WHERE PlayerId = @PlayerId;
+                  DELETE FROM PlayerInventory WHERE PlayerId = @PlayerId;
+                  DELETE FROM PlayerSkills WHERE PlayerId = @PlayerId;",
+                new { PlayerId = playerId },
+                transaction);
+
+            const string insertEquipmentSql = @"
+                INSERT INTO PlayerEquipment (PlayerId, EquipKey, Slot, ResourceId, Level, IsEquipped, RawJson)
+                VALUES (@PlayerId, @EquipKey, @Slot, @ResourceId, @Level, @IsEquipped, CAST(@RawJson AS jsonb))";
+
+            foreach (var entry in equipment)
+            {
+                await connection.ExecuteAsync(
+                    insertEquipmentSql,
+                    new
+                    {
+                        PlayerId = playerId,
+                        entry.EquipKey,
+                        entry.Slot,
+                        entry.ResourceId,
+                        entry.Level,
+                        entry.IsEquipped,
+                        entry.RawJson
+                    },
+                    transaction);
+            }
+
+            const string insertInventorySql = @"
+                INSERT INTO PlayerInventory (PlayerId, ItemId, Quantity, RawJson)
+                VALUES (@PlayerId, @ItemId, @Quantity, CAST(@RawJson AS jsonb))";
+
+            foreach (var entry in inventory)
+            {
+                await connection.ExecuteAsync(
+                    insertInventorySql,
+                    new
+                    {
+                        PlayerId = playerId,
+                        entry.ItemId,
+                        entry.Quantity,
+                        entry.RawJson
+                    },
+                    transaction);
+            }
+
+            const string insertSkillsSql = @"
+                INSERT INTO PlayerSkills (PlayerId, SkillId, Level, RawJson)
+                VALUES (@PlayerId, @SkillId, @Level, CAST(@RawJson AS jsonb))";
+
+            foreach (var entry in skills)
+            {
+                await connection.ExecuteAsync(
+                    insertSkillsSql,
+                    new
+                    {
+                        PlayerId = playerId,
+                        entry.SkillId,
+                        entry.Level,
+                        entry.RawJson
+                    },
+                    transaction);
+            }
+
+            transaction.Commit();
         }
 
         public async Task UpsertWorldStateAsync(

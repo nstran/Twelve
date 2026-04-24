@@ -258,6 +258,36 @@ export interface BattleResultRewardResponse {
   quanBefore: number;
   quanAfter: number;
   quanGained: number;
+  itemRewards?: Array<{
+    itemId: number;
+    displayName: string;
+    description: string;
+    quantity: number;
+    stackCap: number;
+    isUsable: boolean;
+    healAmount: number;
+    iconKind: string;
+  }> | null;
+  equipmentRewards?: Array<{
+    equipKey: string;
+    displayName: string;
+    summary: string;
+    slot: number;
+    resourceId: number;
+    level: number;
+    requiredLevel: number;
+    isEquipped: boolean;
+    iconKind: string;
+    bonusCuongLuc: number;
+    bonusThanPhap: number;
+    bonusNoiLuc: number;
+    bonusTheLuc: number;
+    bonusAttack: number;
+    bonusDefense: number;
+    bonusDodge: number;
+    bonusCrit: number;
+    bonusMaxHp: number;
+  }> | null;
 }
 
 export type ResolveBattleResult =

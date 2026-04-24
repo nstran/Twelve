@@ -28,6 +28,8 @@ namespace Twelve.Application
             services.AddSingleton<IMapMonsterRosterService, InMemoryMapMonsterRosterService>();
             services.AddSingleton<IMonsterBattleBootstrapService, MonsterBattleBootstrapService>();
             services.AddSingleton<PlayerCharacterPacketFactory>();
+            services.AddSingleton<PlayerContentCatalog>();
+            services.AddSingleton<IPlayerRuntimeService, PlayerRuntimeService>();
 
             // ── Đăng ký Handlers ───────────────────────────────────────────────
             services.AddSingleton<AuthHandler>();

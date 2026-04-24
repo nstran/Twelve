@@ -17,7 +17,12 @@ import {
   type BattleResultRewardResponse,
 } from './src/screens';
 import { CreateCharacterScreen } from './src/screens/character/create';
-import { CharacterStatusScreen, type PlayerAppearance } from './src/screens/character/status';
+import {
+  CharacterStatusScreen,
+  createPlayerRuntimeApi,
+  mergePlayerRuntimeAppearance,
+  type PlayerAppearance,
+} from './src/screens/character/status';
 import type { MapInfo } from './src/data/MapData';
 import { SocketClient }          from './src/network/SocketClient';
 import {
@@ -88,15 +93,43 @@ export default function App() {
     () => createMapMonsterRosterResolver(SERVER_URL),
     [],
   );
+  const playerRuntimeApi = React.useMemo(
+    () => createPlayerRuntimeApi(SERVER_URL),
+    [],
+  );
 
   const client         = SocketClient.getInstance();
   const reconnectTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingBattleResultRef = useRef<BattleResultRewardResponse | null>(null);
   const delayedBattleResultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptRef      = useRef(0);
+  const playerAppearanceRef = useRef<PlayerAppearance>(playerAppearance);
   // Username lấy từ session đã lưu, dùng để save lại rolling token sau auto-login
   const pendingUsername = useRef<string | null>(null);
   const lastScreen      = useRef<Screen | null>(null);
+  const [defeatBlinkToken, setDefeatBlinkToken] = useState(0);
+
+  useEffect(() => {
+    playerAppearanceRef.current = playerAppearance;
+  }, [playerAppearance]);
+
+  const applyRuntimeResponse = React.useCallback((response: { snapshot: any } | null) => {
+    if (!response?.snapshot) {
+      return;
+    }
+
+    setPlayerAppearance((current) => mergePlayerRuntimeAppearance(current, response.snapshot));
+  }, []);
+
+  const refreshPlayerRuntime = React.useCallback(async (username?: string) => {
+    if (!username) {
+      return null;
+    }
+
+    const response = await playerRuntimeApi.load(username);
+    applyRuntimeResponse(response);
+    return response;
+  }, [applyRuntimeResponse, playerRuntimeApi]);
 
   // ── Persist screen state ───────────────────────────────────────────────
   useEffect(() => {
@@ -173,7 +206,7 @@ export default function App() {
 
     const onCharacterInfo = (appearance: PlayerAppearance) => {
       addLog(`[App] CharacterInfo → characterStatus (element=${appearance.elementIndex})`);
-      setPlayerAppearance({
+      const nextAppearance = {
         ...appearance,
         genderIndex:    appearance.genderIndex,
         faceIndex:      appearance.faceIndex,
@@ -181,7 +214,9 @@ export default function App() {
         hairColorIndex: appearance.hairColorIndex,
         skinColorIndex: appearance.skinColorIndex,
         elementIndex:   appearance.elementIndex,
-      });
+      };
+      setPlayerAppearance(nextAppearance);
+      void refreshPlayerRuntime(nextAppearance.username);
       setScreen('characterStatus');
     };
 
@@ -223,6 +258,9 @@ export default function App() {
     }
     setBattleBootstrap(null);
     setScreen('hoaLuMap');
+    if (pendingResult?.result === 'defeat') {
+      setDefeatBlinkToken((current) => current + 1);
+    }
     if (pendingResult) {
       delayedBattleResultTimerRef.current = setTimeout(() => {
         delayedBattleResultTimerRef.current = null;
@@ -246,8 +284,10 @@ export default function App() {
         quan: `${result.quanAfter} Quan`,
         hp: { cur: result.currentHp, max: result.maxHp },
         exp: { cur: expPct, max: 100 },
+        expRange: { value: result.expAfter, floor: result.expFloor, ceiling: result.expCeiling },
       };
     });
+    void refreshPlayerRuntime(playerAppearanceRef.current.username);
   };
 
   const queueBattleResult = (result: BattleResultRewardResponse) => {
@@ -300,6 +340,7 @@ export default function App() {
             }}
             resolveMonsterRoster={resolveMapMonsterRoster}
             resolveMonsterBootstrap={resolveMonsterBootstrap}
+            defeatBlinkToken={defeatBlinkToken}
             onBattle={(type, initialTurn, monsterBootstrap) => {
               setBattleMonster(type as MonsterTypeNav);
               setBattleInitialTurn(
@@ -364,6 +405,34 @@ export default function App() {
         return (
           <CharacterStatusScreen
             appearance={playerAppearance}
+            onAllocateStat={async (stat) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.allocateStat(username, stat);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
+            onAllocateSkill={async (familyCode) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.allocateSkill(username, familyCode);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
+            onToggleEquipment={async (equipKey, equip) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.toggleEquipment(username, equipKey, equip);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
+            onUseItem={async (itemId) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.useItem(username, itemId);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
             onStart={() => setScreen('mapSelection')}
             onLogout={async () => {
               await clearSession();

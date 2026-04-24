@@ -4,6 +4,7 @@ using Twelve.Core.Battle;
 using Twelve.Core.Interfaces;
 using Twelve.Core.Monsters;
 using Twelve.Core.Options;
+using Twelve.Core.Players;
 using Twelve.Application;
 using Twelve.Infrastructure;
 using Twelve.Infrastructure.Data;
@@ -155,6 +156,36 @@ app.MapGet("/map/monster-roster", (
         MapId: mapId,
         RoomId: roomId,
         Encounters: responseEntries));
+});
+
+app.MapGet("/player/runtime", (string username, IPlayerRuntimeService service) =>
+{
+    var response = service.GetSnapshot(new PlayerRuntimeRequest(username));
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/player/runtime/stat", (PlayerAllocateStatRuntimeRequest request, IPlayerRuntimeService service) =>
+{
+    var response = service.AllocateStat(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/player/runtime/skill", (PlayerAllocateSkillRuntimeRequest request, IPlayerRuntimeService service) =>
+{
+    var response = service.AllocateSkill(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/player/runtime/equipment", (PlayerEquipmentRuntimeRequest request, IPlayerRuntimeService service) =>
+{
+    var response = service.UpdateEquipment(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
+app.MapPost("/player/runtime/item-use", (PlayerUseItemRuntimeRequest request, IPlayerRuntimeService service) =>
+{
+    var response = service.UseItem(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
 });
 
 app.Run();

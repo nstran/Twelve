@@ -109,6 +109,9 @@ Quy định monster reward hiện tại:
 - client gọi result endpoint khi `victory/defeat`
 - popup kết quả hiển thị HP còn lại, EXP, Quan và thưởng nhận được
 - App cập nhật HUD/appearance sau result response
+- thắng trận có thể rơi item/equipment và lưu thẳng vào aggregate; popup kết quả hiển thị loot text
+- sau khi rời battle, App refresh runtime snapshot player để status/inventory/equipment đồng bộ với DB
+- nếu thua, nhân vật ngoài map bị khóa input ngắn và nháy opacity trước khi điều khiển lại
 
 Defeat penalty hiện tại:
 

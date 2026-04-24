@@ -635,6 +635,10 @@ export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
   const displayQuan = Math.max(0, Math.floor(quanNow));
   const canClose = reward !== null && animatedRewardProgress >= 1 - RESULT_REWARD_ZERO_EPSILON;
   const close = result === 'victory' ? onVictory : onDefeat;
+  const lootLines = [
+    ...(reward?.itemRewards ?? []).map((item) => `${item.displayName} x${item.quantity}`),
+    ...(reward?.equipmentRewards ?? []).map((equipment) => equipment.displayName),
+  ].slice(0, 3);
 
   return (
     <View pointerEvents="box-none" style={s.resultBannerLayer}>
@@ -682,6 +686,18 @@ export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
           </Text>
           <ResultRewardLine iconSource={RESULT_GOLD_ICON} label={formatSignedDelta(quanRewardRemaining)} />
           <ResultRewardLine iconSource={RESULT_EXP_ICON} label={formatSignedDelta(expRewardRemaining)} />
+          {lootLines.length > 0 ? (
+            <>
+              <Text style={[resultStyles.sectionTitle, resultStyles.lootTitle]}>
+                Vật phẩm
+              </Text>
+              {lootLines.map((line) => (
+                <Text key={line} style={resultStyles.lootText}>
+                  • {line}
+                </Text>
+              ))}
+            </>
+          ) : null}
           {reward && reward.levelUps > 0 ? (
             <Text style={resultStyles.levelUpText}>
               Lên cấp +{reward.levelUps}

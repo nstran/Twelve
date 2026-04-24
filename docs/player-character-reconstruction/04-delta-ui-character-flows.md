@@ -323,6 +323,17 @@ Java cũ có chain refresh khá rõ:
 6. inventory/equipment screen chạy trên char clone thật, không phải metadata rời.
 7. `com.mg.sq.a` là tầng apply-delta trung tâm cho toàn bộ character runtime.
 
+### Trạng thái triển khai runtime status/inventory hiện tại
+
+Đã có bản triển khai thực dụng cho remake:
+
+- status screen dùng runtime snapshot HTTP riêng để lấy inventory/equipment/skill tree hiện tại
+- phân điểm tiềm năng cập nhật thẳng player DB rồi recalc derived stats với equip đang mặc
+- skill allocation dùng pool `SkillPoints` riêng, giới hạn theo element + level requirement
+- equipment có trạng thái `IsEquipped` để tách loadout đang mặc với đồ đang nằm trong túi
+- dùng item hiện chỉ hỗ trợ consumable hồi HP ngoài battle; quantity trừ thật trong `PlayerInventory`
+- battle panel tuyệt chiêu chỉ hiện các family code mà player đã học trong aggregate
+
 ## Create Character Flow
 
 `nw.java` chứng minh client create-char chỉ chọn:

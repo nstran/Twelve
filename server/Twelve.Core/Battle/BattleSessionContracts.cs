@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Twelve.Core.Players;
 
 namespace Twelve.Core.Battle
 {
@@ -133,6 +134,8 @@ namespace Twelve.Core.Battle
         long ExpGained,
         long QuanBefore,
         long QuanAfter,
-        long QuanGained
+        long QuanGained,
+        IReadOnlyList<PlayerInventoryItemView>? ItemRewards = null,
+        IReadOnlyList<PlayerEquipmentItemView>? EquipmentRewards = null
     );
 }
