@@ -567,9 +567,9 @@ export const styles = StyleSheet.create({
   inventoryAvatarBox: {
     position: 'absolute',
     left: 107,
-    top: 46,
+    top: 48,
     width: 78,
-    height: 96,
+    height: 105,
     borderWidth: 2,
     borderColor: '#7c9eb2',
     backgroundColor: '#e7fbff',
