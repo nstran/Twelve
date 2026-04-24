@@ -12,6 +12,7 @@ namespace Twelve.Infrastructure
             services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
             services.AddSingleton<IPlayerRepository, PlayerRepository>();
             services.AddSingleton<IPlayerAggregateRepository, PlayerAggregateRepository>();
+            services.AddSingleton<IEquipmentCatalogRepository, EquipmentCatalogRepository>();
             services.AddSingleton<IAccountRepository, AccountRepository>();
             services.AddSingleton<IPasswordHasher, PasswordHasher>();
             services.AddSingleton<ISessionTokenStore, JwtSessionTokenStore>();

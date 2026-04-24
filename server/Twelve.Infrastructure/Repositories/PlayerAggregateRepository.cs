@@ -47,7 +47,7 @@ namespace Twelve.Infrastructure.Repositories
             using var connection = _connectionFactory.CreateConnection();
 
             var equipment = await connection.QueryAsync<PlayerEquipmentEntry>(
-                @"SELECT EquipKey, Slot, ResourceId, Level, IsEquipped, RawJson::text AS RawJson
+                @"SELECT EquipKey, TemplateKey, Slot, ResourceId, Level, IsEquipped, RawJson::text AS RawJson
                   FROM PlayerEquipment
                   WHERE PlayerId = @PlayerId
                   ORDER BY IsEquipped DESC, Slot, EquipKey",
@@ -165,8 +165,8 @@ namespace Twelve.Infrastructure.Repositories
                 transaction);
 
             const string insertEquipmentSql = @"
-                INSERT INTO PlayerEquipment (PlayerId, EquipKey, Slot, ResourceId, Level, IsEquipped, RawJson)
-                VALUES (@PlayerId, @EquipKey, @Slot, @ResourceId, @Level, @IsEquipped, CAST(@RawJson AS jsonb))";
+                INSERT INTO PlayerEquipment (PlayerId, EquipKey, TemplateKey, Slot, ResourceId, Level, IsEquipped, RawJson)
+                VALUES (@PlayerId, @EquipKey, @TemplateKey, @Slot, @ResourceId, @Level, @IsEquipped, CAST(@RawJson AS jsonb))";
 
             foreach (var entry in equipment)
             {
@@ -176,6 +176,7 @@ namespace Twelve.Infrastructure.Repositories
                     {
                         PlayerId = playerId,
                         entry.EquipKey,
+                        entry.TemplateKey,
                         entry.Slot,
                         entry.ResourceId,
                         entry.Level,

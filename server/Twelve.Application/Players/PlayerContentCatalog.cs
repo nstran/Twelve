@@ -5,6 +5,7 @@ using System.Text.Json;
 using Twelve.Core.Battle;
 using Twelve.Core.Entities;
 using Twelve.Core.GameLogic;
+using Twelve.Core.Interfaces;
 using Twelve.Core.Monsters;
 using Twelve.Core.Players;
 
@@ -13,13 +14,15 @@ namespace Twelve.Application.Players
     public sealed class PlayerContentCatalog
     {
         private readonly IReadOnlyDictionary<int, PlayerItemDefinition> _items;
-        private readonly IReadOnlyDictionary<string, PlayerEquipmentDefinition> _equipment;
         private readonly IReadOnlyDictionary<int, IReadOnlyList<PlayerSkillDefinition>> _skillsByElement;
+        private readonly IEquipmentCatalogRepository _equipmentCatalogRepository;
+        private readonly object _equipmentLock = new();
+        private IReadOnlyDictionary<string, PlayerEquipmentDefinition>? _equipment;
 
-        public PlayerContentCatalog()
+        public PlayerContentCatalog(IEquipmentCatalogRepository equipmentCatalogRepository)
         {
+            _equipmentCatalogRepository = equipmentCatalogRepository;
             _items = CreateItemDefinitions();
-            _equipment = CreateEquipmentDefinitions();
             _skillsByElement = CreateSkillDefinitions();
         }
 
@@ -28,13 +31,13 @@ namespace Twelve.Application.Players
             var templateKey = (player.Element ?? 0) switch
             {
                 1 => "starter_zap_blade",
-                2 => "starter_water_talisman",
+                2 => "starter_water_blade",
                 _ => "starter_fire_blade"
             };
 
             return new[]
             {
-                CreateStarterEquipmentEntry(_equipment[templateKey], $"starter-{player.Username}")
+                CreateStarterEquipmentEntry(GetRequiredEquipmentDefinition(templateKey), $"starter-{player.Username}")
             };
         }
 
@@ -111,7 +114,7 @@ namespace Twelve.Application.Players
 
         public PlayerEquipmentItemView ToEquipmentView(PlayerEquipmentEntry entry)
         {
-            var definition = ResolveEquipment(entry.ResourceId, entry.RawJson);
+            var definition = ResolveEquipment(entry);
             return new PlayerEquipmentItemView(
                 EquipKey: entry.EquipKey,
                 DisplayName: definition.DisplayName,
@@ -122,6 +125,10 @@ namespace Twelve.Application.Players
                 RequiredLevel: definition.RequiredLevel,
                 IsEquipped: entry.IsEquipped,
                 IconKind: definition.IconKind,
+                Rank: definition.Rank,
+                Durability: definition.Durability,
+                MaxDurability: definition.MaxDurability,
+                Tradeable: definition.Tradeable,
                 BonusCuongLuc: definition.Modifier.CuongLuc,
                 BonusThanPhap: definition.Modifier.ThanPhap,
                 BonusNoiLuc: definition.Modifier.NoiLuc,
@@ -175,9 +182,9 @@ namespace Twelve.Application.Players
             {
                 var template = (battleTemplate.Element & 0xFF) switch
                 {
-                    1 => _equipment["zap_hunter_boots"],
-                    2 => _equipment["water_guard_cloak"],
-                    _ => _equipment["fire_guard_vest"]
+                    1 => GetRequiredEquipmentDefinition("zap_hunter_helm"),
+                    2 => GetRequiredEquipmentDefinition("water_guard_cloak"),
+                    _ => GetRequiredEquipmentDefinition("fire_guard_vest")
                 };
 
                 var equipmentEntry = BuildEquipmentEntry(template, session.SessionId);
@@ -207,6 +214,7 @@ namespace Twelve.Application.Players
             return new PlayerEquipmentEntry
             {
                 EquipKey = equipKey,
+                TemplateKey = definition.TemplateKey,
                 Slot = definition.Slot,
                 ResourceId = definition.ResourceId,
                 Level = definition.Level,
@@ -234,6 +242,7 @@ namespace Twelve.Application.Players
             return new PlayerEquipmentEntry
             {
                 EquipKey = entry.EquipKey,
+                TemplateKey = entry.TemplateKey,
                 Slot = entry.Slot,
                 ResourceId = entry.ResourceId,
                 Level = entry.Level,
@@ -246,6 +255,36 @@ namespace Twelve.Application.Players
             _skillsByElement.TryGetValue(element, out var definitions)
                 ? definitions
                 : _skillsByElement[0];
+
+        private PlayerEquipmentDefinition GetRequiredEquipmentDefinition(string templateKey)
+        {
+            var equipment = GetEquipmentDefinitions();
+            return equipment.TryGetValue(templateKey, out var definition)
+                ? definition
+                : throw new InvalidOperationException($"Equipment template '{templateKey}' was not found in EquipmentCatalog.");
+        }
+
+        private IReadOnlyDictionary<string, PlayerEquipmentDefinition> GetEquipmentDefinitions()
+        {
+            if (_equipment is not null)
+            {
+                return _equipment;
+            }
+
+            lock (_equipmentLock)
+            {
+                if (_equipment is not null)
+                {
+                    return _equipment;
+                }
+
+                var definitions = _equipmentCatalogRepository.GetAllAsync().GetAwaiter().GetResult();
+                _equipment = definitions.ToDictionary(
+                    definition => definition.TemplateKey,
+                    StringComparer.OrdinalIgnoreCase);
+                return _equipment;
+            }
+        }
 
         private PlayerItemDefinition ResolveItem(int itemId, string rawJson)
         {
@@ -265,16 +304,28 @@ namespace Twelve.Application.Players
                 IconKind: payload.TryGetValue("iconKind", out var iconKind) ? iconKind : "item");
         }
 
-        private PlayerEquipmentDefinition ResolveEquipment(int resourceId, string rawJson)
+        private PlayerEquipmentDefinition ResolveEquipment(PlayerEquipmentEntry entry)
         {
-            var payload = ParseRawPayload(rawJson);
-            var templateKey = payload.TryGetValue("templateKey", out var resolvedTemplateKey)
+            var resourceId = entry.ResourceId;
+            var payload = ParseRawPayload(entry.RawJson);
+            var templateKey = !string.IsNullOrWhiteSpace(entry.TemplateKey)
+                ? entry.TemplateKey
+                : payload.TryGetValue("templateKey", out var resolvedTemplateKey)
                 ? resolvedTemplateKey
                 : string.Empty;
             if (!string.IsNullOrWhiteSpace(templateKey) &&
-                _equipment.TryGetValue(templateKey, out var definition))
+                GetEquipmentDefinitions().TryGetValue(templateKey, out var definition))
             {
-                return definition;
+                return definition with
+                {
+                    Rank = ParseInt(payload, "rank", definition.Rank),
+                    ElementIcon = ParseInt(payload, "elementIcon", definition.ElementIcon),
+                    Gender = ParseInt(payload, "gender", definition.Gender),
+                    Durability = ParseInt(payload, "durability", definition.Durability),
+                    MaxDurability = ParseInt(payload, "maxDurability", definition.MaxDurability),
+                    Tradeable = ParseBool(payload, "tradeable", definition.Tradeable),
+                    RepairCost = ParseInt(payload, "repairCost", (int)definition.RepairCost)
+                };
             }
 
             return new PlayerEquipmentDefinition(
@@ -286,7 +337,15 @@ namespace Twelve.Application.Players
                 Level: ParseInt(payload, "level", 1),
                 RequiredLevel: ParseInt(payload, "requiredLevel", 1),
                 IconKind: payload.TryGetValue("iconKind", out var iconKind) ? iconKind : "equipment",
-                Modifier: EquipmentStatModifierParser.Parse(rawJson));
+                Rank: ParseInt(payload, "rank", 0),
+                ElementIcon: ParseInt(payload, "elementIcon", 7),
+                Gender: ParseInt(payload, "gender", 2),
+                Durability: ParseInt(payload, "durability", -1),
+                MaxDurability: ParseInt(payload, "maxDurability", 0),
+                Tradeable: ParseBool(payload, "tradeable", fallback: true),
+                RepairCost: ParseInt(payload, "repairCost", -1),
+                IsEnabled: true,
+                Modifier: EquipmentStatModifierParser.Parse(entry.RawJson));
         }
 
         private static string BuildItemRawJson(PlayerItemDefinition definition) =>
@@ -311,6 +370,26 @@ namespace Twelve.Application.Players
                 level = definition.Level,
                 requiredLevel = definition.RequiredLevel,
                 iconKind = definition.IconKind,
+                rank = definition.Rank,
+                elementIcon = definition.ElementIcon,
+                gender = definition.Gender,
+                durability = definition.Durability,
+                maxDurability = definition.MaxDurability,
+                tradeable = definition.Tradeable,
+                repairCost = definition.RepairCost,
+                legacyTags = new
+                {
+                    key = "string",
+                    slot = 84,
+                    resourceId = 4,
+                    enhancementLevel = 27,
+                    requiredLevel = 135,
+                    rank = 138,
+                    durability = 139,
+                    maxDurability = 144,
+                    tradeable = 85,
+                    repairCost = 190
+                },
                 modifier = new
                 {
                     cuongLuc = definition.Modifier.CuongLuc,
@@ -370,8 +449,10 @@ namespace Twelve.Application.Players
                 ? parsed
                 : fallback;
 
-        private static bool ParseBool(IReadOnlyDictionary<string, string> payload, string key) =>
-            payload.TryGetValue(key, out var value) && bool.TryParse(value, out var parsed) && parsed;
+        private static bool ParseBool(IReadOnlyDictionary<string, string> payload, string key, bool fallback = false) =>
+            payload.TryGetValue(key, out var value) && bool.TryParse(value, out var parsed)
+                ? parsed
+                : fallback;
 
         private static IReadOnlyDictionary<int, PlayerItemDefinition> CreateItemDefinitions() =>
             new Dictionary<int, PlayerItemDefinition>
@@ -381,17 +462,6 @@ namespace Twelve.Application.Players
                 [5003] = new PlayerItemDefinition(5003, "Băng Tủy", "Tinh hoa lạnh dùng cho nâng cấp sau này.", 99, false, 0, "ice"),
                 [5004] = new PlayerItemDefinition(5004, "Lôi Nha", "Mảnh sừng sét cất vào túi đồ.", 99, false, 0, "zap"),
                 [5005] = new PlayerItemDefinition(5005, "Trung Hồi Phục", "Khôi phục 70 HP ngoài battle.", 20, true, 70, "potion_blue"),
-            };
-
-        private static IReadOnlyDictionary<string, PlayerEquipmentDefinition> CreateEquipmentDefinitions() =>
-            new Dictionary<string, PlayerEquipmentDefinition>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["starter_fire_blade"] = new PlayerEquipmentDefinition("starter_fire_blade", "Hỏa Kiếm Tập Sự", "Vũ khí nhập môn cho hệ Hỏa.", 4, 80000, 1, 1, "weapon", new PlayerStatModifier(FlatAttack: 4, Crit: 1)),
-                ["starter_zap_blade"] = new PlayerEquipmentDefinition("starter_zap_blade", "Lôi Kiếm Tập Sự", "Vũ khí nhập môn cho hệ Lôi.", 4, 80200, 1, 1, "weapon", new PlayerStatModifier(FlatAttack: 3, Dodge: 2, ThanPhap: 1)),
-                ["starter_water_talisman"] = new PlayerEquipmentDefinition("starter_water_talisman", "Thủy Phù Tập Sự", "Phù nhập môn cho hệ Thủy.", 5, 120100, 1, 1, "talisman", new PlayerStatModifier(FlatAttack: 2, MaxHp: 12, NoiLuc: 1)),
-                ["fire_guard_vest"] = new PlayerEquipmentDefinition("fire_guard_vest", "Giáp Hỏa Vệ", "Tăng công và thủ khi train map đầu.", 2, 70100, 1, 6, "armor", new PlayerStatModifier(FlatAttack: 3, Defense: 2, MaxHp: 10)),
-                ["water_guard_cloak"] = new PlayerEquipmentDefinition("water_guard_cloak", "Băng Bào Hộ Thể", "Áo choàng tăng HP và né tránh.", 2, 70300, 1, 6, "armor", new PlayerStatModifier(MaxHp: 18, Dodge: 2, NoiLuc: 1)),
-                ["zap_hunter_boots"] = new PlayerEquipmentDefinition("zap_hunter_boots", "Ngoa Lôi Săn", "Giày tăng thân pháp và chính diện.", 1, 120200, 1, 8, "boots", new PlayerStatModifier(ThanPhap: 2, Dodge: 3, FlatAttack: 2)),
             };
 
         private static IReadOnlyDictionary<int, IReadOnlyList<PlayerSkillDefinition>> CreateSkillDefinitions() =>
@@ -437,17 +507,6 @@ namespace Twelve.Application.Players
             bool IsUsable,
             int HealAmount,
             string IconKind);
-
-        public sealed record PlayerEquipmentDefinition(
-            string TemplateKey,
-            string DisplayName,
-            string Summary,
-            int Slot,
-            int ResourceId,
-            int Level,
-            int RequiredLevel,
-            string IconKind,
-            PlayerStatModifier Modifier);
 
         public sealed record PlayerSkillDefinition(
             int FamilyCode,

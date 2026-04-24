@@ -38,6 +38,10 @@ export interface CharacterEquipmentLayerConfig extends CharacterLayerAssetFamily
   key: string;
   /** Legacy meta family, e.g. 70099 -> 70000..70004 offsets per pose slot. */
   metaId: number;
+  /** Used while only a subset of legacy equipment .meta files is decoded. */
+  fallbackMetaId?: number;
+  /** Legacy compositor slot this layer replaces when equipped. */
+  replacesDefaultLayer?: 'outfit' | 'weapon';
   /** Painter order inside the character compositor. */
   zIndex: number;
 }

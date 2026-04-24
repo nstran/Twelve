@@ -53,6 +53,7 @@ namespace Twelve.Core.Entities
     public sealed class PlayerEquipmentEntry
     {
         public required string EquipKey { get; init; }
+        public string? TemplateKey { get; init; }
         public int Slot { get; init; }
         public int ResourceId { get; init; }
         public int Level { get; init; }

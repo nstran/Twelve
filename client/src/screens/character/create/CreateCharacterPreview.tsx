@@ -36,6 +36,7 @@ import {
   ACTION_SLOT_RUNTIME_CANONICAL_MAP,
   ACTION_SLOT_RUNTIME_EXTENDED_META,
 } from './actionSlotMeta';
+import { EQUIPMENT_ACTION_SLOT_META } from './equipmentActionSlotMeta';
 import type {
   CharacterAppearance,
   CharacterEquipmentLayerConfig,
@@ -431,7 +432,12 @@ function resolveBodyRect(
   };
 }
 
-function getActionSlotMeta(metaId: number, familySlot: ActionFamilySlot): SlotMeta {
+function getActionSlotMeta(metaId: number, familySlot: ActionFamilySlot, fallbackMetaId?: number): SlotMeta {
+  const equipmentMeta = EQUIPMENT_ACTION_SLOT_META[metaId]?.[familySlot as 0 | 1 | 2 | 3 | 4];
+  if (equipmentMeta) {
+    return equipmentMeta;
+  }
+
   const actionMetaBySlot = ACTION_SLOT_META[metaId] as Partial<Record<ActionFamilySlot, SlotMeta>> | undefined;
   const runtimeMeta = actionMetaBySlot?.[familySlot];
   if (runtimeMeta) {
@@ -459,6 +465,10 @@ function getActionSlotMeta(metaId: number, familySlot: ActionFamilySlot): SlotMe
   const fallbackMeta = SLOT_ZERO_META[metaId];
   if (fallbackMeta) {
     return fallbackMeta;
+  }
+
+  if (fallbackMetaId !== undefined && fallbackMetaId !== metaId) {
+    return getActionSlotMeta(fallbackMetaId, familySlot);
   }
 
   throw new Error(`Missing action slot meta for metaId=${metaId}, slot=${familySlot}`);
@@ -495,6 +505,8 @@ function buildCreateCharacterLayout(
   const genderAsset = GENDER_FAMILY_ASSETS[genderKey][familySlot];
   const overlayAsset = OVERLAY_FAMILY_ASSETS[familySlot];
   const bodyAsset = BODY_FAMILY_ASSETS[familySlot];
+  const replacesDefaultOutfit = equipmentLayers.some(layer => layer.replacesDefaultLayer === 'outfit');
+  const replacesDefaultWeapon = equipmentLayers.some(layer => layer.replacesDefaultLayer === 'weapon');
 
   const hairOption = HAIR_STYLE_OPTIONS[genderKey][hairIndex] ?? HAIR_STYLE_OPTIONS[genderKey][0];
   const hairLayer = hairLayerOverride ?? {
@@ -533,17 +545,19 @@ function buildCreateCharacterLayout(
     3,
   ));
 
-  layers.push(resolveMetaRect(
-    'gender',
-    genderAsset.source,
-    genderAsset.width,
-    genderAsset.height,
-    undefined,
-    undefined,
-    getActionSlotMeta(genderOption.metaId, familySlot),
-    frameStep,
-    4,
-  ));
+  if (!replacesDefaultOutfit) {
+    layers.push(resolveMetaRect(
+      'gender',
+      genderAsset.source,
+      genderAsset.width,
+      genderAsset.height,
+      undefined,
+      undefined,
+      getActionSlotMeta(genderOption.metaId, familySlot),
+      frameStep,
+      4,
+    ));
+  }
 
   for (const equipmentLayer of equipmentLayers) {
     const equipmentAsset = resolveFamilySlotAsset(equipmentLayer, familySlot);
@@ -554,23 +568,25 @@ function buildCreateCharacterLayout(
       equipmentAsset.height,
       equipmentAsset.cropX,
       equipmentAsset.cropY,
-      getActionSlotMeta(equipmentLayer.metaId, familySlot),
+      getActionSlotMeta(equipmentLayer.metaId, familySlot, equipmentLayer.fallbackMetaId),
       frameStep,
       equipmentLayer.zIndex,
     ));
   }
 
-  layers.push(resolveMetaRect(
-    'overlay',
-    overlayAsset.source,
-    overlayAsset.width,
-    overlayAsset.height,
-    undefined,
-    undefined,
-    getActionSlotMeta(DEFAULT_OVERLAY.metaId, familySlot),
-    frameStep,
-    999,
-  ));
+  if (!replacesDefaultWeapon) {
+    layers.push(resolveMetaRect(
+      'overlay',
+      overlayAsset.source,
+      overlayAsset.width,
+      overlayAsset.height,
+      undefined,
+      undefined,
+      getActionSlotMeta(DEFAULT_OVERLAY.metaId, familySlot),
+      frameStep,
+      999,
+    ));
+  }
 
   layers.sort((a, b) => a.zIndex - b.zIndex);
 

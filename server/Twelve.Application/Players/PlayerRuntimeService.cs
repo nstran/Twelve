@@ -279,6 +279,7 @@ namespace Twelve.Application.Players
             new()
             {
                 EquipKey = source.EquipKey,
+                TemplateKey = source.TemplateKey,
                 Slot = source.Slot,
                 ResourceId = source.ResourceId,
                 Level = source.Level,

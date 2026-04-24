@@ -6,6 +6,12 @@ export type {
   CharacterSkillNode,
 } from './characterAppearance';
 export {
+  getEquipmentBandId,
+  getEquipmentIconId,
+  buildEquippedCharacterEquipmentLayers,
+  resolveEquipmentIconAsset,
+} from './equipmentAssets';
+export {
   buildSheetFamilyAssets,
 } from './characterEquipmentLayer';
 export type {

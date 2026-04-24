@@ -10,7 +10,7 @@ import { SoftkeyBar } from '../../../components/controls/SoftkeyBar/SoftkeyBar';
 import { PopupMenu } from '../../../components/controls/PopupMenu/PopupMenu';
 import { COMMON_MENU_ITEMS } from '../../../constants/MenuConstants';
 import { CHARACTER_STATUS_ASSETS } from './assets';
-import { CreateCharacterPreview } from '../create/CreateCharacterPreview';
+import { CharacterRenderer } from '../CharacterRenderer';
 import { CornerFrame } from '../../../components/ui/CornerFrame/CornerFrame';
 import type { CharacterAppearance as PlayerAppearance } from '../shared';
 
@@ -169,12 +169,8 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({
               <View style={styles.avatarPanel}>
                 <View style={styles.avatarBox}>
                   <View style={styles.avatarInner}>
-                    <CreateCharacterPreview
-                      genderIndex={appearance.genderIndex}
-                      faceIndex={appearance.faceIndex}
-                      hairIndex={appearance.hairIndex}
-                      hairColorIndex={appearance.hairColorIndex}
-                      skinColorIndex={appearance.skinColorIndex}
+                    <CharacterRenderer
+                      appearance={appearance}
                       scale={1.5}
                       style={{ position: 'relative', bottom: 4 }}
                     />

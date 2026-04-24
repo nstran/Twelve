@@ -473,15 +473,15 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  equipSlotHat: {
+  equipSlotArmor: {
     left: 78,
     top: 36,
   },
-  equipSlotArmor: {
+  equipSlotWeapon: {
     left: 78,
     top: 92,
   },
-  equipSlotWeapon: {
+  equipSlotHat: {
     left: 216,
     top: 36,
   },
@@ -489,11 +489,11 @@ export const styles = StyleSheet.create({
     left: 216,
     top: 92,
   },
-  equipSlotCharm: {
+  equipSlotMount: {
     left: 272,
     top: 36,
   },
-  equipSlotAccessory: {
+  equipSlotRing: {
     left: 272,
     top: 92,
   },

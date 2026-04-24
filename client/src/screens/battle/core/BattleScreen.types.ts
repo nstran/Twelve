@@ -278,6 +278,10 @@ export interface BattleResultRewardResponse {
     requiredLevel: number;
     isEquipped: boolean;
     iconKind: string;
+    rank: number;
+    durability: number;
+    maxDurability: number;
+    tradeable: boolean;
     bonusCuongLuc: number;
     bonusThanPhap: number;
     bonusNoiLuc: number;

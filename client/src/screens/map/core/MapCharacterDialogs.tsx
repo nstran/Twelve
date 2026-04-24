@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { CornerFrame } from '../../../components/ui/CornerFrame/CornerFrame';
-import { CreateCharacterPreview } from '../../character/create/CreateCharacterPreview';
+import { CharacterRenderer } from '../../character/CharacterRenderer';
 import { CHARACTER_STATUS_ASSETS } from '../../character/status/assets';
 import type {
   CharacterAppearance,
@@ -17,6 +17,7 @@ import type {
   CharacterInventoryItem,
   CharacterSkillNode,
 } from '../../character/shared';
+import { resolveEquipmentIconAsset } from '../../character/shared';
 import {
   BATTLE_SKILLS,
   getSkillFamiliesForElement,
@@ -35,20 +36,6 @@ const INFO_ASSETS = {
   skilltree: require('../../../../assets/ui/12_info/skilltree.png'),
   hidenobj: require('../../../../assets/ui/12_info/hidenobj.png'),
   itemchest: require('../../../../assets/ui/12_info/itemchest.png'),
-};
-const EQUIPMENT_ICON_ASSETS: Record<number, any> = {
-  4101: require('../../../../assets/equipment/03_weapon_e1/weapon_800xx/80098.png'),
-  4102: require('../../../../assets/equipment/03_weapon_e1/weapon_802xx/80298.png'),
-  4103: require('../../../../assets/equipment/07_accessory_e5_e7_e8/accessory_candidate_120xxx/120198.png'),
-  4201: require('../../../../assets/equipment/02_armor_e0/armor_701xx/70198.png'),
-  4202: require('../../../../assets/equipment/02_armor_e0/armor_703xx/70398.png'),
-  4203: require('../../../../assets/equipment/07_accessory_e5_e7_e8/accessory_candidate_120xxx/120298.png'),
-  80000: require('../../../../assets/equipment/03_weapon_e1/weapon_800xx/80098.png'),
-  80200: require('../../../../assets/equipment/03_weapon_e1/weapon_802xx/80298.png'),
-  120100: require('../../../../assets/equipment/07_accessory_e5_e7_e8/accessory_candidate_120xxx/120198.png'),
-  70100: require('../../../../assets/equipment/02_armor_e0/armor_701xx/70198.png'),
-  70300: require('../../../../assets/equipment/02_armor_e0/armor_703xx/70398.png'),
-  120200: require('../../../../assets/equipment/07_accessory_e5_e7_e8/accessory_candidate_120xxx/120298.png'),
 };
 const SKILL_UI_ASSETS = {
   increase: require('../../../../assets/skill/00_skill_tree_ui_confirmed/skill_tree_board/increase.png'),
@@ -88,12 +75,14 @@ const STAT_ROWS: Array<{ label: string; key: CharacterStatKey; valueKey: keyof N
   { label: 'Thể Lực', key: 'TheLuc', valueKey: 'theLuc' },
 ];
 const EQUIPMENT_SLOT_NAMES: Record<number, string> = {
-  0: 'Nón',
-  1: 'Giày',
-  2: 'Áo',
-  3: 'Phụ kiện',
-  4: 'Vũ khí',
-  5: 'Bùa',
+  0: 'Áo',
+  1: 'Vũ khí',
+  2: 'Nón',
+  3: 'Giày',
+  4: 'Ngựa/Khiên',
+  5: 'Nhẫn',
+  7: 'Bùa',
+  8: 'Bùa',
 };
 
 const formatQuan = (value: number) =>
@@ -121,8 +110,7 @@ const getEquipmentBonusRows = (entry: CharacterEquipmentItem) => [
   entry.bonusMaxHp ? `Sinh lực ${formatSigned(entry.bonusMaxHp)}` : null,
 ].filter((row): row is string => Boolean(row));
 
-const resolveEquipmentIcon = (entry: CharacterEquipmentItem) =>
-  EQUIPMENT_ICON_ASSETS[entry.resourceId] ?? EQUIPMENT_ICON_ASSETS[entry.resourceId - (entry.resourceId % 100)];
+const resolveEquipmentIcon = (entry: CharacterEquipmentItem) => resolveEquipmentIconAsset(entry);
 
 const valueBox = (value: React.ReactNode, wide = false) => (
   <View style={[styles.valueBox, wide && styles.valueBoxWide]}>
@@ -288,12 +276,8 @@ const PotentialDialog: React.FC<{
           <View style={styles.statusAvatarPanel}>
             <View style={styles.statusAvatarBox}>
               <View style={styles.statusAvatarInner}>
-                <CreateCharacterPreview
-                  genderIndex={appearance.genderIndex}
-                  faceIndex={appearance.faceIndex}
-                  hairIndex={appearance.hairIndex}
-                  hairColorIndex={appearance.hairColorIndex}
-                  skinColorIndex={appearance.skinColorIndex}
+                <CharacterRenderer
+                  appearance={appearance}
                   scale={1.5}
                   style={{ position: 'relative', bottom: 4 }}
                 />
@@ -596,7 +580,7 @@ const InventoryDetailPanel: React.FC<{
           </Text>
         </View>
         <Text style={styles.inventoryDetailText} numberOfLines={1}>
-          Yêu cầu cấp {entry.requiredLevel}  {entry.isEquipped ? 'Đang mặc' : 'Trong túi'}
+          Yêu cầu cấp {entry.requiredLevel}  Bền {entry.durability}/{entry.maxDurability}  {entry.isEquipped ? 'Đang mặc' : 'Trong túi'}
         </Text>
         <View style={styles.inventoryBonusGrid}>
           {(bonusRows.length > 0 ? bonusRows : [entry.summary]).slice(0, 6).map(row => (
@@ -689,19 +673,15 @@ const InventoryShell: React.FC<{
         <Text style={styles.inventoryName} numberOfLines={1}>{player.username}</Text>
         <Text style={styles.inventoryLevel}>Cấp:{player.level}</Text>
       </View>
-      {renderEquipSlot(0, styles.equipSlotHat)}
-      {renderEquipSlot(2, styles.equipSlotArmor)}
-      {renderEquipSlot(4, styles.equipSlotWeapon)}
-      {renderEquipSlot(1, styles.equipSlotBoot)}
-      {renderEquipSlot(5, styles.equipSlotCharm)}
-      {renderEquipSlot(3, styles.equipSlotAccessory)}
+      {renderEquipSlot(0, styles.equipSlotArmor)}
+      {renderEquipSlot(1, styles.equipSlotWeapon)}
+      {renderEquipSlot(2, styles.equipSlotHat)}
+      {renderEquipSlot(3, styles.equipSlotBoot)}
+      {renderEquipSlot(4, styles.equipSlotMount)}
+      {renderEquipSlot(5, styles.equipSlotRing)}
       <View style={styles.inventoryAvatarBox}>
-        <CreateCharacterPreview
-          genderIndex={appearance.genderIndex}
-          faceIndex={appearance.faceIndex}
-          hairIndex={appearance.hairIndex}
-          hairColorIndex={appearance.hairColorIndex}
-          skinColorIndex={appearance.skinColorIndex}
+        <CharacterRenderer
+          appearance={appearance}
           scale={1.45}
           style={{ position: 'relative', bottom: 2 }}
         />

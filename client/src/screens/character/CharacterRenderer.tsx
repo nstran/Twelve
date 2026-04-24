@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { CharacterAction, CharacterPoseFamilySlot } from '../../engine/character';
 import { CreateCharacterPreview, measureCreateCharacterPreview } from './create/CreateCharacterPreview';
@@ -7,6 +7,7 @@ import type {
   CharacterEquipmentLayerConfig,
   CharacterHairLayerOverride,
 } from './shared';
+import { buildEquippedCharacterEquipmentLayers } from './shared';
 
 type CharacterRendererFacing = 'left' | 'right';
 
@@ -30,25 +31,39 @@ export function measureCharacterRenderer(
   scale?: number,
   anchorToBody = false,
   hairLayerOverride?: CharacterHairLayerOverride,
-  equipmentLayers: readonly CharacterEquipmentLayerConfig[] = [],
+  equipmentLayers?: readonly CharacterEquipmentLayerConfig[],
 ) {
-  return measureCreateCharacterPreview(appearance, scale, anchorToBody, hairLayerOverride, equipmentLayers);
+  return measureCreateCharacterPreview(
+    appearance,
+    scale,
+    anchorToBody,
+    hairLayerOverride,
+    equipmentLayers ?? buildEquippedCharacterEquipmentLayers(appearance),
+  );
 }
 
 export const CharacterRenderer: React.FC<CharacterRendererProps> = ({
   appearance,
   hairLayerOverride,
-  equipmentLayers,
+  equipmentLayers: equipmentLayersProp,
   ...rest
-}) => (
-  <CreateCharacterPreview
-    genderIndex={appearance.genderIndex}
-    faceIndex={appearance.faceIndex}
-    hairIndex={appearance.hairIndex}
-    hairColorIndex={appearance.hairColorIndex}
-    skinColorIndex={appearance.skinColorIndex}
-    hairLayerOverride={hairLayerOverride}
-    equipmentLayers={equipmentLayers}
-    {...rest}
-  />
-);
+}) => {
+  const appearanceEquipmentLayers = useMemo(
+    () => buildEquippedCharacterEquipmentLayers(appearance),
+    [appearance],
+  );
+  const equipmentLayers = equipmentLayersProp ?? appearanceEquipmentLayers;
+
+  return (
+    <CreateCharacterPreview
+      genderIndex={appearance.genderIndex}
+      faceIndex={appearance.faceIndex}
+      hairIndex={appearance.hairIndex}
+      hairColorIndex={appearance.hairColorIndex}
+      skinColorIndex={appearance.skinColorIndex}
+      hairLayerOverride={hairLayerOverride}
+      equipmentLayers={equipmentLayers}
+      {...rest}
+    />
+  );
+};
