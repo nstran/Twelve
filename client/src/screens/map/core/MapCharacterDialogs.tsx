@@ -397,25 +397,35 @@ const SkillNode: React.FC<{
   node?: CharacterSkillNode;
   canUpgrade: boolean;
   disabled: boolean;
+  selected?: boolean;
   onPress: () => void;
   onUpgrade: () => void;
   style: object;
-}> = ({ familyCode, node, canUpgrade, disabled, onPress, onUpgrade, style }) => {
+}> = ({ familyCode, node, canUpgrade, disabled, selected, onPress, onUpgrade, style }) => {
   const skill = BATTLE_SKILLS[familyCode];
   const level = node?.level ?? 0;
 
   return (
     <Pressable onPress={onPress} style={[styles.skillNode, style]}>
+      {selected && (
+        <View style={styles.skillNodeSelectedFrame} pointerEvents="none">
+          <View style={[styles.skillNodeCorner, styles.skillNodeCornerTopLeft]} />
+          <View style={[styles.skillNodeCorner, styles.skillNodeCornerTopRight]} />
+          <View style={[styles.skillNodeCorner, styles.skillNodeCornerBottomLeft]} />
+          <View style={[styles.skillNodeCorner, styles.skillNodeCornerBottomRight]} />
+        </View>
+      )}
       <Image source={skill.icon} style={styles.skillIcon} resizeMode="stretch" />
       <Text style={styles.skillLevel}>{level}</Text>
-      <TouchableOpacity
-        activeOpacity={0.85}
-        disabled={!canUpgrade || disabled}
-        onPress={onUpgrade}
-        style={[styles.skillUpgradeButton, (!canUpgrade || disabled) && styles.skillUpgradeButtonDisabled]}
-      >
-        <Image source={SKILL_UI_ASSETS.increase} style={styles.skillUpgradeIcon} resizeMode="contain" />
-      </TouchableOpacity>
+      {canUpgrade && !disabled && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={onUpgrade}
+          style={styles.skillUpgradeButton}
+        >
+          <Image source={SKILL_UI_ASSETS.increase} style={styles.skillUpgradeIcon} resizeMode="contain" />
+        </TouchableOpacity>
+      )}
     </Pressable>
   );
 };
@@ -433,9 +443,9 @@ const SkillTreeBackground = () => (
 
 const SKILL_TREE_SCALE = 1.45;
 const SKILL_POSITIONS = [
-  [94, 11],
-  [94, 101],
-  [94, 152],
+  [95.2, 11],
+  [95.2, 101],
+  [95.2, 152],
   [29, 76],
   [29, 127],
   [29, 178],
@@ -481,6 +491,7 @@ const SkillsDialog: React.FC<{
               node={node}
               canUpgrade={node?.canUpgrade ?? player.skillPoints > 0}
               disabled={pending !== null}
+              selected={selectedFamilyCode === familyCode}
               onPress={() => setSelectedFamilyCode(familyCode)}
               onUpgrade={() => onRunAction(`skill-${familyCode}`, () => onAllocateSkill?.(familyCode))}
               style={SKILL_POSITIONS[index]}
@@ -490,10 +501,7 @@ const SkillsDialog: React.FC<{
       </View>
       <Divider />
       <View style={styles.skillInfoCompact}>
-        <Text style={styles.skillInfoTitle}>{selectedSkill.title}</Text>
-        <Text style={styles.skillInfoText}>
-          Cấp {selectedNode?.level ?? 0}/{selectedNode?.maxLevel ?? 12}  Cần cấp {selectedNode?.requiredLevel ?? 1}
-        </Text>
+        <Text style={styles.skillInfoTitle}>Kỹ năng chưa đặt tên</Text>
       </View>
     </View>
   );
