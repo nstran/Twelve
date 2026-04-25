@@ -409,6 +409,11 @@ namespace Twelve.Application.Players
         private PlayerRuntimeSnapshot BuildSnapshot(PlayerAggregate aggregate)
         {
             var player = aggregate.Core;
+            var mapMovement = MapMovementCalculator.Calculate(
+                player.Level,
+                player.ThanPhap,
+                player.BonusThanPhap);
+
             return new PlayerRuntimeSnapshot(
                 Username: player.Username,
                 Element: player.Element ?? 0,
@@ -437,6 +442,8 @@ namespace Twelve.Application.Players
                 Dodge: player.DerivedDodge,
                 Hit: player.DerivedHit,
                 Crit: player.DerivedCrit,
+                MapMoveSpeed: mapMovement.MoveSpeed,
+                MapJumpSpeed: mapMovement.JumpSpeed,
                 Inventory: aggregate.Inventory.Select(_contentCatalog.ToInventoryView).ToArray(),
                 Equipment: aggregate.Equipment.Select(_contentCatalog.ToEquipmentView).ToArray(),
                 Skills: _contentCatalog.BuildSkillViews(player, aggregate.Skills));

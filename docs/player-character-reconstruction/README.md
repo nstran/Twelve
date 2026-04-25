@@ -15,6 +15,7 @@ Nguồn tách từ PLAYER_CHARACTER_RECONSTRUCTION.md, giữ nguyên nội dung 
 | [05-protocol-trade-upgrade-market.md](05-protocol-trade-upgrade-market.md) | outbound/inbound protocol, trade, nâng cấp, kết hợp, market/sale |
 | [06-map-room-battle-runtime.md](06-map-room-battle-runtime.md) | map actor, room/profile runtime, battle actor/HUD/result dependencies |
 | [07-arena-pvp-flow.md](07-arena-pvp-flow.md) | kiến trúc Khiêu Chiến/PvP: lobby, challenge, match session, result/rating/reward |
+| [08-level-stat-exp-and-element-balance.md](08-level-stat-exp-and-element-balance.md) | spec cân bằng level 250, điểm tiềm năng, EXP curve, stat, movement, resource và khắc hệ |
 
 # Player / Character Reconstruction
 

@@ -85,6 +85,8 @@ namespace Twelve.Core.Players
         int Dodge,
         int Hit,
         int Crit,
+        float MapMoveSpeed,
+        float MapJumpSpeed,
         IReadOnlyList<PlayerInventoryItemView> Inventory,
         IReadOnlyList<PlayerEquipmentItemView> Equipment,
         IReadOnlyList<PlayerSkillNodeView> Skills

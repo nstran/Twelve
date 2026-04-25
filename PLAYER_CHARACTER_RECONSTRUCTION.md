@@ -16,6 +16,7 @@ Trạng thái: **100% thực dụng trong phạm vi player/character server cont
 | [`05-protocol-trade-upgrade-market.md`](docs/player-character-reconstruction/05-protocol-trade-upgrade-market.md) | outbound/inbound protocol, trade, nâng cấp, kết hợp, market/sale |
 | [`06-map-room-battle-runtime.md`](docs/player-character-reconstruction/06-map-room-battle-runtime.md) | map actor, room/profile runtime, battle actor/HUD/result dependencies |
 | [`07-arena-pvp-flow.md`](docs/player-character-reconstruction/07-arena-pvp-flow.md) | kiến trúc Khiêu Chiến/PvP: lobby, challenge, match session, result/rating/reward |
+| [`08-level-stat-exp-and-element-balance.md`](docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md) | spec cân bằng level 250, điểm tiềm năng, EXP curve, stat, movement, resource và khắc hệ |
 
 ## Nguyên Tắc Chính
 
@@ -25,7 +26,7 @@ Riêng map trong remake là map mới, không có map cũ để bám theo. Runti
 
 Tiến độ map player hiện tại: player trên map đã dùng character thật và world-state DB; move được server clamp/echo theo tọa độ native map; client đã snap theo move ack canonical. Map train là PvE của chính player để đánh quái kiếm EXP, không có co-presence người chơi trên map. Người chơi chỉ gặp nhau qua flow Khiêu Chiến/PvP riêng. Phần chưa hoàn tất là collision platform nâng cao, server-authoritative monster AI và flow Khiêu Chiến/PvP.
 
-Tiến độ reward hiện tại: battle result đã có `/battle/result`; server claim session một lần, cộng EXP/Quan khi thắng; khi thua hồi HP về đầy và trừ EXP theo defeat penalty của level hiện tại; không persist MP/Power/nộ vì reset theo từng trận; áp dụng level curve `100 * (level - 1)^2`; reward thắng đã có thêm drop item/equipment và lưu thẳng vào `PlayerInventory` / `PlayerEquipment`; client hiển thị bảng kết quả HP/EXP/Quan kèm loot text sau trận, rồi refresh runtime player đầy đủ.
+Tiến độ reward hiện tại: battle result đã có `/battle/result`; server claim session một lần, cộng EXP/Quan khi thắng; khi thua hồi HP về đầy và trừ EXP theo defeat penalty của level hiện tại; không persist MP/Power/nộ vì reset theo từng trận; hiện code còn áp dụng level curve cũ `100 * (level - 1)^2`, nhưng spec cân bằng mới đã chốt trong `08-level-stat-exp-and-element-balance.md`: max level 250, không bonus điểm tiềm năng, EXP curve cày cuốc dài hơn và có khắc hệ; reward thắng đã có thêm drop item/equipment và lưu thẳng vào `PlayerInventory` / `PlayerEquipment`; client hiển thị bảng kết quả HP/EXP/Quan kèm loot text sau trận, rồi refresh runtime player đầy đủ.
 
 Tiến độ character runtime hiện tại: status screen chỉ giữ vai trò hiển thị thông tin nhân vật kiểu Java cũ. Các action character nằm trong menu map dùng chung `Nhân Vật`: phân điểm tiềm năng, nâng skill theo hệ, mặc/tháo trang bị, dùng item hồi HP ngoài battle. Battle bootstrap giờ lấy skill đã học thật từ aggregate để khóa panel tuyệt chiêu theo player state hiện tại.
 

@@ -2,6 +2,73 @@
 
 ## 2026-04-25
 
+### Ghi spec cân bằng Level 250 / Stat / EXP / Khắc Hệ — Player/Character
+
+**Mục tiêu:**
+- Tách riêng tài liệu cực quan trọng cho công thức cân bằng khi không có server Java cũ.
+- Chốt không có điểm tiềm năng bonus; mỗi level chỉ cộng `+5` điểm.
+- Đưa EXP curve mới để game cày cuốc lâu hơn tới max level 250.
+- Thiết kế cân bằng 3 hướng build `Cường Lực / Nội Lực / Thân Pháp` và vòng khắc hệ.
+
+**Sửa:**
+- Tạo `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`.
+- Cập nhật index `docs/player-character-reconstruction/README.md`.
+- Cập nhật `PLAYER_CHARACTER_RECONSTRUCTION.md` để trỏ tới spec mới và ghi rõ code hiện vẫn còn curve EXP cũ trước khi port công thức mới.
+- Chốt khắc hệ v1: `Cường Lực > Thân Pháp > Nội Lực > Cường Lực`, multiplier 112%/100%/92%, resistance cap 20%.
+- Bổ sung rule chọn hệ chính và cộng điểm khác hệ:
+  - Hệ chính dùng stat chuyên môn 100% hiệu quả.
+  - Cộng stat khác hệ vẫn hợp lệ nhưng chỉ đóng vai trò hybrid/support.
+  - Stat khác hệ dùng soft cap cho damage/skill/offense chuyên môn: 70% trước mốc 120, 35% sau mốc 120.
+  - `Thể Lực` luôn 100% cho mọi hệ.
+- Bổ sung rule trang bị/stat hybrid theo tinh thần game Java cũ:
+  - Trang bị tăng Cường Lực/Nội Lực/Thân Pháp phải có giá trị thật kể cả khi không cùng hệ chính.
+  - `TotalStat = Base + Allocated + Equipment + Buff`.
+  - Affinity 70% chỉ dùng cho chuyên môn tấn công chính khác hệ.
+  - Resource, item hồi phục và lợi ích phụ dùng `TotalStat` để người chơi mặc đồ tăng Nội Lực/Cường Lực vẫn thấy mạnh lên rõ.
+  - Ghi rõ sát thương/chuyên môn tấn công từ stat khác hệ vẫn bị giảm qua affinity, kể cả stat đó đến từ cộng điểm hay trang bị.
+- Bổ sung rule item hồi phục như `Trái Đào`:
+  - Item hồi HP vẫn tăng hiệu quả theo Cường Lực.
+  - Đúng hệ Cường Lực scale/cap cao hơn.
+  - Khác hệ cố cộng Cường Lực vẫn hồi nhiều hơn nhưng cap thấp hơn để giữ vai trò hybrid/support.
+  - Item hồi MP tương tự theo Nội Lực.
+- Bổ sung nguyên tắc cân bằng tổng thể để game có build đa dạng:
+  - Không hệ nào quá nổi trội, không hệ nào quá yếu.
+  - Build thuần mạnh nhất ở chuyên môn.
+  - Build hybrid linh hoạt hơn nhưng không vượt build thuần ở sát thương/chuyên môn.
+  - Chuyển hướng cân bằng khuyến nghị từ 70% cố định sang off-element offense soft cap để 3 hệ luôn song hành ở late game: 70% trước mốc 120, 35% sau mốc 120.
+  - Nếu test lệch, ưu tiên chỉnh soft cap/efficiency/cap/monster distribution/skill cost thay vì phá core formula.
+- Ghi rõ khắc hệ áp dụng cho cả PvE/train monster, không chỉ PvP; player đánh monster và monster đánh player đều dùng chung công thức khắc hệ để battle server thống nhất.
+
+**File đã sửa:**
+- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`
+- `docs/player-character-reconstruction/README.md`
+- `PLAYER_CHARACTER_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+### Bổ sung rule Cường Lực/Nội Lực cho tài nguyên battle — Player/Character + Battle
+- Làm rõ `Cường Lực / Nội Lực / Thân Pháp` không tự tăng trực tiếp theo level nếu chưa có bằng chứng Java; level chỉ cấp điểm tiềm năng để người chơi phân bổ.
+- Bám Java cho tốc độ actor ngoài map: `kl.java — kl.b(lh)` dùng `lh.G` level để tính `i = 4 + G / 10`, cap `9`.
+- Thêm tầng remake có ghi nguồn suy luận: `Thân Pháp` ảnh hưởng tốc độ ngang và lực nhảy với hệ số nhỏ/cap để không phá collision map mới.
+
+**Sửa:**
+- Thêm `MapMovementCalculator` trên server, giữ integer division đúng Java cho speed theo level.
+- Runtime snapshot trả thêm `mapMoveSpeed`, `mapJumpSpeed`.
+- Client merge movement stats vào `CharacterAppearance.mapMovement`.
+- `HoaLuMapScreen` truyền speed/jumpSpeed theo runtime player thật xuống `CharacterController`.
+- `CharacterController` hỗ trợ `jumpSpeed` động thay vì cố định toàn map.
+- Cập nhật tài liệu `docs/player-character-reconstruction/01-implementation-plan-csharp.md` với nguồn Java, công thức và nhật ký chỉnh sửa.
+
+**File đã sửa:**
+- `server/Twelve.Core/GameLogic/MapMovementCalculator.cs`
+- `server/Twelve.Core/Players/PlayerRuntimeContracts.cs`
+- `server/Twelve.Application/Players/PlayerRuntimeService.cs`
+- `client/src/screens/character/status/CharacterStatus.api.ts`
+- `client/src/screens/character/shared/characterAppearance.ts`
+- `client/src/engine/character/character.types.ts`
+- `client/src/engine/character/CharacterController.tsx`
+- `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`
+- `docs/player-character-reconstruction/01-implementation-plan-csharp.md`
+
 ### Sửa lỗi seed PRNG refill/cascade PvP không đồng nhất — `BattleScreen.tsx`
 
 **Lỗi:**

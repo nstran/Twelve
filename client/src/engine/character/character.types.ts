@@ -100,6 +100,8 @@ export interface CharacterControllerProps {
   controlMode?: CharacterControlMode;
   /** Movement speed in pixels per frame */
   speed?: number;
+  /** Initial upward jump speed in pixels per reference frame */
+  jumpSpeed?: number;
   /** Display scale */
   scale?: number;
   /** List of monsters to detect proximity & attack */

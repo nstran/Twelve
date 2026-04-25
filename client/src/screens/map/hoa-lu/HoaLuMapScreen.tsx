@@ -1629,7 +1629,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
               initialFacing={serverPlayerFacing}
               groundY={groundTop}
               controlMode="tap-to-move"
-              speed={sceneConfig.playerSpeed}
+              speed={appearance.mapMovement?.moveSpeed ?? sceneConfig.playerSpeed}
+              jumpSpeed={appearance.mapMovement?.jumpSpeed}
               scale={sceneConfig.playerScale}
               spriteSize={playerSpriteSize}
               renderSprite={({ action, actionFrameIndex, facing, scale, poseFamilySlot, poseFrameIndex }) => (

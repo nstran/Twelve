@@ -155,7 +155,13 @@ const GEM_FX_BASE: Record<VisibleGemType, { dmg: number; heal: number; mana: num
 export const GEM_FX: Record<VisibleGemType, { dmg: number; heal: number; mana: number; pow: number }> = GEM_FX_BASE;
 
 const RESOURCE_GAIN_BASELINE_STAT = 10;
+// Java client exposes HP/MP/Power bars in lh/mx and sends base stats as
+// lh.h/lh.i/lh.j/lh.k. The exact old server resource formula is not present in
+// the client; these factors keep the server-remake behavior aligned with the
+// recovered rule: Cường Lực makes peach/nộ gains faster, Nội Lực makes MP gains
+// faster, using integer truncation like the Java codebase.
 const HEAL_GAIN_PERCENT_PER_STRENGTH = 4;
+const POWER_GAIN_PERCENT_PER_STRENGTH = 4;
 const MANA_GAIN_PERCENT_PER_MAGIC = 5;
 const MIN_RESOURCE_GAIN_PERCENT = 65;
 const MAX_RESOURCE_GAIN_PERCENT = 185;
@@ -204,6 +210,14 @@ export const scalePeachGainByStrength = (
 ): number => scaleResourceGain(
   baseHeal,
   resolveResourceGainPercent(profile?.strength ?? RESOURCE_GAIN_BASELINE_STAT, HEAL_GAIN_PERCENT_PER_STRENGTH),
+);
+
+export const scalePowerGainByStrength = (
+  basePower: number,
+  profile?: BattleResourceProfile | null,
+): number => scaleResourceGain(
+  basePower,
+  resolveResourceGainPercent(profile?.strength ?? RESOURCE_GAIN_BASELINE_STAT, POWER_GAIN_PERCENT_PER_STRENGTH),
 );
 
 export const scaleManaGainByMagic = (

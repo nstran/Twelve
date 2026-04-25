@@ -105,6 +105,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
   groundY,
   controlMode = 'swipe',
   speed = DEFAULT_SPEED,
+  jumpSpeed = JUMP_INITIAL_SPEED,
   scale = DEFAULT_SCALE,
   monsters = [],
   surfaces,
@@ -638,8 +639,10 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     const currentCenterX = posXRef.current + charSize.w / 2;
     const targetLeft = clampX(rawTargetX - charSize.w / 2);
 
-    // Scale-aware initial speed
-    const initialSpeed = JUMP_INITIAL_SPEED * scale;
+    // Scale-aware initial speed.
+    // `jumpSpeed` is calculated by server MapMovementCalculator from Java kl.b(lh)
+    // baseline + ThanPhap movement extension for the remake map.
+    const initialSpeed = jumpSpeed * scale;
 
     // Estimate total jump duration from physics for horizontal interpolation
     const upTicks = initialSpeed / JUMP_DECEL;
@@ -666,7 +669,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     actionRef.current = 'run';
     setAction('run');
     startMovementLoop();
-  }, [charSize.w, clampX, disabled, scale, setAction, setFacingIfChanged, startMovementLoop]);
+  }, [charSize.w, clampX, disabled, jumpSpeed, scale, setAction, setFacingIfChanged, startMovementLoop]);
 
   const startMoving = useCallback((dir: 'left' | 'right') => {
     if (disabled || actionRef.current === 'attack') return;

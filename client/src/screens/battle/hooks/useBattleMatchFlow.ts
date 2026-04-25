@@ -8,6 +8,7 @@ import {
   getAllValidMoves,
   scaleManaGainByMagic,
   scalePeachGainByStrength,
+  scalePowerGainByStrength,
   type BattleResourceProfile,
   type JavaBoardEngine,
   type BattlePhase,
@@ -246,6 +247,7 @@ export const useBattleMatchFlow = ({
       : enemyResourceProfile;
     heal = scalePeachGainByStrength(baseHeal, collectorProfile);
     mp = scaleManaGainByMagic(baseMp, collectorProfile);
+    pow = scalePowerGainByStrength(pow, collectorProfile);
 
     setTimeout(() => {
       if (!mountedRef.current || phaseRef.current === 'over') return;

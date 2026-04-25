@@ -415,6 +415,63 @@ Các pending còn lại không phải thiếu phân tích Java nữa, mà là ph
 
 Nguyên tắc khi implement: không chờ dữ liệu ngoài repo. Lưu raw id/tag đúng theo Java, dựng rule từ parser/encoder/UI hiện có, rồi đặt tên business theo mức chắc chắn của bằng chứng. Mọi logic mới phải ghi rõ nguồn suy luận trong MD hoặc comment cạnh service.
 
+## Stat tiềm năng, level và movement ngoài map
+
+### Kết luận bám Java hiện tại
+
+Nguồn trực tiếp từ Java client:
+
+- `kl.java — kl.b(lh)`:
+  - `this.i = 4 + lh.G / 10`, cap `9`: tốc độ actor ngoài map theo **level**, dùng integer division giống Java.
+  - `this.a = 11 + lh.G / 10`, cap `16`: timer/tham số animation tấn công, giữ làm tham chiếu.
+- `lh.G`: level.
+- `lh.h/i/j/k`: 4 stat nền; trong tài liệu server mới đang map lần lượt thành `CuongLuc/NoiLuc/ThanPhap/TheLuc` theo UI.
+- Java client chưa tìm thấy công thức level-up tự cộng `CuongLuc/NoiLuc/ThanPhap`; các stat này đang được xử lý như điểm tiềm năng do server cấp và người chơi phân bổ. Vì vậy server remake **không tự cộng 3 stat này khi level up**, mà cộng `freePoints` rồi để flow phân điểm cập nhật aggregate/derived stat.
+
+### Rule đã chốt cho server remake
+
+Vì map train hiện tại là map mới, không có map gốc để mirror platform/collision tuyệt đối, movement dùng 2 tầng:
+
+1. **Tầng Java-faithful bắt buộc**:
+   - Level tăng tốc theo `kl.i = min(9, 4 + level / 10)`.
+   - Phải giữ integer division: level `1..9` chưa tăng bậc, `10..19` tăng 1 bậc, ...
+2. **Tầng thiết kế remake có ghi nguồn suy luận**:
+   - `ThanPhap` ảnh hưởng tốc độ ngang và lực nhảy vì nghĩa nghiệp vụ là thân pháp/agility.
+   - Hệ số cố tình nhỏ và có cap để không phá map/collision.
+
+Công thức đang implement trong `server/Twelve.Core/GameLogic/MapMovementCalculator.cs`:
+
+```csharp
+javaSpeed = Math.Min(9, 4 + level / 10);
+moveSpeed = min(2.8, 1.0 + (javaSpeed - 4) * 0.30 + thanPhap * 0.008);
+
+jumpSpeed = min(12.0, 6.4 + max(0, thanPhap - 10) * 0.06);
+attackTimer = min(16, 11 + level / 10);
+```
+
+Client nhận qua `PlayerRuntimeSnapshot.mapMoveSpeed/mapJumpSpeed`, merge vào `CharacterAppearance.mapMovement`, rồi `HoaLuMapScreen` truyền xuống `CharacterController`:
+
+- `speed={appearance.mapMovement?.moveSpeed ?? sceneConfig.playerSpeed}`
+- `jumpSpeed={appearance.mapMovement?.jumpSpeed}`
+
+### Nhật ký chỉnh sửa 2026-04-25
+
+- Thêm `server/Twelve.Core/GameLogic/MapMovementCalculator.cs` để tập trung hóa công thức movement ngoài map, có comment nguồn `kl.java — kl.b(lh)`.
+- Cập nhật `server/Twelve.Core/Players/PlayerRuntimeContracts.cs` thêm `MapMoveSpeed`, `MapJumpSpeed`.
+- Cập nhật `server/Twelve.Application/Players/PlayerRuntimeService.cs` để build snapshot từ `MapMovementCalculator`.
+- Cập nhật client:
+  - `client/src/screens/character/status/CharacterStatus.api.ts`
+  - `client/src/screens/character/shared/characterAppearance.ts`
+  - `client/src/engine/character/character.types.ts`
+  - `client/src/engine/character/CharacterController.tsx`
+  - `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`
+- Bổ sung resource battle theo hướng bám Java nhất có thể từ evidence hiện có:
+  - Nguồn Java chắc chắn: `lh.h/i/j/k` là stat nền, `lh.u/t` MP, `lh.w/v` Power; battle HUD `mx` vẽ HP/MP/Power.
+  - Client Java không chứa công thức server cũ chính xác cho lượng ăn đào/nộ/MP, nên remake ghi rõ đây là rule suy luận có kiểm soát.
+  - `client/src/screens/battle/core/BattleScreen.shared.ts`: thêm `scalePowerGainByStrength()` để Cường Lực tăng tốc độ nhận nộ/Power, tương tự rule đào/HP hiện có; Nội Lực vẫn tăng MP qua `scaleManaGainByMagic()`.
+  - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`: áp dụng scale Power theo Cường Lực khi match gem/resource trong trận.
+  - Thân Pháp tiếp tục đi qua pipeline derived stat Java đã phục dựng: chính xác, né tránh, chí mạng; ngoài map còn ảnh hưởng move/jump theo rule remake có cap.
+
 ## Kết Luận
 
 Nếu mục tiêu là khôi phục sát Java cũ thì:
