@@ -4,4 +4,5 @@ export const MAP_SELECTION_ASSETS = {
   arena: require('../../../../assets/map/01_location_markers/arena.png'),
   room: require('../../../../assets/map/01_location_markers/room.png'),
   hand: require('../../../../assets/map/02_cursor_pointer/hand.png'),
+  arrow: require('../../../../assets/map/02_cursor_pointer/arrow.png'),
 };

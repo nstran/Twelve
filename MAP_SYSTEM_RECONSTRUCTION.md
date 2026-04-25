@@ -49,6 +49,28 @@ Phần này là map chọn khu từ Java cũ.
 
 - [client/assets/map](/e:/Twelve/client/assets/map)
 
+### Catalog / Server Truth
+
+World map selection không còn để client tự hard-code gameplay truth. Server expose catalog qua `GET /map/world-catalog`, lấy từ `RuntimeMapCatalog.AllWorldMaps`.
+
+Nguồn Java đã bám:
+
+- `og.java`: danh sách tên và thứ tự 17 địa danh (`Hoa Lư`, `Kỷ Bố`, `Bình Kiều`, ...).
+- `oh.java`: tọa độ label `j[]`, tọa độ khóa `k[]`, hitbox chọn map `i[][]`.
+- `og.f()` / `ks.a().b("M99", go.x)`: flow chọn thành dùng index `go.x`, tương ứng hub packet `M99 + index`.
+
+Quy tắc hiện tại:
+
+- Client React Native chỉ fetch/render catalog server.
+- Fallback trong `client/src/data/MapData.ts` mirror đúng catalog server để dev/offline không trắng màn.
+- `Hoa Lư` là entry mở duy nhất và trỏ vào side-scroll runtime thật (`RuntimeMapId = "Hoa Lu"`, room `1`, sceneKind `sideScroll`).
+- Các map còn lại giữ `sceneKind = "legacy"` và `isLocked = true` cho tới khi có runtime/flow phục dựng tương ứng.
+- Tọa độ Java gốc lấy từ `oh.java`, nhưng asset `/m/m` đã extract trong React Native là 480x480; client scale theo kích thước asset thực tế để lock/label/hitbox không bị lệch sau khi catalog chuyển sang server.
+- World map dùng pan/drag chủ động bằng `PanResponder`, không auto focus vào Hoa Lư. Khi con trỏ không nằm trong hitbox map nào thì hiển thị cursor vàng `/m/arrow`; khi đang trỏ vào địa danh thì đổi sang bàn tay `/m/hand`.
+- Softkey bám `oh.java`: khi trỏ đúng địa danh mở khóa thì softkey trái là `Vào Thành`; không dùng center label `Vào`; softkey phải trong remake dùng `Đăng Xuất`.
+- `RoomLabel` của world-map entry hiện dùng chính tên địa danh, không dùng `"Khu 1"` cho HUD khi vào map.
+- Chưa cần thêm DB cho world-map catalog ở giai đoạn này: dữ liệu là static Java truth (`og/oh`) nên giữ trong code server để tránh sai lệch. DB chỉ nên dùng sau này cho player unlock/progression hoặc cấu hình runtime động.
+
 ## Side-Scrolling Map
 
 Đây là hướng triển khai mới cho Hoa Lư và các map chạy ngang sau này.
@@ -208,6 +230,7 @@ Các phần chưa chốt hẳn:
 - công cụ author surface trực quan
 - `jump links` cho AI / auto path giữa các platform
 - ceiling authoring chi tiết cho những khối có underside phức tạp
+- unlock rule thật cho các địa danh world-map ngoài Hoa Lư khi có thêm dữ liệu Java/client hoặc thiết kế server mới
 
 ## Current Scene Config Direction
 
@@ -263,3 +286,27 @@ Phần quan trọng nhất đã chốt:
 - engine hiện tại là dùng chung
 - không phụ thuộc riêng Hoa Lư
 - map mới chỉ cần thay `surface data` và art
+
+## Nhật ký chỉnh sửa
+
+### 2026-04-25
+
+- Sửa `server/Twelve.Core/Maps/RuntimeMapCatalog.cs`: thêm `WorldMapEntry` và catalog 17 địa danh theo Java `og.java`/`oh.java`, gồm index, tên, lock flag, label/lock/hitbox.
+- Sửa `server/Twelve.Server/Program.cs`: thêm API `GET /map/world-catalog` để BE là nguồn truth của danh sách chọn map.
+- Sửa `client/src/data/MapData.ts`: thêm type catalog API, fallback mirror server và mapper sang `MapInfo`.
+- Sửa `client/src/screens/map/selection/MapSelectionScreen.tsx`: fetch catalog từ BE, render hitbox/label/lock theo tọa độ Java scale từ nền 512x512, chỉ cho vào map nếu unlocked.
+- Sửa `client/src/screens/map/selection/MapSelectionScreen.styles.ts`: chuyển marker/label sang absolute positioning để bám tọa độ Java.
+- Sửa `client/App.tsx`: truyền `API_BASE_URL` vào màn chọn map.
+- Kiểm tra: `dotnet build Twelve.sln` và `npx tsc -p client/tsconfig.json --noEmit` đều thành công.
+
+### 2026-04-25 — Fix pan/cursor/HUD world-map
+
+- Sửa `client/src/screens/map/selection/MapSelectionScreen.tsx`: bỏ nested `ScrollView`, dùng `PanResponder` để kéo world-map theo cả 2 trục; bỏ default focus Hoa Lư; chọn map theo hitbox dưới vị trí con trỏ.
+- Sửa cursor world-map: ngoài hitbox dùng `/m/arrow`, trong hitbox dùng `/m/hand`.
+- Sửa scale world-map theo asset extract 480x480 để lock/label/hitbox không lệch.
+- Sửa `client/src/screens/map/selection/assets.ts`: thêm asset `/m/arrow`.
+- Sửa `client/src/screens/map/selection/MapSelectionScreen.styles.ts`: thêm viewport/cursor style cho pan runtime; giữ world-map render vuông để scale tọa độ Java không lệch theo trục.
+- Sửa `server/Twelve.Core/Maps/RuntimeMapCatalog.cs` và `client/src/data/MapData.ts`: `RoomLabel` đổi từ `"Khu 1"` sang tên địa danh.
+- Sửa `client/App.tsx`: fallback room label là tên map, không còn fallback `"Khu 1"`.
+- Sửa softkey world-map theo `oh.java`: bỏ chữ giữa `Vào`, trái là `Vào Thành` khi đang chọn thành mở khóa, phải là `Đăng Xuất`.
+- Kiểm tra: `npx tsc -p client/tsconfig.json --noEmit` và `dotnet build Twelve.sln` đều thành công.

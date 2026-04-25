@@ -47,6 +47,21 @@ namespace Twelve.Core.Maps
 
     public readonly record struct RuntimeMapPosition(int X, int Y);
 
+    public sealed record WorldMapEntry(
+        int Index,
+        string Id,
+        string DisplayName,
+        string RuntimeMapId,
+        bool IsLocked,
+        int LabelX,
+        int LabelY,
+        int LockX,
+        int LockY,
+        int HitX,
+        int HitY,
+        int HitWidth,
+        int HitHeight);
+
     public sealed class RuntimeMapRoom
     {
         public RuntimeMapRoom(
@@ -142,9 +157,43 @@ namespace Twelve.Core.Maps
                 surfaces: BuildHoaLuSurfaces()),
         };
 
+        // World map selection reconstructed from Java client:
+        // - og.java line 17: fixed display-name array and index order.
+        // - oh.java lines 28-50: label coordinates, lock coordinates and clickable rectangles.
+        // - og.f()/ks.a().b("M99", go.x): entering world-map city sends map hub id M99 + selected index.
+        // Server owns the catalog/unlock flags so React Native only renders server truth.
+        //
+        // Manual coordinate tuning guide:
+        // new WorldMapEntry(Index, Id, DisplayName, RuntimeMapId, IsLocked, LabelX, LabelY, LockX, LockY, HitX, HitY, HitWidth, HitHeight)
+        // - TEXT: LabelX/LabelY. X = ngang (trái/phải), Y = dọc (lên/xuống).
+        // - LOCK: LockX = LabelX + 8, LockY = LabelY - 30 để icon khóa nằm cân trên text.
+        // - DO NOT TOUCH HitX/HitY/HitWidth/HitHeight unless changing the selectable/touch rectangle.
+        private static readonly IReadOnlyList<WorldMapEntry> WorldMapDefinitions = new[]
+        {
+            new WorldMapEntry(0, "hoalu", "Hoa Lư", "Hoa Lu", false, 160, 385, 168, 355, 146, 342, 61, 48),
+            new WorldMapEntry(1, "kybo", "Kỷ Bố", "Ky Bo", true, 403, 370, 410, 340, 381, 319, 62, 48),
+            new WorldMapEntry(2, "binhkieu", "Bình Kiều", "Binh Kieu", true, 24, 432, 32, 402, 9, 386, 64, 48),
+            new WorldMapEntry(3, "dangchau", "Đằng Châu", "Dang Chau", true, 425, 290, 433, 260, 407, 245, 65, 47),
+            new WorldMapEntry(4, "dodonggiang", "Đỗ Động Giang", "Do Dong Giang", true, 256, 310, 262, 280, 236, 271, 64, 44),
+            new WorldMapEntry(5, "tegiang", "Tế Giang", "Te Giang", true, 314, 270, 322, 240, 300, 227, 63, 44),
+            new WorldMapEntry(6, "sieuloai", "Siêu Loại", "Sieu Loai", true, 348, 184, 354, 154, 332, 142, 62, 48),
+            new WorldMapEntry(7, "tayphuliet", "Tây Phù Liệt", "Tay Phu Liet", true, 188, 216, 196, 186, 173, 169, 64, 48),
+            new WorldMapEntry(8, "duonglam", "Đường Lâm", "Duong Lam", true, 82, 225, 90, 195, 68, 185, 62, 48),
+            new WorldMapEntry(9, "coloa", "Cổ Loa", "Co Loa", true, 258, 169, 266, 139, 242, 128, 62, 48),
+            new WorldMapEntry(10, "tiendu", "Tiên Du", "Tien Du", true, 385, 110, 393, 80, 369, 70, 64, 44),
+            new WorldMapEntry(11, "tamdai", "Tam Đái", "Tam Dai", true, 238, 100, 246, 70, 229, 74, 63, 45),
+            new WorldMapEntry(12, "phongchau", "Phong Châu", "Phong Chau", true, 98, 115, 106, 85, 84, 73, 63, 47),
+            new WorldMapEntry(13, "hoiho", "Hồi Hồ", "Hoi Ho", true, 32, 88, 40, 58, 18, 38, 62, 48),
+            new WorldMapEntry(14, "luyennguc", "Luyện Ngục", "Luyen Nguc", true, 43, 315, 51, 285, 34, 271, 52, 46),
+            new WorldMapEntry(15, "thienmon", "Thiên Môn", "Thien Mon", true, 415, 165, 424, 135, 391, 131, 66, 44),
+            new WorldMapEntry(16, "mauson", "Mẫu Sơn", "Mau Son", true, 175, 55, 183, 25, 157, 27, 71, 26),
+        };
+
         private static readonly Dictionary<string, RuntimeMapRoom> Rooms = BuildRoomIndex(RoomDefinitions);
 
         public static IReadOnlyCollection<RuntimeMapRoom> AllRooms => Rooms.Values;
+
+        public static IReadOnlyList<WorldMapEntry> AllWorldMaps => WorldMapDefinitions;
 
         public static RuntimeMapRoom ResolveRoom(string? mapId, int roomId)
         {

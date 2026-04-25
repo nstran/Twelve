@@ -1,5 +1,69 @@
 # CHANGELOG
 
+## 2026-04-25 (O)
+
+### Sửa pan/cursor/HUD cho world-map selection
+
+**Sửa:**
+- Bỏ nested `ScrollView` ở màn chọn bản đồ, chuyển sang `PanResponder` để kéo world-map theo cả 2 trục bằng chuột/touch.
+- Bỏ default focus vào `Hoa Lư`; chỉ focus khi con trỏ đang nằm trong hitbox địa danh.
+- Cursor đúng theo Java:
+  - ngoài hitbox địa danh: `/m/arrow` màu vàng;
+  - trong hitbox địa danh: `/m/hand`.
+- Sửa lệch lock/label/hitbox sau khi chuyển catalog sang server:
+  - tọa độ vẫn bám `oh.java`;
+  - client scale theo asset `/m/m` extract thực tế 480x480 thay vì giả định 512x512.
+- HUD khi vào map dùng tên địa danh (`Hoa Lư`, `Kỷ Bố`, ...) thay vì `"Khu 1"`.
+- Giữ world-map catalog static trong server code, chưa thêm DB:
+  - lý do: đây là Java truth từ `og.java`/`oh.java`, ít thay đổi;
+  - DB chỉ nên dùng sau này cho unlock/progression từng player hoặc runtime config động.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+- `dotnet build Twelve.sln` → thành công, 0 Warning, 0 Error.
+
+**File đã sửa:**
+- `client/src/screens/map/selection/MapSelectionScreen.tsx`
+- `client/src/screens/map/selection/MapSelectionScreen.styles.ts`
+- `client/src/screens/map/selection/assets.ts`
+- `client/src/data/MapData.ts`
+- `client/App.tsx`
+- `server/Twelve.Core/Maps/RuntimeMapCatalog.cs`
+- `MAP_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
+## 2026-04-25 (N)
+
+### Chuyển world-map catalog sang BE theo Java `og/oh`
+
+**Sửa:**
+- Thêm catalog 17 địa danh world-map ở server theo Java client:
+  - `og.java`: thứ tự/tên địa danh.
+  - `oh.java`: tọa độ label, lock icon, hitbox chọn map.
+  - `og.f()`/`M99 + go.x`: giữ index làm định danh flow vào thành.
+- Thêm API `GET /map/world-catalog` để BE là nguồn truth cho map id/name/unlock/scene kind.
+- Client map selection fetch catalog từ BE, fallback mirror server khi offline/dev.
+- Render marker/label/lock theo tọa độ Java gốc 512x512 và scale theo nền world map hiện tại.
+- Chỉ `Hoa Lư` mở và đi vào side-scroll runtime thật; các địa danh còn lại giữ khóa/legacy cho tới khi có runtime tương ứng.
+
+**Kiểm tra:**
+- `dotnet build Twelve.sln` → thành công.
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+
+**File đã sửa:**
+- `server/Twelve.Core/Maps/RuntimeMapCatalog.cs`
+- `server/Twelve.Server/Program.cs`
+- `client/src/data/MapData.ts`
+- `client/src/screens/map/selection/MapSelectionScreen.tsx`
+- `client/src/screens/map/selection/MapSelectionScreen.styles.ts`
+- `client/App.tsx`
+- `MAP_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-25 (M)
 
 ### Chốt hiển thị `Tấn Công` status theo ảnh Java cũ

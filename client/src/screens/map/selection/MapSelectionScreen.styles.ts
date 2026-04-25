@@ -2,8 +2,9 @@ import { StyleSheet, Dimensions } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Tăng kích thước để cho phép cuộn thoải mái
-export const MAP_WIDTH = 1300; 
+// World-map Java asset `/m/m` is square 480x480. Keep the rendered map square;
+// non-uniform X/Y scaling makes Java `oh.java` label/lock/hitbox coordinates drift.
+export const MAP_WIDTH = 1200;
 export const MAP_HEIGHT = 1200;
 
 export const styles = StyleSheet.create({
@@ -11,22 +12,28 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#3b2f21', // Dùng màu nâu đất của map thay vì đen nếu có lỡ lộ
   },
+  mapViewport: {
+    flex: 1,
+    overflow: 'hidden',
+  },
   panningContainer: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: MAP_WIDTH,
+    height: MAP_HEIGHT,
     minWidth: SCREEN_WIDTH,
     minHeight: SCREEN_HEIGHT,
   },
   background: {
     width: MAP_WIDTH,
     height: MAP_HEIGHT,
-    resizeMode: 'cover',
+    resizeMode: 'stretch',
   },
   
   // ── Map Point Styles ──────────────────────────────────────────
   mapPoint: {
     position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 80, // Hitbox size
     zIndex: 10,
   },
   iconContainer: {
@@ -36,12 +43,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mapIcon: {
-    width: 36,
-    height: 36,
-    resizeMode: 'contain',
+    position: 'absolute',
+    resizeMode: 'stretch',
   },
   mapLabel: {
-    marginTop: 2,
+    position: 'absolute',
+    width: 80,
     color: '#FFF',
     fontSize: 12,
     fontWeight: 'bold',
@@ -64,5 +71,12 @@ export const styles = StyleSheet.create({
     width: 30,
     height: 30,
     zIndex: 20,
+  },
+  cursorIndicator: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    resizeMode: 'contain',
+    zIndex: 30,
   },
 });

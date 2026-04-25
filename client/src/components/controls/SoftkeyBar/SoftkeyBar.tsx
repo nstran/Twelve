@@ -79,7 +79,7 @@ export const SoftkeyBar: React.FC<SoftkeyBarProps> = ({
 
       <View style={[styles.content, { zIndex: 3 }]}>
         <View style={styles.centerContent}>
-           <Text style={styles.timeText}>{centerLabel || time}</Text>
+           <Text style={styles.timeText}>{centerLabel ?? time}</Text>
         </View>
       </View>
 

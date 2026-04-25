@@ -2,6 +2,7 @@ using Twelve.Server;
 using Twelve.Server.Middleware;
 using Twelve.Core.Battle;
 using Twelve.Core.Interfaces;
+using Twelve.Core.Maps;
 using Twelve.Core.Monsters;
 using Twelve.Core.Options;
 using Twelve.Core.Players;
@@ -216,6 +217,8 @@ app.MapPost("/pvp/challenges/{ticketId}/cancel", async (string ticketId, PvpChal
     var response = await service.CancelChallengeAsync(ticketId, request);
     return response is null ? Results.NotFound() : Results.Ok(response);
 });
+
+app.MapGet("/map/world-catalog", () => Results.Ok(RuntimeMapCatalog.AllWorldMaps));
 
 app.MapGet("/map/monster-roster", (
     string mapId,

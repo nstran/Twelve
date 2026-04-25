@@ -381,6 +381,7 @@ export default function App() {
       case 'mapSelection':
         return (
           <MapSelectionScreen
+            apiBaseUrl={API_BASE_URL}
             onSelect={(map) => {
               console.log('[App] Selected Map:', map.name, map.id);
               setSelectedMap(map);
@@ -399,7 +400,7 @@ export default function App() {
           <HoaLuMapScreen
             mapId={selectedMap?.runtimeMapId ?? 'Hoa Lu'}
             roomId={selectedMap?.defaultRoomId ?? 1}
-            roomLabel={selectedMap?.roomLabel ?? 'Khu 1'}
+            roomLabel={selectedMap?.roomLabel ?? selectedMap?.displayName ?? 'Hoa Lư'}
             appearance={playerAppearance}
             onBack={() => setScreen('mapSelection')}
             onLogout={async () => {
