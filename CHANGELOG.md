@@ -1,5 +1,60 @@
 # CHANGELOG
 
+## 2026-04-25 (M)
+
+### Chốt hiển thị `Tấn Công` status theo ảnh Java cũ
+
+**Sửa:**
+- Xác nhận màn status Java cũ chỉ hiển thị một số `Tấn Công`, không phải dạng range.
+- Giữ server/domain có `MinDamage` và `MaxDamage` để battle dùng damage range.
+- Sửa client status để ô `Tấn Công` hiển thị `runtime.minDamage` (`lh.x`) thay vì `runtime.maxDamage` (`lh.y`).
+- Bổ sung ghi chú reconstruction: `lh.x` là damage chính/status attack, `lh.y` là damage trần cho battle range.
+
+**Kiểm tra:**
+- `npx tsc -p client\tsconfig.json --noEmit` → thành công.
+
+**File đã sửa:**
+- `client/src/screens/character/status/CharacterStatus.api.ts`
+- `docs/player-character-reconstruction/01-implementation-plan-csharp.md`
+- `CHANGELOG.md`
+
+---
+
+## 2026-04-25 (L)
+
+### Chuẩn hóa công thức 6 chỉ số nhân vật theo Java `jq/js/jr`
+
+**Sửa:**
+- Đọc lại Java client để chốt công thức status gốc:
+  - `jq.java` = Hỏa/Cường Lực.
+  - `js.java` = Lôi/Thân Pháp.
+  - `jr.java` = Thủy/Nội Lực.
+  - `com.mg.sq.a.a(lh)` map `jz.a/b/c/d/e/f/g` vào `lh.r/x/y/z/A/B/C`.
+  - `da.java` xác nhận label UI: Tấn Công, Chính xác, Sinh lực, P.Thủ, Né Tránh, Chí Mạng.
+- `CombatStats` tách `MinDamage` / `MaxDamage` thay vì một `TanCong`.
+- `StatCalculator` port đúng công thức Java:
+  - Hỏa: HP `TheLuc * 6`, damage `CuongLuc .. CuongLuc * 120 / 100`, dodge `ThanPhap * 2`, hit `ThanPhap * 3`.
+  - Lôi: HP `TheLuc * 4`, damage `(ThanPhap * 80 + CuongLuc * 16) / 100 .. ThanPhap + CuongLuc / 5`, dodge `ThanPhap * 15 / 10`, hit `ThanPhap * 3`.
+  - Thủy: HP `TheLuc * 5`, damage `NoiLuc * 130 / 100 .. NoiLuc * 150 / 100`, dodge `ThanPhap * 3`, hit `ThanPhap * 2`.
+- `PlayerStatPipeline` bỏ off-element soft cap khỏi tầng status/derived stat; status dùng tổng stat thật theo Java bridge.
+- Giữ ghi chú rõ: mọi balance soft-cap/hybrid nếu cần chỉ áp ở battle/skill/resource, không làm sai số status Java.
+- Cập nhật `08-level-stat-exp-and-element-balance.md`:
+  - Chốt “Java status là nguồn truth tuyệt đối”.
+  - Ghi rõ Thủy né cao hơn Lôi là đúng Java, không sửa theo cảm tính balance.
+
+**Kiểm tra:**
+- Lần đầu `dotnet build Twelve.sln` bị DLL lock bởi `Twelve.Server (PID 1912)`.
+- Đã chạy `taskkill /F /PID 1912 && dotnet build Twelve.sln` → thành công, 0 Warning, 0 Error.
+
+**File đã sửa:**
+- `server/Twelve.Core/Entities/CombatStats.cs`
+- `server/Twelve.Core/GameLogic/StatCalculator.cs`
+- `server/Twelve.Core/GameLogic/PlayerStatPipeline.cs`
+- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-25 (K)
 
 ### Đồng bộ nút tick menu và mũi tên Calendar

@@ -35,32 +35,24 @@ namespace Twelve.Core.GameLogic
 
             var element = player.Element ?? ElementMapper.StorageHoa;
 
-            // Balance v1.1 — nguồn suy luận:
-            // docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md
-            // Java client chỉ xác nhận lh.h/i/j/k là 4 stat gốc và jq/js/jr tính derived stat theo hệ.
-            // Remake thêm off-element offense soft cap để khuyến khích sáng tạo nhưng không làm loãng 3 hệ:
-            // - đúng hệ: dùng TotalStat 100%
-            // - sai hệ: 70% trước mốc 120, 35% sau mốc 120
-            // Resource/utility vẫn dùng TotalStat đầy đủ.
-            int effectiveCuongLuc = element == ElementMapper.StorageHoa
-                ? cuongLuc
-                : ResolveOffElementOffenseStat(cuongLuc);
-            int effectiveThanPhap = element == ElementMapper.StorageLoi
-                ? thanPhap
-                : ResolveOffElementOffenseStat(thanPhap);
-            int effectiveNoiLuc = element == ElementMapper.StorageThuy
-                ? noiLuc
-                : ResolveOffElementOffenseStat(noiLuc);
-
+            // Java-faithful status/derived stats — nguồn:
+            // - reference/redecoded/cfr_fresh/com/mg/sq/a.java:1891-1928
+            // - reference/redecoded/cfr_fresh/jq.java/js.java/jr.java
+            //
+            // Không áp off-element soft cap tại tầng status. Java tính lh.r/x/y/z/A/B/C trực tiếp
+            // từ tổng stat thật (base + bonus + equipment). Nếu remake cần cân bằng hybrid/off-element,
+            // chỉ áp riêng tại tầng battle skill damage, không làm sai số hiển thị nhân vật.
             var baseStats = StatCalculator.Calculate(
                 element,
-                effectiveCuongLuc,
-                effectiveThanPhap,
-                effectiveNoiLuc,
+                cuongLuc,
+                thanPhap,
+                noiLuc,
                 theLuc);
 
-            int percentAttack = baseStats.TanCong * totalModifier.AttackPercent / 100;
-            int finalAttack = baseStats.TanCong + totalModifier.FlatAttack + percentAttack;
+            int minPercentAttack = baseStats.MinDamage * totalModifier.AttackPercent / 100;
+            int maxPercentAttack = baseStats.MaxDamage * totalModifier.AttackPercent / 100;
+            int finalMinAttack = baseStats.MinDamage + totalModifier.FlatAttack + minPercentAttack;
+            int finalMaxAttack = baseStats.MaxDamage + totalModifier.FlatAttack + maxPercentAttack;
             int maxHp = baseStats.MaxHp + totalModifier.MaxHp;
             int maxMp = CalculateMaxMp(player.Level, noiLuc);
             int maxPower = 100;
@@ -69,8 +61,8 @@ namespace Twelve.Core.GameLogic
                 MaxHp: maxHp,
                 MaxMp: maxMp,
                 MaxPower: maxPower,
-                MinDamage: finalAttack,
-                MaxDamage: finalAttack,
+                MinDamage: finalMinAttack,
+                MaxDamage: System.Math.Max(finalMinAttack, finalMaxAttack),
                 Defense: baseStats.PThu + totalModifier.Defense,
                 Dodge: baseStats.NeTranh + totalModifier.Dodge,
                 Hit: baseStats.ChinhXac,
@@ -112,15 +104,6 @@ namespace Twelve.Core.GameLogic
             player.DerivedDodge = stats.Dodge;
             player.DerivedHit = stats.Hit;
             player.DerivedCrit = stats.Crit;
-        }
-
-        private static int ResolveOffElementOffenseStat(int totalStat)
-        {
-            const int softCap = 120;
-            int firstPart = System.Math.Min(totalStat, softCap);
-            int overflow = System.Math.Max(0, totalStat - softCap);
-
-            return (firstPart * 70 / 100) + (overflow * 35 / 100);
         }
 
         private static int CalculateMaxMp(int level, int totalNoiLuc)

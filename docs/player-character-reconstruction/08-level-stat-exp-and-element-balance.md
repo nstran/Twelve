@@ -2,6 +2,8 @@
 
 Tài liệu này là **spec cân bằng gameplay mới** cho player/character trong server remake khi không còn server Java cũ.
 
+> **Quyết định 2026-04-25 — Java status là nguồn truth tuyệt đối:** các chỉ số status/derived stat gửi client (`lh.r/x/y/z/A/B/C`) phải port đúng Java `jp/jq/js/jr` và bridge `com.mg.sq.a.a(lh)`, không áp rule remake/off-element soft cap tại tầng hiển thị nhân vật. Mọi rule cân bằng hybrid/soft-cap chỉ được phép áp ở tầng battle/skill/resource riêng khi có ghi chú rõ là remake.
+
 Mức chắc chắn:
 - **Java evidence chắc chắn**:
   - `lh.h/i/j/k` là 4 chỉ số nền.
@@ -408,9 +410,9 @@ Không nên tăng early term quá mạnh vì sẽ làm người chơi mới nả
 
 ---
 
-## 4. Derived Battle Stat v1
+## 4. Derived Status Stat Java-faithful
 
-Tất cả công thức nên dùng integer truncation/floor kiểu Java:
+Tất cả công thức core status dùng integer truncation/floor kiểu Java:
 
 ```text
 int result = numerator / denominator;
@@ -418,18 +420,93 @@ int result = numerator / denominator;
 
 Không dùng float phức tạp trong stat core nếu không cần.
 
-### 4.1 HP
+Nguồn Java đã đối chiếu:
+- `reference/redecoded/cfr_fresh/jp.java`: chọn calculator theo raw element.
+- `reference/redecoded/cfr_fresh/jq.java`: hệ Hỏa / Cường Lực.
+- `reference/redecoded/cfr_fresh/js.java`: hệ Lôi / Thân Pháp.
+- `reference/redecoded/cfr_fresh/jr.java`: hệ Thủy / Nội Lực.
+- `reference/redecoded/cfr_fresh/com/mg/sq/a.java:1891-1928`: bridge tính `lh.r/x/y/z/A/B/C`.
+- `reference/redecoded/cfr_fresh/da.java:52-55,206-215`: UI status label mapping.
+
+Mapping Java:
+- `lh.r` = Sinh lực / MaxHP = `jz.a()`
+- `lh.x` = Tấn Công min = `jz.b()`
+- `lh.y` = Tấn Công max = `jz.c()`
+- `lh.z` = P.Thủ = `jz.d()`
+- `lh.A` = Né Tránh = `jz.e()`
+- `lh.B` = Chính xác = `jz.f()`
+- `lh.C` = Chí Mạng % = `jz.g()`
+
+### 4.1 Tổng stat trước khi tính Java calculator
+
+Java bridge `com.mg.sq.a.a(lh)` tính lại derived stat theo thứ tự:
 
 ```text
-MaxHP = 100 + level * 18 + Vitality * 14 + EquipmentHP
+TotalStrength = lh.h + lh.l + equipmentStrength
+TotalMagic    = lh.j + lh.m + equipmentMagic
+TotalAgility  = lh.i + lh.n + equipmentAgility
+TotalVitality = lh.k + lh.o + equipmentVitality
+
+jz.a(TotalStrength, TotalMagic, TotalAgility, TotalVitality)
 ```
 
-Vai trò:
-- `Thể Lực` là stat sinh tồn chung.
-- Hệ nào cũng cần một lượng Thể Lực nhất định.
-- Không để Cường Lực hoặc Thân Pháp tự sinh tồn quá mạnh nếu bỏ Thể Lực.
+Trong code C# hiện tại mapping tương ứng:
+- `CuongLuc` = Java arg `a` / Strength.
+- `NoiLuc` = Java arg `b` / Magic.
+- `ThanPhap` = Java arg `c` / Agility.
+- `TheLuc` = Java arg `d` / Vitality.
 
-### 4.2 MP
+### 4.2 Hỏa / Cường Lực — `jq.java`
+
+```text
+MaxHP     = TheLuc * 6
+MinDamage = CuongLuc
+MaxDamage = CuongLuc * 120 / 100
+Defense   = ThanPhap / 2
+Dodge     = ThanPhap * 2
+Hit       = ThanPhap * 3
+Crit      = min(5 + ThanPhap / 8, 30)
+```
+
+### 4.3 Lôi / Thân Pháp — `js.java`
+
+```text
+MaxHP     = TheLuc * 4
+MinDamage = (ThanPhap * 80 + CuongLuc * 16) / 100
+MaxDamage = ThanPhap + CuongLuc / 5
+Defense   = ThanPhap / 2
+Dodge     = ThanPhap * 15 / 10
+Hit       = ThanPhap * 3
+Crit      = min(5 + ThanPhap / 8, 30)
+```
+
+### 4.4 Thủy / Nội Lực — `jr.java`
+
+```text
+MaxHP     = TheLuc * 5
+MinDamage = NoiLuc * 130 / 100
+MaxDamage = NoiLuc * 150 / 100
+Defense   = ThanPhap / 2
+Dodge     = ThanPhap * 3
+Hit       = ThanPhap * 2
+Crit      = min(5 + ThanPhap / 8, 30)
+```
+
+Ghi chú quan trọng:
+- Thủy có `Dodge = ThanPhap * 3`, cao hơn Hỏa/Lôi. Đây là hành vi Java gốc, không sửa bằng cảm tính balance.
+- Lôi có `Hit = ThanPhap * 3` và damage ăn trực tiếp Thân Pháp; Dodge chỉ `ThanPhap * 1.5`.
+- Hỏa dùng Cường Lực làm damage chính, HP cao nhất theo Thể Lực.
+- Không áp off-element soft cap vào các công thức trên.
+
+### 4.5 Trang bị cộng derived stat trực tiếp
+
+Theo `com.mg.sq.a.a(lh)`:
+- Trang bị cộng stat gốc trước, rồi chạy lại `jz`.
+- Trang bị cộng damage flat (`lb.e`) và damage percent theo max damage (`lb.n`) cộng vào cả `lh.x/lh.y`.
+- Trang bị cộng crit/defense/dodge/maxHP trực tiếp vào `lh.C/lh.z/lh.A/lh.r`.
+- `lh.B` / Hit trong Java bridge hiện chỉ lấy `jz.f()`, chưa thấy cộng hit equipment ở đoạn này.
+
+### 4.6 MP
 
 ```text
 MaxMP = 40 + level * 6 + TotalMagic * 8 + EquipmentMP
@@ -443,7 +520,7 @@ Vai trò:
 - `MaxMP` dùng `TotalMagic` chứ không dùng affinity 70%, để đúng cảm giác game cũ: mặc đồ Nội Lực giúp nhiều MP hơn và dễ dùng skill hơn.
 - Affinity 70% chỉ nên áp dụng vào `skill damage/effect chuyên môn`, không triệt tiêu giá trị MP/resource.
 
-### 4.3 Damage Vật Lý
+### 4.7 Damage / skill remake ngoài status
 
 ```text
 MinDamage = 5 + level * 2 + EffectiveStrengthForDamage * 2 + EquipmentMinDamage
@@ -457,7 +534,7 @@ Vai trò:
 - Không cần MP nhiều để có hiệu quả.
 - Nếu nhân vật khác hệ cố cộng Cường Lực thì damage vẫn tăng, nhưng chỉ tính 70% hiệu quả chuyên môn để không vượt hệ Cường Lực thật.
 
-### 4.4 Chính Xác
+### 4.8 Chính Xác trong battle
 
 ```text
 HitRate = clamp(60, 95, 75 + EffectiveAgilityForOffense / 5 + EquipmentHit)
@@ -468,7 +545,7 @@ Vai trò:
 - Cap 95% để không bao giờ tuyệt đối 100%.
 - Nếu nhân vật khác hệ cố cộng Thân Pháp thì vẫn đánh trúng tốt hơn, nhưng không đạt hiệu quả tối đa như hệ Thân Pháp thật.
 
-### 4.5 Né Tránh
+### 4.9 Né Tránh trong battle
 
 ```text
 DodgeRate = clamp(0, 35, 3 + EffectiveAgilityForOffense / 9 + EquipmentDodge)
@@ -478,7 +555,7 @@ Vai trò:
 - `Thân Pháp` có khả năng né.
 - Cap 35% để tránh PvP bị “không đánh trúng được”.
 
-### 4.6 Chí Mạng
+### 4.10 Chí Mạng trong battle
 
 ```text
 CriticalRate = clamp(0, 40, 3 + EffectiveAgilityForOffense / 12 + EquipmentCriticalRate)
@@ -488,7 +565,7 @@ Vai trò:
 - `Thân Pháp` là hướng build burst theo xác suất.
 - Cap 40% để không biến mọi đòn thành chí mạng.
 
-### 4.7 Sát Thương Chí Mạng
+### 4.11 Sát Thương Chí Mạng
 
 ```text
 CriticalDamage = clamp(150, 250, 150 + EffectiveAgilityForOffense / 10 + EquipmentCriticalDamage)
@@ -993,6 +1070,23 @@ ElementResistanceCap = 20%
 ---
 
 ## 10. Nhật Ký Chỉnh Sửa
+
+### 2026-04-25 — Java-faithful status formula correction
+
+- Đối chiếu lại Java `jq/js/jr` và `com.mg.sq.a.a(lh)` để chốt công thức 6 chỉ số status:
+  - `lh.r` Sinh lực.
+  - `lh.x/lh.y` Tấn Công min/max.
+  - `lh.z` P.Thủ.
+  - `lh.A` Né Tránh.
+  - `lh.B` Chính xác.
+  - `lh.C` Chí Mạng.
+- Chốt status/derived stat phải bám Java 100%, không dùng off-element soft cap ở tầng hiển thị nhân vật.
+- Ghi rõ Thủy né cao hơn Lôi là đúng Java: Thủy `ThanPhap * 3`, Lôi `ThanPhap * 15 / 10`.
+- File code đã sửa:
+  - `server/Twelve.Core/Entities/CombatStats.cs`
+  - `server/Twelve.Core/GameLogic/StatCalculator.cs`
+  - `server/Twelve.Core/GameLogic/PlayerStatPipeline.cs`
+- Build xác nhận: `dotnet build Twelve.sln` thành công sau khi kill process khóa DLL `Twelve.Server`.
 
 ### 2026-04-25
 

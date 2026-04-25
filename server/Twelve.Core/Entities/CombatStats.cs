@@ -6,11 +6,12 @@ namespace Twelve.Core.Entities
     /// These are NOT stored in DB — computed on demand from base stats.
     /// </summary>
     public record CombatStats(
-        int MaxHp,      // Sinh Lực — jz.a()
-        int TanCong,    // Tấn Công — jz.b()
-        int ChinhXac,   // Chính Xác — jz.f()
-        int PThu,       // P.Thủ — jz.d()
-        int NeTranh,    // Né Tránh — jz.e()
-        int ChiMang     // Chí Mạng % — jz.g(), capped at 30
+        int MaxHp,       // Sinh Lực — lh.r = jz.a()
+        int MinDamage,   // Tấn Công min — lh.x = jz.b()
+        int MaxDamage,   // Tấn Công max — lh.y = jz.c()
+        int ChinhXac,    // Chính Xác — lh.B = jz.f()
+        int PThu,        // P.Thủ — lh.z = jz.d()
+        int NeTranh,     // Né Tránh — lh.A = jz.e()
+        int ChiMang      // Chí Mạng % — lh.C = jz.g(), capped at 30
     );
 }

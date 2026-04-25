@@ -186,7 +186,11 @@ export const mergePlayerRuntimeAppearance = (
     freePoints: runtime.freePoints,
     skillPoints: runtime.skillPoints,
     combat: {
-      attack: runtime.maxDamage,
+      // Java status UI (`da.java`) shows a single "Tấn Công" value.
+      // Source bridge has min/max (`lh.x/lh.y`), but the old character panel displays
+      // the main attack number (`lh.x`/jz.b + equipment flat), not a "min-max" range.
+      // Battle damage can still use minDamage/maxDamage internally.
+      attack: runtime.minDamage,
       def: runtime.defense,
       acc: runtime.hit,
       dodge: runtime.dodge,

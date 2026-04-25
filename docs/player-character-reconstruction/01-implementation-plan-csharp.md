@@ -51,8 +51,10 @@ Mapping derived cuối:
 | `C` | crit | `jz2.g() + lb.g` |
 | `z` | defense | `jz2.d() + lb.f` |
 | `B` | hit/accuracy | `jz2.f()` |
-| `x` | min damage | `jz2.b() + flat attack + percent attack` |
-| `y` | max damage | `jz2.c() + flat attack + percent attack` |
+| `x` | damage chính/status attack | `jz2.b() + flat attack + percent attack` |
+| `y` | damage trần/battle range upper | `jz2.c() + flat attack + percent attack` |
+
+Ghi chú UI status Java cũ: màn hình nhân vật chỉ có **một ô `Tấn Công`**, không hiển thị dạng range. Ảnh tham chiếu nhân vật level 170 (`CườngLực 510`, `NộiLực 110`, `ThânPháp 107`, `ThểLực 209`) cho thấy `Tấn Công = 524`, khớp với Hỏa dùng `lh.x = CườngLực + flatAttack/status attack bonus`, còn `lh.y` chỉ nên giữ cho battle damage upper bound. Client remake vì vậy phải hiển thị `runtime.minDamage` ở status, không hiển thị `runtime.maxDamage`.
 
 C# `StatCalculator` hiện mới tương đương calculator nền `jq/js/jr`; chưa có lớp tổng hợp `lh + ll.r + bonus stats` như bridge Java.
 
@@ -470,7 +472,12 @@ Client nhận qua `PlayerRuntimeSnapshot.mapMoveSpeed/mapJumpSpeed`, merge vào 
   - Client Java không chứa công thức server cũ chính xác cho lượng ăn đào/nộ/MP, nên remake ghi rõ đây là rule suy luận có kiểm soát.
   - `client/src/screens/battle/core/BattleScreen.shared.ts`: thêm `scalePowerGainByStrength()` để Cường Lực tăng tốc độ nhận nộ/Power, tương tự rule đào/HP hiện có; Nội Lực vẫn tăng MP qua `scaleManaGainByMagic()`.
   - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`: áp dụng scale Power theo Cường Lực khi match gem/resource trong trận.
-  - Thân Pháp tiếp tục đi qua pipeline derived stat Java đã phục dựng: chính xác, né tránh, chí mạng; ngoài map còn ảnh hưởng move/jump theo rule remake có cap.
+- Thân Pháp tiếp tục đi qua pipeline derived stat Java đã phục dựng: chính xác, né tránh, chí mạng; ngoài map còn ảnh hưởng move/jump theo rule remake có cap.
+- Chốt lại hiển thị `Tấn Công` trên status theo ảnh Java cũ:
+  - Java status là một số đơn, không phải range.
+  - `lh.x`/`runtime.minDamage` là số hiển thị ở ô `Tấn Công`.
+  - `lh.y`/`runtime.maxDamage` chỉ giữ làm damage trần cho battle range hoặc công thức skill nếu cần.
+  - Cập nhật `client/src/screens/character/status/CharacterStatus.api.ts` để merge `combat.attack = runtime.minDamage`.
 
 ## Kết Luận
 
