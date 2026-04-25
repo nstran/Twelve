@@ -1,4 +1,5 @@
 import { StyleSheet, Platform } from 'react-native';
+import { GameTextStyles } from '../../../theme/GameTheme';
 
 export const getStyles = (width: number, height: number) => {
   const FONT_SMALL = 13;
@@ -17,11 +18,11 @@ export const getStyles = (width: number, height: number) => {
       borderBottomColor: '#dddddd',
     },
     headerText: {
+      ...GameTextStyles.dialogText,
       color: '#000000',
       fontSize: 18,
       fontWeight: 'bold',
       textDecorationLine: 'underline',
-      fontFamily: Platform.OS === 'ios' ? 'Hoefler Text' : 'serif',
     },
 
     scroll: {
@@ -50,20 +51,20 @@ export const getStyles = (width: number, height: number) => {
       marginBottom: 4,
     },
     bannerText: {
+      ...GameTextStyles.uiLabelStrong,
       color: '#ffffff',
       fontSize: 14,
       fontWeight: 'bold',
       textAlign: 'center',
-      fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
     },
 
     label: {
+      ...GameTextStyles.dialogText,
       color: '#000000',
       fontSize: FONT_MED,
       fontWeight: 'bold',
       marginTop: 12,
       marginBottom: 4,
-      fontFamily: Platform.OS === 'ios' ? 'Hoefler Text' : 'serif',
     },
 
     // Inputs
@@ -88,6 +89,7 @@ export const getStyles = (width: number, height: number) => {
     },
     
     textInput: {
+      ...GameTextStyles.dialogText,
       color: '#000000',
       fontSize: FONT_SMALL,
       fontWeight: 'bold',
@@ -132,11 +134,13 @@ export const getStyles = (width: number, height: number) => {
       borderRadius: 2,
     },
     radioCheck: {
+      ...GameTextStyles.dialogText,
       color: '#2a1a05',
       fontSize: 12,
       fontWeight: 'bold',
     },
     radioLabel: {
+      ...GameTextStyles.dialogText,
       color: '#000000',
       fontSize: FONT_MED,
       fontWeight: 'bold',

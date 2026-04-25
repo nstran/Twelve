@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -30,6 +30,11 @@ interface PopupMenuProps {
   bottomOffset?: number;
   top?: number;
   left?: number;
+  /**
+   * Tín hiệu từ Softkey OK/tick. Mỗi lần số này tăng, PopupMenu sẽ chọn
+   * item đang focus ở level sâu nhất, giống phím trái trong Java client.
+   */
+  selectSignal?: number;
 }
 
 export const PopupMenu: React.FC<PopupMenuProps> = ({
@@ -43,16 +48,16 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
   bottomOffset,
   top,
   left,
+  selectSignal,
 }) => {
   const [navStack, setNavStack] = useState<{ items: MenuItem[]; title: string; openedIndex: number }[]>([]);
+  const lastSelectSignalRef = useRef(selectSignal);
 
   useEffect(() => {
     if (visible) {
       setNavStack([]);
     }
   }, [visible]);
-
-  if (!visible) return null;
 
   const handleItemPress = (item: MenuItem, idx: number, depth: number) => {
     if (item.children && item.children.length > 0) {
@@ -67,6 +72,25 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
       onClose();
     }
   };
+
+  useEffect(() => {
+    if (!visible || selectSignal === undefined || lastSelectSignalRef.current === selectSignal) {
+      lastSelectSignalRef.current = selectSignal;
+      return;
+    }
+
+    lastSelectSignalRef.current = selectSignal;
+
+    const activeDepth = navStack.length;
+    const activeItems = activeDepth > 0 ? navStack[activeDepth - 1].items : items;
+    const focusedItem = activeItems[selectedIndex];
+
+    if (focusedItem) {
+      handleItemPress(focusedItem, selectedIndex, activeDepth);
+    }
+  }, [items, navStack, onClose, onIndexChange, onSelect, selectSignal, selectedIndex, visible]);
+
+  if (!visible) return null;
 
   const allLevels = [
     { items, title: title || '', openedIndex: navStack.length > 0 ? navStack[0].openedIndex : selectedIndex },
@@ -124,7 +148,7 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
                          {item.label}
                        </Text>
                        {hasChildren && (
-                         <Text style={{ color: isSelected ? '#fff' : '#666', fontWeight: 'bold' }}>{'>'}</Text>
+                         <Text style={[styles.menuArrowText, isSelected && styles.menuArrowTextSelected]}>{'>'}</Text>
                        )}
                     </View>
                   </TouchableOpacity>

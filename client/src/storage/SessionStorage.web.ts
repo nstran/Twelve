@@ -20,10 +20,8 @@ export async function saveSession(session: SavedSession): Promise<void> {
     localStorage.setItem(KEY_TOKEN,      session.token);
     localStorage.setItem(KEY_USERNAME,   session.username);
     localStorage.setItem(KEY_EXPIRES_AT, String(session.expiresAt));
-    console.log('[SessionStorage.web] Saved session for', session.username,
-      '— expires', new Date(session.expiresAt * 1000).toLocaleString());
-  } catch (e) {
-    console.error('[SessionStorage.web] saveSession error:', e);
+  } catch {
+    // Không ghi console trong production/dev runtime UI.
   }
 }
 
@@ -31,8 +29,8 @@ export async function saveSession(session: SavedSession): Promise<void> {
 export async function saveLastScreen(screen: string): Promise<void> {
   try {
     localStorage.setItem(KEY_LAST_SCREEN, screen);
-  } catch (e) {
-    console.error('[SessionStorage.web] saveLastScreen error:', e);
+  } catch {
+    // Không ghi console trong production/dev runtime UI.
   }
 }
 
@@ -45,25 +43,16 @@ export async function loadSession(): Promise<SavedSession | null> {
     const lastScreen = localStorage.getItem(KEY_LAST_SCREEN);
     const expiresAt  = expiresStr ? parseInt(expiresStr, 10) : 0;
 
-    console.log('[SessionStorage.web] loadSession →', {
-      token: token?.slice(0, 8),
-      username,
-      expiresAt,
-      lastScreen,
-    });
-
     if (!token || !username || !expiresAt) return null;
 
     const nowSeconds = Math.floor(Date.now() / 1000);
     if (nowSeconds >= expiresAt) {
-      console.log('[SessionStorage.web] Session expired — clearing');
       await clearSession();
       return null;
     }
 
     return { token, username, expiresAt, lastScreen: lastScreen || undefined };
-  } catch (e) {
-    console.error('[SessionStorage.web] loadSession error:', e);
+  } catch {
     return null;
   }
 }
@@ -75,9 +64,8 @@ export async function clearSession(): Promise<void> {
     localStorage.removeItem(KEY_USERNAME);
     localStorage.removeItem(KEY_EXPIRES_AT);
     localStorage.removeItem(KEY_LAST_SCREEN);
-    console.log('[SessionStorage.web] Session cleared');
-  } catch (e) {
-    console.error('[SessionStorage.web] clearSession error:', e);
+  } catch {
+    // Không ghi console trong production/dev runtime UI.
   }
 }
 

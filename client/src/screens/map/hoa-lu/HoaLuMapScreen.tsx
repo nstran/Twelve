@@ -856,6 +856,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   // ── Menu state ──────────────────────────────────────────────────────────
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuSelectedIndex, setMenuSelectedIndex] = useState(0);
+  const [menuSelectSignal, setMenuSelectSignal] = useState(0);
   const [activeCharacterDialog, setActiveCharacterDialog] = useState<MapCharacterDialogKind | null>(null);
   const [activePvpDialog, setActivePvpDialog] = useState<PvpDialogMode | null>(null);
   const [pvpOpponents, setPvpOpponents] = useState<PvpOpponentEntry[]>([]);
@@ -1783,7 +1784,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         onIndexChange={setMenuSelectedIndex}
         onSelect={() => {}}
         onClose={() => setMenuVisible(false)}
-        bottomOffset={27} 
+        bottomOffset={27}
+        selectSignal={menuSelectSignal}
       />
 
       {/* ─── SoftkeyBar (bottom bar) - using icons like login screen ─── */}
@@ -1794,7 +1796,11 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           if (isPvpDialogActive || isPvpPromptActive) return;
           if (isCharacterDialogActive) return;
           if (isEncounterActive) return;
-          setMenuVisible(prev => !prev);
+          if (menuVisible) {
+            setMenuSelectSignal(prev => prev + 1);
+            return;
+          }
+          setMenuVisible(true);
         }}
         onRightPress={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive ? () => {
           if (isPvpPromptActive) {

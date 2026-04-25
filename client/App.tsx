@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, StatusBar, StyleSheet, View, Text } from 'react-native';
+import { LoadingDialog } from './src/components/dialogs/LoadingDialog/LoadingDialog';
 import {
   BattleScreen,
   createBattlePvpActionResolver,
@@ -44,6 +45,7 @@ type MonsterTypeNav = 'fire' | 'ice' | 'zap';
 type BattleInitialTurn = 'player' | 'monster';
 
 const SERVER_URL         = 'ws://localhost:5102/game';
+const API_BASE_URL       = 'http://localhost:5102';
 const RECONNECT_DELAY_MS = 2000;
 
 function normalizeScreen(screen?: string | null): Screen {
@@ -73,6 +75,7 @@ export default function App() {
   });
   const [isConnected, setIsConnected] = useState(false);
   const [connectMsg, setConnectMsg]   = useState('ĐANG KẾT NỐI CHIẾN TRƯỜNG...');
+  const [apiLoadingCount, setApiLoadingCount] = useState(0);
   const addLog = (msg: string) => console.log(msg);
   const resolveSkillPacket = React.useMemo(
     () => createBattleSkillPacketResolver(SERVER_URL),
@@ -137,6 +140,46 @@ export default function App() {
   useEffect(() => {
     playerAppearanceRef.current = playerAppearance;
   }, [playerAppearance]);
+
+  useEffect(() => {
+    const originalFetch = globalThis.fetch.bind(globalThis);
+
+    const resolveRequestUrl = (input: RequestInfo | URL): string => {
+      if (typeof input === 'string') {
+        return input;
+      }
+
+      if (input instanceof URL) {
+        return input.toString();
+      }
+
+      return input.url;
+    };
+
+    const shouldTrackRequest = (input: RequestInfo | URL): boolean => {
+      const url = resolveRequestUrl(input);
+      return url.startsWith(API_BASE_URL);
+    };
+
+    globalThis.fetch = (async (...args: Parameters<typeof fetch>): Promise<Response> => {
+      const track = shouldTrackRequest(args[0]);
+      if (track) {
+        setApiLoadingCount((current) => current + 1);
+      }
+
+      try {
+        return await originalFetch(...args);
+      } finally {
+        if (track) {
+          setApiLoadingCount((current) => Math.max(0, current - 1));
+        }
+      }
+    }) as typeof fetch;
+
+    return () => {
+      globalThis.fetch = originalFetch;
+    };
+  }, []);
 
   const applyRuntimeResponse = React.useCallback((response: { snapshot: any } | null) => {
     if (!response?.snapshot) {
@@ -565,6 +608,7 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       {renderScreen()}
+      <LoadingDialog visible={apiLoadingCount > 0} message="Vui lòng chờ..." />
     </SafeAreaView>
   );
 }

@@ -1,5 +1,292 @@
 # CHANGELOG
 
+## 2026-04-25 (K)
+
+### Đồng bộ nút tick menu và mũi tên Calendar
+
+**Sửa:**
+- Bổ sung cơ chế `selectSignal` cho `PopupMenu`: khi menu đang mở, softkey trái/tick sẽ chọn item đang focus ở cấp menu sâu nhất, bám hành vi phím mềm Java cũ.
+- Nối cơ chế tick chọn menu vào:
+  - màn status nhân vật;
+  - màn map Hòa Lư.
+- Thay mũi tên text `<` / `>` trong `CalendarPicker` bằng asset `arrowfocus1.png`, cùng hướng xoay giống selector Giới Tính/Khuôn Mặt/Kiểu Tóc ở màn tạo nhân vật.
+
+**Kiểm tra:**
+- `npx --prefix client tsc -p client/tsconfig.json --noEmit` → thành công.
+
+**File đã sửa:**
+- `client/src/components/controls/PopupMenu/PopupMenu.tsx`
+- `client/src/screens/character/status/CharacterStatusScreen.tsx`
+- `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`
+- `client/src/components/controls/CalendarPicker/CalendarPicker.tsx`
+- `client/src/components/controls/CalendarPicker/CalendarPicker.styles.ts`
+
+---
+
+## 2026-04-25 (J)
+
+### Xóa toàn bộ console runtime trong client/src
+
+**Sửa:**
+- Xóa toàn bộ `console.log`, `console.warn`, `console.error`, `console.debug`, `console.info` trong `client/src` để không còn spam console khi chạy web/dev.
+- Các nhóm đã dọn:
+  - `SocketClient`: log kết nối WebSocket, packet/CMD, login/register/create character response.
+  - `SessionStorage` native/web: log save/load/clear session, lastScreen, lỗi storage.
+  - `RegisterScreen`: log flow đăng ký và validation.
+  - `LoginScreen`: đã dọn ở mục trước.
+  - `MapSelectionScreen`: log map bị khóa.
+  - `MainScreen`: log move ack.
+  - `usePaletteSwappedImage`: warning palette swap fallback.
+- Các lỗi runtime không cần hiển thị console sẽ fallback im lặng; UI vẫn dùng banner/flow hiện có để báo lỗi nghiệp vụ cho người chơi.
+
+**Kiểm tra:**
+- Rà `console.(log|warn|error|debug|info)` trong `client/src` → không còn kết quả.
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+
+**File đã sửa:**
+- `client/src/network/SocketClient.ts`
+- `client/src/screens/auth/register/RegisterScreen.tsx`
+- `client/src/storage/SessionStorage.web.ts`
+- `client/src/storage/SessionStorage.ts`
+- `client/src/screens/map/selection/MapSelectionScreen.tsx`
+- `client/src/screens/main/home/MainScreen.tsx`
+- `client/src/screens/character/create/usePaletteSwappedImage.ts`
+
+---
+
+## 2026-04-25 (I)
+
+### Xóa console debug khỏi màn đăng nhập
+
+**Sửa:**
+- Xóa toàn bộ `console.log` debug trong `client/src/screens/auth/login/LoginScreen.tsx`:
+  - log mount/unmount auth listener;
+  - log `authSuccess`;
+  - log `authFailed`;
+  - log `characterRequired`;
+  - log `handleLogin`;
+  - log gửi CMD login.
+- Giữ nguyên flow xử lý login, banner lỗi, loading state và emit `authSuccessWithUser`.
+
+**Kiểm tra:**
+- Rà `console.(log|warn|error|debug|info)` trong `client/src/screens/auth/login` → không còn kết quả.
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+
+**File đã sửa:**
+- `client/src/screens/auth/login/LoginScreen.tsx`
+
+---
+
+## 2026-04-25 (H)
+
+### Áp font/theme cho PopupMenu và các text hệ thống còn hardcode
+
+**Sửa:**
+- Kiểm tra menu trong ảnh đăng nhập:
+  - `PopupMenu` đã dùng `GameTextStyles.menuText` / `menuTextSelected` cho label.
+  - Bổ sung style riêng cho mũi tên submenu `>` để không còn inline hardcode font weight/color.
+- Sửa các điểm còn hardcode `fontFamily` ngoài theme:
+  - `client/src/components/controls/CalendarPicker/CalendarPicker.styles.ts`
+    - Bỏ import `Platform`.
+    - Áp `GameTextStyles.dialogText` cho group label, year/month button text, arrow icon, day text.
+  - `client/src/components/game/MapHUD/MapHUD.tsx`
+    - Bỏ font monospace hardcode theo `Platform`.
+    - Áp `GameTextStyles.numberSmall` cho tên khu vực/map HUD.
+- Chạy rà soát `fontFamily:` trong `client/src`: hiện chỉ còn nằm trong `client/src/theme/GameTheme.ts`, tức font contract tập trung một chỗ.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+
+**File đã sửa:**
+- `client/src/components/controls/PopupMenu/PopupMenu.styles.ts`
+- `client/src/components/controls/PopupMenu/PopupMenu.tsx`
+- `client/src/components/controls/CalendarPicker/CalendarPicker.styles.ts`
+- `client/src/components/game/MapHUD/MapHUD.tsx`
+
+---
+
+## 2026-04-25 (G)
+
+### Áp font family/theme cho màn đăng ký
+
+**Sửa:**
+- Kiểm tra màn đăng nhập:
+  - `client/src/screens/auth/login/LoginScreen.styles.ts` đã dùng `GameTextStyles.dialogText` cho input và checkbox.
+- Sửa màn đăng ký:
+  - `client/src/screens/auth/register/RegisterScreen.styles.ts`
+  - Import `GameTextStyles` từ `client/src/theme/GameTheme`.
+  - Áp `GameTextStyles.dialogText` cho header, label, input, radio text.
+  - Áp `GameTextStyles.uiLabelStrong` cho banner thông báo.
+- Mục tiêu là đồng bộ font Java-like fallback từ `GameFonts.dialog` / `GameFonts.ui` thay vì hardcode trực tiếp `serif` / `sans-serif` rải rác trong màn đăng ký.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+
+**File đã sửa:**
+- `client/src/screens/auth/register/RegisterScreen.styles.ts`
+
+---
+
+## 2026-04-25 (F)
+
+### Hiển thị dialog “Vui lòng chờ...” cho mọi HTTP API call
+
+**Sửa:**
+- Tìm thấy dialog chờ hiện có tại:
+  - `client/src/components/dialogs/LoadingDialog/LoadingDialog.tsx`
+- Tích hợp dialog chờ cấp app trong `client/App.tsx`.
+- Bọc `globalThis.fetch` ở tầng root để mọi request HTTP tới API server `http://localhost:5102` tự động:
+  - tăng counter khi bắt đầu request;
+  - giảm counter trong `finally`;
+  - hiện `<LoadingDialog message="Vui lòng chờ..." />` khi còn ít nhất 1 request đang chạy.
+- Cách này phủ được các API hiện đang dùng `fetch`:
+  - `/player/runtime...`
+  - `/battle/...`
+  - `/pvp/...`
+  - `/map/monster-roster...`
+- Không ảnh hưởng WebSocket packet game realtime vì WebSocket không đi qua `fetch`.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+
+**File đã sửa:**
+- `client/App.tsx`
+
+---
+
+## 2026-04-25 (E)
+
+### Sửa điểm tiềm năng ban đầu và áp dụng font/theme từ Login
+
+**Sửa:**
+- Sửa nhân vật level 1 mới tạo không còn có sẵn `5` điểm tiềm năng:
+  - `CreateCharacterHandler.cs`: `player.FreePoints = 0`.
+  - `Player.cs`: default `FreePoints = 0`.
+- Giữ rule level-up: `PlayerLevelProgression` vẫn cộng `+5` điểm tiềm năng mỗi level.
+- Cập nhật spec `08-level-stat-exp-and-element-balance.md`:
+  - `InitialFreePoints = 0`.
+  - `InitialFreePointsAtLv1 = 0`.
+  - Tổng điểm tới level 250 vẫn là `(250 - 1) * 5 = 1245`.
+- Áp dụng `GameTextStyles.dialogText` vào màn đăng nhập để font/style dùng chung bắt đầu từ Login, không chỉ các màn sau.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit && dotnet build Twelve.sln` → thành công, 0 Error.
+
+**File đã sửa:**
+- `server/Twelve.Application/Handlers/CreateCharacterHandler.cs`
+- `server/Twelve.Core/Entities/Player.cs`
+- `client/src/screens/auth/login/LoginScreen.styles.ts`
+- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`
+
+---
+
+## 2026-04-25 (D)
+
+### Chuẩn hóa font/style toàn hệ thống — GameTheme
+
+**Mục tiêu:**
+- Không hardcode font rải rác trong từng file style.
+- Tạo contract style/font dùng chung toàn client, các màn riêng chỉ override layout/màu khi cần.
+- Ghi nhận font atlas Java cũ hiện có:
+  - `client/assets/login/04_font_candidate/_blackfont.png`
+  - `client/assets/login/04_font_candidate/_fontcap.png`
+  - `client/assets/ui/04_tabs_and_numbers/tinynumber.png`
+
+**Sửa:**
+- Tạo `client/src/theme/GameFonts.ts`
+  - Chứa font fallback Java-like cho RN Text.
+  - Ghi chú rõ bitmap PNG atlas chưa thể dùng bằng `fontFamily` trực tiếp, cần renderer riêng về sau.
+- Tạo `client/src/theme/GameTheme.ts`
+  - Chứa `GameColors`.
+  - Chứa `GameTextStyles` dùng chung: `uiLabel`, `uiLabelStrong`, `uiValue`, `menuText`, `softkeyText`, `numberTiny`, `numberSmall`, `numberValue`, `dialogText`.
+- Refactor các style đang sửa sang dùng theme chung:
+  - `SoftkeyBar.styles.ts`
+  - `PopupMenu.styles.ts`
+  - `CreateCharacterScreen.styles.ts`
+  - `CharacterStatusScreen.styles.ts`
+- Áp dụng hướng số bitmap/tinynumber ở mức fallback hiện tại qua `GameTextStyles.number*`; renderer crop atlas thật sẽ làm sau nếu cần pixel-perfect Java.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+
+**File đã sửa:**
+- `client/src/theme/GameFonts.ts`
+- `client/src/theme/GameTheme.ts`
+- `client/src/components/controls/SoftkeyBar/SoftkeyBar.styles.ts`
+- `client/src/components/controls/PopupMenu/PopupMenu.styles.ts`
+- `client/src/screens/character/create/CreateCharacterScreen.styles.ts`
+- `client/src/screens/character/status/CharacterStatusScreen.styles.ts`
+
+---
+
+## 2026-04-25 (C)
+
+### Sửa focus mặc định màn tạo nhân vật — CreateCharacterScreen
+
+**Lỗi:**
+- Khi mở màn tạo nhân vật, ô đang được chọn mặc định là `Khuôn Mặt`.
+- Theo thứ tự UI Java-like và ảnh test, focus đầu tiên phải nằm ở `Giới Tính`.
+
+**Sửa:**
+- Đổi state khởi tạo:
+  - Từ `useState<SelectorKey>('face')`
+  - Thành `useState<SelectorKey>('gender')`
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+
+**File đã sửa:**
+- `client/src/screens/character/create/CreateCharacterScreen.tsx`
+
+---
+
+## 2026-04-25 (B)
+
+### Balance v1.1 — Tạo nhân vật + Stat Pipeline + Off-Element Soft Cap + MaxMP/MaxPower
+
+**Mục tiêu:**
+- Áp dụng balance spec (08-level-stat-exp-and-element-balance.md) vào code server thực tế.
+- Phần tạo nhân vật là nền sống còn của game: công bằng, không phạt chỉ số gốc từ level 1.
+- PlayerStatPipeline là nguồn truth duy nhất cho MaxHP/MaxMP/MaxPower/derived stats.
+
+**Sửa:**
+
+#### CreateCharacterHandler.cs
+- Bỏ stat khởi tạo cũ theo element (Hỏa 15/10/5/10, Lôi 5/15/5/10, Thủy 5/10/15/10).
+- Chuyển sang base stats công bằng `(10, 10, 10, 10)` mọi hệ.
+- Lý do: không có bằng chứng server Java cũ cho việc trừ dump-stat khi tạo nhân vật; stat gốc khởi tạo công bằng để người chơi định hướng build từ các lần lên cấp.
+- Bỏ `hpMultiplier` cũ tính MaxHp tay; dùng `PlayerStatPipeline.RecalculateAndApply(player)` là nguồn truth duy nhất.
+- Set `player.Mp = player.MaxMp` sau pipeline để MP ban đầu đúng với MaxMp được tính.
+- `Element` vẫn được set chuẩn để xác định MainElement/affinity/skill tree/khắc hệ.
+
+#### PlayerStatPipeline.cs
+- Thêm **off-element offense soft cap** (Balance v1.1):
+  - Đúng hệ: TotalStat 100%.
+  - Sai hệ trước mốc 120: 70%.
+  - Sai hệ sau mốc 120: 35%.
+  - Áp dụng cho `CuongLuc`, `ThanPhap`, `NoiLuc` khi truyền vào StatCalculator.
+  - `TheLuc` và resource/utility không áp dụng soft cap.
+- Thêm `CalculateMaxMp(level, totalNoiLuc)`:
+  - `MaxMp = 40 + level * 6 + NoiLucTotal * 8`
+  - Dùng TotalNoiLuc (không qua soft cap) vì MaxMP là utility, mặc đồ/cộng Nội Lực luôn có tác dụng.
+- Thêm `MaxPower = 100` (fixed, reset theo trận).
+- Mở rộng `PlayerDerivedStats` record thêm `MaxMp`, `MaxPower`.
+- Mở rộng `Apply()` set `player.MaxMp`, `player.MaxPower`, clamp `player.Mp`, `player.Power`.
+
+**Build:** `dotnet build Twelve.sln` → 0 Warning, 0 Error.
+
+**File đã sửa:**
+- `server/Twelve.Application/Handlers/CreateCharacterHandler.cs`
+- `server/Twelve.Core/GameLogic/PlayerStatPipeline.cs`
+
+**Trạng thái tiếp theo (bắt đầu chat mới):**
+- `AllocateStatHandler.cs` cần kiểm tra còn dùng `StatCalculator.RecalculateAndApply` cũ không → nếu có phải chuyển sang `PlayerStatPipeline.RecalculateAndApply`.
+- `BattleResultService.cs` có dùng `PlayerStatPipeline.RecalculateAndApply` cần kiểm tra.
+- Client `PlayerRuntimeSnapshot` cần nhận MaxMp/MaxPower đúng từ server để hiển thị bar.
+- Kiểm tra combat formula trong `StatCalculator.cs` (jq/js/jr) xem MaxHp có cần điều chỉnh theo level hay không (hiện tại chỉ `vit * factor`, chưa có `level * 18`).
+
+---
+
 ## 2026-04-25
 
 ### Ghi spec cân bằng Level 250 / Stat / EXP / Khắc Hệ — Player/Character

@@ -32,7 +32,7 @@ namespace Twelve.Core.Entities
         public int ThanPhap { get; set; } = 10;   // lh.j / jp.b — Agility
         public int NoiLuc   { get; set; } = 10;   // lh.i / jp.c — Magic
         public int TheLuc   { get; set; } = 10;   // lh.k / jp.d — Vitality
-        public int FreePoints { get; set; } = 5;  // lh.K / Tag 53 — điểm chưa phân
+        public int FreePoints { get; set; } = 0;  // lh.K / Tag 53 — điểm chưa phân; level 1 bắt đầu 0, level-up +5
         public int BonusCuongLuc { get; set; } = 0; // lh.l
         public int BonusThanPhap { get; set; } = 0; // lh.m
         public int BonusNoiLuc { get; set; } = 0;   // lh.n

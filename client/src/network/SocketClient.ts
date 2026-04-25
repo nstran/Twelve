@@ -85,7 +85,6 @@ export class SocketClient extends EventEmitter {
   connect(url: string) {
     // Đóng socket cũ nếu còn mở, tránh leak
     if (this.socket) {
-      console.log('[SocketClient] Closing old socket before reconnecting...');
       // Gỡ handler cũ để tránh emit 'disconnected' khi chủ động đóng
       this.socket.onclose = null;
       this.socket.onerror = null;
@@ -97,12 +96,10 @@ export class SocketClient extends EventEmitter {
       this.socket = null;
     }
 
-    console.log('[SocketClient] Opening WebSocket →', url);
     this.socket = new WebSocket(url);
     this.socket.binaryType = 'arraybuffer';
 
     this.socket.onopen = () => {
-      console.log('[SocketClient] Connected ✓');
       this.emit('connected');
     };
 
@@ -111,14 +108,12 @@ export class SocketClient extends EventEmitter {
       this.handlePacket(data);
     };
 
-    this.socket.onclose = (ev) => {
-      console.log('[SocketClient] Disconnected (code=%d reason=%s)', ev.code, ev.reason || '—');
+    this.socket.onclose = () => {
       this.socket = null;
       this.emit('disconnected');
     };
 
     this.socket.onerror = (err) => {
-      console.error('[SocketClient] WebSocket error', err);
       this.emit('error', err);
     };
   }
@@ -126,7 +121,6 @@ export class SocketClient extends EventEmitter {
   private handlePacket(data: Uint8Array) {
     // Minimum packet = 7-byte header: SubCount(2) + PayloadLength(4) + Command(1)
     if (data.length < 7) {
-      console.warn('[SocketClient] ← Received too-short packet:', data.length, 'bytes');
       return;
     }
 
@@ -134,15 +128,11 @@ export class SocketClient extends EventEmitter {
     const cmd = data[6] as Command;
     const payload = data.slice(7, 7 + payloadLength);
 
-    console.log(`[SocketClient] ← Received CMD ${cmd} (${Command[cmd]}), payloadLength=${payloadLength}`);
-
     switch (cmd) {
       case Command.LOGIN_SUCCESS: {
         // Payload gồm Token(tag 2) + ExpiresAt(tag 3)
         const token     = this.parseStringTag(payload, Tag.TOKEN);
         const expiresAt = this.parseLongTag(payload,   Tag.EXPIRES_AT);
-        console.log('[SocketClient] ← LOGIN_SUCCESS token=', token ? token.slice(0,8)+'…' : 'none',
-                    'expiresAt=', expiresAt);
         this.emit('authSuccess', { token, expiresAt });
         break;
       }
@@ -188,8 +178,6 @@ export class SocketClient extends EventEmitter {
         const expDenominator = Math.max(1, expCeiling - expFloor);
         const expPct = Math.max(0, Math.min(100, Math.floor(((expValue - expFloor) * 100) / expDenominator)));
 
-        console.log('[SocketClient] ← CHARACTER_INFO g=%d e=%d level=%d hp=%d/%d atk=%d',
-          genderIndex, elementIndex, level, hpCur, hpMax, attack);
         this.emit('characterInfo', {
           genderIndex,
           elementIndex,
@@ -227,14 +215,12 @@ export class SocketClient extends EventEmitter {
 
       case Command.LOGIN_FAILED:
         const errorMsg = this.parseStringTag(payload, Tag.MESSAGE);
-        console.log('[SocketClient] ← Login Failed:', JSON.stringify(errorMsg));
         this.emit('authFailed',     errorMsg);
         this.emit('registerFailed', errorMsg); 
         break;
 
       case Command.REGISTER_RESPONSE:
         const regMsg = this.parseStringTag(payload, Tag.MESSAGE);
-        console.log('[SocketClient] ← Register response:', JSON.stringify(regMsg));
         if (regMsg.includes('thanh cong')) {
           this.emit('registerSuccess', regMsg);
         } else {
@@ -244,7 +230,6 @@ export class SocketClient extends EventEmitter {
 
       case Command.CREATE_CHAR_RESPONSE:
         const charMsg = this.parseStringTag(payload, Tag.MESSAGE);
-        console.log('[SocketClient] ← Create Character response:', JSON.stringify(charMsg));
         if (charMsg.includes('thanh cong')) {
           this.emit('createCharSuccess', charMsg);
         } else {
@@ -308,7 +293,7 @@ export class SocketClient extends EventEmitter {
         break;
 
       default:
-        console.log(`[SocketClient] Unhandled CMD ${cmd}`);
+        break;
     }
 }
 
@@ -321,7 +306,6 @@ export class SocketClient extends EventEmitter {
 
   // ─── CMD 3: Auto-login bằng session token ────────────────────────────────
   tokenLogin(token: string) {
-    console.log('[SocketClient] tokenLogin() token=', token.slice(0, 8) + '…');
     const tokenTag = this.makeStringTag(Tag.TOKEN, token);
     const payload  = new Uint8Array(tokenTag);
     const packet   = this.wrapPacket(Command.TOKEN_LOGIN_REQUEST, payload, 1);

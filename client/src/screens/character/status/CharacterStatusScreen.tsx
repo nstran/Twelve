@@ -126,6 +126,7 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [menuSelectSignal, setMenuSelectSignal] = useState(0);
 
   const elementIndex = appearance.elementIndex ?? 0;
   const primaryRow = PRIMARY_STAT[elementIndex] ?? 0;
@@ -264,12 +265,19 @@ export const CharacterStatusScreen: React.FC<StatusScreenProps> = ({
           onIndexChange={setSelectedIndex}
           onClose={() => setMenuVisible(false)}
           bottomOffset={28}
+          selectSignal={menuSelectSignal}
         />
         <SoftkeyBar
           width={SCREEN_WIDTH}
           centerLabel="Bắt đầu"
           onCenterPress={onStart}
-          onLeftPress={() => setMenuVisible(true)}
+          onLeftPress={() => {
+            if (menuVisible) {
+              setMenuSelectSignal(prev => prev + 1);
+              return;
+            }
+            setMenuVisible(true);
+          }}
           onRightPress={menuVisible ? () => setMenuVisible(false) : undefined}
           isMenuOpen={menuVisible}
         />

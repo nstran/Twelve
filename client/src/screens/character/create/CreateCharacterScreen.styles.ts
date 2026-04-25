@@ -1,4 +1,5 @@
-import { StyleSheet, Dimensions, Platform } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+import { GameTextStyles } from '../../../theme/GameTheme';
 
 const { width, height } = Dimensions.get('window');
 const STAGE_WIDTH = 348;
@@ -96,11 +97,8 @@ export const styles = StyleSheet.create({
     transform: [{ scale: 1.01 }],
   },
   label: {
-    color: '#111111',
-    fontSize: 15,
-    fontWeight: '900',
+    ...GameTextStyles.uiLabelStrong,
     marginBottom: 3,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
   valueBox: {
     minHeight: 25,
@@ -117,14 +115,12 @@ export const styles = StyleSheet.create({
     borderColor: '#235dd3',
   },
   valueText: {
+    ...GameTextStyles.uiValue,
     flex: 1,
-    color: '#1b1b1b',
-    fontSize: 13,
-    fontWeight: '700',
     textAlign: 'center',
   },
   valueTextActive: {
-    color: '#ffffff',
+    ...GameTextStyles.uiValueSelected,
   },
   arrowButton: {
     width: 18,

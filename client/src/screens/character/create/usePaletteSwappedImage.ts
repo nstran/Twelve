@@ -112,8 +112,7 @@ export function usePaletteSwappedImage(
         if (!cancelled && mountedRef.current) {
           setSwappedState({ key: cacheKey, uri: dataUri });
         }
-      } catch (err) {
-        console.warn('[usePaletteSwappedImage] failed:', err);
+      } catch {
         // fallback → giữ nguyên null → render source gốc
       }
     })();

@@ -35,10 +35,9 @@ export const MainScreen: React.FC<Props> = ({ onLogout }) => {
       });
     };
 
-    const onMoveAck = (payload: Uint8Array) => {
+    const onMoveAck = (_payload: Uint8Array) => {
       // Server echoes back the move — update own actor position
       // Tags 102=x, 103=y are in the payload; actor update will come via actorsUpdate
-      console.log('[MainScreen] Move acknowledged by server');
     };
 
     const onConnected = () => {

@@ -48,10 +48,7 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
   const client = SocketClient.getInstance();
 
   useEffect(() => {
-    console.log('[Register] Mounting: subscribing to registerSuccess/registerFailed events');
-
     const onSuccess = (msg: string) => {
-      console.log('[Register] ← SERVER: registerSuccess', msg);
       setLoading(false);
       showSuccess('Đăng ký thành công! Đang chuyển sang đăng nhập...');
       // Tự động chuyển sang màn đăng nhập sau 1.5 giây
@@ -59,7 +56,6 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
     };
 
     const onFailed = (msg: string) => {
-      console.log('[Register] ← SERVER: registerFailed', msg);
       setLoading(false);
       showError(msg || 'Đăng ký không thành công. Vui lòng thử lại.');
     };
@@ -68,7 +64,6 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
     client.on('registerFailed',  onFailed);
 
     return () => {
-      console.log('[Register] Unmounting: unsubscribing events');
       client.off('registerSuccess', onSuccess);
       client.off('registerFailed',  onFailed);
     };
@@ -84,45 +79,34 @@ export const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
   }, [showCalendar]);
 
   const handleRegister = () => {
-    console.log('[Register] ── handleRegister fired ──');
     clearMsg();
 
     const trimUser  = username.trim();
     const trimName  = fullName.trim();
     const trimPhone = phone.trim();
 
-    console.log('[Register] username:', JSON.stringify(trimUser));
-    console.log('[Register] password length:', password.length);
-    console.log('[Register] confirm match:', password === confirm);
-
     // ── Validate — hiển thị lỗi trực tiếp trên màn hình ─────────────────
     if (!trimUser) {
-      console.log('[Register] FAIL: username empty');
       showError('Vui lòng nhập tên đăng nhập');
       return;
     }
     if (trimUser.length < 4) {
-      console.log('[Register] FAIL: username too short', trimUser.length);
       showError('Tên đăng nhập phải từ 4 ký tự trở lên');
       return;
     }
     if (!password) {
-      console.log('[Register] FAIL: password empty');
       showError('Vui lòng nhập mật khẩu');
       return;
     }
     if (password.length < 6) {
-      console.log('[Register] FAIL: password too short', password.length);
       showError('Mật khẩu phải có ít nhất 6 ký tự');
       return;
     }
     if (password !== confirm) {
-      console.log('[Register] FAIL: passwords do not match');
       showError('Mật khẩu nhập lại không khớp');
       return;
     }
 
-    console.log('[Register] Validation OK → setLoading(true) → client.register()');
     setLoading(true);
 
     client.register(

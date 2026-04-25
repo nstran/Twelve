@@ -104,17 +104,17 @@ namespace Twelve.Application.Handlers
             player.CurrentMap  = "M1"; // Bản đồ tân thủ
             player.CurrentRoom = 1;
 
-            // ── Base stats theo element (combat-formulas.md § 10) ─────────────
-            // Java type mapping: 0=Hỏa(jq), 1=Lôi(js), 2=Thủy(jr)
-            // Primary stat boost +5, Nội/Cường "dump stat" giữ mức 5
-            (player.CuongLuc, player.ThanPhap, player.NoiLuc, player.TheLuc) = element switch
-            {
-                0 => (15, 10,  5, 10),  // Hỏa  — primary Cường Lực
-                1 => ( 5, 15,  5, 10),  // Lôi  — primary Thân Pháp
-                2 => ( 5, 10, 15, 10),  // Thủy — primary Nội Lực
-                _ => (10, 10, 10, 10),  // fallback cân bằng
-            };
-            player.FreePoints = 5;
+            // ── Base stats công bằng cho Balance v1.1 ─────────────────────────
+            // Nguồn suy luận:
+            // - PLAYER_CHARACTER_RECONSTRUCTION.md / 08-level-stat-exp-and-element-balance.md
+            // - Java evidence chỉ xác nhận lh.h/i/j/k là 4 stat gốc; không có bằng chứng server cũ
+            //   cho việc trừ dump-stat còn 5 khi tạo nhân vật.
+            // Mọi hệ bắt đầu 10/10/10/10.
+            // Element chỉ quyết định MainElement/affinity/skill tree/khắc hệ.
+            // FreePoints khởi tạo = 0; điểm tiềm năng chỉ cộng khi lên level
+            // qua PlayerLevelProgression (+5 mỗi level).
+            (player.CuongLuc, player.ThanPhap, player.NoiLuc, player.TheLuc) = (10, 10, 10, 10);
+            player.FreePoints = 0;
             player.SkillPoints = 0;
             player.Honor = 0;
             player.TitleMain = ResolveDefaultTitle(player.Level);
@@ -125,18 +125,13 @@ namespace Twelve.Application.Handlers
             player.BonusNoiLuc = 0;
             player.BonusTheLuc = 0;
 
-            // ── HP/Mana tính từ công thức Java (combat-formulas.md § 4) ──────
-            // Sinh Lực (MaxHP) = TheLuc × hệ số theo type (6/4/5)
-            int hpMultiplier = element switch { 0 => 6, 1 => 4, 2 => 5, _ => 5 };
-            player.MaxHp  = player.TheLuc * hpMultiplier;
-            player.Hp     = player.MaxHp;
-            // Mana / Power: server quyết định sau; khởi tạo = 0
-            player.Mp     = 0;
-            player.MaxMp  = 0;
-            player.Power  = 0;
-            player.MaxPower = 0;
+            // ── Derived stats/resources ───────────────────────────────────────
+            // PlayerStatPipeline là nguồn truth duy nhất cho MaxHP/MaxMP/Power/derived stats.
+            // Không set HP theo hpMultiplier cũ tại đây để tránh lệch với runtime/equipment preview.
             PlayerStatPipeline.RecalculateAndApply(player);
             player.Hp = player.MaxHp;
+            player.Mp = player.MaxMp;
+            player.Power = 0;
 
             // ── Lưu diện mạo ──────────────────────────────────────────────────
             player.AppearanceHidden0 = false;

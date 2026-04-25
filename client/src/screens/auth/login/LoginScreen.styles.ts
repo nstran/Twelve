@@ -1,4 +1,5 @@
 import { StyleSheet, Platform } from 'react-native';
+import { GameTextStyles } from '../../../theme/GameTheme';
 
 export const getScreenSize = (width: number, height: number) => Math.min(width, height);
 
@@ -52,14 +53,13 @@ export const getStyles = (width: number, height: number) => {
     transparentInput: {
       width: '100%',
       height: '100%',
+      ...GameTextStyles.dialogText,
       color: '#2a1a05',
       fontSize: FONT_SIZE,
-      fontWeight: 'bold',
       paddingHorizontal: 2,
       paddingTop: 0,
       borderWidth: 0,
       outlineStyle: 'none',
-      fontFamily: Platform.OS === 'ios' ? 'Hoefler Text' : 'serif',
     } as any,
 
     // ── Checkboxes ────────────────────────────────────────────────────────
@@ -84,9 +84,9 @@ export const getStyles = (width: number, height: number) => {
       left: '39.5%',
     },
     tickText: {
+      ...GameTextStyles.dialogText,
       color: '#2a1a05',
       fontSize: FONT_SIZE,
-      fontWeight: 'bold',
       marginTop: Platform.OS === 'web' ? -2 : 0,
     },
 

@@ -33,18 +33,42 @@ namespace Twelve.Core.GameLogic
             int noiLuc = player.NoiLuc + player.BonusNoiLuc + totalModifier.NoiLuc;
             int theLuc = player.TheLuc + player.BonusTheLuc + totalModifier.TheLuc;
 
+            var element = player.Element ?? ElementMapper.StorageHoa;
+
+            // Balance v1.1 — nguồn suy luận:
+            // docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md
+            // Java client chỉ xác nhận lh.h/i/j/k là 4 stat gốc và jq/js/jr tính derived stat theo hệ.
+            // Remake thêm off-element offense soft cap để khuyến khích sáng tạo nhưng không làm loãng 3 hệ:
+            // - đúng hệ: dùng TotalStat 100%
+            // - sai hệ: 70% trước mốc 120, 35% sau mốc 120
+            // Resource/utility vẫn dùng TotalStat đầy đủ.
+            int effectiveCuongLuc = element == ElementMapper.StorageHoa
+                ? cuongLuc
+                : ResolveOffElementOffenseStat(cuongLuc);
+            int effectiveThanPhap = element == ElementMapper.StorageLoi
+                ? thanPhap
+                : ResolveOffElementOffenseStat(thanPhap);
+            int effectiveNoiLuc = element == ElementMapper.StorageThuy
+                ? noiLuc
+                : ResolveOffElementOffenseStat(noiLuc);
+
             var baseStats = StatCalculator.Calculate(
-                player.Element ?? ElementMapper.StorageHoa,
-                cuongLuc,
-                thanPhap,
-                noiLuc,
+                element,
+                effectiveCuongLuc,
+                effectiveThanPhap,
+                effectiveNoiLuc,
                 theLuc);
 
             int percentAttack = baseStats.TanCong * totalModifier.AttackPercent / 100;
             int finalAttack = baseStats.TanCong + totalModifier.FlatAttack + percentAttack;
+            int maxHp = baseStats.MaxHp + totalModifier.MaxHp;
+            int maxMp = CalculateMaxMp(player.Level, noiLuc);
+            int maxPower = 100;
 
             return new PlayerDerivedStats(
-                MaxHp: baseStats.MaxHp + totalModifier.MaxHp,
+                MaxHp: maxHp,
+                MaxMp: maxMp,
+                MaxPower: maxPower,
                 MinDamage: finalAttack,
                 MaxDamage: finalAttack,
                 Defense: baseStats.PThu + totalModifier.Defense,
@@ -70,12 +94,40 @@ namespace Twelve.Core.GameLogic
                 player.Hp = player.MaxHp;
             }
 
+            player.MaxMp = stats.MaxMp;
+            if (player.Mp > player.MaxMp)
+            {
+                player.Mp = player.MaxMp;
+            }
+
+            player.MaxPower = stats.MaxPower;
+            if (player.Power > player.MaxPower)
+            {
+                player.Power = player.MaxPower;
+            }
+
             player.DerivedMinDamage = stats.MinDamage;
             player.DerivedMaxDamage = stats.MaxDamage;
             player.DerivedDefense = stats.Defense;
             player.DerivedDodge = stats.Dodge;
             player.DerivedHit = stats.Hit;
             player.DerivedCrit = stats.Crit;
+        }
+
+        private static int ResolveOffElementOffenseStat(int totalStat)
+        {
+            const int softCap = 120;
+            int firstPart = System.Math.Min(totalStat, softCap);
+            int overflow = System.Math.Max(0, totalStat - softCap);
+
+            return (firstPart * 70 / 100) + (overflow * 35 / 100);
+        }
+
+        private static int CalculateMaxMp(int level, int totalNoiLuc)
+        {
+            // Remake resource rule: Nội Lực là nguồn MP chính, nhưng dùng TotalMagic để đồ/stat
+            // Nội Lực luôn có giá trị kể cả với hệ khác.
+            return 40 + (level * 6) + (totalNoiLuc * 8);
         }
 
         private static PlayerStatModifier SumModifiers(IEnumerable<PlayerStatModifier>? modifiers)
@@ -102,6 +154,8 @@ namespace Twelve.Core.GameLogic
 
     public sealed record PlayerDerivedStats(
         int MaxHp,
+        int MaxMp,
+        int MaxPower,
         int MinDamage,
         int MaxDamage,
         int Defense,

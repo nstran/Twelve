@@ -1,4 +1,5 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { GameTextStyles } from '../../../theme/GameTheme';
 
 export const styles = StyleSheet.create({
   absoluteFill: {
@@ -40,15 +41,10 @@ export const styles = StyleSheet.create({
     // Removed the problematic padding to keep it centered
   },
   timeText: {
-    color: '#ffffff',
+    ...GameTextStyles.softkeyText,
     fontSize: 12, 
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 1,
     textAlign: 'center',
     textTransform: 'uppercase', // Added for technical/sharp look
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
 
   // ─── LAYER 3: TOPMOST INTERACTION / LABELS ───
@@ -74,13 +70,7 @@ export const styles = StyleSheet.create({
   },
 
   softkeyLabelText: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+    ...GameTextStyles.softkeyText,
   },
 
   // ─── LAYER 4: ORNATE DECORATION ───

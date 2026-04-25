@@ -29,6 +29,7 @@ Mức chắc chắn:
 ```text
 MaxLevel = 250
 PotentialPerLevel = 5
+InitialFreePoints = 0
 BaseStrength = 10
 BaseAgility = 10
 BaseMagic = 10
@@ -38,8 +39,11 @@ BaseVitality = 10
 Tổng điểm tiềm năng nhận từ level:
 
 ```text
+InitialFreePointsAtLv1 = 0
 TotalPotentialAtLv250 = (250 - 1) * 5 = 1245
 ```
+
+Level 1 mới tạo nhân vật **không có điểm tiềm năng dư**. Điểm tiềm năng chỉ bắt đầu cộng khi lên cấp: mỗi level-up `+5`.
 
 Không có bonus theo mốc level.
 
@@ -47,6 +51,7 @@ Lý do:
 - Đơn giản, giống tinh thần game Java RPG cũ.
 - Không làm level cao quá dư điểm.
 - 1245 điểm đủ tạo build khác biệt.
+- Không cộng sẵn 5 điểm ở level 1; nếu không, tổng điểm thực tế sẽ thành 1250 và màn nhân vật mới hiển thị sai `Điểm = 5`.
 - Dễ cân bằng PvE/PvP.
 - Dễ kiểm tra và rollback nếu cần.
 
@@ -925,6 +930,7 @@ Nhưng vì multiplier chỉ 112%/92%, kết quả PvP vẫn phụ thuộc:
 ```text
 MaxLevel = 250
 PotentialPerLevel = 5
+InitialFreePoints = 0
 NoBonusPotential = true
 
 ExpFloor(level):
@@ -991,7 +997,7 @@ ElementResistanceCap = 20%
 ### 2026-04-25
 
 - Tạo tài liệu riêng cho công thức level/stat/EXP/resource/movement/khắc hệ.
-- Chốt không có điểm tiềm năng bonus, chỉ `+5` mỗi level.
+- Chốt không có điểm tiềm năng bonus, level 1 bắt đầu `0` điểm dư, chỉ `+5` mỗi lần lên level.
 - Đề xuất EXP curve mới cho max level 250, khoảng 262 triệu EXP tới level tối đa.
 - Chốt hướng cân bằng 3 build:
   - Cường Lực: damage vật lý, hồi HP, nộ.

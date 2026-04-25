@@ -1,4 +1,5 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { GameTextStyles } from '../../../theme/GameTheme';
 
 export const styles = StyleSheet.create({
   menuBackdrop: {
@@ -65,19 +66,25 @@ export const styles = StyleSheet.create({
   },
 
   menuItemText: {
-    color: '#000000',
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...GameTextStyles.menuText,
     textAlign: 'center',
     paddingLeft: 0,
-    fontFamily: Platform.OS === 'android' ? 'sans-serif-medium' : 'System',
     zIndex: 4, 
     flex: 1,
   },
   menuItemTextSelected: {
+    ...GameTextStyles.menuTextSelected,
+  },
+  menuArrowText: {
+    ...GameTextStyles.menuText,
+    color: '#666666',
+    fontWeight: 'bold',
+    textAlign: 'right',
+  },
+  menuArrowTextSelected: {
+    ...GameTextStyles.menuTextSelected,
     color: '#ffffff',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 1,
+    fontWeight: 'bold',
+    textAlign: 'right',
   },
 });

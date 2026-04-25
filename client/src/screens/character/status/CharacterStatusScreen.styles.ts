@@ -1,4 +1,5 @@
 import { Dimensions, StyleSheet } from 'react-native';
+import { GameTextStyles } from '../../../theme/GameTheme';
 
 const { width } = Dimensions.get('window');
 
@@ -76,8 +77,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   walletText: {
+    ...GameTextStyles.numberSmall,
     fontSize: 14,
-    fontWeight: 'bold',
     color: '#5c3600',
     textAlign: 'left',
   },
@@ -98,8 +99,7 @@ export const styles = StyleSheet.create({
     color: '#333',
   },
   levelText: {
-    fontSize: 11,
-    fontWeight: 'bold',
+    ...GameTextStyles.numberSmall,
     color: '#666',
   },
   infoItem: {
@@ -127,8 +127,7 @@ export const styles = StyleSheet.create({
     borderRadius: 3,
   },
   infoValue: {
-    fontSize: 11,
-    fontWeight: '700',
+    ...GameTextStyles.numberSmall,
     color: VALUE_BLUE,
   },
   infoValueRed: {
@@ -181,8 +180,7 @@ export const styles = StyleSheet.create({
     borderRightColor: 'rgba(0,0,0,0.1)',
   },
   barText: {
-    fontSize: 10,
-    fontWeight: 'bold',
+    ...GameTextStyles.numberTiny,
     color: '#333',
     textAlign: 'center',
     zIndex: 2,
@@ -221,8 +219,7 @@ export const styles = StyleSheet.create({
     borderColor: PRIMARY_BORDER,
   },
   attrValue: {
-    fontSize: 12,
-    fontWeight: 'bold',
+    ...GameTextStyles.numberValue,
     color: VALUE_BLUE,
   },
   attrValuePrimary: {
@@ -251,8 +248,7 @@ export const styles = StyleSheet.create({
     borderRadius: 3,
   },
   pointsValue: {
-    fontSize: 12,
-    fontWeight: 'bold',
+    ...GameTextStyles.numberValue,
     color: '#5c3600',
   },
   combatGrid: {
@@ -285,8 +281,7 @@ export const styles = StyleSheet.create({
     borderRadius: 3,
   },
   combatValue: {
-    fontSize: 11,
-    fontWeight: 'bold',
+    ...GameTextStyles.numberSmall,
     color: VALUE_BLUE,
   },
   softKeyBar: {

@@ -1,4 +1,5 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { GameTextStyles } from '../../../theme/GameTheme';
 
 export const styles = StyleSheet.create({
   backdrop: {
@@ -20,12 +21,12 @@ export const styles = StyleSheet.create({
     // Note: groupLabel is now inside the padded box
   },
   groupLabel: {
+    ...GameTextStyles.dialogText,
     color: '#000000',
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10, // Create space from label to year picker
     marginLeft: 2,
-    fontFamily: Platform.OS === 'ios' ? 'Hoefler Text' : 'serif',
   },
 
   // Year Button Style
@@ -39,6 +40,7 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   yearBtnText: {
+    ...GameTextStyles.dialogText,
     color: '#000000',
     fontSize: 16,
     fontWeight: 'bold',
@@ -61,12 +63,18 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   arrowBtn: {
-    paddingHorizontal: 15,
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   arrowIcon: {
-    fontSize: 24,
-    color: '#0055cc',
-    fontWeight: 'bold',
+    width: 16,
+    height: 16,
+    transform: [{ rotate: '90deg' }],
+  },
+  arrowIconLeft: {
+    transform: [{ rotate: '-90deg' }],
   },
 
   // Grid Header
@@ -92,6 +100,7 @@ export const styles = StyleSheet.create({
     borderColor: '#cccccc',
   },
   dayText: {
+    ...GameTextStyles.dialogText,
     fontSize: 14,
     color: '#000000',
   },

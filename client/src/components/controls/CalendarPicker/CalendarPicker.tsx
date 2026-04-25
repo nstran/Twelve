@@ -6,8 +6,11 @@ import {
   Modal,
   FlatList,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { styles } from './CalendarPicker.styles';
+
+const ASSET_ARROW = require('../../../../assets/ui/10_focus_confirmed/arrowfocus1.png');
 
 interface CalendarPickerProps {
   visible: boolean;
@@ -135,7 +138,7 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({
           {/* Month Navigation Row */}
           <View style={styles.monthRow}>
             <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.arrowBtn}>
-                <Text style={styles.arrowIcon}>{"<"}</Text>
+                <Image source={ASSET_ARROW} style={[styles.arrowIcon, styles.arrowIconLeft]} resizeMode="contain" />
             </TouchableOpacity>
             
             <View style={styles.monthBtn}>
@@ -143,7 +146,7 @@ export const CalendarPicker: React.FC<CalendarPickerProps> = ({
             </View>
 
             <TouchableOpacity onPress={() => changeMonth(1)} style={styles.arrowBtn}>
-                <Text style={styles.arrowIcon}>{">"}</Text>
+                <Image source={ASSET_ARROW} style={styles.arrowIcon} resizeMode="contain" />
             </TouchableOpacity>
           </View>
 

@@ -117,7 +117,6 @@ export const MapSelectionScreen: React.FC<MapSelectionScreenProps> = ({ onSelect
         leftLabel="Chọn"
         onLeftPress={() => {
           if (focusedMap.unlocked) onSelect(focusedMap);
-          else console.log('[Map] Location is locked');
         }}
         centerLabel={focusedMap.unlocked ? "Vào" : "Nâng cấp"} 
         onCenterPress={() => { if(focusedMap.unlocked) onSelect(focusedMap); }}

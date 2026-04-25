@@ -3,8 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  Platform,
 } from 'react-native';
+import { GameTextStyles } from '../../../theme/GameTheme';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface MapHUDProps {
@@ -172,9 +172,9 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   zoneText: {
+    ...GameTextStyles.numberSmall,
     color: '#000000',
     fontSize: 16,
     fontWeight: 'normal',
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'monospace',
   },
 });

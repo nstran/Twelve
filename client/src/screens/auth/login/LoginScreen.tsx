@@ -54,10 +54,7 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
   const client = SocketClient.getInstance();
 
   useEffect(() => {
-    console.log('[Login] Mounting: subscribing to authSuccess/authFailed');
-
     const onAuthSuccess = ({ token, expiresAt }: { token?: string; expiresAt?: number } = {}) => {
-      console.log('[Login] ← CMD 4 authSuccess token=', token?.slice(0, 8), 'expiresAt=', expiresAt);
       setLoading(false);
       clearError();
       // Emit authSuccessWithUser so App.tsx can persist the full session
@@ -69,13 +66,11 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
     };
 
     const onAuthFailed = (msg: string) => {
-      console.log('[Login] ← CMD 0 authFailed:', JSON.stringify(msg));
       setLoading(false);
       showError(msg || 'Sai tài khoản hoặc mật khẩu. Vui lòng thử lại.');
     };
 
     const onCharacterRequired = () => {
-      console.log('[Login] ← CMD 5 characterRequired → app will switch screen');
       setLoading(false);
       clearError();
       // App.tsx is also listening to this and currently bypasses character setup.
@@ -86,7 +81,6 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
     client.on('characterRequired', onCharacterRequired);
 
     return () => {
-      console.log('[Login] Unmounting');
       client.off('authSuccess',       onAuthSuccess);
       client.off('authFailed',        onAuthFailed);
       client.off('characterRequired', onCharacterRequired);
@@ -103,7 +97,6 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
 
   // ── Xử lý đăng nhập ──────────────────────────────────────────────────────
   const handleLogin = () => {
-    console.log('[Login] handleLogin fired, username:', JSON.stringify(username));
     clearError();
 
     const trimUser = username.trim();
@@ -116,7 +109,6 @@ export const LoginScreen = ({ onLoginSuccess, onRegister }: Props) => {
       return;
     }
 
-    console.log('[Login] Sending CMD 2 login...');
     setMenuVisible(false);
     setLoading(true);
     client.login(trimUser, password);

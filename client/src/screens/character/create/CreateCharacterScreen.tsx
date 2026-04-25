@@ -102,7 +102,7 @@ export const CreateCharacterScreen: React.FC<CreateCharacterScreenProps> = ({ on
   const [hairColorIdx, setHairColorIdx] = useState(0);
   const [skinColorIdx, setSkinColorIdx] = useState(0);
 
-  const [activeSelector, setActiveSelector] = useState<SelectorKey>('face');
+  const [activeSelector, setActiveSelector] = useState<SelectorKey>('gender');
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
