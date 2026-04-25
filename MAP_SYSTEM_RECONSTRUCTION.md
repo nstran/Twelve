@@ -68,7 +68,11 @@ Quy tắc hiện tại:
 - Tọa độ Java gốc lấy từ `oh.java`, nhưng asset `/m/m` đã extract trong React Native là 480x480; client scale theo kích thước asset thực tế để lock/label/hitbox không bị lệch sau khi catalog chuyển sang server.
 - World map dùng pan/drag chủ động bằng `PanResponder`, không auto focus vào Hoa Lư. Khi con trỏ không nằm trong hitbox map nào thì hiển thị cursor vàng `/m/arrow`; khi đang trỏ vào địa danh thì đổi sang bàn tay `/m/hand`.
 - Softkey bám `oh.java`: khi trỏ đúng địa danh mở khóa thì softkey trái là `Vào Thành`; không dùng center label `Vào`; softkey phải trong remake dùng `Đăng Xuất`.
+- Luồng vào thành bám `og.f()`/`ks.a().b("M99", go.x)`: chọn địa danh dùng `index` của catalog. Trong remake, entry `sceneKind = "sideScroll"` mở runtime side-scroll thật; entry `sceneKind = "legacy"` đi qua `MainScreen`/packet map cũ khi sau này được mở khóa.
 - `RoomLabel` của world-map entry hiện dùng chính tên địa danh, không dùng `"Khu 1"` cho HUD khi vào map.
+- Fallback renderer cho legacy map (`client/src/engine/MapRenderer.tsx`) không được phụ thuộc Skia/CanvasKit trên web; nếu chưa phục dựng runtime side-scroll cho map đó thì render tạm bằng React Native `View` để không trắng màn vì lỗi `CanvasKit is not defined` / `WebGLRenderer`.
+- Client phải normalize catalog thiếu field từ server cũ/dev server đang chạy: nếu entry có `index = 0` hoặc `id = "hoalu"` thì bắt buộc suy ra `sceneKind = "sideScroll"`, `runtimeMapId = "Hoa Lu"`, `defaultRoomId = 1`; nếu không sẽ rơi về `MainScreen` legacy và nhìn như màn đen sau khi bấm Hoa Lư.
+- Global loading không được track polling nền của map/PVP. Các API như `/pvp/challenges/inbox`, `/pvp/opponents`, `/battle/session-snapshot`, `/battle/session-sync` phải chạy im lặng để không che màn chơi bằng modal `Vui lòng chờ...` mỗi tick.
 - Chưa cần thêm DB cho world-map catalog ở giai đoạn này: dữ liệu là static Java truth (`og/oh`) nên giữ trong code server để tránh sai lệch. DB chỉ nên dùng sau này cho player unlock/progression hoặc cấu hình runtime động.
 
 ## Side-Scrolling Map
@@ -310,3 +314,24 @@ Phần quan trọng nhất đã chốt:
 - Sửa `client/App.tsx`: fallback room label là tên map, không còn fallback `"Khu 1"`.
 - Sửa softkey world-map theo `oh.java`: bỏ chữ giữa `Vào`, trái là `Vào Thành` khi đang chọn thành mở khóa, phải là `Đăng Xuất`.
 - Kiểm tra: `npx tsc -p client/tsconfig.json --noEmit` và `dotnet build Twelve.sln` đều thành công.
+
+### 2026-04-25 — Fix CanvasKit crash khi vào legacy map fallback
+
+- Đọc lại `oh.java`/`og.java`:
+  - `oh.c(int,int)` set con trỏ, hit test theo `i[]`, nếu chọn lại cùng địa danh thì gọi `og.a(this.s)`.
+  - `og.f()` gửi `ks.a().b("M99", go.x)`, tức flow vào thành dùng index `go.x` từ world-map catalog.
+- Sửa `client/src/engine/MapRenderer.tsx`: bỏ `@shopify/react-native-skia` Canvas/Rect/Group/Circle ở renderer fallback cũ, thay bằng React Native `View`/`Text` tuyệt đối.
+- Lý do: khi chọn/đi vào một entry `legacy` hoặc khôi phục lastScreen `main`, web runtime có thể crash `CanvasKit is not defined` / `WebGLRenderer`, làm màn đen trước khi map runtime mới được phục dựng.
+- Renderer này chỉ là fallback cho `MainScreen`; Hoa Lư side-scroll runtime thật không đổi.
+
+### 2026-04-25 — Fix Hoa Lư bị rơi về màn đen do catalog thiếu sceneKind
+
+- Nguyên nhân: API server `GET /map/world-catalog` hiện trả `RuntimeMapCatalog.AllWorldMaps` với record `WorldMapEntry` chưa có `sceneKind`, `defaultRoomId`, `roomLabel` trong contract server. Client mapper trước đó tin tuyệt đối payload nên `map.sceneKind` là `undefined`; `App.tsx` rơi vào nhánh `main` legacy thay vì `hoaLuMap`, gây màn đen sau khi chọn Hoa Lư.
+- Sửa `client/src/data/MapData.ts`: normalize catalog theo Java truth `og.f()/M99 + go.x`; entry `index = 0` hoặc `id = "hoalu"` luôn được suy ra là side-scroll Hoa Lư (`runtimeMapId = "Hoa Lu"`, room `1`), các entry còn lại là `legacy` cho tới khi có runtime.
+- Kiểm tra: `npx tsc -p client/tsconfig.json --noEmit` thành công.
+
+### 2026-04-25 — Fix LoadingDialog nháy do API polling nền
+
+- Nguyên nhân: `client/App.tsx` đang monkey-patch global `fetch` và tăng `apiLoadingCount` cho mọi request tới `API_BASE_URL`. Khi vào Hoa Lư, `HoaLuMapScreen` poll `/pvp/challenges/inbox` mỗi 1200ms để nhận PVP challenge nên modal `Vui lòng chờ...` bật/tắt liên tục.
+- Sửa `client/App.tsx`: global loading bỏ qua các endpoint polling nền `/pvp/challenges/inbox`, `/pvp/opponents`, `/battle/session-snapshot`, `/battle/session-sync`; đồng thời hỗ trợ header `X-Twelve-Silent-Loading: true` cho request nền sau này.
+- Kiểm tra: `npx tsc -p client/tsconfig.json --noEmit` thành công.

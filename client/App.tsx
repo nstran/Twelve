@@ -156,13 +156,35 @@ export default function App() {
       return input.url;
     };
 
-    const shouldTrackRequest = (input: RequestInfo | URL): boolean => {
+    const shouldTrackRequest = (input: RequestInfo | URL, init?: RequestInit): boolean => {
       const url = resolveRequestUrl(input);
-      return url.startsWith(API_BASE_URL);
+      if (!url.startsWith(API_BASE_URL)) {
+        return false;
+      }
+
+      const headers = new Headers(init?.headers ?? (typeof input === 'string' || input instanceof URL ? undefined : input.headers));
+      if (headers.get('X-Twelve-Silent-Loading') === 'true') {
+        return false;
+      }
+
+      const path = (() => {
+        try {
+          return new URL(url).pathname;
+        } catch {
+          return url;
+        }
+      })();
+
+      return ![
+        '/pvp/challenges/inbox',
+        '/battle/session-snapshot',
+        '/battle/session-sync',
+        '/pvp/opponents',
+      ].some((silentPath) => path.endsWith(silentPath));
     };
 
     globalThis.fetch = (async (...args: Parameters<typeof fetch>): Promise<Response> => {
-      const track = shouldTrackRequest(args[0]);
+      const track = shouldTrackRequest(args[0], args[1]);
       if (track) {
         setApiLoadingCount((current) => current + 1);
       }

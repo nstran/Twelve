@@ -67,16 +67,40 @@ const FALLBACK_WORLD_MAP_CATALOG: WorldMapCatalogEntry[] = [
   { index: 16, id: 'mauson', displayName: 'Mẫu Sơn', runtimeMapId: 'Mau Son', defaultRoomId: 1, roomLabel: 'Mẫu Sơn', sceneKind: 'legacy', isLocked: true, labelX: 166, labelY: 59, lockX: 190, lockY: 39, hitX: 157, hitY: 27, hitWidth: 71, hitHeight: 26 },
 ];
 
-export const toMapInfo = (entry: WorldMapCatalogEntry): MapInfo => ({
-  ...entry,
-  name: entry.displayName,
-  unlocked: !entry.isLocked,
-  description: '',
-  requiredLevel: entry.isLocked ? entry.index + 1 : 1,
-  type: entry.id === 'luyennguc' ? 'special' : 'historical',
-  x: (entry.labelX / WORLD_MAP_WIDTH) * 100,
-  y: (entry.labelY / WORLD_MAP_HEIGHT) * 100,
-});
+const resolveSceneKind = (entry: WorldMapCatalogEntry): MapInfo['sceneKind'] => {
+  // Source: Java client og.f()/ks.a().b("M99", go.x) only sends the
+  // selected world-map index. Runtime reconstruction currently has a real
+  // side-scroll scene only for Hoa Lư; older server payloads do not include
+  // sceneKind, so client must derive it from the Java catalog id/index.
+  if (entry.sceneKind === 'sideScroll' || entry.sceneKind === 'legacy') {
+    return entry.sceneKind;
+  }
+
+  return entry.index === 0 || entry.id === 'hoalu' ? 'sideScroll' : 'legacy';
+};
+
+const resolveRuntimeMapId = (entry: WorldMapCatalogEntry): string => (
+  entry.runtimeMapId?.trim() || (entry.index === 0 || entry.id === 'hoalu' ? 'Hoa Lu' : entry.displayName)
+);
+
+export const toMapInfo = (entry: WorldMapCatalogEntry): MapInfo => {
+  const sceneKind = resolveSceneKind(entry);
+
+  return {
+    ...entry,
+    runtimeMapId: resolveRuntimeMapId(entry),
+    defaultRoomId: entry.defaultRoomId || 1,
+    roomLabel: entry.roomLabel || entry.displayName,
+    sceneKind,
+    name: entry.displayName,
+    unlocked: !entry.isLocked,
+    description: '',
+    requiredLevel: entry.isLocked ? entry.index + 1 : 1,
+    type: entry.id === 'luyennguc' ? 'special' : 'historical',
+    x: (entry.labelX / WORLD_MAP_WIDTH) * 100,
+    y: (entry.labelY / WORLD_MAP_HEIGHT) * 100,
+  };
+};
 
 export const toMapInfoList = (entries: WorldMapCatalogEntry[]): MapInfo[] =>
   entries.slice().sort((a, b) => a.index - b.index).map(toMapInfo);

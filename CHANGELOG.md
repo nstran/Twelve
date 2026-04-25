@@ -1,5 +1,51 @@
 # CHANGELOG
 
+## 2026-04-25 (Q)
+
+### Fix LoadingDialog nháy liên tục do polling nền
+
+**Sửa:**
+- Sửa `client/App.tsx`:
+  - global fetch loading chỉ track các API cần người chơi chờ;
+  - bỏ qua các polling nền: `/pvp/challenges/inbox`, `/battle/session-snapshot`, `/battle/session-sync`, `/pvp/opponents`;
+  - hỗ trợ header `X-Twelve-Silent-Loading: true` để API nền sau này tự opt-out khỏi global loading.
+- Mục tiêu: khi vào Hoa Lư, request polling `inbox` vẫn chạy để nhận PVP challenge nhưng không bật modal `Vui lòng chờ...` liên tục.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+
+**File đã sửa:**
+- `client/App.tsx`
+- `CHANGELOG.md`
+
+---
+
+## 2026-04-25 (P)
+
+### Fix màn đen CanvasKit khi vào fallback map
+
+**Sửa:**
+- Đối chiếu lại Java `oh.java`/`og.java` cho flow chọn thành:
+  - `oh.c(int,int)` hit test theo mảng `i[]`, set `go.x`;
+  - chọn lại cùng địa danh gọi `og.a(this.s)`;
+  - `og.f()` gửi `ks.a().b("M99", go.x)`, tức vào thành dùng index catalog.
+- Sửa `client/src/engine/MapRenderer.tsx`:
+  - bỏ import/usage `@shopify/react-native-skia`;
+  - thay Canvas/Rect/Group/Circle bằng React Native `View`/`Text` absolute layout.
+- Mục tiêu: fallback `MainScreen`/legacy map không còn crash web runtime với `CanvasKit is not defined` / `WebGLRenderer`.
+- Hoa Lư side-scroll runtime thật không đổi.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+- `dotnet build Twelve.sln` → lần đầu bị lock bởi `Twelve.Server (PID 17216)` / Visual Studio; đã `taskkill /F /PID 17216` rồi build lại thành công, 0 Warning, 0 Error.
+
+**File đã sửa:**
+- `client/src/engine/MapRenderer.tsx`
+- `MAP_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-25 (O)
 
 ### Sửa pan/cursor/HUD cho world-map selection
