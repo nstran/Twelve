@@ -643,17 +643,17 @@ export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
   const expNow = reward
     ? expBefore + ((expAfter - expBefore) * animatedRewardProgress)
     : expFloor;
-  const quanBefore = reward?.quanBefore ?? 0;
-  const quanAfter = reward?.quanAfter ?? 0;
-  const quanNow = reward
-    ? quanBefore + ((quanAfter - quanBefore) * animatedRewardProgress)
-    : quanBefore;
+  const goldBefore = reward?.goldBefore ?? reward?.quanBefore ?? 0;
+  const goldAfter = reward?.goldAfter ?? reward?.quanAfter ?? 0;
+  const goldNow = reward
+    ? goldBefore + ((goldAfter - goldBefore) * animatedRewardProgress)
+    : goldBefore;
   const expRewardRemaining = animateDeltaTowardsZero(reward?.expGained ?? 0, animatedRewardProgress);
-  const quanRewardRemaining = animateDeltaTowardsZero(reward?.quanGained ?? 0, animatedRewardProgress);
+  const goldRewardRemaining = animateDeltaTowardsZero(reward?.goldGained ?? reward?.quanGained ?? 0, animatedRewardProgress);
   const hpPercent = Math.max(0, Math.min(100, (currentHp * 100) / maxHp));
   const expPercent = Math.max(0, Math.min(100, ((expNow - expFloor) * 100) / (expCeiling - expFloor)));
-  const quanProgress = Math.max(0, Math.min(100, (quanNow % 10000) / 100));
-  const displayQuan = Math.max(0, Math.floor(quanNow));
+  const goldProgress = Math.max(0, Math.min(100, (goldNow % 10000) / 100));
+  const displayGold = Math.max(0, Math.floor(goldNow));
   const canClose = reward !== null && animatedRewardProgress >= 1 - RESULT_REWARD_ZERO_EPSILON;
   const close = result === 'victory' ? onVictory : onDefeat;
   const lootLines = [
@@ -691,21 +691,21 @@ export const BattleResultOverlay: React.FC<BattleResultOverlayProps> = ({
           />
           <ResultBar
             color="#C99A2E"
-            value={quanProgress}
-            label={`${displayQuan}/10000`}
+            value={goldProgress}
+            label={`${displayGold}/10000`}
             iconSource={RESULT_GOLD_ICON}
           />
 
           <Text style={[resultStyles.sectionTitle, resultStyles.collectionTitle]}>
             Điểm Thu Thập
           </Text>
-          <ResultRewardLine iconSource={RESULT_GOLD_ICON} label={`${quanRewardRemaining}`} />
+          <ResultRewardLine iconSource={RESULT_GOLD_ICON} label={`${goldRewardRemaining}`} />
           <ResultRewardLine iconSource={RESULT_EXP_ICON} label={`${expRewardRemaining}`} />
 
           <Text style={[resultStyles.sectionTitle, resultStyles.rewardTitle]}>
             Thưởng
           </Text>
-          <ResultRewardLine iconSource={RESULT_GOLD_ICON} label={formatSignedDelta(quanRewardRemaining)} />
+          <ResultRewardLine iconSource={RESULT_GOLD_ICON} label={formatSignedDelta(goldRewardRemaining)} />
           <ResultRewardLine iconSource={RESULT_EXP_ICON} label={formatSignedDelta(expRewardRemaining)} />
           {lootLines.length > 0 ? (
             <>

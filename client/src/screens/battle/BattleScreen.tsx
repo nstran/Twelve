@@ -389,9 +389,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       expFloor: 0,
       expCeiling: 100,
       expGained: 0,
-      quanBefore: appearance.walletQuan ?? 0,
-      quanAfter: appearance.walletQuan ?? 0,
-      quanGained: 0,
+      goldBefore: appearance.walletQuan ?? 0,
+      goldAfter: appearance.walletQuan ?? 0,
+      goldGained: 0,
     };
 
     if (!resolveBattleResult) {

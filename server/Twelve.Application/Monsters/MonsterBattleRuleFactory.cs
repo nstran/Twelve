@@ -95,7 +95,8 @@ namespace Twelve.Application.Monsters
                 Appearance: new MonsterAppearanceTemplate(AssetCatalogId: spec.AssetCatalogId),
                 AiProfileId: ResolveAiProfileId(spec),
                 ExpReward: ResolveExpReward(spec),
-                QuanReward: ResolveQuanReward(spec));
+                GoldReward: ResolveGoldReward(spec),
+                QuanReward: 0);
         }
 
         private static int ResolveExpReward(MonsterBattleRuleSpec spec)
@@ -116,8 +117,12 @@ namespace Twelve.Application.Monsters
             return Math.Max(1, ((12 + (spec.Level * 3) + skillBonus) * tierMultiplier) / 100);
         }
 
-        private static int ResolveQuanReward(MonsterBattleRuleSpec spec)
+        private static int ResolveGoldReward(MonsterBattleRuleSpec spec)
         {
+            // Java reconstruction note:
+            // `Quan` is treated as paid currency in the remake and must not be awarded by
+            // normal monster battles. This old reward formula is therefore mapped to Gold.
+            // Source: PLAYER_CHARACTER_RECONSTRUCTION.md user note + battle result API review.
             var tierBonus = spec.ThreatTier switch
             {
                 MonsterThreatTier.Elite => 8,

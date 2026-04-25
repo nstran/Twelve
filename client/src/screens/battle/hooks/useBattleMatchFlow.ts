@@ -206,13 +206,21 @@ export const useBattleMatchFlow = ({
       }
 
       if (resolved.bonusTurnCandidate && !activeBonusTurn.granted) {
+        // Java mq/mt reconstruction:
+        // - Java does not prove Candy-Crush style natural special spawning, but mt.a(mw,int)
+        //   routes matched spans with len >= 4 through the highlighted combat/effect path.
+        // - Client-side remake keeps the old "match 4/5 grants one retained turn" contract.
+        // - Store banked extra turns only once per full swap/cascade, otherwise chain falls can
+        //   incorrectly report multiple remaining turns.
         activeBonusTurn.granted = true;
         if (!isPassiveObserver) {
           const newExtra = extraTurnsRef.current + 1;
           extraTurnsRef.current = newExtra;
           setExtraTurns(newExtra);
+          flashExtraTurnsBadge(newExtra);
+        } else {
+          flashExtraTurnsBadge(extraTurnsRef.current);
         }
-        flashExtraTurnsBadge(extraTurnsRef.current + (isPassiveObserver ? 0 : 1));
       }
 
     let dmg = calcSwordDamage(board, matched);
@@ -232,15 +240,18 @@ export const useBattleMatchFlow = ({
       if (gem !== null) counts[gem] = (counts[gem] ?? 0) + 1;
     });
 
+    // Java mq.java: resource gain không nhân theo chain global; combo chỉ là
+    // visual popup `xN` theo màu. Damage/heal/mp/pow dùng raw count từ
+    // triggerKeys — KHÔNG nhân chain multiplier global ở đây.
+    // Nguồn: mq.java:667, mq.java:705, mt.java:844.
     Object.entries(counts).forEach(([gemKey, count]) => {
       const gem = Number(gemKey) as GemType;
       const fx = getGemFX(gem);
-      const mul = 1 + chain * 0.4;
-      baseHeal += Math.round(fx.heal * (count! / 3) * mul);
-      baseMp += Math.round(fx.mana * count!);
-      pow += Math.round(fx.pow * count!);
+      baseHeal += Math.trunc(fx.heal * count! / 3);
+      baseMp += Math.trunc(fx.mana * count! / 3);
+      pow += Math.trunc(fx.pow * count! / 3);
     });
-    dmg = Math.round(dmg * (1 + chain * 0.4));
+    // dmg từ calcSwordDamage đã tính đúng raw, không nhân chain.
 
     const collectorProfile = turnRef.current === 'player'
       ? playerResourceProfile
@@ -297,7 +308,7 @@ export const useBattleMatchFlow = ({
             finalizeVictory();
             return;
           }
-          setTimeout(() => processMatches(newBoard, chain + 1, affectedKeys, activeRageBurst), 80);
+          setTimeout(() => processMatches(newBoard, chain + 1, affectedKeys, activeRageBurst, activeBonusTurn, isPassiveObserver), 80);
         };
         animateFall(newBoard, fallMap, continueAfterFall);
 

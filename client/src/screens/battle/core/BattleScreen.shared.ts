@@ -160,11 +160,11 @@ const RESOURCE_GAIN_BASELINE_STAT = 10;
 // the client; these factors keep the server-remake behavior aligned with the
 // recovered rule: Cường Lực makes peach/nộ gains faster, Nội Lực makes MP gains
 // faster, using integer truncation like the Java codebase.
-const HEAL_GAIN_PERCENT_PER_STRENGTH = 4;
-const POWER_GAIN_PERCENT_PER_STRENGTH = 4;
-const MANA_GAIN_PERCENT_PER_MAGIC = 5;
-const MIN_RESOURCE_GAIN_PERCENT = 65;
-const MAX_RESOURCE_GAIN_PERCENT = 185;
+const HEAL_GAIN_PERCENT_PER_STRENGTH = 3;
+const POWER_GAIN_PERCENT_PER_STRENGTH = 3;
+const MANA_GAIN_PERCENT_PER_MAGIC = 3;
+const MIN_RESOURCE_GAIN_PERCENT = 80;
+const MAX_RESOURCE_GAIN_PERCENT = 180;
 
 const GEM_FX_KIND_BASE: Record<VisibleGemType, FXKind> = {
   0: 'sword',

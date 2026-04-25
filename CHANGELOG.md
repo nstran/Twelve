@@ -1,5 +1,111 @@
 # CHANGELOG
 
+## 2026-04-25 (U)
+
+### Battle result tách Gold/KEN khỏi Quan paid currency
+
+**Sửa:**
+- Sửa `/battle/result` contract:
+  - thêm `GoldBefore/GoldAfter/GoldGained` làm reward tiền trận thường;
+  - giữ `QuanBefore/QuanAfter/QuanGained = 0` để tương thích nhưng không phát Quan từ quái PvE.
+- Sửa `BattleResultService` cộng reward thắng vào `Player.Gold`, không còn dùng tên `Quan` cho reward quái thường.
+- Sửa `MonsterBattleTemplate`/`MonsterBattleRuleFactory`:
+  - công thức cũ `2 + level + threatBonus` được map sang `GoldReward`;
+  - `QuanReward` luôn `0` cho monster battle thường.
+- Sửa client battle result:
+  - type response dùng `gold*`;
+  - popup kết quả hiển thị thanh icon vàng từ `gold*`, fallback `quan*` cũ nếu gặp payload cũ.
+- Cập nhật `PLAYER_CHARACTER_RECONSTRUCTION.md` và `docs/player-character-reconstruction/06-map-room-battle-runtime.md` để ghi rõ `lh.H/I` là KEN/gold/collection theo Java, còn `Quan` remake là paid currency.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+- `dotnet build Twelve.sln` → lần đầu fail do thừa dấu `)` ở `MonsterBattleRuleFactory.cs`; đã sửa và build lại thành công, 0 Warning, 0 Error.
+
+**File đã sửa:**
+- `server/Twelve.Core/Battle/BattleSessionContracts.cs`
+- `server/Twelve.Application/Battle/BattleResultService.cs`
+- `server/Twelve.Core/Monsters/MonsterContracts.cs`
+- `server/Twelve.Application/Monsters/MonsterBattleRuleFactory.cs`
+- `client/src/screens/battle/core/BattleScreen.types.ts`
+- `client/src/screens/battle/BattleScreen.tsx`
+- `client/src/screens/battle/ui/BattleScreen.overlays.tsx`
+- `docs/player-character-reconstruction/06-map-room-battle-runtime.md`
+- `PLAYER_CHARACTER_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
+## 2026-04-25 (T)
+
+### Sửa special board visual và bỏ loading global khi gameplay
+
+**Sửa:**
+- Sửa `client/src/screens/battle/ui/BattleScreen.components.tsx`:
+  - tách rõ board special node `10` khỏi skill fire-sword mark `1001`;
+  - cell `10` chỉ chạy fire-sword animation khi có `fireSwordMarkTrigger`/`fireSwordBaseGemType` từ skill packet;
+  - board special `10..15` trở lại đúng `type 2` clear vùng lân cận, không bị render/persist như kiếm đỏ;
+  - tiếp tục không dùng `hiddendragon/hiddenphoenix` làm overlay board cho `20..25`, vì đó là UI ornament từ `pc.java`, không phải `nj.g` của cell.
+- Sửa `client/App.tsx`:
+  - bỏ global fetch loading modal để API battle/map/PvP không còn hiện `Vui lòng chờ...` liên tục trong gameplay.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md` thêm nhật ký, nguồn suy luận `nj.java`/`mq.java`/`mp.java`/`mh.java`/`pc.java`.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+- `dotnet build Twelve.sln` → thành công, 0 Warning, 0 Error.
+
+**File đã sửa:**
+- `client/src/screens/battle/ui/BattleScreen.components.tsx`
+- `client/App.tsx`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
+## 2026-04-25 (S)
+
+### Battle board enemy move scoring bám packed line Java
+
+**Sửa:**
+- Sửa `server/Twelve.Application/Battle/ReconstructedBattleBoardService.cs`:
+  - thêm comment nguồn suy luận từ `reference/redecoded/cfr_fresh/mq.java` và `mr.java`;
+  - giữ validate swap theo rule Java: board playable `8x8`, swap hợp lệ khi endpoint tạo line ngang/dọc `>= 3`;
+  - thêm `JavaMatchInfo` mô phỏng packed line gồm left/up, right/down, total length;
+  - enemy move scoring ưu tiên match dài, cross match, special node `10..15` và `20..25` thay vì chỉ đếm số ô match.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md` thêm nhật ký chỉnh sửa.
+
+**Kiểm tra:**
+- `dotnet build Twelve.sln` → lần đầu build có warning DLL lock bởi `Twelve.Server (17904)` nhưng vẫn succeeded; PID đã thoát trước khi kill; build lại thành công, 0 Warning, 0 Error.
+
+**File đã sửa:**
+- `server/Twelve.Application/Battle/ReconstructedBattleBoardService.cs`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
+## 2026-04-25 (R)
+
+### Battle damage dùng stat nhân vật thật từ pipeline Java
+
+**Sửa:**
+- Sửa `server/Twelve.Application/Battle/BattleTurnEngine.cs`:
+  - damage battle dùng `MinDamage/MaxDamage`, `HitRate`, `DodgeRate`, `Defense`, `CriticalDamage` từ session combatant state đã build từ `PlayerStatPipeline`;
+  - hit/miss dùng `HitRate - DodgeRate`, giúp Thân Pháp ảnh hưởng rõ qua chính xác/né tránh;
+  - crit dùng `lh.C`/Chí Mạng %, defense dùng `lh.z`, damage range dùng `lh.x/lh.y`;
+  - player skill level ưu tiên skill đã học thật, không mặc định debug level 12 khi đã có skill list;
+  - mana cost ưu tiên session skill, Power gain giảm độ phình để giữ vai trò thanh nộ tích dần.
+- Cập nhật `docs/player-character-reconstruction/01-implementation-plan-csharp.md` thêm nhật ký và nguồn suy luận.
+
+**Kiểm tra:**
+- `dotnet build Twelve.sln` → thành công, 0 Warning, 0 Error.
+
+**File đã sửa:**
+- `server/Twelve.Application/Battle/BattleTurnEngine.cs`
+- `docs/player-character-reconstruction/01-implementation-plan-csharp.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-25 (Q)
 
 ### Fix LoadingDialog nháy liên tục do polling nền

@@ -19,6 +19,10 @@ export interface PlayerRuntimeSnapshot {
   quanProgressCap: number;
   freePoints: number;
   skillPoints: number;
+  currentMp: number;
+  maxMp: number;
+  currentPower: number;
+  maxPower: number;
   cuongLuc: number;
   thanPhap: number;
   noiLuc: number;

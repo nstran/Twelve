@@ -918,6 +918,31 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
 
 ## Nhật ký chỉnh sửa
 
+### 2026-04-25 — Sửa visual special board và bỏ global API loading battle
+
+- File code đã sửa:
+  - `client/src/screens/battle/ui/BattleScreen.components.tsx`
+  - `client/App.tsx`
+- Nội dung:
+  - Rà lại rule `nj`: node `10..15` là `type 2` clear 8 ô lân cận; node `20..25` là `type 4` clear hàng + cột. Lỗi nhìn giống "ăn item này lúc nổ hàng, lúc nổ kiếm đỏ" đến từ renderer đang coi mọi node id `10` là fire-sword mark skill `1001`, trong khi `10` còn là special board type 2 của kiếm.
+  - Sửa renderer để chỉ chạy animation fire-sword mark khi cell `10` thật sự có `fireSwordMarkTrigger`/`fireSwordBaseGemType` từ skill packet; còn board special `10` tự nhiên sẽ render như `type 2` đúng logic Java, không bị biến thành kiếm đỏ persisted.
+  - Giữ `type 4` đúng theo nhật ký trước: không dùng `hiddendragon/hiddenphoenix` làm overlay board vì đó là UI ornament/hidden-piece asset, không phải `nj.g` của node bàn cờ. Node `20..25` vẫn nổ hàng + cột theo logic, nhưng visual chỉ là base chess frame, tránh background/ornament lỗi.
+  - Bỏ global fetch loading modal trong `App.tsx`; các API battle/map/PvP vẫn chạy bình thường nhưng không hiện `Vui lòng chờ...` liên tục trong gameplay. Loading chỉ còn ở màn/flow cục bộ nào tự bật, ví dụ tạo nhân vật.
+- Nguồn suy luận:
+  - `nj.java`: tách `node id`, `type`, `mask`, `image index`.
+  - `mq.java`: clear special dựa vào `type 2` và `type 4`, không dựa vào ảnh.
+  - `mp.java`/`mh.java`: renderer board lấy chess sheet theo image index; `pc.java` hidden pieces không phải asset render cell chính.
+
+### 2026-04-25 — Bổ sung scoring nước đi board theo match quality Java
+
+- File code đã sửa:
+  - `server/Twelve.Application/Battle/ReconstructedBattleBoardService.cs`
+- Nội dung:
+  - Bổ sung comment truy xuất nguồn gốc trực tiếp từ `reference/redecoded/cfr_fresh/mq.java` và `reference/redecoded/cfr_fresh/mr.java`.
+  - Giữ rule Java: board playable là `8x8` tương ứng vùng `2..9` trong ma trận padded `12x12`; swap chỉ hợp lệ khi một trong hai endpoint tạo line ngang/dọc `>= 3`.
+  - Thêm `JavaMatchInfo` để tái hiện packed line của Java: left/up, right/down và total length.
+  - Enemy move scoring giờ ưu tiên match dài, cross match, line special `10..15`, cross/strong special `20..25`, thay vì chỉ đếm số ô match thô. Đây chưa phải full cascade authoritative, nhưng bám sát hơn logic `mq` khi chọn/đánh giá nước đi hợp lệ.
+
 ### 2026-04-25 — Sửa đồng bộ canonical board PvP
 
 - File code đã sửa:

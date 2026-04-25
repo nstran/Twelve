@@ -552,16 +552,17 @@ const collectSpecialChainKeys = (board: Board, initialKeys: Set<string>): Set<st
   return cleared;
 };
 
-const resolveSpawnGem = (line: JavaAxisLine): GemType | null => {
-  const baseId = line.category;
-  if (baseId < 0 || baseId >= TYPE2_SPECIAL_BY_BASE.length) return null;
-
-  if ((line.hLen >= 3 && line.vLen >= 3) || line.hLen >= 5 || line.vLen >= 5) {
-    return TYPE4_SPECIAL_BY_BASE[baseId] ?? null;
-  }
-  if (line.hLen >= 4 || line.vLen >= 4) {
-    return TYPE2_SPECIAL_BY_BASE[baseId] ?? null;
-  }
+const resolveSpawnGem = (_line: JavaAxisLine): GemType | null => {
+  // Java-reconstruction safety rule:
+  // The recovered client proves stateful board ids (`nj` state 2/4, ids 10..15/20..25)
+  // and skill-created mark state 10, but it does NOT prove Candy-Crush style
+  // "leave one special gem after matching >=4" for normal HP/MP/peach/gold pieces.
+  //
+  // The previous remake spawned 10..15/20..25 from natural 4/5 matches. That made
+  // ordinary mana/peach pieces persist with a special background and later clear
+  // a 3x3 or whole row+column, exactly the bug seen in screenshots. Until a Java
+  // method proves natural special spawning, normal matches must clear all matched
+  // pieces; special states remain reserved for explicit skill/server mutations.
   return null;
 };
 
@@ -902,8 +903,8 @@ function calcEffect(board: Board, matched: Set<string>, swordArea: Set<string> =
   Object.entries(counts).forEach(([gemKey, count]) => {
     const gem = Number(gemKey) as GemType;
     const fx = getGemFX(gem);
-    heal += Math.round(fx.heal * count! / 3);
-    mp += Math.round(fx.mana * count!);
+    heal += Math.trunc(fx.heal * count! / 3);
+    mp += Math.trunc(fx.mana * count! / 3);
   });
 
   return { dmg, heal, mp };

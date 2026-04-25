@@ -10,6 +10,9 @@ namespace Twelve.Application.Battle
     {
         private const int DefaultPlayerSkillLevel = 12;
         private const int MinimumPowerGain = 3;
+        private const int BaseHitChancePercent = 80;
+        private const int MinHitChancePercent = 20;
+        private const int MaxHitChancePercent = 95;
         private readonly IBattleSessionStore _battleSessionStore;
         private readonly IBattleBoardService _battleBoardService;
 
@@ -36,7 +39,11 @@ namespace Twelve.Application.Battle
 
             session = SyncSessionBoard(session, request.Board);
 
-            var skillLevel = Math.Clamp(request.DebugSkillLevel ?? DefaultPlayerSkillLevel, 1, DefaultPlayerSkillLevel);
+            var learnedSkill = ResolvePlayerSkill(session.Player, request.FamilyCode);
+            var skillLevel = Math.Clamp(
+                learnedSkill?.Level ?? request.DebugSkillLevel ?? 1,
+                1,
+                DefaultPlayerSkillLevel);
             var baseSeed = BattleSkillSeedFactory.CreateSeed(new BattleSkillSeedRequest(
                 FamilyCode: request.FamilyCode,
                 CasterSide: request.CasterSide,
@@ -55,7 +62,7 @@ namespace Twelve.Application.Battle
                     casterSide: BattleSide.Player,
                     familyCode: request.FamilyCode,
                     skillLevel: skillLevel,
-                    manaCost: ResolvePlayerManaCost(session.Player, request.FamilyCode),
+                    manaCost: ResolvePlayerManaCost(session.Player, request.FamilyCode, learnedSkill),
                     baseSeed: baseSeed);
         }
 
@@ -134,8 +141,11 @@ namespace Twelve.Application.Battle
             if (baseSeed.ActorTarget is not null && impact.HitsActor)
             {
                 damage = CalculateDamage(caster, target, familyCode, skillLevel, rageBurstActive);
-                actorDeltas.Add(new BattleSkillActorDelta(target.Side, HpDelta: -damage.Value));
-                actorDeltas.Add(new BattleSkillActorDelta(target.Side, PowerDelta: CalculateTargetPowerGain(damage.Value)));
+                if (damage.Value > 0)
+                {
+                    actorDeltas.Add(new BattleSkillActorDelta(target.Side, HpDelta: -damage.Value));
+                    actorDeltas.Add(new BattleSkillActorDelta(target.Side, PowerDelta: CalculateTargetPowerGain(damage.Value, target)));
+                }
             }
 
             if (manaCost > 0)
@@ -256,18 +266,39 @@ namespace Twelve.Application.Battle
             int skillLevel,
             bool rageBurstActive)
         {
-            var baseDamage = (caster.MinDamage + caster.MaxDamage) / 2;
-            var attackStat = ResolveAttackStat(caster, familyCode);
-            var scalingPercent = 100 + ((skillLevel - 1) * 8) + ((familyCode % 10) * 2);
-            var rawDamage = ((baseDamage + attackStat + (skillLevel * 3)) * scalingPercent) / 100;
-            var mitigatedDamage = rawDamage - (target.Defense + (target.Vitality / 2));
-            var variancePercent = 92 + Random.Shared.Next(17);
-            var variedDamage = (Math.Max(1, mitigatedDamage) * variancePercent) / 100;
-            var critChance = Math.Clamp(5 + (caster.Agility / 4) + skillLevel - (target.DodgeRate / 3), 5, 30);
+            // Java reconstruction source:
+            // - docs/combat-formulas.md: lh.x/lh.y = server-derived min/max damage, lh.z = defense,
+            //   lh.A = dodge, lh.B = hit, lh.C = crit, all ultimately built from jq/js/jr formulas.
+            // - BATTLE_SYSTEM_RECONSTRUCTION.md: Java client only applies authoritative nl.e/b/c/d
+            //   result deltas; no final damage formula exists in client, so this server-local
+            //   authority must consume the Java-faithful character stats instead of client heuristics.
+            var hitChance = Math.Clamp(
+                BaseHitChancePercent + ((caster.HitRate - target.DodgeRate) / 4),
+                MinHitChancePercent,
+                MaxHitChancePercent);
+            if (!RollPercent(hitChance))
+            {
+                return 0;
+            }
 
+            var weaponRoll = caster.MinDamage >= caster.MaxDamage
+                ? caster.MinDamage
+                : Random.Shared.Next(caster.MinDamage, caster.MaxDamage + 1);
+            var primaryStat = ResolveAttackStat(caster, familyCode);
+            var statBonus = Math.Max(0, primaryStat / 3);
+            var levelBonus = Math.Max(0, caster.Level + skillLevel);
+            var skillPercent = 100 + ((skillLevel - 1) * 6);
+            var rawDamage = ((weaponRoll + statBonus + levelBonus) * skillPercent) / 100;
+
+            var defenseReduction = Math.Max(0, target.Defense) + Math.Max(0, target.Vitality / 4);
+            var mitigatedDamage = Math.Max(1, rawDamage - defenseReduction);
+            var variancePercent = 92 + Random.Shared.Next(17);
+            var variedDamage = Math.Max(1, (mitigatedDamage * variancePercent) / 100);
+
+            var critChance = Math.Clamp(caster.CriticalDamage, 0, 30);
             if (RollPercent(critChance))
             {
-                variedDamage = (variedDamage * Math.Max(110, caster.CriticalDamage)) / 100;
+                variedDamage = (variedDamage * 150) / 100;
             }
 
             if (rageBurstActive)
@@ -313,22 +344,37 @@ namespace Twelve.Application.Battle
             return new EnemyTurnDecision(selectedSkill, selectedRow, selectedCol);
         }
 
-        private static int ResolvePlayerManaCost(BattleSessionCombatantState player, int familyCode)
+        private static BattleSessionSkillInstance? ResolvePlayerSkill(BattleSessionCombatantState player, int familyCode)
         {
-            if (player.Skills.Count == 0)
-            {
-                return 0;
-            }
-
             foreach (var skill in player.Skills)
             {
                 if (skill.SkillId == familyCode)
                 {
-                    return Math.Max(0, skill.ManaCost);
+                    return skill;
                 }
             }
 
-            return 0;
+            return null;
+        }
+
+        private static int ResolvePlayerManaCost(
+            BattleSessionCombatantState player,
+            int familyCode,
+            BattleSessionSkillInstance? learnedSkill)
+        {
+            if (learnedSkill is not null && learnedSkill.ManaCost > 0)
+            {
+                return learnedSkill.ManaCost;
+            }
+
+            if (learnedSkill is null && player.Skills.Count > 0)
+            {
+                return int.MaxValue;
+            }
+
+            var skillTier = Math.Clamp(familyCode % 1000, 0, 9);
+            var levelDiscount = Math.Max(0, player.Level / 10);
+            return Math.Max(0, 6 + (skillTier * 2) - levelDiscount);
         }
 
         private static BattleSkillTurnDelta? ResolveTurnDelta(BattleSkillPacketSeed baseSeed)
@@ -362,29 +408,28 @@ namespace Twelve.Application.Battle
                 BattleSkillBoardMutationKind.Helper => 4,
                 BattleSkillBoardMutationKind.Mark => 5,
                 BattleSkillBoardMutationKind.Clear => 6,
-                _ => 3,
+                _ => MinimumPowerGain,
             };
 
             if (damage.HasValue && damage.Value > 0)
             {
-                baseGain += Math.Clamp(damage.Value / 12, 1, 6);
+                baseGain += Math.Clamp(damage.Value / 20, 1, 5);
             }
 
-            return Math.Clamp(baseGain + (skillLevel / 3), MinimumPowerGain, 16);
+            return Math.Clamp(baseGain + (skillLevel / 4), MinimumPowerGain, 14);
         }
 
-        private static int CalculateTargetPowerGain(int damage) =>
-            Math.Clamp(Math.Max(1, damage / 14), 1, 8);
+        private static int CalculateTargetPowerGain(int damage, BattleSessionCombatantState target) =>
+            Math.Clamp(1 + (damage / Math.Max(20, target.MaxHp / 5)), 1, 7);
 
         private static int EstimateSkillPressure(
             BattleSessionState session,
             BattleSessionSkillInstance skill)
         {
-            var baseDamage = (session.Enemy.MinDamage + session.Enemy.MaxDamage) / 2;
+            var averageDamage = (session.Enemy.MinDamage + session.Enemy.MaxDamage) / 2;
             var attackStat = ResolveAttackStat(session.Enemy, skill.SkillId);
-            var scalingPercent = 100 + ((skill.Level - 1) * 8) + ((skill.SkillId % 10) * 2);
-            var rawDamage = ((baseDamage + attackStat + (skill.Level * 3)) * scalingPercent) / 100;
-            var mitigatedDamage = rawDamage - (session.Player.Defense + (session.Player.Vitality / 2));
+            var rawDamage = averageDamage + (attackStat / 3) + session.Enemy.Level + skill.Level;
+            var mitigatedDamage = rawDamage - (session.Player.Defense + (session.Player.Vitality / 4));
             return Math.Max(1, mitigatedDamage);
         }
 

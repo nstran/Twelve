@@ -65,7 +65,7 @@ namespace Twelve.Application.Battle
 
             var levelBefore = player.Level;
             var expBefore = player.Exp;
-            var quanBefore = player.Gold;
+            var goldBefore = player.Gold;
             var clampedHp = Math.Clamp(request.PlayerCurrentHp, 0, Math.Max(1, player.MaxHp));
 
             if (session.Kind == BattleSessionKind.PvpShadow)
@@ -85,26 +85,26 @@ namespace Twelve.Application.Battle
                     ExpBefore: expBefore,
                     ExpAfter: player.Exp,
                     ExpFloor: player.ExpFloor,
-                    ExpCeiling: player.ExpCeiling,
-                    ExpGained: 0,
-                    QuanBefore: quanBefore,
-                    QuanAfter: player.Gold,
-                    QuanGained: 0,
-                    ItemRewards: [],
+                     ExpCeiling: player.ExpCeiling,
+                     ExpGained: 0,
+                     GoldBefore: goldBefore,
+                     GoldAfter: player.Gold,
+                     GoldGained: 0,
+                     ItemRewards: [],
                     EquipmentRewards: []);
             }
 
             player.Hp = clampedHp;
 
             var expGained = 0L;
-            var quanGained = 0L;
+            var goldGained = 0L;
             var loot = new PlayerContentCatalog.BattleLootReward([], []);
             if (request.Result == BattleResultKind.Victory)
             {
                 var rewards = ResolveRewards(session);
                 expGained = rewards.Exp;
-                quanGained = rewards.Quan;
-                player.Gold += quanGained;
+                goldGained = rewards.Gold;
+                player.Gold += goldGained;
                 PlayerLevelProgression.ApplyExperience(player, expGained);
                 loot = ResolveLoot(session);
                 ApplyLoot(inventory, equipment, loot);
@@ -143,14 +143,14 @@ namespace Twelve.Application.Battle
                 ExpFloor: player.ExpFloor,
                 ExpCeiling: player.ExpCeiling,
                 ExpGained: expGained,
-                QuanBefore: quanBefore,
-                QuanAfter: player.Gold,
-                QuanGained: quanGained,
+                GoldBefore: goldBefore,
+                GoldAfter: player.Gold,
+                GoldGained: goldGained,
                 ItemRewards: loot.Items.Select(reward => reward.View).ToArray(),
                 EquipmentRewards: loot.Equipment.Select(reward => reward.View).ToArray());
         }
 
-        private (long Exp, long Quan) ResolveRewards(BattleSessionState session)
+        private (long Exp, long Gold) ResolveRewards(BattleSessionState session)
         {
             var battleTemplateId = session.BattleTemplateId;
             if (string.IsNullOrWhiteSpace(battleTemplateId) && !string.IsNullOrWhiteSpace(session.SpawnTemplateKey))
@@ -171,7 +171,7 @@ namespace Twelve.Application.Battle
 
             return (
                 Math.Max(0, battleTemplate.ExpReward),
-                Math.Max(0, battleTemplate.QuanReward));
+                Math.Max(0, battleTemplate.GoldReward));
         }
 
         private static int? ResolvePlayerId(string combatantId)

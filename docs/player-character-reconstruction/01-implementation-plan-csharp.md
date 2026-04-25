@@ -479,6 +479,31 @@ Client nhận qua `PlayerRuntimeSnapshot.mapMoveSpeed/mapJumpSpeed`, merge vào 
   - `lh.y`/`runtime.maxDamage` chỉ giữ làm damage trần cho battle range hoặc công thức skill nếu cần.
   - Cập nhật `client/src/screens/character/status/CharacterStatus.api.ts` để merge `combat.attack = runtime.minDamage`.
 
+### Nhật ký chỉnh sửa 2026-04-25 — Battle damage dùng stat nhân vật thật
+
+- Cập nhật `server/Twelve.Application/Battle/BattleTurnEngine.cs`.
+- Battle damage giờ tiêu thụ trực tiếp stat đã phục dựng theo Java `lh`/`jq`/`js`/`jr`:
+  - `MinDamage/MaxDamage` lấy từ `lh.x/lh.y` qua `PlayerStatPipeline`.
+  - `HitRate` lấy từ `lh.B`.
+  - `DodgeRate` lấy từ `lh.A`.
+  - `Defense` lấy từ `lh.z`.
+  - `CriticalDamage` hiện đang là `lh.C`/`Chí Mạng %`.
+- Công thức server-authoritative được ghi comment nguồn ngay trong `CalculateDamage()`:
+  - Java client chỉ render kết quả damage/delta server gửi, không chứa công thức damage cuối.
+  - Vì vậy remake giữ các stat đầu vào Java-faithful, còn damage resolution là rule server mới có kiểm soát.
+- Điều chỉnh hit/miss:
+  - `hitChance = clamp(80 + (HitRate - DodgeRate) / 4, 20, 95)`.
+  - `Thân Pháp` vì thế ảnh hưởng rõ trong battle qua chính xác/né tránh/chí mạng đúng pipeline Java.
+- Điều chỉnh damage:
+  - Roll trong range `MinDamage..MaxDamage`.
+  - Cộng bonus stat chính theo family skill qua `ResolveAttackStat()`.
+  - Trừ `Defense + Vitality / 4`.
+  - Áp variance integer `92..108%`, crit `150%`, nộ full power x2.
+- Điều chỉnh resource:
+  - Player skill level ưu tiên skill đã học thật trong session, không mặc định debug level 12 nếu đã có skill.
+  - Mana cost ưu tiên `BattleSessionSkillInstance.ManaCost`; nếu chưa học skill mà player có skill list thì từ chối cast bằng cost không đủ.
+  - Power gain giảm bớt độ phình để bám vai trò `lh.w/v` là thanh nộ tích dần, không thay thế sát thương chính.
+
 ## Kết Luận
 
 Nếu mục tiêu là khôi phục sát Java cũ thì:

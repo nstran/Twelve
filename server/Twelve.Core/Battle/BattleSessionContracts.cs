@@ -212,9 +212,15 @@ namespace Twelve.Core.Battle
         long ExpFloor,
         long ExpCeiling,
         long ExpGained,
-        long QuanBefore,
-        long QuanAfter,
-        long QuanGained,
+        // Java client separates wallet display from paid currency semantics. In remake:
+        // - Gold* is normal battle money reward.
+        // - Quan* is reserved for paid currency/top-up and must not be granted by monster battle.
+        long GoldBefore,
+        long GoldAfter,
+        long GoldGained,
+        long QuanBefore = 0,
+        long QuanAfter = 0,
+        long QuanGained = 0,
         IReadOnlyList<PlayerInventoryItemView>? ItemRewards = null,
         IReadOnlyList<PlayerEquipmentItemView>? EquipmentRewards = null
     );

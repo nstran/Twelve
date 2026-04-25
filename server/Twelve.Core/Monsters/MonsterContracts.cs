@@ -127,6 +127,7 @@ namespace Twelve.Core.Monsters
         MonsterAppearanceTemplate Appearance,
         string? AiProfileId = null,
         int ExpReward = 0,
+        int GoldReward = 0,
         int QuanReward = 0
     );
 

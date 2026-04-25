@@ -17,7 +17,7 @@ import {
   VisibleGemType,
   getGemRenderType,
   getGemSheet,
-  isCrystalGem,
+  getGemStateClass,
 } from '../core';
 
 const GEM_NATIVE_SIZE = 28;
@@ -190,6 +190,7 @@ export const GemCell = React.memo(({
   onPress: () => void;
 }) => {
   const renderType = getGemRenderType(gemType);
+  const stateClass = getGemStateClass(gemType);
   const visualOffset = GEM_VISUAL_OFFSETS[renderType];
   const spriteOffsetX = Math.round(visualOffset.x * size / GEM_NATIVE_SIZE);
   const spriteOffsetY = Math.round(visualOffset.y * size / GEM_NATIVE_SIZE);
@@ -200,18 +201,21 @@ export const GemCell = React.memo(({
   const [fireSwordMarkFrame, setFireSwordMarkFrame] = useState(0);
   const [showFireSwordMarkAnim, setShowFireSwordMarkAnim] = useState(false);
   const previousMarkTriggerRef = useRef(fireSwordMarkTrigger ?? 0);
-  const pendingFireSwordMarkStart =
+  const isSkillFireSwordMark =
     gemType === FIRE_SWORD_MARK_STATE &&
+    ((fireSwordMarkTrigger ?? 0) > 0 || fireSwordBaseGemType !== undefined && fireSwordBaseGemType !== null);
+  const pendingFireSwordMarkStart =
+    isSkillFireSwordMark &&
     (fireSwordMarkTrigger ?? 0) > previousMarkTriggerRef.current;
   const fireSwordBaseGemTypeResolved =
-    gemType === FIRE_SWORD_MARK_STATE &&
+    isSkillFireSwordMark &&
     fireSwordBaseGemType !== undefined && fireSwordBaseGemType !== null
       ? fireSwordBaseGemType
       : gemType;
   const fireSwordBaseFrameIndex = fireSwordBaseGemTypeResolved === gemType ? frameIndex : 0;
 
   useEffect(() => {
-    if (gemType !== FIRE_SWORD_MARK_STATE) {
+    if (!isSkillFireSwordMark) {
       setShowFireSwordMarkAnim(false);
       setFireSwordMarkFrame(0);
       return undefined;
@@ -243,17 +247,17 @@ export const GemCell = React.memo(({
     }, JAVA_TICK_MS);
 
     return () => clearInterval(timer);
-  }, [fireSwordMarkTrigger, gemType]);
+  }, [fireSwordMarkTrigger, gemType, isSkillFireSwordMark]);
 
-  const showCrystalOverlay = isCrystalGem(gemType) && gemType !== FIRE_SWORD_MARK_STATE;
+  const showCrystalOverlay = stateClass === 2 && !showFireSwordMarkAnim;
   const isFireSwordFinalFrame =
     showFireSwordMarkAnim && fireSwordMarkFrame >= FIRE_SWORD_MARK_FRAME_COUNT - 1;
   const showFireSwordBaseGem =
-    gemType !== FIRE_SWORD_MARK_STATE ||
+    !isSkillFireSwordMark ||
     pendingFireSwordMarkStart ||
     (showFireSwordMarkAnim && !isFireSwordFinalFrame);
   const showPersistedFireSwordGem =
-    gemType === FIRE_SWORD_MARK_STATE &&
+    isSkillFireSwordMark &&
     !pendingFireSwordMarkStart &&
     (!showFireSwordMarkAnim || isFireSwordFinalFrame);
 

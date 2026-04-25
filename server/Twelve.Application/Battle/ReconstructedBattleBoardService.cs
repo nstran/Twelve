@@ -8,7 +8,17 @@ namespace Twelve.Application.Battle
 {
     public sealed class ReconstructedBattleBoardService : IBattleBoardService
     {
+        // Java reconstruction source:
+        // - reference/redecoded/cfr_fresh/mq.java:
+        //   board logic scans playable cells 2..9 inside a 12x12 padded matrix, i.e. an 8x8 battle board.
+        //   A swap is accepted only if either swapped endpoint creates a horizontal/vertical run >= 3.
+        //   Match lengths are encoded in low byte, with left/up counters in bits 16..23 and right/down in 8..15.
+        // - reference/redecoded/cfr_fresh/mr.java:
+        //   mr.x = 10..15 are special gems created by run >= 4.
+        //   mr.y = 20..25 are stronger special gems created by cross run >= 3x3 or run >= 5.
         private static readonly int[] BaseGems = [0, 1, 2, 3, 4, 5, 6];
+        private static readonly int[] LineSpecialGems = [10, 11, 12, 13, 14, 15];
+        private static readonly int[] CrossSpecialGems = [20, 21, 22, 23, 24, 25];
 
         public IReadOnlyList<IReadOnlyList<int?>> CreateInitialBoard()
         {
@@ -223,58 +233,48 @@ namespace Twelve.Application.Battle
                 return false;
             }
 
+            var firstMatch = ResolveJavaMatch(swapped, row1, col1);
+            var secondMatch = ResolveJavaMatch(swapped, row2, col2);
+
             score = matched.Count;
             foreach (var cell in matched)
             {
                 var parts = cell.Split(',');
                 var row = int.Parse(parts[0]);
                 var col = int.Parse(parts[1]);
-                if (TryGetCategory(swapped[row][col], out var category) && category == 0)
+                if (!TryGetCategory(swapped[row][col], out var category))
+                {
+                    continue;
+                }
+
+                // Keep the existing sword preference because current enemy AI uses it as a simple
+                // "attack pressure" heuristic, but layer Java-derived match quality on top of it.
+                if (category == 0)
                 {
                     swordMatchCount++;
                     score += 2;
                 }
+
+                if (IsLineSpecial(swapped[row][col]))
+                {
+                    score += 4;
+                }
+                else if (IsCrossSpecial(swapped[row][col]))
+                {
+                    score += 8;
+                }
             }
+
+            score += CalculateJavaMatchQualityBonus(firstMatch);
+            score += CalculateJavaMatchQualityBonus(secondMatch);
 
             return true;
         }
 
         private static bool HasMatchAt(IReadOnlyList<IReadOnlyList<int?>> board, int row, int col)
         {
-            var gem = board[row][col];
-            if (!TryGetCategory(gem, out var category))
-            {
-                return false;
-            }
-
-            var horizontal = 1;
-            for (var current = col - 1; current >= 0 && TryGetCategory(board[row][current], out var other) && other == category; current--)
-            {
-                horizontal++;
-            }
-
-            for (var current = col + 1; current < 8 && TryGetCategory(board[row][current], out var other) && other == category; current++)
-            {
-                horizontal++;
-            }
-
-            if (horizontal >= 3)
-            {
-                return true;
-            }
-
-            var vertical = 1;
-            for (var current = row - 1; current >= 0 && TryGetCategory(board[current][col], out var other) && other == category; current--)
-            {
-                vertical++;
-            }
-
-            for (var current = row + 1; current < 8 && TryGetCategory(board[current][col], out var other) && other == category; current++)
-            {
-                vertical++;
-            }
-
-            return vertical >= 3;
+            var match = ResolveJavaMatch(board, row, col);
+            return match.HorizontalLength >= 3 || match.VerticalLength >= 3;
         }
 
         private static void CollectMatchedCells(
@@ -328,6 +328,78 @@ namespace Twelve.Application.Battle
             }
         }
 
+        private static JavaMatchInfo ResolveJavaMatch(IReadOnlyList<IReadOnlyList<int?>> board, int row, int col)
+        {
+            var gem = board[row][col];
+            if (!TryGetCategory(gem, out var category))
+            {
+                return JavaMatchInfo.Empty;
+            }
+
+            var left = 0;
+            for (var current = col - 1; current >= 0 && TryGetCategory(board[row][current], out var other) && other == category; current--)
+            {
+                left++;
+            }
+
+            var right = 0;
+            for (var current = col + 1; current < 8 && TryGetCategory(board[row][current], out var other) && other == category; current++)
+            {
+                right++;
+            }
+
+            var up = 0;
+            for (var current = row - 1; current >= 0 && TryGetCategory(board[current][col], out var other) && other == category; current--)
+            {
+                up++;
+            }
+
+            var down = 0;
+            for (var current = row + 1; current < 8 && TryGetCategory(board[current][col], out var other) && other == category; current++)
+            {
+                down++;
+            }
+
+            return new JavaMatchInfo(
+                HorizontalLength: left + right + 1,
+                VerticalLength: up + down + 1,
+                Left: left,
+                Right: right,
+                Up: up,
+                Down: down);
+        }
+
+        private static int CalculateJavaMatchQualityBonus(JavaMatchInfo match)
+        {
+            var bonus = 0;
+            if (match.HorizontalLength >= 3)
+            {
+                bonus += match.HorizontalLength;
+            }
+
+            if (match.VerticalLength >= 3)
+            {
+                bonus += match.VerticalLength;
+            }
+
+            if (match.CreatesCrossSpecial)
+            {
+                bonus += 16;
+            }
+            else if (match.CreatesLineSpecial)
+            {
+                bonus += 8;
+            }
+
+            return bonus;
+        }
+
+        private static bool IsLineSpecial(int? gem) =>
+            gem.HasValue && LineSpecialGems.Contains(gem.Value);
+
+        private static bool IsCrossSpecial(int? gem) =>
+            gem.HasValue && CrossSpecialGems.Contains(gem.Value);
+
         private static int?[][] CloneBoard(IReadOnlyList<IReadOnlyList<int?>> board) =>
             board.Select(row => row.ToArray()).ToArray();
 
@@ -366,5 +438,24 @@ namespace Twelve.Application.Battle
             6 => 6,
             _ => 0,
         };
+
+        private readonly record struct JavaMatchInfo(
+            int HorizontalLength,
+            int VerticalLength,
+            int Left,
+            int Right,
+            int Up,
+            int Down)
+        {
+            public static JavaMatchInfo Empty { get; } = new(0, 0, 0, 0, 0, 0);
+
+            public bool CreatesLineSpecial =>
+                HorizontalLength >= 4 || VerticalLength >= 4;
+
+            public bool CreatesCrossSpecial =>
+                HorizontalLength >= 5 ||
+                VerticalLength >= 5 ||
+                (HorizontalLength >= 3 && VerticalLength >= 3);
+        }
     }
 }

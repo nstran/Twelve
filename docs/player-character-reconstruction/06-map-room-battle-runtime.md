@@ -82,9 +82,11 @@ Chưa xong:
 - `actionState` mới lưu/echo, chưa là state machine đầy đủ walk/jump/attack/hit/dead
 - Khiêu Chiến/PvP chưa tách thành flow riêng để tìm người chơi và đấu với nhau
 
-## Battle Result / EXP / Quan Reward
+## Battle Result / EXP / Gold/KEN Reward
 
 Sau khi battle kết thúc, client không tự cộng thưởng. Client gọi `/battle/result` với `sessionId`, kết quả thắng/thua và HP còn lại. Server claim session một lần, cập nhật DB rồi trả payload để client hiển thị bảng kết quả. MP/Power/nộ là tài nguyên runtime của từng trận, reset khi bootstrap battle mới và không persist về player DB.
+
+Ghi chú 2026-04-25: Java client chỉ chứng minh `lh.H/I` là trục KEN/gold/collection dùng ở battle result (`hs` icon vàng, parser tag `43/99`), không chứng minh đây là tiền nạp. Trong remake, `Quan` được giữ làm paid currency/top-up, vì vậy reward quái thường không được cộng `Quan`; công thức thưởng tiền trận được map sang `Gold*`/`Player.Gold`, còn `Quan*` trong result response để `0`/compat cũ.
 
 Quy định level hiện tại:
 
@@ -99,15 +101,16 @@ Quy định monster reward hiện tại:
 - reward nằm trong `MonsterBattleTemplate`
 - factory tính mặc định từ level/threat/skill tier
 - EXP cơ bản = `12 + level * 3`, nhân threat: Minor `100%`, Standard `120%`, Elite `150%`, cộng skill bonus
-- Quan cơ bản = `2 + level`, cộng threat: Standard `+4`, Elite `+8`
-- thua trận: hồi đầy HP, không cộng Quan, và bị trừ EXP theo defeat penalty của level hiện tại
+- Gold/KEN cơ bản = `2 + level`, cộng threat: Standard `+4`, Elite `+8`
+- `QuanReward` luôn `0` trong PvE quái thường để không phát paid currency
+- thua trận: hồi đầy HP, không cộng Gold/Quan, và bị trừ EXP theo defeat penalty của level hiện tại
 
 Đã xong:
 
 - `BattleResultService` claim kết quả và chống claim lại session đã hoàn tất
 - `/battle/result` HTTP endpoint
 - client gọi result endpoint khi `victory/defeat`
-- popup kết quả hiển thị HP còn lại, EXP, Quan và thưởng nhận được
+- popup kết quả hiển thị HP còn lại, EXP, Gold/KEN và thưởng nhận được
 - App cập nhật HUD/appearance sau result response
 - thắng trận có thể rơi item/equipment và lưu thẳng vào aggregate; popup kết quả hiển thị loot text
 - sau khi rời battle, App refresh runtime snapshot player để status/inventory/equipment đồng bộ với DB
@@ -154,6 +157,7 @@ Vì vậy bộ `J/M/N/H/I` không nên bị bỏ qua:
 
 - `J/M/N` là gauge EXP/progression thật ngoài map.
 - `H/I` là trục KEN/gold/collection dùng ở battle result, không phải combat stat.
+- Trong remake hiện tại, API battle result dùng tên `GoldBefore/GoldAfter/GoldGained` cho trục này để tránh nhầm với `Quan` paid currency; client vẫn fallback đọc `quan*` cũ nếu gặp payload cũ.
 
 ### `kd` depth bucket
 

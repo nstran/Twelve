@@ -227,7 +227,15 @@ namespace Twelve.Application.Players
             }
 
             var player = aggregate.Core;
-            player.Hp = System.Math.Min(player.MaxHp, player.Hp + definition.HealAmount);
+            var restore = CalculateItemRestore(player, definition);
+
+            if (restore.Hp <= 0 && restore.Mp <= 0)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Sinh luc/noi luc da day.");
+            }
+
+            player.Hp = System.Math.Min(player.MaxHp, player.Hp + restore.Hp);
+            player.Mp = System.Math.Min(player.MaxMp, player.Mp + restore.Mp);
 
             var nextQuantity = inventory[index].Quantity - 1;
             if (nextQuantity <= 0)
@@ -249,7 +257,7 @@ namespace Twelve.Application.Players
 
             return new PlayerRuntimeResponse(
                 BuildSnapshot(ReloadAggregate(player.Id)),
-                $"Da dung {definition.DisplayName}.");
+                BuildUseItemMessage(definition.DisplayName, restore));
         }
 
         public PlayerRuntimeResponse? DiscardEquipment(PlayerDiscardEquipmentRuntimeRequest request)
@@ -428,6 +436,10 @@ namespace Twelve.Application.Players
                 QuanProgressCap: player.QuanProgressCap,
                 FreePoints: player.FreePoints,
                 SkillPoints: player.SkillPoints,
+                CurrentMp: player.Mp,
+                MaxMp: player.MaxMp,
+                CurrentPower: player.Power,
+                MaxPower: player.MaxPower,
                 CuongLuc: player.CuongLuc,
                 ThanPhap: player.ThanPhap,
                 NoiLuc: player.NoiLuc,
@@ -454,6 +466,67 @@ namespace Twelve.Application.Players
             PlayerStatPipeline.RecalculateAndApply(player, _contentCatalog.GetEquippedModifiers(equipment));
             _playerRepository.UpdateAsync(player).GetAwaiter().GetResult();
         }
+
+        private static ItemRestoreResult CalculateItemRestore(Player player, PlayerContentCatalog.PlayerItemDefinition definition)
+        {
+            // Remake rule documented in docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.3.
+            // Java client only proves lh.s/r HP and lh.u/t MP fields; old server formula for eating peach/potion is unavailable.
+            // Use real persisted Player stats (base + equipment bonuses from PlayerStatPipeline), never client-side fake values.
+            var totalStrength = System.Math.Max(0, player.CuongLuc + player.BonusCuongLuc);
+            var totalMagic = System.Math.Max(0, player.NoiLuc + player.BonusNoiLuc);
+            var restoreKind = definition.RestoreKind ?? string.Empty;
+
+            var hp = 0;
+            if (definition.HealAmount > 0 && restoreKind.Contains("hp", System.StringComparison.OrdinalIgnoreCase))
+            {
+                var percent = CalculateRestorePercent(
+                    player.Element ?? ElementMapper.StorageHoa,
+                    ElementMapper.StorageHoa,
+                    totalStrength);
+                hp = System.Math.Min(
+                    System.Math.Max(0, player.MaxHp - player.Hp),
+                    definition.HealAmount * percent / 100);
+            }
+
+            var mp = 0;
+            if (definition.ManaAmount > 0 && restoreKind.Contains("mp", System.StringComparison.OrdinalIgnoreCase))
+            {
+                var percent = CalculateRestorePercent(
+                    player.Element ?? ElementMapper.StorageHoa,
+                    ElementMapper.StorageThuy,
+                    totalMagic);
+                mp = System.Math.Min(
+                    System.Math.Max(0, player.MaxMp - player.Mp),
+                    definition.ManaAmount * percent / 100);
+            }
+
+            return new ItemRestoreResult(hp, mp);
+        }
+
+        private static int CalculateRestorePercent(int playerElement, int primaryElement, int totalStat)
+        {
+            var statOverBase = totalStat - 10;
+            var scalePerPoint = playerElement == primaryElement ? 3 : 2;
+            var maxPercent = playerElement == primaryElement ? 180 : 150;
+            return System.Math.Clamp(100 + statOverBase * scalePerPoint, 80, maxPercent);
+        }
+
+        private static string BuildUseItemMessage(string displayName, ItemRestoreResult restore)
+        {
+            if (restore.Hp > 0 && restore.Mp > 0)
+            {
+                return $"Da dung {displayName}: +{restore.Hp} HP, +{restore.Mp} MP.";
+            }
+
+            if (restore.Hp > 0)
+            {
+                return $"Da dung {displayName}: +{restore.Hp} HP.";
+            }
+
+            return $"Da dung {displayName}: +{restore.Mp} MP.";
+        }
+
+        private sealed record ItemRestoreResult(int Hp, int Mp);
 
         private PlayerRuntimeResponse PreviewEquipmentLoadoutInternal(
             PlayerAggregate aggregate,

@@ -327,6 +327,8 @@ namespace Twelve.Application.Players
                 StackCap: ParseInt(payload, "stackCap", 99),
                 IsUsable: ParseBool(payload, "isUsable"),
                 HealAmount: ParseInt(payload, "healAmount", 0),
+                ManaAmount: ParseInt(payload, "manaAmount", 0),
+                RestoreKind: payload.TryGetValue("restoreKind", out var restoreKind) ? restoreKind : "hp",
                 IconKind: payload.TryGetValue("iconKind", out var iconKind) ? iconKind : "item");
         }
 
@@ -382,6 +384,8 @@ namespace Twelve.Application.Players
                 stackCap = definition.StackCap,
                 isUsable = definition.IsUsable,
                 healAmount = definition.HealAmount,
+                manaAmount = definition.ManaAmount,
+                restoreKind = definition.RestoreKind,
                 iconKind = definition.IconKind
             });
 
@@ -483,12 +487,14 @@ namespace Twelve.Application.Players
         private static IReadOnlyDictionary<int, PlayerItemDefinition> CreateItemDefinitions() =>
             new Dictionary<int, PlayerItemDefinition>
             {
-                [5001] = new PlayerItemDefinition(5001, "Tiểu Hồi Phục", "Khôi phục 35 HP ngoài battle.", 20, true, 35, "potion_red"),
-                [5002] = new PlayerItemDefinition(5002, "Hỏa Tinh Thạch", "Tinh thạch rơi từ quái hệ Hỏa.", 99, false, 0, "ember"),
-                [5003] = new PlayerItemDefinition(5003, "Băng Tủy", "Tinh hoa lạnh dùng cho nâng cấp sau này.", 99, false, 0, "ice"),
-                [5004] = new PlayerItemDefinition(5004, "Lôi Nha", "Mảnh sừng sét cất vào túi đồ.", 99, false, 0, "zap"),
-                [5005] = new PlayerItemDefinition(5005, "Trung Hồi Phục", "Khôi phục 70 HP ngoài battle.", 20, true, 70, "potion_blue"),
-                [5010] = new PlayerItemDefinition(5010, "Búa Sửa Chữa", "Dùng để sửa chữa trang bị đã hư hỏng. Khôi phục độ bền về mức tối đa.", 20, false, 0, "hammer"),
+                [5001] = new PlayerItemDefinition(5001, "Tiểu Hồi Phục", "Khôi phục HP ngoài battle; lượng hồi scale theo Cường Lực/thiếu HP.", 20, true, 35, 0, "hp", "potion_red"),
+                [5002] = new PlayerItemDefinition(5002, "Hỏa Tinh Thạch", "Tinh thạch rơi từ quái hệ Hỏa.", 99, false, 0, 0, "none", "ember"),
+                [5003] = new PlayerItemDefinition(5003, "Băng Tủy", "Tinh hoa lạnh dùng cho nâng cấp sau này.", 99, false, 0, 0, "none", "ice"),
+                [5004] = new PlayerItemDefinition(5004, "Lôi Nha", "Mảnh sừng sét cất vào túi đồ.", 99, false, 0, 0, "none", "zap"),
+                [5005] = new PlayerItemDefinition(5005, "Trung Hồi Phục", "Khôi phục HP ngoài battle; lượng hồi scale theo Cường Lực/thiếu HP.", 20, true, 70, 0, "hp", "potion_blue"),
+                [5006] = new PlayerItemDefinition(5006, "Tiểu Nội Dược", "Khôi phục MP ngoài battle; lượng hồi scale theo Nội Lực/thiếu MP.", 20, true, 0, 35, "mp", "potion_blue"),
+                [5007] = new PlayerItemDefinition(5007, "Trái Đào", "Khôi phục HP/MP ngoài battle; lượng hồi scale theo Cường Lực và Nội Lực.", 20, true, 500, 250, "hp_mp", "peach"),
+                [5010] = new PlayerItemDefinition(5010, "Búa Sửa Chữa", "Dùng để sửa chữa trang bị đã hư hỏng. Khôi phục độ bền về mức tối đa.", 20, false, 0, 0, "none", "hammer"),
             };
 
         private static IReadOnlyDictionary<int, IReadOnlyList<PlayerSkillDefinition>> CreateSkillDefinitions() =>
@@ -533,6 +539,8 @@ namespace Twelve.Application.Players
             int StackCap,
             bool IsUsable,
             int HealAmount,
+            int ManaAmount,
+            string RestoreKind,
             string IconKind);
 
         public sealed record PlayerSkillDefinition(

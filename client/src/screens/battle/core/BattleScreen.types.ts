@@ -318,9 +318,12 @@ export interface BattleResultRewardResponse {
   expFloor: number;
   expCeiling: number;
   expGained: number;
-  quanBefore: number;
-  quanAfter: number;
-  quanGained: number;
+  goldBefore: number;
+  goldAfter: number;
+  goldGained: number;
+  quanBefore?: number;
+  quanAfter?: number;
+  quanGained?: number;
   itemRewards?: Array<{
     itemId: number;
     displayName: string;
