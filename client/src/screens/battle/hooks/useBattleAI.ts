@@ -5,6 +5,7 @@ interface UseBattleAIArgs {
   phase: BattlePhase;
   turn: BattleTurn;
   aiLevel: AILevel | null;
+  isPvpBattle?: boolean;
   result: BattleResult | null;
   turnCycle: number;
   mountedRef: MutableRefObject<boolean>;
@@ -28,6 +29,7 @@ export const useBattleAI = ({
   phase,
   turn,
   aiLevel,
+  isPvpBattle,
   result,
   turnCycle,
   mountedRef,
@@ -88,7 +90,8 @@ export const useBattleAI = ({
   }, [clearAiTimers, doDirectSwapRef, mountedRef, phaseRef, setCursorCell, setHintCell, setHintMove, setSelected, turnRef]);
 
   useEffect(() => {
-    if (phase !== 'idle' || turn !== 'monster' || aiLevel === null || result !== null) return;
+    // In PvP, turn='monster' means "waiting for human opponent", not "AI should play"
+    if (phase !== 'idle' || turn !== 'monster' || aiLevel === null || result !== null || isPvpBattle) return;
     const cfg = AI_CONFIGS[aiLevel];
 
     clearAiTimers();
@@ -192,6 +195,7 @@ export const useBattleAI = ({
     phase,
     phaseRef,
     playerHPRef,
+    isPvpBattle,
     result,
     resolveEnemyMove,
     setCursorCell,

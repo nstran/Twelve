@@ -119,6 +119,63 @@ export const useBattleBoardAnimations = ({
     });
   }, [mountedRef, offsets, setBoard]);
 
+  const animateValidSwap = useCallback((
+    r1: number,
+    c1: number,
+    r2: number,
+    c2: number,
+    onDone: () => void,
+  ) => {
+    const x1 = swapOffsetsX[r1][c1];
+    const x2 = swapOffsetsX[r2][c2];
+    const y1 = swapOffsetsY[r1][c1];
+    const y2 = swapOffsetsY[r2][c2];
+    const travelX = (c2 - c1) * GEM_SIZE;
+    const travelY = (r2 - r1) * GEM_SIZE;
+
+    x1.stopAnimation();
+    x2.stopAnimation();
+    y1.stopAnimation();
+    y2.stopAnimation();
+    x1.setValue(0);
+    x2.setValue(0);
+    y1.setValue(0);
+    y2.setValue(0);
+
+    Animated.parallel([
+      Animated.timing(x1, {
+        toValue: travelX,
+        duration: 150,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(x2, {
+        toValue: -travelX,
+        duration: 150,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(y1, {
+        toValue: travelY,
+        duration: 150,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(y2, {
+        toValue: -travelY,
+        duration: 150,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      x1.setValue(0);
+      x2.setValue(0);
+      y1.setValue(0);
+      y2.setValue(0);
+      if (mountedRef.current) onDone();
+    });
+  }, [mountedRef, swapOffsetsX, swapOffsetsY]);
+
   const animateInvalidSwapBounce = useCallback((
     r1: number,
     c1: number,
@@ -242,6 +299,7 @@ export const useBattleBoardAnimations = ({
     swapOffsetsY,
     playExplosion,
     animateFall,
+    animateValidSwap,
     animateInvalidSwapBounce,
     resetBoardAnim,
   };

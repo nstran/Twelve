@@ -59,10 +59,24 @@ namespace Twelve.Application.Battle
                 move,
                 Accepted: true);
 
+            // PvP board action is split in two phases in the reconstructed client:
+            // 1) /battle/pvp-action validates and mirrors the raw Java-like swap.
+            // 2) the acting client resolves match/clear/drop/cascade locally, then persists
+            //    the canonical post-cascade board through /battle/session-sync.
+            //
+            // Source: BATTLE_SYSTEM_RECONSTRUCTION.md "Local Board Simulation" and
+            // "Client Port Status". Java client performs swap -> match -> clear -> drop
+            // locally, while packet/server state remains the canonical synchronization
+            // boundary. Do not pass the turn on the raw swap snapshot; otherwise the
+            // opponent stops polling as soon as it receives the pre-collapse board and
+            // never sees the final board after pieces are pushed down.
+            var nextActiveTurn = request.Action == BattlePvpActionKind.Swap
+                ? session.ActiveTurn
+                : FlipSide(session.ActiveTurn);
             var nextSession = session with
             {
                 Board = nextBoard,
-                ActiveTurn = FlipSide(session.ActiveTurn),
+                ActiveTurn = nextActiveTurn,
                 TurnSeq = session.TurnSeq + 1,
                 LastPvpAction = accepted,
             };

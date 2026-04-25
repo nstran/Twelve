@@ -54,8 +54,6 @@ export const GEM_SHEETS: Record<VisibleGemType, any> = {
 };
 
 export const GEM_CRYSTAL_OVERLAY = require('../../../../assets/battle/03_crystals_casting/chesscrystal.png');
-export const GEM_HIDDEN_DRAGON = require('../../../../assets/battle/09_hidden_pieces/hiddendragon.png');
-export const GEM_HIDDEN_PHOENIX = require('../../../../assets/battle/09_hidden_pieces/hiddenphoenix.png');
 
 // Java `nj` node ids only generate the base board pieces `0..6` plus stateful
 // overlays such as `10..15` and `20..25`. `8` exists as an image index
@@ -225,11 +223,6 @@ export const isRedSwordGem = (gem: GemType): gem is typeof RED_SWORD_GEM | 10 =>
   getGemCategory(gem) === SWORD_CAT && getGemRenderType(gem) === RED_SWORD_GEM;
 
 export const isCrystalGem = (gem: GemType): boolean => getGemStateClass(gem) === 2;
-
-export const isHiddenGem = (gem: GemType): boolean => getGemStateClass(gem) === 4;
-
-export const getHiddenGemAsset = (gem: GemType) =>
-  getGemCategory(gem) <= 2 ? GEM_HIDDEN_DRAGON : GEM_HIDDEN_PHOENIX;
 
 export const AI_CONFIGS: Record<AILevel, {
   name: string;

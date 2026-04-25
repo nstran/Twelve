@@ -64,6 +64,7 @@ interface UseBattleMatchFlowArgs {
   spawnCollectFX: (matched: Set<string>, board: Board, collectorSide: 'player' | 'enemy', healAmount: number) => void;
   playExplosion: (matched: Set<string>, expanded: Set<string>, board: Board, onDone: () => void) => void;
   animateFall: (newBoard: Board, fallMap: CollapseResult['fallMap'], onDone: () => void) => void;
+  animateValidSwap: (r1: number, c1: number, r2: number, c2: number, onDone: () => void) => void;
   animateInvalidSwapBounce: (r1: number, c1: number, r2: number, c2: number, onDone: () => void) => void;
   resetBoardAnim: (nextBoard: Board | undefined, onDone: () => void) => void;
 }
@@ -120,6 +121,7 @@ export const useBattleMatchFlow = ({
   spawnCollectFX,
   playExplosion,
   animateFall,
+  animateValidSwap,
   animateInvalidSwapBounce,
   resetBoardAnim,
 }: UseBattleMatchFlowArgs) => {
@@ -136,6 +138,7 @@ export const useBattleMatchFlow = ({
     scanTargets?: Iterable<string | [number, number]>,
     rageBurstState?: RageBurstState,
     bonusTurnState?: BonusTurnState,
+    isPassiveObserver = false,
   ) => {
     if (!mountedRef.current) return;
 
@@ -147,59 +150,69 @@ export const useBattleMatchFlow = ({
       consumed: false,
     };
 
-    const resolved = resolveJavaBoardStep(board, scanTargets);
-    if (resolved === null) {
-      setBoard(board);
-      if (pendingVictoryRef.current) {
-        finalizeVictory();
-        return;
-      }
+      const resolved = resolveJavaBoardStep(board, scanTargets);
+      if (resolved === null) {
+        setBoard(board);
+        if (pendingVictoryRef.current) {
+          if (!isPassiveObserver) finalizeVictory();
+          return;
+        }
 
-      if (getAllValidMoves(board).length === 0) {
-        const reshuffled = reshuffleBoard(board, boardEngineRef.current);
-        showBonusBanner('🔀 Hết nước đi!');
-        resetBoardAnim(reshuffled, () => {
-          if (!mountedRef.current) return;
-          boardRef.current = reshuffled;
+        if (getAllValidMoves(board).length === 0) {
+          const reshuffled = reshuffleBoard(board, boardEngineRef.current);
+          showBonusBanner('🔀 Hết nước đi!');
+          resetBoardAnim(reshuffled, () => {
+            if (!mountedRef.current) return;
+            boardRef.current = reshuffled;
+            if (!isPassiveObserver) {
+              setTurnCycle(v => v + 1);
+            }
+            phaseRef.current = 'idle';
+            setPhase('idle');
+          });
+          return;
+        }
+
+        if (isPassiveObserver) {
+          phaseRef.current = 'idle';
+          setPhase('idle');
+          return;
+        }
+
+        if (extraTurnsRef.current > 0) {
+          const remaining = extraTurnsRef.current - 1;
+          extraTurnsRef.current = remaining;
+          setExtraTurns(remaining);
           setTurnCycle(v => v + 1);
           phaseRef.current = 'idle';
           setPhase('idle');
-        });
+        } else {
+          const nextTurn = turnRef.current === 'player' ? 'monster' : 'player';
+          turnRef.current = nextTurn;
+          setTurn(nextTurn);
+          setTurnCycle(v => v + 1);
+          phaseRef.current = 'idle';
+          setPhase('idle');
+        }
         return;
       }
-
-      if (extraTurnsRef.current > 0) {
-        const remaining = extraTurnsRef.current - 1;
-        extraTurnsRef.current = remaining;
-        setExtraTurns(remaining);
-        setTurnCycle(v => v + 1);
-        phaseRef.current = 'idle';
-        setPhase('idle');
-      } else {
-        const nextTurn = turnRef.current === 'player' ? 'monster' : 'player';
-        turnRef.current = nextTurn;
-        setTurn(nextTurn);
-        setTurnCycle(v => v + 1);
-        phaseRef.current = 'idle';
-        setPhase('idle');
-      }
-      return;
-    }
 
     const raw = resolved.triggerKeys;
     const matched = resolved.clearedKeys;
 
-    if (chain > 0) {
-      flashComboBadge(chain + 1);
-    }
+      if (chain > 0) {
+        flashComboBadge(chain + 1);
+      }
 
-    if (resolved.bonusTurnCandidate && !activeBonusTurn.granted) {
-      activeBonusTurn.granted = true;
-      const newExtra = extraTurnsRef.current + 1;
-      extraTurnsRef.current = newExtra;
-      setExtraTurns(newExtra);
-      flashExtraTurnsBadge(newExtra);
-    }
+      if (resolved.bonusTurnCandidate && !activeBonusTurn.granted) {
+        activeBonusTurn.granted = true;
+        if (!isPassiveObserver) {
+          const newExtra = extraTurnsRef.current + 1;
+          extraTurnsRef.current = newExtra;
+          setExtraTurns(newExtra);
+        }
+        flashExtraTurnsBadge(extraTurnsRef.current + (isPassiveObserver ? 0 : 1));
+      }
 
     let dmg = calcSwordDamage(board, matched);
     if (activeRageBurst.active && dmg > 0) {
@@ -328,64 +341,65 @@ export const useBattleMatchFlow = ({
             });
           };
 
-          if (dmg > 0) {
-            playPlayerSwordAttack(
-              () => {
-                if (!mountedRef.current) return;
-                applyPlayerDamage();
-              },
-              () => {
-                if (!mountedRef.current) return;
-                if (lethalPlayerResolution) {
-                  playMonsterDefeatSequence(() => {
-                    if (!mountedRef.current) {
-                      return;
-                    }
-
-                    lethalAttackCompleted = true;
-                    tryFinalizeLethalVictory();
-                  });
-                  return;
-                }
-
-                if (pendingVictoryRef.current) {
-                  finalizeVictory();
-                }
-              },
-            );
-          }
-
-          applyPlayerRewards();
-        } else {
-          if (dmg > 0) {
-            playMonsterSwordAttack(
-              () => {
-                if (!mountedRef.current) return;
-                consumeRageIfNeeded();
-                onPlayerHit();
-                showDamagePopup('player', dmg);
-                setPlayerHP(hp => {
-                  const next = Math.max(0, hp - dmg);
-                  if (next === 0 && phaseRef.current !== 'over') {
-                    phaseRef.current = 'over';
-                    setPhase('over');
-                    onPlayerDefeat();
+            if (dmg > 0) {
+              playPlayerSwordAttack(
+                () => {
+                  if (!mountedRef.current) return;
+                  if (!isPassiveObserver) applyPlayerDamage();
+                },
+                () => {
+                  if (!mountedRef.current) return;
+                  if (lethalPlayerResolution) {
+                    playMonsterDefeatSequence(() => {
+                      if (!mountedRef.current) return;
+                      lethalAttackCompleted = true;
+                      if (!isPassiveObserver) tryFinalizeLethalVictory();
+                    });
+                    return;
                   }
+
+                  if (pendingVictoryRef.current && !isPassiveObserver) {
+                    finalizeVictory();
+                  }
+                },
+              );
+            }
+
+            if (!isPassiveObserver) applyPlayerRewards();
+        } else {
+            if (dmg > 0) {
+              playMonsterSwordAttack(
+                () => {
+                  if (!mountedRef.current) return;
+                  if (!isPassiveObserver) consumeRageIfNeeded();
+                  onPlayerHit();
+                  showDamagePopup('player', dmg);
+                  if (!isPassiveObserver) {
+                    setPlayerHP(hp => {
+                      const next = Math.max(0, hp - dmg);
+                      if (next === 0 && phaseRef.current !== 'over') {
+                        phaseRef.current = 'over';
+                        setPhase('over');
+                        onPlayerDefeat();
+                      }
+                      return next;
+                    });
+                  }
+                },
+                () => {},
+              );
+            }
+            if (!isPassiveObserver) {
+              if (heal > 0) setEnemyHP(hp => Math.min(maxEHP, hp + heal));
+              if (mp > 0) setEnemyMana(value => Math.min(enemyMaxMP, value + mp));
+              if (pow > 0) {
+                setEnemyPower(value => {
+                  const next = Math.min(enemyMaxPow, value + pow);
+                  enemyPowerRef.current = next;
                   return next;
                 });
-              },
-              () => {},
-            );
-          }
-          if (heal > 0) setEnemyHP(hp => Math.min(maxEHP, hp + heal));
-          if (mp > 0) setEnemyMana(value => Math.min(enemyMaxMP, value + mp));
-          if (pow > 0) {
-            setEnemyPower(value => {
-              const next = Math.min(enemyMaxPow, value + pow);
-              enemyPowerRef.current = next;
-              return next;
-            });
-          }
+              }
+            }
         }
       });
     }, MATCH_HOLD_BEFORE_EXPLODE_MS);
@@ -435,7 +449,7 @@ export const useBattleMatchFlow = ({
     playerResourceProfile,
   ]);
 
-  const doDirectSwap = useCallback((r1: number, c1: number, r2: number, c2: number) => {
+  const doDirectSwap = useCallback((r1: number, c1: number, r2: number, c2: number, isPassiveObserver = false) => {
     const board = boardRef.current;
     const swap = validateSwap(board, r1, c1, r2, c2);
     if (swap === null) {
@@ -443,7 +457,7 @@ export const useBattleMatchFlow = ({
       setPhase('busy');
       animateInvalidSwapBounce(r1, c1, r2, c2, () => {
         if (!mountedRef.current) return;
-        if (turnRef.current === 'monster') {
+        if (!isPassiveObserver && turnRef.current === 'monster') {
           turnRef.current = 'player';
           setTurn('player');
         }
@@ -457,9 +471,14 @@ export const useBattleMatchFlow = ({
     [nextBoard[r1][c1], nextBoard[r2][c2]] = [nextBoard[r2][c2], nextBoard[r1][c1]];
     phaseRef.current = 'busy';
     setPhase('busy');
-    setBoard(nextBoard);
-    processMatches(nextBoard, 0, buildAffectedScanFromSwap({ r1, c1, r2, c2 }));
-  }, [animateInvalidSwapBounce, boardRef, mountedRef, phaseRef, processMatches, setBoard, setPhase, setTurn, turnRef]);
+    
+    animateValidSwap(r1, c1, r2, c2, () => {
+      if (!mountedRef.current) return;
+      boardRef.current = nextBoard;
+      setBoard(nextBoard);
+      processMatches(nextBoard, 0, buildAffectedScanFromSwap({ r1, c1, r2, c2 }), undefined, undefined, isPassiveObserver);
+    });
+  }, [animateInvalidSwapBounce, animateValidSwap, boardRef, mountedRef, phaseRef, processMatches, setBoard, setPhase, setTurn, turnRef]);
 
   return { doDirectSwap, processMatches };
 };

@@ -30,6 +30,7 @@ import {
   type AILevel,
   type BattleCell,
   type BattlePhase,
+  type BattlePvpActionEvent,
   type BattleResult,
   type BattleResultRewardResponse,
   type BattleScreenProps,
@@ -61,6 +62,16 @@ const ASSET_SOFTKEY_OK = require('../../../assets/ui/11_softkey_icons_confirmed/
 const ASSET_SOFTKEY_CANCEL = require('../../../assets/ui/11_softkey_icons_confirmed/icon_cancel.png');
 const JAVA_DEFAULT_CURSOR_CELL: BattleCell = [3, 4];
 
+const deriveBattleSeed = (sessionId: string): number => {
+  let hash = 0;
+  for (let i = 0; i < sessionId.length; i++) {
+    hash = ((hash << 5) - hash) + sessionId.charCodeAt(i);
+    hash |= 0;
+  }
+
+  return Math.abs(hash);
+};
+
 export const BattleScreen: React.FC<BattleScreenProps> = ({
   monsterType,
   monsterBootstrap,
@@ -79,6 +90,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   resolveEnemyTurn,
   resolveEnemyTurnPlan,
 }) => {
+  const battleSeed = useMemo(() => deriveBattleSeed(monsterBootstrap.sessionId), [monsterBootstrap.sessionId]);
+
   const initialBoard = useMemo<Board>(() => {
     const board = monsterBootstrap.initialBoard;
     if (
@@ -89,8 +102,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       return board.map((row) => row.map((cell) => cell ?? null));
     }
 
-    return makeBoard(createJavaBoardEngine());
-  }, [monsterBootstrap.initialBoard]);
+    return makeBoard(createJavaBoardEngine(battleSeed));
+  }, [battleSeed, monsterBootstrap.initialBoard]);
   const playerBootstrap = monsterBootstrap.player;
   const maxHP  = Math.max(1, playerBootstrap.maxHp);
   const maxEHP = Math.max(1, monsterBootstrap.enemy.maxHp);
@@ -114,8 +127,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   );
   const isPvpBattle = monsterBootstrap.battleKind === 'pvp';
 
-  const boardEngineRef = useRef(createJavaBoardEngine());
+  const boardEngineRef = useRef(createJavaBoardEngine(battleSeed));
   const [board,         setBoard]         = useState<Board>(() => initialBoard);
+  const doDirectSwapRef = useRef<(r1: number, c1: number, r2: number, c2: number, isPassiveObserver?: boolean) => void>(() => {});
   const [cursorCell,    setCursorCell]    = useState<BattleCell>(JAVA_DEFAULT_CURSOR_CELL);
   const [selected,      setSelected]      = useState<BattleCell | null>(null);
   const [hintCell,      setHintCell]      = useState<BattleCell | null>(null);
@@ -139,7 +153,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [resultPopupVisible, setResultPopupVisible] = useState(false);
   const [playerAction, setPlayerAction] = useState<CharacterAction>('idle');
   const [playerActionFrameIndex, setPlayerActionFrameIndex] = useState<number | null>(null);
-  const aiLevel: AILevel | null = resolveEnemyTurnPlan ? null : 'linh_canh';
+  const aiLevel: AILevel | null = isPvpBattle || resolveEnemyTurnPlan ? null : 'linh_canh';
   const [activeSkillCasts, setActiveSkillCasts] = useState<ActiveBattleSkillCast[]>([]);
   const battleElement = getBattleElement(appearance.elementIndex);
 
@@ -175,6 +189,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   useEffect(() => () => { mountedRef.current = false; }, []);
   useEffect(() => { boardRef.current = board; }, [board]);
   useEffect(() => {
+    boardEngineRef.current = createJavaBoardEngine(battleSeed);
     boardRef.current = initialBoard;
     setBoard(initialBoard);
     setExplodeFrames({});
@@ -196,6 +211,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     resultClaimedRef.current = null;
     setPvpTurnSeq(0);
   }, [
+    battleSeed,
     enemyMaxMP,
     enemyMaxPow,
     initialBoard,
@@ -248,6 +264,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     turn,
     turnCycle,
   ]);
+  const pvpTurnSeqRef = useRef(0);
+  useEffect(() => { pvpTurnSeqRef.current = pvpTurnSeq; }, [pvpTurnSeq]);
   const applySessionSnapshot = useCallback((snapshot: {
     board: Board;
     activeTurn: BattleSide;
@@ -258,9 +276,36 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     enemyCurrentMp: number;
     enemyCurrentPower: number;
     turnSeq?: number;
-  }) => {
-    boardRef.current = snapshot.board;
-    setBoard(snapshot.board);
+    lastPvpAction?: BattlePvpActionEvent | null;
+  }, force = false) => {
+    // Skip stale/same snapshots in PvP polling to avoid overwriting locally-resolved
+    // board with an older server state (pre-cascade). Rejected PvP actions can force
+    // a resync because server rejection is authoritative even if turnSeq is unchanged.
+    if (!force && typeof snapshot.turnSeq === 'number' && snapshot.turnSeq <= pvpTurnSeqRef.current) {
+      return;
+    }
+
+    const isImmediateSwap = snapshot.lastPvpAction?.action === 'swap' && 
+                            snapshot.lastPvpAction.move &&
+                            snapshot.lastPvpAction.turnSeq === snapshot.turnSeq;
+
+    if (isImmediateSwap && snapshot.lastPvpAction?.move) {
+      const { fromRow, fromCol, toRow, toCol } = snapshot.lastPvpAction.move;
+      // Do not snap the board! Animate the swap and subsequent cascades
+      // smoothly as a passive observer so we see exactly what the active player saw.
+      doDirectSwapRef.current(fromRow, fromCol, toRow, toCol, true);
+    } else {
+      boardRef.current = snapshot.board;
+      setBoard(snapshot.board);
+      setExplodeFrames({});
+    }
+    
+    setFireSwordMarkBaseGems({});
+    setFireSwordMarkTriggers({});
+    setSelected(null);
+    setHintCell(null);
+    setHintMove(null);
+
     setPlayerHP(Math.max(0, Math.min(maxHP, snapshot.playerCurrentHp)));
     setMana(Math.max(0, Math.min(maxMP, snapshot.playerCurrentMp)));
     setPower(Math.max(0, Math.min(maxPow, snapshot.playerCurrentPower)));
@@ -283,7 +328,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       return;
     }
 
-    if (!isPvpBattle && turn !== 'monster') {
+    // Only poll during opponent's turn — the active player's board is
+    // authoritative so polling would overwrite locally-resolved cascade state.
+    if (turn !== 'monster') {
       return;
     }
 
@@ -300,7 +347,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     };
 
     poll();
-    const timer = setInterval(poll, 850);
+    // Tăng tốc độ polling từ 850ms -> 150ms để PVP cảm giác gần realtime hơn (chưa có WebSocket)
+    const timer = setInterval(poll, 150);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -525,6 +573,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     swapOffsetsY,
     playExplosion,
     animateFall,
+    animateValidSwap,
     animateInvalidSwapBounce,
     resetBoardAnim,
   } = useBattleBoardAnimations({
@@ -636,11 +685,11 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     spawnCollectFX,
     playExplosion,
     animateFall,
+    animateValidSwap,
     animateInvalidSwapBounce,
     resetBoardAnim,
   });
 
-  const doDirectSwapRef = useRef(doDirectSwap);
   useEffect(() => { doDirectSwapRef.current = doDirectSwap; }, [doDirectSwap]);
   const submitPlayerSwap = useCallback((r1: number, c1: number, r2: number, c2: number) => {
     if (!isPvpBattle || !resolveBattlePvpAction) {
@@ -657,11 +706,22 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       toRow: r2,
       toCol: c2,
     })).then((response) => {
-      if (!response || !response.lastAction.accepted) {
+      if (!response) {
         return;
       }
 
-      applySessionSnapshot(response);
+      if (!response.lastAction.accepted) {
+        applySessionSnapshot(response, true);
+        return;
+      }
+
+      // PvP action endpoint is the server-side turn/validation gate only.
+      // Board cascade, damage, resource gain and final bars are still resolved by the
+      // reconstructed Java-like local battle flow, then persisted through /battle/session-sync.
+      // If we apply the pvp-action snapshot directly here, the board is only swapped once and
+      // match resolution never runs, causing PvP turns to look stuck/desynced.
+      setPvpTurnSeq(response.turnSeq);
+      doDirectSwapRef.current(r1, c1, r2, c2);
     });
   }, [applySessionSnapshot, isPvpBattle, monsterBootstrap.sessionId, pvpTurnSeq, resolveBattlePvpAction]);
   const submitPlayerSwapRef = useRef(submitPlayerSwap);
@@ -687,6 +747,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     phase,
     turn,
     aiLevel,
+    isPvpBattle,
     result,
     turnCycle,
     mountedRef,
@@ -758,6 +819,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     playPlayerHitReaction,
     turn,
     turnRef,
+    isPvpBattle,
   });
   const { turnTimeLeft } = useBattleTurnTimer({
     phase,

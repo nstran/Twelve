@@ -13,13 +13,11 @@ import {
   FOCUS_IMG,
   GEM_CRYSTAL_OVERLAY,
   GemType,
-  getHiddenGemAsset,
   TOTAL_FRAMES,
   VisibleGemType,
   getGemRenderType,
   getGemSheet,
   isCrystalGem,
-  isHiddenGem,
 } from '../core';
 
 const GEM_NATIVE_SIZE = 28;
@@ -273,18 +271,6 @@ export const GemCell = React.memo(({
         top: spriteOffsetY,
         left: spriteOffsetX,
       }}>
-        {isHiddenGem(gemType) && (
-          <Image
-            source={getHiddenGemAsset(gemType)}
-            style={{
-              position: 'absolute',
-              width: size,
-              height: size,
-              opacity: 0.9,
-            }}
-            resizeMode="contain"
-          />
-        )}
         {showFireSwordBaseGem && (
           <Image
             source={getGemSheet(fireSwordBaseGemTypeResolved)}

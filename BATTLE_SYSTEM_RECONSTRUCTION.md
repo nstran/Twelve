@@ -915,3 +915,27 @@ Bước hợp lý tiếp theo không phải dựng asset registry nữa, mà là
 6. chỉ sau đó mới bind animation `mt/mx/mp`
 
 Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic sẽ lệch ở những chỗ quan trọng nhất.
+
+## Nhật ký chỉnh sửa
+
+### 2026-04-25 — Sửa đồng bộ canonical board PvP
+
+- File code đã sửa:
+  - `server/Twelve.Application/Battle/BattleSessionSyncService.cs`
+- Nội dung:
+  - Sửa `/battle/session-sync` cho `PvpShadow` session: khi board/bars/active turn thay đổi sau local Java-like cascade, server bump `TurnSeq` như một phiên bản canonical state.
+  - Mirror `TurnSeq` sang linked PvP shadow session để client đối thủ không bỏ qua snapshot board mới vì tưởng là stale packet.
+  - Logic này bám theo boundary trong tài liệu: Java cũ từng nhận board/refill/result từ packet server, còn bản hiện tại cho phép client resolve board local rồi sync canonical state lên server vì chưa có authoritative turn-result endpoint đầy đủ.
+
+### 2026-04-25 — Sửa lỗi animation observer và visual special piece
+
+- File code đã sửa:
+  - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+  - `client/src/screens/battle/hooks/useBattleBoardAnimations.ts`
+  - `client/src/screens/battle/BattleScreen.tsx`
+  - `client/src/screens/battle/ui/BattleScreen.components.tsx`
+  - `client/src/screens/battle/core/BattleScreen.shared.ts`
+- Nội dung:
+  - Sửa lỗi giật/chậm (stuck loop) khi quan sát viên (passive observer) nhận update board PvP. Chuyển `doDirectSwap` sang dùng `animateValidSwap` thay vì set state đột ngột, đảm bảo đồng bộ timing animation.
+  - Khớp luồng swap local với server sync: refactor `animateValidSwap` ra khỏi luồng tương tác UI trực tiếp để có thể trigger từ websocket packet.
+  - Sửa lỗi visual special item (type 4) sau match 5+: loại bỏ overlay `hiddendragon` và `hiddenphoenix` sai bản chất khỏi board renderer. Phục dựng chuẩn Java: node `20..25` (type 4) chỉ dùng asset base `chess0..5` kèm frame animation từ `nd.java` thay vì dùng UI ornament tĩnh lấy từ `pc.java`.

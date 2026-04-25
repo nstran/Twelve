@@ -42,15 +42,32 @@ namespace Twelve.Application.Battle
                 CurrentMp = Clamp(request.EnemyCurrentMp, session.Enemy.MaxMp),
                 CurrentPower = Clamp(request.EnemyCurrentPower, session.Enemy.MaxPower),
             };
-            _battleSessionStore.Save(session with
+
+            var hasCanonicalRuntimeChange =
+                !BoardsEqual(session.Board, normalizedBoard) ||
+                session.ActiveTurn != request.ActiveTurn ||
+                !RuntimeBarsEqual(session.Player, updatedPlayer) ||
+                !RuntimeBarsEqual(session.Enemy, updatedEnemy);
+            var nextTurnSeq = session.Kind == BattleSessionKind.PvpShadow && hasCanonicalRuntimeChange
+                ? session.TurnSeq + 1
+                : session.TurnSeq;
+
+            // PvP shadow sessions use TurnSeq as the canonical state version, not only as
+            // the raw action counter. The action endpoint first mirrors a validated swap,
+            // then the reconstructed Java-like client resolves match/cascade locally and
+            // calls this sync endpoint. Bumping TurnSeq here lets the opponent accept the
+            // post-cascade board instead of discarding it as "same turnSeq" stale data.
+            var updatedSession = session with
             {
                 Board = normalizedBoard,
                 ActiveTurn = request.ActiveTurn,
                 Player = updatedPlayer,
                 Enemy = updatedEnemy,
-            });
+                TurnSeq = nextTurnSeq,
+            };
+            _battleSessionStore.Save(updatedSession);
 
-            MirrorLinkedPvpSession(session, normalizedBoard, request.ActiveTurn, updatedPlayer, updatedEnemy);
+            MirrorLinkedPvpSession(updatedSession, normalizedBoard, request.ActiveTurn, updatedPlayer, updatedEnemy);
 
             return true;
         }
@@ -79,8 +96,42 @@ namespace Twelve.Application.Battle
                 ActiveTurn = FlipSide(activeTurn),
                 Player = CopyRuntimeBars(linked.Player, updatedEnemy),
                 Enemy = CopyRuntimeBars(linked.Enemy, updatedPlayer),
+                TurnSeq = sourceSession.TurnSeq,
             });
         }
+
+        private static bool BoardsEqual(
+            System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<int?>> left,
+            System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<int?>> right)
+        {
+            if (left.Count != right.Count)
+            {
+                return false;
+            }
+
+            for (var row = 0; row < left.Count; row++)
+            {
+                if (left[row].Count != right[row].Count)
+                {
+                    return false;
+                }
+
+                for (var col = 0; col < left[row].Count; col++)
+                {
+                    if (left[row][col] != right[row][col])
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private static bool RuntimeBarsEqual(BattleSessionCombatantState left, BattleSessionCombatantState right) =>
+            left.CurrentHp == right.CurrentHp &&
+            left.CurrentMp == right.CurrentMp &&
+            left.CurrentPower == right.CurrentPower;
 
         private static BattleSessionCombatantState CopyRuntimeBars(
             BattleSessionCombatantState target,

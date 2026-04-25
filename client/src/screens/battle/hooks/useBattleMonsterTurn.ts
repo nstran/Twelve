@@ -75,6 +75,7 @@ interface UseBattleMonsterTurnArgs {
   playPlayerHitReaction: () => void;
   turn: BattleTurn;
   turnRef: MutableRefObject<BattleTurn>;
+  isPvpBattle?: boolean;
 }
 
 export const useBattleMonsterTurn = ({
@@ -130,6 +131,7 @@ export const useBattleMonsterTurn = ({
   playPlayerHitReaction,
   turn,
   turnRef,
+  isPvpBattle,
 }: UseBattleMonsterTurnArgs) => {
   const enemyTurnRequestRef = useRef(false);
   const monsterTurnStateRef = useRef<'idle' | 'planning' | 'playback_move' | 'skill'>('idle');
@@ -424,7 +426,7 @@ export const useBattleMonsterTurn = ({
   }, [clearMonsterTurnTimers]);
 
   useEffect(() => {
-    if (phase !== 'idle' || turn !== 'monster' || result !== null) {
+    if (phase !== 'idle' || turn !== 'monster' || result !== null || isPvpBattle) {
       return;
     }
 
