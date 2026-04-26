@@ -65,7 +65,7 @@ export const ENEMY_HUD_LAYOUT = buildHudLayout({
   },
 });
 
-export const HUD_BASE_Y = 233 * BOARD_SCALE;
+export const HUD_BASE_Y = 231 * BOARD_SCALE;
 export const HUD_STACK_H = Math.max(PLAYER_HUD_LAYOUT.boxH, ENEMY_HUD_LAYOUT.boxH);
 export const TURN_TIMER_SHIFT_X = 0;
 export const TURN_TIMER_SHIFT_Y = 0;

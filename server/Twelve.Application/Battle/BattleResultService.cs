@@ -67,10 +67,19 @@ namespace Twelve.Application.Battle
             var expBefore = player.Exp;
             var goldBefore = player.Gold;
             var clampedHp = Math.Clamp(request.PlayerCurrentHp, 0, Math.Max(1, player.MaxHp));
+            // Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5:
+            // HP/MP/Power gains during battle are server-owned remake rules. At battle end, Java client
+            // only proves lh.s/u/w are current bars; remake policy is:
+            // - victory keeps surviving HP so train attrition matters;
+            // - MP/Power are temporary battle resources and reset to 0 after result claim.
+            var clampedMp = 0;
+            var clampedPower = 0;
 
             if (session.Kind == BattleSessionKind.PvpShadow)
             {
                 player.Hp = player.MaxHp;
+                player.Mp = 0;
+                player.Power = 0;
                 player.LastSeenAt = DateTime.UtcNow;
                 _playerRepository.UpdateAsync(player).GetAwaiter().GetResult();
                 _battleSessionStore.Save(session with { IsCompleted = true });
@@ -95,6 +104,8 @@ namespace Twelve.Application.Battle
             }
 
             player.Hp = clampedHp;
+            player.Mp = clampedMp;
+            player.Power = clampedPower;
 
             var expGained = 0L;
             var goldGained = 0L;
@@ -114,6 +125,11 @@ namespace Twelve.Application.Battle
                     clampedHp = player.Hp;
                 }
 
+                player.Mp = 0;
+                player.Power = 0;
+                clampedMp = player.Mp;
+                clampedPower = player.Power;
+
                 _playerAggregateRepository
                     .SaveCollectionsAsync(player.Id, equipment, inventory, skills)
                     .GetAwaiter()
@@ -124,7 +140,11 @@ namespace Twelve.Application.Battle
                 var expLost = PlayerLevelProgression.ApplyDefeatPenalty(player);
                 expGained = -expLost;
                 player.Hp = player.MaxHp;
+                player.Mp = 0;
+                player.Power = 0;
                 clampedHp = player.Hp;
+                clampedMp = player.Mp;
+                clampedPower = player.Power;
             }
 
             player.LastSeenAt = DateTime.UtcNow;

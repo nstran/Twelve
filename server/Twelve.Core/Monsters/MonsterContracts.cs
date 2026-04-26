@@ -122,7 +122,7 @@ namespace Twelve.Core.Monsters
         int Defense,
         int HitRate,
         int DodgeRate,
-        int CriticalDamage,
+        int CriticalRate,
         IReadOnlyList<MonsterSkillTemplate> Skills,
         MonsterAppearanceTemplate Appearance,
         string? AiProfileId = null,
@@ -153,7 +153,7 @@ namespace Twelve.Core.Monsters
         int Defense,
         int HitRate,
         int DodgeRate,
-        int CriticalDamage,
+        int CriticalRate,
         IReadOnlyList<MonsterSkillInstance> Skills,
         MonsterAppearanceTemplate Appearance,
         // Server-owned resource gain coefficients — §5 of 08-level-stat-exp-and-element-balance.md
@@ -181,7 +181,7 @@ namespace Twelve.Core.Monsters
         int Defense,
         int HitRate,
         int DodgeRate,
-        int CriticalDamage,
+        int CriticalRate,
         IReadOnlyList<MonsterSkillInstance> Skills,
         // Server-owned resource gain coefficients — §5 of 08-level-stat-exp-and-element-balance.md
         int HealGainPercent = 100,
@@ -195,6 +195,32 @@ namespace Twelve.Core.Monsters
         string MonsterKey,
         BattleSide InitialTurnSide = BattleSide.Player
     );
+
+    /// <summary>
+    /// Server-owned base gem resource values per match.
+    /// Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
+    /// Java client proves HP/MP/Power bars and board gem families, but not the old server-side
+    /// resource table. This remake v1 table therefore lives on the server and the client only
+    /// applies values received in bootstrap responses.
+    /// Values represent the base amount gained when matching 3 gems of that resource family.
+    /// Client formula: gain = Math.Truncate(baseValue * matchedCount / 3) then scaled by
+    /// HealGainPercent / ManaGainPercent / PowerGainPercent.
+    /// </summary>
+    public sealed record BattleGemResourceConfig(
+        int BaseHealPerGem = 18,
+        int BaseManaPerGem = 5,
+        int BasePowerPerGem = 5
+    )
+    {
+        /// <summary>
+        /// Remake v1 server authority for gem resource bases.
+        /// Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
+        /// MP intentionally uses a conservative base because this scalar applies to every
+        /// MP-bearing gem family; using the old peach-like value made gem 4/5 over-refill MP
+        /// compared with their Java-feel local values.
+        /// </summary>
+        public static BattleGemResourceConfig CreateRemakeV1() => new();
+    }
 
     public sealed record MonsterBattleBootstrapResponse(
         string SessionId,
@@ -210,6 +236,7 @@ namespace Twelve.Core.Monsters
         IReadOnlyList<IReadOnlyList<int?>> InitialBoard,
         BattleCombatantSnapshot Player,
         MonsterBattleInstance Enemy,
+        BattleGemResourceConfig GemResourceConfig,
         string BattleKind = "monster",
         PvpCharacterAppearance? EnemyPlayerAppearance = null
     );

@@ -442,6 +442,12 @@ export interface MonsterBattleBootstrapRequest {
   initialTurnSide: BattleSide;
 }
 
+export interface BattleGemResourceConfig {
+  baseHealPerGem: number;
+  baseManaPerGem: number;
+  basePowerPerGem: number;
+}
+
 export interface MonsterBattleBootstrapResponse {
   sessionId: string;
   monsterKey: string;
@@ -457,6 +463,7 @@ export interface MonsterBattleBootstrapResponse {
   initialBoard: Board;
   player: BattleCombatantSnapshotDto;
   enemy: MonsterBattleInstanceDto;
+  gemResourceConfig?: BattleGemResourceConfig | null;
   enemyPlayerAppearance?: CharacterAppearance | null;
 }
 

@@ -424,9 +424,15 @@ namespace Twelve.Application.Players
                 Defense: enemyState.Defense,
                 HitRate: enemyState.HitRate,
                 DodgeRate: enemyState.DodgeRate,
-                CriticalDamage: enemyState.CriticalDamage,
+                CriticalRate: enemyState.CriticalRate,
                 Skills: PlayerBattleStateFactory.CreateSkillInstances(enemyState.Skills),
-                Appearance: new MonsterAppearanceTemplate());
+                Appearance: new MonsterAppearanceTemplate(),
+                // Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
+                // PvP enemy shadow must expose the same server-owned resource gain coefficients
+                // as its BattleSessionCombatantState; FE only applies bootstrap coefficients.
+                HealGainPercent: enemyState.HealGainPercent,
+                ManaGainPercent: enemyState.ManaGainPercent,
+                PowerGainPercent: enemyState.PowerGainPercent);
 
             return new MonsterBattleBootstrapResponse(
                 SessionId: sessionId,
@@ -442,6 +448,9 @@ namespace Twelve.Application.Players
                 InitialBoard: initialBoard,
                 Player: PlayerBattleStateFactory.CreateSnapshot(playerState),
                 Enemy: enemy,
+                // Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
+                // PvP uses the same server-owned remake v1 resource table as PvE so FE does not hardcode HP/MP/Power formulas.
+                GemResourceConfig: BattleGemResourceConfig.CreateRemakeV1(),
                 BattleKind: "pvp",
                 EnemyPlayerAppearance: BuildAppearance(enemyPlayer));
         }

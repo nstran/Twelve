@@ -669,6 +669,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     maxPow,
     enemyMaxMP,
     enemyMaxPow,
+    gemResourceConfig: monsterBootstrap.gemResourceConfig,
     playerResourceProfile,
     enemyResourceProfile,
     setBoard,

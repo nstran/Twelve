@@ -9,6 +9,7 @@ import {
   scaleManaGainByMagic,
   scalePeachGainByStrength,
   scalePowerGainByStrength,
+  type BattleGemResourceConfig,
   type BattleResourceProfile,
   type JavaBoardEngine,
   type BattlePhase,
@@ -39,6 +40,7 @@ interface UseBattleMatchFlowArgs {
   maxPow: number;
   enemyMaxMP: number;
   enemyMaxPow: number;
+  gemResourceConfig?: BattleGemResourceConfig | null;
   playerResourceProfile: BattleResourceProfile;
   enemyResourceProfile: BattleResourceProfile;
   setBoard: Dispatch<SetStateAction<Board>>;
@@ -96,6 +98,7 @@ export const useBattleMatchFlow = ({
   maxPow,
   enemyMaxMP,
   enemyMaxPow,
+  gemResourceConfig,
   playerResourceProfile,
   enemyResourceProfile,
   setBoard,
@@ -247,9 +250,18 @@ export const useBattleMatchFlow = ({
     Object.entries(counts).forEach(([gemKey, count]) => {
       const gem = Number(gemKey) as GemType;
       const fx = getGemFX(gem);
-      baseHeal += Math.trunc(fx.heal * count! / 3);
-      baseMp += Math.trunc(fx.mana * count! / 3);
-      pow += Math.trunc(fx.pow * count! / 3);
+      const healBase = gemResourceConfig?.baseHealPerGem ?? fx.heal;
+      const manaBase = gemResourceConfig?.baseManaPerGem ?? fx.mana;
+      const powerBase = gemResourceConfig?.basePowerPerGem ?? fx.pow;
+      // Server authority note:
+      // PvE/PvP battle resource base values come from MonsterBattleBootstrapResponse.GemResourceConfig,
+      // which is produced by the .NET battle rule factory from
+      // docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
+      // FE only preserves Java board color semantics (which gem family can grant HP/MP/Power)
+      // and applies server-provided base coefficients + server-provided gain percents.
+      baseHeal += Math.trunc((fx.heal > 0 ? healBase : 0) * count! / 3);
+      baseMp += Math.trunc((fx.mana > 0 ? manaBase : 0) * count! / 3);
+      pow += Math.trunc((fx.pow > 0 ? powerBase : 0) * count! / 3);
     });
     // dmg từ calcSwordDamage đã tính đúng raw, không nhân chain.
 
@@ -423,6 +435,7 @@ export const useBattleMatchFlow = ({
     finalizeVictory,
     flashComboBadge,
     flashExtraTurnsBadge,
+    gemResourceConfig,
     maxEHP,
     maxHP,
     maxMP,

@@ -84,7 +84,13 @@ Chưa xong:
 
 ## Battle Result / EXP / Gold/KEN Reward
 
-Sau khi battle kết thúc, client không tự cộng thưởng. Client gọi `/battle/result` với `sessionId`, kết quả thắng/thua và HP còn lại. Server claim session một lần, cập nhật DB rồi trả payload để client hiển thị bảng kết quả. MP/Power/nộ là tài nguyên runtime của từng trận, reset khi bootstrap battle mới và không persist về player DB.
+Sau khi battle kết thúc, client không tự cộng thưởng. Client gọi `/battle/result` với `sessionId`, kết quả thắng/thua và HP/MP/Power còn lại. Server claim session một lần, cập nhật DB rồi trả payload để client hiển thị bảng kết quả. HP/MP/Power là runtime resource theo `lh.s/r`, `lh.u/t`, `lh.w/v`.
+
+Quy định remake hiện tại:
+- thắng PvE giữ HP còn lại để train attrition có ý nghĩa;
+- thua PvE hồi `HP = MaxHp`;
+- PvP shadow hồi `HP = MaxHp` sau result;
+- MP/Power là tài nguyên tạm trong battle và reset `0` sau khi claim result, tránh trận sau mở vào với nộ/MP đã tích từ trận trước.
 
 Ghi chú 2026-04-25: Java client chỉ chứng minh `lh.H/I` là trục KEN/gold/collection dùng ở battle result (`hs` icon vàng, parser tag `43/99`), không chứng minh đây là tiền nạp. Trong remake, `Quan` được giữ làm paid currency/top-up, vì vậy reward quái thường không được cộng `Quan`; công thức thưởng tiền trận được map sang `Gold*`/`Player.Gold`, còn `Quan*` trong result response để `0`/compat cũ.
 
@@ -103,7 +109,7 @@ Quy định monster reward hiện tại:
 - EXP cơ bản = `12 + level * 3`, nhân threat: Minor `100%`, Standard `120%`, Elite `150%`, cộng skill bonus
 - Gold/KEN cơ bản = `2 + level`, cộng threat: Standard `+4`, Elite `+8`
 - `QuanReward` luôn `0` trong PvE quái thường để không phát paid currency
-- thua trận: hồi đầy HP, không cộng Gold/Quan, và bị trừ EXP theo defeat penalty của level hiện tại
+- thua trận: hồi đầy HP, reset MP/Power về `0`, không cộng Gold/Quan, và bị trừ EXP theo defeat penalty của level hiện tại
 
 Đã xong:
 
@@ -113,12 +119,13 @@ Quy định monster reward hiện tại:
 - popup kết quả hiển thị HP còn lại, EXP, Gold/KEN và thưởng nhận được
 - App cập nhật HUD/appearance sau result response
 - thắng trận có thể rơi item/equipment và lưu thẳng vào aggregate; popup kết quả hiển thị loot text
-- sau khi rời battle, App refresh runtime snapshot player để status/inventory/equipment đồng bộ với DB
+- sau khi rời battle, App refresh runtime snapshot player để status/inventory/equipment và HP/MP/Power đồng bộ với DB
 - nếu thua, nhân vật ngoài map bị khóa input ngắn và nháy opacity trước khi điều khiển lại
 
 Defeat penalty hiện tại:
 
 - HP sau thua được hồi về `MaxHp`
+- MP/Power sau thua reset về `0`, không tự full lại ở FE
 - EXP bị trừ `max(10, 5% level span hiện tại)` và không tụt xuống dưới `ExpFloor` của level hiện tại
 - ví dụ level span = `400 - 100 = 300` thì phạt EXP = `15`
 

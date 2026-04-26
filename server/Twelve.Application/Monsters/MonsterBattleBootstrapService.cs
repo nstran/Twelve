@@ -81,7 +81,7 @@ namespace Twelve.Application.Monsters
                 Defense: battleTemplate.Defense,
                 HitRate: battleTemplate.HitRate,
                 DodgeRate: battleTemplate.DodgeRate,
-                CriticalDamage: battleTemplate.CriticalDamage,
+                CriticalRate: battleTemplate.CriticalRate,
                 Skills: CreateSkillInstances(battleTemplate.Skills),
                 Appearance: battleTemplate.Appearance,
                 // Source: §5 of 08-level-stat-exp-and-element-balance.md; monsters use same formula as players.
@@ -120,17 +120,21 @@ namespace Twelve.Application.Monsters
                 SharedSheetFamily: asset?.SharedSheetFamily,
                 InitialBoard: initialBoard,
                 Player: PlayerBattleStateFactory.CreateSnapshot(playerState),
-                Enemy: enemy);
+                Enemy: enemy,
+                // Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
+                // Server-owned remake v1 base resource table; FE must not hardcode HP/MP/Power formulas.
+                GemResourceConfig: BattleGemResourceConfig.CreateRemakeV1());
         }
 
         // Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
         // Java client proves HP/MP/Power bars (`lh.u/t`, `lh.w/v`) but not old server resource formula.
         // Remake rule v1 keeps Java-like integer math and moves resource scaling to server authority.
+        // Balance (W) reduced scale 3→1 %/point and cap 180→140 to align with PlayerBattleStateFactory.
         private static int ComputeStrengthResourceGainPercent(int strength) =>
-            Math.Clamp(100 + ((strength - 10) * 3), 80, 180);
+            Math.Clamp(100 + ((strength - 10) * 1), 80, 140);
 
         private static int ComputeMagicResourceGainPercent(int magic) =>
-            Math.Clamp(100 + ((magic - 10) * 3), 80, 180);
+            Math.Clamp(100 + ((magic - 10) * 1), 80, 140);
 
         private static BattleSessionCombatantState CreateEnemySessionState(
             MonsterBattleInstance enemy,
@@ -155,7 +159,8 @@ namespace Twelve.Application.Monsters
                 Defense: enemy.Defense,
                 HitRate: enemy.HitRate,
                 DodgeRate: enemy.DodgeRate,
-                CriticalDamage: enemy.CriticalDamage,
+                ElementCode: enemy.Element,
+                CriticalRate: enemy.CriticalRate,
                 Skills: CreateSessionSkills(enemy.Skills),
                 Level: enemy.Level,
                 IqValue: iqValue,

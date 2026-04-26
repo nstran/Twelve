@@ -918,6 +918,27 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
 
 ## Nhật ký chỉnh sửa
 
+### 2026-04-26 — Battle gem base resource chuyển sang server bootstrap
+
+- File code đã sửa:
+  - `server/Twelve.Core/Monsters/MonsterContracts.cs`
+  - `server/Twelve.Application/Monsters/MonsterBattleBootstrapService.cs`
+  - `client/src/screens/battle/core/BattleScreen.types.ts`
+  - `client/src/screens/battle/BattleScreen.tsx`
+  - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+  - `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`
+- Nội dung:
+  - Bổ sung `BattleGemResourceConfig` vào monster battle bootstrap để server phát base HP/MP/Nộ cho match gem:
+    - `BaseHealPerGem = 18`
+    - `BaseManaPerGem = 5`
+    - `BasePowerPerGem = 5`
+  - Client `useBattleMatchFlow.applyGemFx` không còn lấy trị số base resource trực tiếp từ hardcode FE nếu bootstrap có config; FE chỉ dùng `GEM_FX_BASE` để giữ semantic board Java-like: gem family nào có thể sinh HP/MP/Power.
+  - Công thức runtime giữ integer math: `floor(BaseValue * MatchedGemCount / 3)`, sau đó scale bằng `HealGainPercent/ManaGainPercent/PowerGainPercent` do server trả.
+  - Fallback sang `GEM_FX_BASE` chỉ để tương thích payload cũ, không phải source of truth mới.
+- Nguồn suy luận:
+  - Java client xác nhận board/HUD/resource bar nhưng không có server formula cũ cho resource gain.
+  - `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`: resource gain là rule remake có kiểm soát và phải thuộc server authority.
+
 ### 2026-04-26 — Battle resource scale chuyển sang server authority
 
 - File code đã sửa:
@@ -937,8 +958,11 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
   - `BattleTurnEngine` tiêu thụ trực tiếp stat server-owned trong `BattleSessionCombatantState`: `MinDamage/MaxDamage`, `Defense`, `HitRate`, `DodgeRate`, `CriticalDamage`, `PowerGainPercent`.
   - Bỏ nhánh cộng thêm `ResolveAttackStat()`/level/stat hardcode trong damage turn engine để không double-count với `PlayerStatPipeline`/status Java-faithful.
   - Power gain từ skill và từ nhận damage được scale bằng `PowerGainPercent` do server bootstrap, không để FE tự quyết.
+  - Bổ sung `ElementCode` vào battle session combatant để damage skill/monster turn áp dụng khắc hệ v1 ở server: Cường Lực-like `0` > Thân Pháp-like `1` > Nội Lực-like `2` > Cường Lực-like `0`, với `112%/100%/92%`.
+  - Player lấy element từ `Player.Element`; monster lấy từ `MonsterBattleTemplate.Element`.
 - Nguồn suy luận:
   - `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`: Java client chỉ xác nhận HP/MP/Power bar, công thức gain là rule remake có kiểm soát.
+  - `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §8`: khắc hệ battle là rule remake có kiểm soát vì không có server Java mẫu/final damage packet formula.
   - `PLAYER_CHARACTER_RECONSTRUCTION.md`: status hiển thị phải bám Java, battle/resource là tầng riêng được phép có remake rule khi ghi rõ nguồn.
   - `docs/combat-formulas.md`: Java client chỉ áp/render delta authoritative, không chứa final server damage formula.
   - Không có server Java mẫu, nên mọi resource/damage gain mới được comment là reconstruction/remake, không gắn nhãn Java gốc.

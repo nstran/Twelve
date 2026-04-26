@@ -19,7 +19,9 @@ namespace Twelve.Application.Battle
             var maxHp = Math.Max(1, player.MaxHp);
             var currentHp = Math.Clamp(player.Hp <= 0 ? maxHp : player.Hp, 1, maxHp);
             var maxMp = Math.Max(0, player.MaxMp);
+            var currentMp = Math.Clamp(player.Mp, 0, maxMp);
             var maxPower = Math.Max(0, player.MaxPower);
+            var currentPower = Math.Clamp(player.Power, 0, maxPower);
             var minDamage = Math.Max(0, stats.MinDamage);
             var maxDamage = Math.Max(minDamage, stats.MaxDamage);
             var totalStrength = stats.CuongLuc + stats.BonusCuongLuc;
@@ -31,9 +33,11 @@ namespace Twelve.Application.Battle
                 Side: side,
                 CurrentHp: currentHp,
                 MaxHp: maxHp,
-                CurrentMp: 0,
+                // Source: Java lh.u/t and lh.w/v are authoritative current/max MP and Power bars.
+                // Battle session must consume server PlayerStatPipeline/runtime values, not FE hardcoded zeros.
+                CurrentMp: currentMp,
                 MaxMp: maxMp,
-                CurrentPower: 0,
+                CurrentPower: currentPower,
                 MaxPower: maxPower,
                 Strength: totalStrength,
                 Agility: stats.ThanPhap + stats.BonusThanPhap,
@@ -44,7 +48,9 @@ namespace Twelve.Application.Battle
                 Defense: stats.Defense,
                 HitRate: stats.Hit,
                 DodgeRate: stats.Dodge,
-                CriticalDamage: stats.Crit,
+                ElementCode: Math.Max(0, player.Element ?? 0),
+                // stats.Crit = Java lh.C = Chí Mạng % = crit RATE, not multiplier (see BattleSessionContracts).
+                CriticalRate: stats.Crit,
                 Skills: CreateSessionSkills(aggregate.Skills),
                 Level: player.Level,
                 IqValue: iqValue,
@@ -74,7 +80,8 @@ namespace Twelve.Application.Battle
                 Defense: 5,
                 HitRate: 85,
                 DodgeRate: 5,
-                CriticalDamage: 110,
+                ElementCode: 0,
+                CriticalRate: 5,
                 Skills: [],
                 Level: 10,
                 IqValue: 0,
@@ -103,7 +110,7 @@ namespace Twelve.Application.Battle
                 Defense: state.Defense,
                 HitRate: state.HitRate,
                 DodgeRate: state.DodgeRate,
-                CriticalDamage: state.CriticalDamage,
+                CriticalRate: state.CriticalRate,
                 Skills: CreateSkillInstances(state.Skills),
                 HealGainPercent: state.HealGainPercent,
                 ManaGainPercent: state.ManaGainPercent,
@@ -132,11 +139,12 @@ namespace Twelve.Application.Battle
         // Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
         // Java client proves HP/MP/Power bars (`lh.u/t`, `lh.w/v`, HUD `mx`) but not the old server resource formula.
         // Remake rule v1 keeps Java-like integer math and moves resource scaling to server authority instead of FE.
+        // Balance (W) reduced scale 3→1 %/point and cap 180→140 to prevent gem resource pacing too fast at level 1.
         private static int ComputeStrengthResourceGainPercent(int totalStrength) =>
-            Math.Clamp(100 + ((totalStrength - 10) * 3), 80, 180);
+            Math.Clamp(100 + ((totalStrength - 10) * 1), 80, 140);
 
         private static int ComputeMagicResourceGainPercent(int totalMagic) =>
-            Math.Clamp(100 + ((totalMagic - 10) * 3), 80, 180);
+            Math.Clamp(100 + ((totalMagic - 10) * 1), 80, 140);
 
         private static IReadOnlyList<BattleSessionSkillInstance> CreateSessionSkills(
             IReadOnlyList<PlayerSkillEntry> skills)

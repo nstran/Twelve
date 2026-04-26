@@ -35,7 +35,14 @@ namespace Twelve.Core.Battle
         int Defense,
         int HitRate,
         int DodgeRate,
-        int CriticalDamage,
+        // Remake battle damage formula source:
+        // docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §8.
+        // ElementCode uses current server mapping: 0=Cường Lực-like, 1=Thân Pháp-like, 2=Nội Lực-like.
+        int ElementCode,
+        // Java source: lh.C = Chí Mạng % = min(5 + ThanPhap/8, 30) — this is crit RATE (0–30), not multiplier.
+        // Crit damage multiplier is fixed 150% remake baseline (BattleCriticalDamagePercent in BattleTurnEngine).
+        // §4.11 scaling (150–250% from agility) deferred until equipment system is implemented.
+        int CriticalRate,
         IReadOnlyList<BattleSessionSkillInstance> Skills,
         int Level = 1,
         int IqValue = 0,

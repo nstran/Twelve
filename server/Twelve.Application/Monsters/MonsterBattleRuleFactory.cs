@@ -69,10 +69,11 @@ namespace Twelve.Application.Monsters
             var dodgeRate = Math.Max(
                 3,
                 (dodgeBase / 5) + ResolveThreatDodgeBonus(spec.ThreatTier) + ResolveRoleDodgeBonus(spec.Role));
-            var criticalDamage = 105
-                + (critChance / 2)
-                + ResolveThreatCriticalDamageBonus(spec.ThreatTier)
-                + ResolveRoleCriticalDamageBonus(spec.Role);
+            // critChance = Java jq/js/jr: min(5 + agility/8, 30) = crit RATE, used as CriticalRate.
+            // Old `criticalDamage` variable (105 + bonuses) was a stale multiplier stub; removed.
+            var threatCritBonus = ResolveThreatCriticalDamageBonus(spec.ThreatTier);
+            var roleCritBonus = ResolveRoleCriticalDamageBonus(spec.Role);
+            var critRate = Math.Min(30, critChance + threatCritBonus + roleCritBonus);
 
             return new MonsterBattleTemplate(
                 BattleTemplateId: spec.BattleTemplateId,
@@ -90,7 +91,7 @@ namespace Twelve.Application.Monsters
                 Defense: defense,
                 HitRate: hitRate,
                 DodgeRate: dodgeRate,
-                CriticalDamage: criticalDamage,
+                CriticalRate: critRate,
                 Skills: skills,
                 Appearance: new MonsterAppearanceTemplate(AssetCatalogId: spec.AssetCatalogId),
                 AiProfileId: ResolveAiProfileId(spec),

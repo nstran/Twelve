@@ -1,5 +1,42 @@
 # CHANGELOG
 
+## 2026-04-26 (Y)
+
+### Battle result reset MP/Power sau trận
+
+**Vấn đề:**
+- Sau khi chuyển resource battle sang server authority, `/battle/result` đang persist MP/Power còn lại vào DB, làm trận sau bootstrap bằng MP/Nộ đã tích từ trận trước.
+- Rule gameplay cần phân biệt rõ:
+  - HP sống sót sau thắng PvE được giữ để train attrition có ý nghĩa;
+  - MP/Power là tài nguyên tạm trong battle, không carry sang trận sau.
+
+**Sửa:**
+- Sửa `BattleResultService`:
+  - thắng PvE giữ `CurrentHp` đã clamp từ session result;
+  - thua PvE hồi `HP = MaxHp`;
+  - PvP shadow hồi `HP = MaxHp`;
+  - mọi result reset `Player.Mp = 0`, `Player.Power = 0` sau claim;
+  - level-up vẫn chạy `PlayerStatPipeline.RecalculateAndApply`, nhưng sau đó MP/Power vẫn reset `0`.
+- Rà lại battle board:
+  - `BattleScreen.logic.ts` đã khôi phục natural special spawn theo `mq.java:691-699`: line `>=4` sinh `10..15`, cross hoặc line `>=5` sinh `20..25`;
+  - `useBattleMatchFlow.ts` chỉ áp server-provided base/percent cho HP/MP/Power gain, không hardcode công thức stat ở FE.
+- Cập nhật `docs/player-character-reconstruction/06-map-room-battle-runtime.md` để chốt HP/MP/Power result policy mới.
+
+**Căn cứ:**
+- Java client chứng minh `lh.s/r`, `lh.u/t`, `lh.w/v` là current/max bars, nhưng không có server formula cũ cho carry-over resource sau battle.
+- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5` quy định HP/MP/Power gain là remake server-owned rule; MP/Power được xem là tài nguyên tạm battle trong policy hiện tại.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+- `dotnet build Twelve.sln` → lần đầu fail do DLL bị lock bởi `Twelve.Server (PID 18476)`; đã `taskkill /F /PID 18476` rồi build lại thành công, 0 Warning, 0 Error.
+
+**File đã sửa:**
+- `server/Twelve.Application/Battle/BattleResultService.cs`
+- `docs/player-character-reconstruction/06-map-room-battle-runtime.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-26 (X)
 
 ### Battle resource/damage chuyển sang server authority
@@ -18,30 +55,51 @@
   - thêm type contract cho resource gain percent;
   - hydrate battle combatant từ server snapshot thay vì tự suy diễn bằng công thức FE;
   - gem HP/MP/Power gain dùng percent server trả về, chỉ fallback `100` cho compatibility snapshot cũ.
-- Giữ `GEM_FX_BASE` ở FE là bảng base hiệu ứng gem/visual pacing; phần scale theo stat đã chuyển sang server authority.
+- Bổ sung `BattleGemResourceConfig` trong monster/PvP battle bootstrap để base HP/MP/Nộ từ match gem cũng chuyển sang server authority:
+  - `BaseHealPerGem = 18`
+  - `BaseManaPerGem = 5`
+  - `BasePowerPerGem = 5`
+- Giữ `GEM_FX_BASE` ở FE là bảng semantic/compat cho loại gem nào sinh HP/MP/Power; trị số base ưu tiên lấy từ bootstrap server, fallback FE chỉ để tương thích payload cũ.
+- Sửa PvP enemy shadow trong `PvpArenaService` để `MonsterBattleInstance` expose đúng `HealGainPercent/ManaGainPercent/PowerGainPercent` từ `BattleSessionCombatantState`; không để client fallback `100%` làm lệch nhịp resource giữa hai phía PvP.
 - Sửa `BattleTurnEngine` để damage/skill/power gain lấy stat server-owned từ `BattleSessionCombatantState`:
   - damage dùng `MinDamage/MaxDamage`, `Defense`, `HitRate`, `DodgeRate`, `CriticalDamage`;
   - bỏ cộng thêm stat/level hardcode FE-like trong turn engine để tránh double-count với `PlayerStatPipeline`;
   - Power gain của người đánh/người bị đánh scale qua `PowerGainPercent` server bootstrap.
+  - áp dụng khắc hệ battle v1 ở server bằng `ElementCode`: Cường Lực-like `0` > Thân Pháp-like `1` > Nội Lực-like `2` > Cường Lực-like `0`, với `112%/100%/92%`.
+- Sửa player battle snapshot không còn reset MP/Power về `0`; session lấy `Player.Mp` và `Player.Power` đã clamp theo max để đúng payload Java `lh.u/t`, `lh.w/v`.
+- Sửa `/battle/result` để persist MP/Power còn lại từ session result đã clamp, kể cả PvE/PvP shadow; trận sau bootstrap từ server state thật thay vì FE/full default.
+- Hậu kiểm monster battle rule:
+  - `MonsterBattleRuleFactory` không còn gán nhầm multiplier cũ `criticalDamage` vào `CriticalRate`; `CriticalRate` dùng crit chance Java-like `min(5 + agility / 8, 30)` cộng bonus role/threat có cap 30.
+  - `QuanReward` PvE giữ `0`; reward tiền train dùng `GoldReward`.
+- Hạ in-battle resource scale §5 từ cap 180%/3% mỗi điểm xuống cap 140%/1% mỗi điểm để tránh bùng nổ HP/MP/Power ở PvP/PvE mid-late game.
+- Chốt `BaseManaPerGem = 5` cho cả PvE/PvP ở bootstrap server để FE không còn tự hardcode nhịp MP; giá trị này là rule remake có kiểm soát nhằm giữ MP pacing gần Java-feel và tránh spam skill khi mọi gem MP đi qua cùng scalar server.
 
 **Căn cứ:**
-- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`: Java client xác nhận HP/MP/Power bar (`lh.s/r`, `lh.u/t`, `lh.w/v`) nhưng không có server formula cũ; remake v1 dùng integer math và TotalStat cho resource.
+- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`: Java client xác nhận HP/MP/Power bar (`lh.s/r`, `lh.u/t`, `lh.w/v`) nhưng không có server formula cũ; remake v1 dùng integer math và TotalStat cho resource, đồng thời quy định khắc hệ battle v1 `112%/100%/92%`.
 - `PLAYER_CHARACTER_RECONSTRUCTION.md`: status/derived stat gửi client phải bám Java `jp/jq/js/jr`, không áp soft-cap ở tầng hiển thị nhân vật.
 - `docs/combat-formulas.md` và `BATTLE_SYSTEM_RECONSTRUCTION.md`: Java client chỉ render delta/kết quả server gửi, không chứa công thức damage cuối; server remake phải là authority cho damage/resource.
+- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`: base match gem resource cũng là rule remake có kiểm soát, phải phát từ server bootstrap PvE/PvP để FE không hardcode công thức HP/MP/Nộ.
+- `docs/player-character-reconstruction/06-map-room-battle-runtime.md`: battle result claim nhận HP/MP/Power runtime theo `lh.s/r`, `lh.u/t`, `lh.w/v`; server phải đồng bộ DB để runtime snapshot sau trận không tự phục hồi tài nguyên sai logic.
 
 **Kiểm tra:**
-- Chờ chạy `npx tsc -p client/tsconfig.json --noEmit`.
-- Chờ chạy `dotnet build Twelve.sln`.
+- `dotnet build Twelve.sln` → thành công, 0 Warning, 0 Error.
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
 
 **File đã sửa:**
 - `server/Twelve.Core/Battle/BattleSessionContracts.cs`
 - `server/Twelve.Core/Monsters/MonsterContracts.cs`
 - `server/Twelve.Application/Battle/PlayerBattleStateFactory.cs`
 - `server/Twelve.Application/Battle/BattleTurnEngine.cs`
+- `server/Twelve.Application/Battle/BattleResultService.cs`
 - `server/Twelve.Application/Monsters/MonsterBattleBootstrapService.cs`
+- `server/Twelve.Application/Players/PvpArenaService.cs`
 - `client/src/screens/battle/core/BattleScreen.shared.ts`
+- `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
 - `client/src/screens/battle/core/BattleScreen.types.ts`
 - `client/src/screens/battle/BattleScreen.tsx`
+- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`
+- `docs/player-character-reconstruction/06-map-room-battle-runtime.md`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
 - `CHANGELOG.md`
 
 ---

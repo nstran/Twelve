@@ -14,6 +14,9 @@ namespace Twelve.Application.Battle
         private const int BattleHitMinPercent = 60;
         private const int BattleHitMaxPercent = 95;
         private const int BattleCriticalDamagePercent = 150;
+        private const int ElementNeutralPercent = 100;
+        private const int ElementAdvantagePercent = 112;
+        private const int ElementDisadvantagePercent = 92;
         private readonly IBattleSessionStore _battleSessionStore;
         private readonly IBattleBoardService _battleBoardService;
 
@@ -293,11 +296,16 @@ namespace Twelve.Application.Battle
             var variancePercent = 92 + Random.Shared.Next(17);
             var variedDamage = Math.Max(1, (mitigatedDamage * variancePercent) / 100);
 
-            var critChance = Math.Clamp(caster.CriticalDamage, 0, 40);
+            // Java source: lh.C = Chí Mạng % = crit RATE (0–30 range per jq/js/jr), not crit multiplier.
+            // Multiplier is fixed 150% remake baseline (BattleCriticalDamagePercent) until §4.11 equipment scaling is implemented.
+            var critChance = Math.Clamp(caster.CriticalRate, 0, 40);
             if (RollPercent(critChance))
             {
                 variedDamage = (variedDamage * BattleCriticalDamagePercent) / 100;
             }
+
+            var elementPercent = ResolveElementDamagePercent(caster.ElementCode, target.ElementCode);
+            variedDamage = Math.Max(1, (variedDamage * elementPercent) / 100);
 
             if (rageBurstActive)
             {
@@ -305,6 +313,37 @@ namespace Twelve.Application.Battle
             }
 
             return Math.Max(1, variedDamage);
+        }
+
+        // Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §8.
+        // Remake v1 element wheel for battle only: Cường Lực(0) > Thân Pháp(1) > Nội Lực(2) > Cường Lực(0).
+        // Java client has no old server final-damage formula; keep integer percent math server-authoritative.
+        private static int ResolveElementDamagePercent(int attackerElementCode, int defenderElementCode)
+        {
+            var attacker = NormalizeBattleElement(attackerElementCode);
+            var defender = NormalizeBattleElement(defenderElementCode);
+            if (!attacker.HasValue || !defender.HasValue || attacker.Value == defender.Value)
+            {
+                return ElementNeutralPercent;
+            }
+
+            return attacker.Value switch
+            {
+                0 when defender.Value == 1 => ElementAdvantagePercent,
+                1 when defender.Value == 2 => ElementAdvantagePercent,
+                2 when defender.Value == 0 => ElementAdvantagePercent,
+                _ => ElementDisadvantagePercent,
+            };
+        }
+
+        private static int? NormalizeBattleElement(int elementCode)
+        {
+            if (elementCode is >= 0 and <= 2)
+            {
+                return elementCode;
+            }
+
+            return null;
         }
 
         private static bool IsRageBurstActive(
@@ -423,7 +462,8 @@ namespace Twelve.Application.Battle
             var skillPercent = 100 + ((Math.Clamp(skill.Level, 1, DefaultPlayerSkillLevel) - 1) * 6);
             var rawDamage = (Math.Max(1, averageDamage) * skillPercent) / 100;
             var mitigatedDamage = rawDamage - Math.Max(0, session.Player.Defense);
-            return Math.Max(1, mitigatedDamage);
+            var elementPercent = ResolveElementDamagePercent(session.Enemy.ElementCode, session.Player.ElementCode);
+            return Math.Max(1, (Math.Max(1, mitigatedDamage) * elementPercent) / 100);
         }
 
         private static (int SelectedRow, int SelectedCol) ResolveEnemySelectedCell(

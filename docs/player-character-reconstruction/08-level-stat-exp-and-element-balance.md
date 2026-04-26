@@ -587,32 +587,89 @@ Nguồn Java:
 
 Rule remake v1:
 
+### 5.0 Base gain từ match gem do server phát xuống
+
+```text
+BattleGemResourceConfig:
+  BaseHealPerGem = 18
+  BaseManaPerGem = 5
+  BasePowerPerGem = 5
+
+GainBeforeStatScale = floor(BaseValue * MatchedGemCount / 3)
+FinalGain = floor(GainBeforeStatScale * GainPercent / 100)
+```
+
+Công thức chốt 2026-04-26 đang áp dụng cho match gem battle:
+
+```text
+BaseValue =
+  matchedGemResourceConfig.BaseHealPerGem  nếu gem family sinh HP
+  matchedGemResourceConfig.BaseManaPerGem  nếu gem family sinh MP
+  matchedGemResourceConfig.BasePowerPerGem nếu gem family sinh Power/Nộ
+
+MatchedGemCount = số gem cùng family bị clear trong line/cascade hiện tại
+
+RawGain = floor(BaseValue * MatchedGemCount / 3)
+
+HealGain  = floor(RawGain * Actor.HealGainPercent / 100)
+ManaGain  = floor(RawGain * Actor.ManaGainPercent / 100)
+PowerGain = floor(RawGain * Actor.PowerGainPercent / 100)
+```
+
+Resource percent của actor do server tính:
+
+```text
+Actor.HealGainPercent  = clamp(80, 140, 100 + (TotalStrength - 10) * 1)
+Actor.PowerGainPercent = clamp(80, 140, 100 + (TotalStrength - 10) * 1)
+Actor.ManaGainPercent  = clamp(80, 140, 100 + (TotalMagic - 10) * 1)
+```
+
+Áp vào bar thật:
+
+```text
+Actor.HP    = min(Actor.MaxHP,    Actor.HP + HealGain)
+Actor.MP    = min(Actor.MaxMP,    Actor.MP + ManaGain)
+Actor.Power = min(Actor.MaxPower, Actor.Power + PowerGain)
+```
+
+Nguyên tắc:
+- Đây là base resource gain của battle runtime, không phải status Java `lh`.
+- Server trả `BattleGemResourceConfig` trong bootstrap PvE/PvP để FE không hardcode công thức HP/MP/Nộ.
+- FE chỉ giữ semantic Java-like của board: loại gem nào có thể tạo HP/MP/Power, rồi áp base coefficient + gain percent do server trả.
+- PvP enemy shadow cũng phải expose `HealGainPercent/ManaGainPercent/PowerGainPercent` từ `BattleSessionCombatantState`, không để FE tự fallback `100%` làm target/shadow lệch resource pacing.
+- Nếu cần cân bằng pacing, chỉnh base/cap ở server trước; không sửa rải rác ở FE.
+- Fallback FE chỉ để tương thích payload cũ, không phải source of truth.
+- Ghi chú cân bằng 2026-04-26: `BaseManaPerGem` phải thấp hơn heal base vì một scalar server đang áp chung cho mọi gem có MP. Nếu để `12`, các gem MP nhẹ kiểu Java-feel (`3/5`) bị đẩy lên thành hồi MP quá nhanh, dẫn tới spam skill.
+- `Base*PerGem` là input pacing do server phát xuống, không phải công thức Java gốc; nếu sau này tìm được packet/server Java thật thì thay tại server config trước, FE không tự sửa công thức.
+- FE chỉ được clamp/tween bar để hiển thị mượt sau khi đã nhận config/snapshot từ server; không được tự tính lại `GainPercent` từ Strength/Magic ở client.
+
 ### 5.1 Cường Lực tăng hồi HP và nộ/Power
 
 ```text
-StrengthPercent = clamp(80, 180, 100 + (TotalStrength - 10) * 3)
+StrengthPercent = clamp(80, 140, 100 + (TotalStrength - 10) * 1)
 
 HealGain = floor(BaseHealGain * StrengthPercent / 100)
 PowerGain = floor(BasePowerGain * StrengthPercent / 100)
 ```
 
 Lý do:
-- Cường Lực không chỉ là damage, còn làm người chơi “đánh khỏe, lên nộ nhanh”.
-- Cap 180% để level 250 không làm nộ tăng vô hạn.
-- 3%/point vừa đủ rõ ở early game, không quá nổ ở late game.
+- Cường Lực không chỉ là damage, còn làm người chơi "đánh khỏe, lên nộ nhanh".
+- Cap 140% (tối đa +40%) để level 250 không làm nộ tăng vô hạn. Cap 180% cũ quá cao gây mất cân bằng PvP.
+- 1%/point để dễ cân bằng và không bùng nổ sớm ở mid game.
+- Đây là rule remake có căn cứ; nếu test thấy Cường Lực quá yếu về resource, tăng lên 2%/point rồi test lại.
 
 ### 5.2 Nội Lực tăng hồi MP
 
 ```text
-MagicPercent = clamp(80, 180, 100 + (TotalMagic - 10) * 3)
+MagicPercent = clamp(80, 140, 100 + (TotalMagic - 10) * 1)
 
 ManaGain = floor(BaseManaGain * MagicPercent / 100)
 ```
 
 Lý do:
 - Nội Lực chuyên về MP và skill.
-- Không cho MP gain vượt quá 180% để tránh spam skill vô hạn.
-- Dùng cùng tốc độ 3%/point với Cường Lực để cân bằng giữa hệ vật lý và hệ kỹ năng.
+- Không cho MP gain vượt quá 140% để tránh spam skill vô hạn. Cap 180% cũ quá cao gây mất cân bằng.
+- Dùng cùng tốc độ 1%/point với Cường Lực để cân bằng giữa hệ vật lý và hệ kỹ năng.
 
 ### 5.3 Item Hồi Phục như Trái Đào
 
@@ -1038,11 +1095,11 @@ clamp(0, 40, 3 + EffectiveAgilityForOffense / 12 + EquipmentCriticalRate)
 CriticalDamage:
 clamp(150, 250, 150 + EffectiveAgilityForOffense / 10 + EquipmentCriticalDamage)
 
-Strength resource:
-clamp(80, 180, 100 + (TotalStrength - 10) * 3)
+Strength resource (in-battle HealGain/PowerGain):
+clamp(80, 140, 100 + (TotalStrength - 10) * 1)
 
-Magic resource:
-clamp(80, 180, 100 + (TotalMagic - 10) * 3)
+Magic resource (in-battle ManaGain):
+clamp(80, 140, 100 + (TotalMagic - 10) * 1)
 
 Item HP heal:
 MainElement == Strength
@@ -1071,6 +1128,21 @@ ElementResistanceCap = 20%
 
 ## 10. Nhật Ký Chỉnh Sửa
 
+### 2026-04-26 — Battle MP base pacing correction
+
+- Giảm `BattleGemResourceConfig.BaseManaPerGem` từ `12` xuống `5` cho cả PvE/PvP để MP không tăng quá nhanh khi match gem.
+- Chốt công thức resource gain match gem đang áp dụng:
+  - `RawGain = floor(BaseValue * MatchedGemCount / 3)`.
+  - `HealGain = floor(RawGain * HealGainPercent / 100)`.
+  - `ManaGain = floor(RawGain * ManaGainPercent / 100)`.
+  - `PowerGain = floor(RawGain * PowerGainPercent / 100)`.
+  - `HealGainPercent/PowerGainPercent = clamp(80, 140, 100 + (TotalStrength - 10) * 1)`.
+  - `ManaGainPercent = clamp(80, 140, 100 + (TotalMagic - 10) * 1)`.
+- Giữ FE không hardcode công thức resource: FE vẫn chỉ dùng semantic loại gem và áp base/gain percent từ server.
+- File code đã sửa:
+  - `server/Twelve.Application/Monsters/MonsterBattleBootstrapService.cs`
+  - `server/Twelve.Application/Players/PvpArenaService.cs`
+
 ### 2026-04-26 — Battle resource scale chuyển sang server authority
 
 - Áp dụng rule resource §5 vào battle runtime từ server thay vì để FE tự hardcode theo stat.
@@ -1083,6 +1155,11 @@ ElementResistanceCap = 20%
   - Cường Lực scale HP/Power.
   - Nội Lực scale MP.
 - Client battle chỉ dùng percent server trả về để scale `GEM_FX_BASE`; fallback `100%` chỉ để tương thích payload cũ.
+- Bổ sung `BattleGemResourceConfig` trong monster/PvP bootstrap để base HP/MP/Nộ từ match gem cũng thuộc server authority:
+  - `BaseHealPerGem = 18`
+  - `BaseManaPerGem = 5`
+  - `BasePowerPerGem = 5`
+- Client `useBattleMatchFlow` chỉ còn dùng `GEM_FX_BASE` để xác định gem family nào có HP/MP/Power, còn trị số base lấy từ bootstrap nếu có.
 - File code đã sửa:
   - `server/Twelve.Core/Battle/BattleSessionContracts.cs`
   - `server/Twelve.Core/Monsters/MonsterContracts.cs`
@@ -1100,6 +1177,7 @@ ElementResistanceCap = 20%
   - `server/Twelve.Core/Monsters/MonsterContracts.cs`
   - `server/Twelve.Application/Battle/PlayerBattleStateFactory.cs`
   - `server/Twelve.Application/Monsters/MonsterBattleBootstrapService.cs`
+  - `server/Twelve.Application/Players/PvpArenaService.cs`
   - `server/Twelve.Application/Battle/BattleTurnEngine.cs`
   - `client/src/screens/battle/core/BattleScreen.shared.ts`
   - `client/src/screens/battle/core/BattleScreen.types.ts`
@@ -1108,6 +1186,7 @@ ElementResistanceCap = 20%
   - Battle snapshot trả `HealGainPercent`, `ManaGainPercent`, `PowerGainPercent`.
   - Player battle combat state lấy status Java-faithful từ `PlayerStatPipeline`.
   - Monster combat state tự tính resource percent ở server theo rule remake §5 vì không có server Java mẫu.
+  - PvP enemy shadow copy resource percent từ `BattleSessionCombatantState` sang `MonsterBattleInstance` để bootstrap PvP hai phía có cùng server-owned resource coefficients.
   - `BattleTurnEngine` dùng `MinDamage/MaxDamage`, `Defense`, `HitRate`, `DodgeRate`, `CriticalDamage`, `PowerGainPercent` từ `BattleSessionCombatantState`; bỏ công thức cộng thêm stat/level hardcode để tránh double-count.
   - Client `GEM_FX_BASE` chỉ còn là base effect/visual pacing, không còn là nguồn quyết định scale theo stat.
 - Căn cứ:
