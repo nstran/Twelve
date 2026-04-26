@@ -89,11 +89,15 @@ const getServerGemResourceBase = (
   const fx = getGemFX(gem);
   const perGemBases = config?.perGemBases;
   if (!perGemBases || perGemBases.length === 0) {
-    return {
-      heal: config?.baseHealPerGem ?? fx.heal,
-      mana: config?.baseManaPerGem ?? fx.mana,
-      pow: config?.basePowerPerGem ?? fx.pow,
-    };
+    // Reconstruction/remake boundary:
+    // Java client only proves HP/MP/Power bars and board color families; it does not prove
+    // an old server scalar that should be applied to every gem family. If a stale bootstrap
+    // payload misses `perGemBases`, keep the local per-color semantic table instead of using
+    // global BaseHeal/BaseMana/BasePower for all gems. Otherwise MP-family gems with small
+    // `fx.heal > 0` would inherit BaseHealPerGem and incorrectly heal HP when collecting MP.
+    // Source: BATTLE_SYSTEM_RECONSTRUCTION.md §HP / MP / Nộ / Combo and
+    // docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
+    return fx;
   }
 
   const renderType = getGemRenderType(gem);

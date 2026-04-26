@@ -918,6 +918,18 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
 
 ## Nhật ký chỉnh sửa
 
+### 2026-04-26 — Sửa fallback gem resource khiến MP hồi nhầm HP
+
+- File code đã sửa:
+  - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- Nội dung:
+  - Sửa `getServerGemResourceBase()` để khi payload bootstrap cũ/chưa đủ `perGemBases`, client fallback về bảng semantic per-color `GEM_FX_BASE` thay vì dùng 3 scalar global `BaseHealPerGem/BaseManaPerGem/BasePowerPerGem` cho mọi gem.
+  - Nguyên nhân lỗi "ăn MP lại hồi cả HP": một số gem MP/mixed có `fx.heal > 0` ở bảng semantic cũ; fallback scalar global đã biến phần heal nhỏ đó thành `BaseHealPerGem`, làm gem MP cũng hồi HP rõ rệt nếu bootstrap chưa có `perGemBases`.
+  - Policy lưu DB được giữ: HP sau thắng PvE có thể giữ current HP để tạo attrition; MP/Power là tài nguyên tạm trong battle, `/battle/result` reset về `0`, nhân vật mới cũng seed `Mp = 0`, `Power = 0`. Vì mỗi trận reset MP/Power nên không nên dùng DB như nguồn carry-over MP battle; DB chỉ giữ trạng thái ngoài trận/bootstrap an toàn.
+- Nguồn suy luận:
+  - Java client xác nhận `lh.s/r`, `lh.u/t`, `lh.w/v` và `nl.b/c/d` là current/max/delta runtime, nhưng không có server formula cũ cho bảng resource gain.
+  - `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`: HP/MP/Power gain là rule remake có kiểm soát, server-owned; fallback FE chỉ để tương thích payload cũ, không được làm đổi semantic per-color.
+
 ### 2026-04-26 — Battle gem base resource chuyển sang server bootstrap
 
 - File code đã sửa:

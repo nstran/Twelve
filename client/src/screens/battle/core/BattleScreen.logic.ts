@@ -583,7 +583,10 @@ export function resolveJavaBoardStep(
   if (triggerKeys.size === 0) return null;
 
   const mergedLines = mergeJavaAxisLines(horizontal, vertical);
-  const clearedKeys = collectSpecialChainKeys(board, triggerKeys);
+  // Java gốc KHÔNG có cơ chế special gem (TYPE2/TYPE4 spawn).
+  // Chỉ xóa đúng các ô trong match, không mở rộng bằng collectSpecialChainKeys
+  // và không spawn special gem mới.
+  const clearedKeys = triggerKeys;
   const nextBoard = cloneBoard(board);
 
   clearedKeys.forEach(key => {
@@ -591,28 +594,11 @@ export function resolveJavaBoardStep(
     if (inBounds(r, c)) nextBoard[r][c] = null;
   });
 
-  const spawnMap = new Map<string, GemType>();
-  mergedLines.forEach(line => {
-    const spawnGem = resolveSpawnGem(line);
-    if (spawnGem === null) return;
-
-    const key = keyOf(line.spawnRow, line.spawnCol);
-    spawnMap.set(key, mergeSpawnGemPriority(spawnMap.get(key), spawnGem));
-  });
-
-  const spawnedSpecials: Array<{ r: number; c: number; gem: GemType }> = [];
-  spawnMap.forEach((gem, key) => {
-    const [r, c] = key.split(',').map(Number);
-    if (!inBounds(r, c)) return;
-    nextBoard[r][c] = gem;
-    spawnedSpecials.push({ r, c, gem });
-  });
-
   return {
     triggerKeys,
     clearedKeys,
     boardAfterClear: nextBoard,
-    spawnedSpecials,
+    spawnedSpecials: [],
     bonusTurnCandidate: mergedLines.some(line => line.hLen >= 4 || line.vLen >= 4),
   };
 }

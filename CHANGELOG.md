@@ -1,5 +1,59 @@
 # CHANGELOG
 
+## [26/04/2026]
+
+### Battle System – Bỏ cơ chế Special Gem (Match 4/5)
+
+**File thay đổi:** `client/src/screens/battle/core/BattleScreen.logic.ts`
+
+**Vấn đề:** Khi ăn ≥4 gem cùng loại, engine tự động:
+1. Xóa toàn bộ gem trong match
+2. Spawn lại 1 "special gem" (TYPE2: gem 10-15, có crystal overlay; TYPE4: gem 20-25, viền đỏ) tại vị trí giữa
+3. Special gem đó khi bị ăn tiếp sẽ nổ 3×3 ring (TYPE2) hoặc cả hàng + cột (TYPE4)
+
+Người dùng nhầm tưởng đây là bug do game Java gốc thực tế **không có** tính năng này.
+
+**Sửa đổi trong `resolveJavaBoardStep`:**
+- **Bỏ** `collectSpecialChainKeys()` → không mở rộng vùng xóa qua special gem
+- **Bỏ** `resolveSpawnGem()` → không spawn special gem mới sau match 4/5
+- `clearedKeys` giờ đúng bằng `triggerKeys` (chỉ những ô match thực sự)
+- `spawnedSpecials` luôn trả về `[]`
+- `bonusTurnCandidate` giữ nguyên (match 4+ vẫn được thêm lượt)
+
+**Kết quả:** Match 4+ xóa đúng số ô, không còn gem sót lại, không còn hiệu ứng nổ dây chuyền bất ngờ.
+
+
+## 2026-04-26 (AA)
+
+### Sửa fallback gem resource khiến MP hồi nhầm HP
+
+**Vấn đề:**
+- Khi bootstrap payload thiếu `perGemBases`, client fallback sang 3 scalar global `BaseHealPerGem/BaseManaPerGem/BasePowerPerGem`.
+- Do một số gem MP/mixed còn có semantic `fx.heal > 0`, scalar global làm gem MP hồi thêm HP rõ rệt.
+
+**Sửa:**
+- Sửa `getServerGemResourceBase()` trong `useBattleMatchFlow.ts`:
+  - nếu có `perGemBases` thì vẫn dùng server authority per-gem;
+  - nếu payload cũ thiếu `perGemBases` thì fallback về `GEM_FX_BASE` per-color, không dùng scalar global cho mọi gem.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md`:
+  - ghi rõ nguyên nhân lỗi;
+  - chốt policy hiện tại: HP thắng PvE có thể giữ current HP, còn MP/Power là battle resource tạm và reset về `0` sau trận.
+
+**Căn cứ:**
+- Java client xác nhận runtime bar `lh.s/r`, `lh.u/t`, `lh.w/v` và packet result `nl.b/c/d`, nhưng không có server formula cũ cho resource gain.
+- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`: resource gain là rule remake server-owned; fallback FE chỉ để tương thích payload cũ.
+
+**Kiểm tra:**
+- Đang chờ chạy `npx tsc -p client/tsconfig.json --noEmit`.
+- Đang chờ chạy `dotnet build Twelve.sln`.
+
+**File đã sửa:**
+- `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-26 (Z)
 
 ### Create character không khởi tạo MP full

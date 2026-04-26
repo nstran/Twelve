@@ -41,3 +41,5 @@
 
 ## 7. Note
 - Sau mỗi ngày làm việc, hãy tóm tắt các thay đổi lớn vào file CHANGELOG.md để tôi có cái nhìn tổng quan
+
+- Nếu mà không sửa code Server thì không cần chạy dotnet build nhé
