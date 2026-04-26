@@ -212,6 +212,8 @@ Rule gameplay đi kèm mapping này:
 - theo user memory, các item vàng/sao/giọt tím không cần hiện counter tạm trong battle HUD; chúng âm thầm cộng vào pending reward và chỉ thể hiện ở màn kết quả nếu thắng
 - kiếm lửa `chess8` là tile có tính chất trigger-on-touch: match với kiếm trắng cũng nổ, skill/cascade/refill/tác động sau đó rơi vào kiếm lửa cũng phải nổ; vùng nổ user memory là `3x3`
 - kiếm lửa gây sát thương ngay, với hệ số user memory `x1.5`; công thức base damage/target ownership vẫn là phần server Java cũ hoặc remake hiện tại phải tính sau
+- cascade tự động sau drop/refill vẫn là board match thật: nếu cascade sinh group `>= 4` thì cũng cộng lượt theo rule chung; nếu cascade/tác động làm kiếm đỏ chạm/nổ thì resolve kiếm đỏ và apply item trong vùng như bình thường
+- skill clear board cũng được tính như item bị ăn/tác động: ô nào bị skill clear thì apply effect tương ứng của item đó; nếu skill clear trúng kiếm đỏ thì kiếm đỏ nổ `3x3` và có thể chain sang kiếm đỏ khác
 - những công thức EXP/Gold/Quan và damage/nổ `3x3` của kiếm lửa là phần server Java cũ hoặc remake hiện tại phải tính sau, không suy bừa từ asset
 
 ### 4.1. Công thức board item đang chốt để port/remake
@@ -606,6 +608,9 @@ remainingTurns += extraTurns
 ```
 
 - Không gắn `+ lượt` với natural special spawn; match `>= 4` cộng lượt nhưng item vẫn biến mất.
+- Cascade tự động sau drop/refill vẫn được tính `+ lượt` nếu chính cascade đó tạo `distinctMatchGroups` có `length >= 4`.
+- Kiếm đỏ nổ lan không tự sinh `+ lượt` chỉ vì vùng nổ có nhiều item; chỉ cộng lượt nếu sau clear/drop/refill tạo match group thật `>= 4`, hoặc nếu kiếm đỏ nằm trong một match group kiếm có length `>= 4` ngay từ bước scan.
+- Skill clear/skill target không tự sinh `+ lượt` theo số ô bị clear. Nếu skill làm thay đổi board rồi cascade sinh match group `>= 4`, cascade đó mới cộng lượt theo rule chung.
 
 #### Nhóm EXP/Gold/Quan
 
