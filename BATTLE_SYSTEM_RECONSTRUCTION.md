@@ -187,15 +187,23 @@ Theo xác nhận user ngày `2026-04-26`, board Java cũ gameplay dùng `8` item
 | Tim hồi máu | `chess1` | Match hồi máu ngay trong trận; công thức hiện xem `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5` |
 | Đào | `chess3` | Match hồi nộ/Power ngay trong trận; công thức hiện xem `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5` |
 | Kiếm lửa | `chess8` | Item nổ vùng `3x3`; cứ bị tác động là nổ, kể cả match cùng kiếm trắng hoặc skill làm rơi/tác động vào kiếm lửa sau đó; gây sát thương ngay với hệ số user memory `x1.5` |
-| Sao xanh | cần đối chiếu image index/node | Match tích EXP tạm nội bộ; không cần hiện counter tạm trong trận, chỉ chốt cộng/hiện ở màn kết quả nếu thắng |
-| Vàng | cần đối chiếu image index/node | Tích gold nội bộ trong trận; max `10k` thì quy đổi thành `10k Quan`/tiền nạp sau này; không cần hiện counter tạm, nếu thua mất hết phần gold trận |
-| Giọt tím EXP nửa sao | cần đối chiếu image index/node | Match như gem thường, tích EXP tạm nội bộ bằng nửa sao; không tạo special; không cần hiện counter tạm, nếu thua mất hết phần EXP trận |
-| Các icon còn lại trong 8 icon | là các sheet còn lại trong `chess0..8` sau khi bỏ `chess7` | Match bình thường theo mask, clear/drop/refill |
+| Âm Dương / MP-Mana | `chess2` | Hồi MP/Mana ngay trong trận theo công thức Âm/Dương; không hồi nhầm HP |
+| Sao xanh | `chess5` | Match tích EXP tạm nội bộ; không cần hiện counter tạm trong trận, chỉ chốt cộng/hiện ở màn kết quả nếu thắng |
+| Vàng | `chess6` | Tích gold nội bộ trong trận; max `10k` thì quy đổi thành `10k Quan`/tiền nạp sau này; không cần hiện counter tạm, nếu thua mất hết phần gold trận |
+| Nước / giọt tím EXP nửa sao | `chess4` | Match như gem thường, tích EXP tạm nội bộ bằng nửa sao; không tạo special; không cần hiện counter tạm, nếu thua mất hết phần EXP trận |
 | Empty/block | `90`/`99` | Không phải icon gameplay active |
 
 Rule gameplay đi kèm mapping này:
 
-- tập icon gameplay user xác nhận là `chess0..8` nhưng loại `chess7`; tổng cộng `8` item active
+- tập icon gameplay user xác nhận là `chess0..8` nhưng loại `chess7`; tổng cộng `8` item active:
+  - `chess0` = kiếm trắng/thường
+  - `chess1` = tim HP
+  - `chess2` = Âm Dương / MP-Mana
+  - `chess3` = đào / Nộ-Power
+  - `chess4` = nước / EXP nửa sao
+  - `chess5` = sao xanh / EXP
+  - `chess6` = vàng / pending board gold
+  - `chess8` = kiếm lửa / kiếm đỏ nổ `3x3`
 - tất cả icon match xong đều biến mất rồi drop/refill
 - không một item nào tạo special tự nhiên
 - giọt tím EXP nửa sao match bình thường nhưng không tạo special
@@ -212,7 +220,7 @@ Các công thức dưới đây là **reconstruction/remake từ gameplay memory
 
 #### Nhóm Âm/Dương, HP, MP, Nộ
 
-Các dòng dưới đây là nhóm resource đã chốt ở mức công thức remake hiện tại. Tên icon cụ thể ngoài `chess1`/`chess3` vẫn cần đối chiếu thêm bằng image index/node, nhưng công thức tính đã được note để port.
+Các dòng dưới đây là nhóm resource đã chốt ở mức công thức remake hiện tại. Mapping icon đã được user xác nhận ngày `2026-04-27`: `chess2` là Âm Dương/MP, `chess4` là nước/EXP nửa sao, `chess5` là sao xanh/EXP, `chess6` là vàng/gold.
 
 - Tim (`chess1`) / HP:
   - effect chính: hồi HP ngay trong trận.
@@ -1526,37 +1534,222 @@ Rule local nên dùng:
 
 ## Server Java Cũ: Những điểm phải note lại để tính sau
 
-Các phần sau liên quan server Java cũ hoặc packet authoritative, client chỉ apply/render nên chưa thể chốt formula 100%:
+Các phần sau liên quan server Java cũ hoặc packet authoritative. Java client đã cho biết **nó nhận và apply/render dữ liệu gì**, nhưng không chứa toàn bộ công thức sinh dữ liệu. Vì vậy các mục này phải được note riêng, tránh gắn nhãn "Java gốc" cho công thức remake.
 
-1. `nq.D` thêm/giảm thời gian turn
-   - Client chỉ cộng vào `ms.g`, rồi set `np.a = seconds * 1000`.
-   - Không thấy formula sinh `D` trong client.
-2. `nq.F` thêm/giảm lượt còn lại
-   - Client chỉ cộng vào biến lượt `B` nếu mode không phải `oq.o == 1`.
-   - Không thấy formula sinh `F` trong client.
-   - Gameplay memory đã xác nhận rule phục dựng: match `>= 4` cộng lượt theo số group match đủ điều kiện.
-3. `nl[]` actor result
-   - Client nhận `hp/mp/power/damage/flag`, update HUD và popup.
-   - Final damage/heal/resource gain formula nằm server cũ.
-4. Skill target arrays
-   - Client dùng row/col/line arrays từ `nq`, không tự suy toàn bộ.
-   - BE hiện tại cần sinh packet shape tương đương nếu muốn bám Java.
-5. Refill queue và no-move board reset
-   - `ms.m[ms.n++]` lấy từ byte buffer packet.
-   - `ms.o` dùng cho board reset/snapshot; client không tự generate như server cũ.
-6. Checksum/sync
-   - Server gửi checksum `nq.i`; client tính `oz.a(ms.l)`.
-   - Nếu lệch thì clear queue và request sync.
-7. Reward roll
-   - Client chỉ nhận `ll[]`, `lm[]`, exp/gold/result flags rồi present.
-8. EXP từ sao xanh và giọt tím/nước EXP nửa sao
-   - User xác nhận match sao xanh tăng EXP cho nhân vật nếu thắng trận.
-   - Giọt tím/nước chỉ tăng EXP, giá trị bằng `1/2` sao xanh, match như bình thường, không tạo special.
-   - User xác nhận vàng/sao/giọt tím chỉ âm thầm cộng pending reward, không cần hiện counter tạm trong trận; chỉ chốt/hiện ở màn kết quả nếu thắng.
-   - Công thức remake đã chốt: `BoardExpUnit2 += starCount * 2 + waterCount`, `FinalBoardExp = floor(BoardExpUnit2 / 2)`.
-9. Gold từ icon vàng
-   - User xác nhận vàng tích điểm vào player, max `10k` thì quy đổi `10k Quan`.
-   - Công thức remake đã chốt: không scale theo level, `GoldUnit10 += goldIconCount * 2`, `FinalBoardGold = floor(GoldUnit10 / 10)`.
+### 1. `nq.D` - delta thời gian turn
+
+Client Java chỉ nhận số giây từ packet rồi set timer:
+
+```text
+mq: this.a.g = n2
+np.a = n2 * 1000
+```
+
+Điều đã chắc:
+
+- `nq.D` là nhánh riêng với lượt còn lại.
+- Client không tự tính `D` từ board.
+- Client chỉ apply số server gửi và render timer.
+
+Cần giải đáp sau nếu muốn đúng server Java cũ:
+
+- Có item board nào cộng/trừ thời gian không?
+- Skill nào cộng/trừ thời gian?
+- No-move/reset board có cộng/trừ thời gian không?
+- PvE và PvP có cùng rule time không?
+- Nếu nhiều cascade trong một turn, server tính time delta một lần hay theo từng cascade?
+
+V1 hiện tại nên coi time là rule remake riêng hoặc giữ cố định nếu chưa có dữ kiện.
+
+### 2. `nq.F` - delta lượt còn lại
+
+Client Java chỉ nhận delta lượt từ packet rồi cộng vào biến lượt, sau đó renderer hiện `"Còn X lượt"`.
+
+Điều đã chắc:
+
+- `nq.F` tách riêng với `nq.D`.
+- Client không chứa formula server gốc sinh `F`.
+- User memory đã chốt rule phục dựng hiện tại:
+
+```text
+mỗi distinct match group có length >= 4 => +1 lượt
+```
+
+Cần giải đáp sau để khóa edge case server cũ:
+
+- Cascade tự động có được cộng lượt không, hay chỉ nước swap đầu tiên?
+- Cross/T/L tính là `1 group` merged hay tính riêng từng line nếu cả ngang và dọc đều `>= 4`?
+- Kiếm đỏ nổ lan có tạo group `>= 4` để cộng lượt không, hay chỉ match line ban đầu?
+- Skill clear line/clear vùng có được cộng lượt như match board không?
+- No-move reshuffle có reset/cộng/trừ lượt không?
+
+Contract V1 nên dùng:
+
+```text
+extraTurns = count(distinctMatchGroups where length >= 4)
+```
+
+Không cộng từ skill clear/nổ lan nếu chúng không sinh `distinctMatchGroups` từ match scan, trừ khi user xác nhận thêm.
+
+### 3. `nl[]` - actor result/final combat delta
+
+Client Java nhận mỗi actor result rồi update HUD:
+
+```text
+hp hiện tại
+mp hiện tại
+power hiện tại
+damage/result delta
+flag byte
+```
+
+Điều đã chắc:
+
+- Client apply `nl[]`, không tự tính final damage/heal server gốc.
+- `mx` chỉ tween bar và popup damage.
+- `lg/lh` giữ current/max HP, MP, Power runtime.
+
+Cần giải đáp sau:
+
+- Damage final gốc apply Defense/Crit/Element theo thứ tự nào?
+- Board sword damage và skill damage dùng chung formula hay khác nhau?
+- Quái có dùng cùng công thức với player không?
+- HP/MP/Power vượt cap server clamp/floor/round ra sao?
+- `nl.f` flag byte biểu thị chính xác các trạng thái nào?
+- Damage popup âm/dương/heal có dùng cùng field `nl.e` không?
+
+V1 hiện dùng formula remake đã ghi trong docs combat và mục board item, phải giữ nhãn reconstruction/remake.
+
+### 4. Skill target arrays
+
+Client Java dùng target arrays từ `nq`, ví dụ row/col/line arrays cho skill board mutation. Client không tự đoán toàn bộ target từ asset.
+
+Điều đã chắc:
+
+- `nq.n` = skill id.
+- `nq.r` = skill level/index.
+- `nq.s/o/q/p` tương ứng các byte arrays đưa vào `mq.a(...)`.
+- Nhiều skill clear cell/row/line theo arrays server gửi.
+
+Cần giải đáp sau:
+
+- Skill nào chọn target random?
+- Skill nào chọn row/col theo board state?
+- Skill nào target enemy/player side?
+- Skill nào clear board nhưng không gây damage?
+- Skill nào chỉ đặt status timer?
+- Có skill nào biến item board thành node đặc biệt, ví dụ fire-sword mark, mà không đi qua match tự nhiên?
+
+V1 nên để BE trả target list rõ ràng; FE chỉ playback/mutate theo payload, không tự suy từ icon.
+
+### 5. Refill queue và no-move board reset
+
+Client Java lấy refill từ packet buffer và board reset/snapshot từ `ms.o`.
+
+Điều đã chắc:
+
+- `ms.m[ms.n++]` là refill queue do packet cấp.
+- `ms.o` dùng cho `ms.f()` để thay board/reset board khi có buffer.
+- Client detect no-move local, nhưng board mới sau no-move là dữ liệu packet/server.
+
+Cần giải đáp sau:
+
+- Server Java sinh refill random theo seed nào?
+- Có tránh match sẵn khi refill không?
+- Có đảm bảo board sau refill/reshuffle luôn còn nước đi không?
+- No-move reset là reshuffle multiset board cũ hay sinh board mới hoàn toàn?
+- Có giữ lại kiếm đỏ/resource đặc biệt khi reshuffle không?
+- Refill có phụ thuộc level/map/monster không?
+
+V1 hiện dùng RNG deterministic/local và reject board có match sẵn hoặc không còn move.
+
+### 6. Checksum/sync
+
+Client Java so checksum server với checksum local:
+
+```text
+server checksum: nq.i
+client checksum: oz.a(ms.l)
+```
+
+Điều đã chắc:
+
+- Java cũ có cơ chế phát hiện lệch board client/server.
+- Nếu lệch, client clear queue/request sync.
+- Điều này chứng minh board client có simulate local nhưng server vẫn authoritative ở nhiều điểm.
+
+Cần giải đáp sau:
+
+- Thuật toán `oz.a(ms.l)` có cần port nguyên để sync PvP/PvE không?
+- Khi mismatch, server gửi full board hay chỉ delta?
+- Có dùng revision `nq.b` để reject stale turn không?
+
+V1 nếu chưa authoritative server đầy đủ thì vẫn nên có revision/canonical board state riêng.
+
+### 7. Reward roll item/equipment cuối trận
+
+Client Java chỉ nhận reward rồi present:
+
+```text
+ll[] equipment reward
+lm[] item reward
+exp/gold/result flags
+```
+
+Điều đã chắc:
+
+- `go.u` lưu equipment.
+- `go.v` lưu items.
+- `oa/om/hs` chỉ hiển thị popup/chest/result.
+- Board EXP/Gold/Quan đã chốt remake riêng không được trộn với `lm[]/ll[]`.
+
+Cần giải đáp sau:
+
+- Tỉ lệ rơi item/equipment theo monster/map/level.
+- Rarity roll.
+- Số lượng item.
+- Điều kiện thắng/thua/hòa ảnh hưởng reward.
+- Board pending gold/sao/nước có ảnh hưởng reward roll không, hay chỉ cộng EXP/Gold riêng.
+
+### 8. EXP từ sao xanh `chess5` và nước `chess4`
+
+User đã giải đáp mapping:
+
+- `chess5` = sao xanh / EXP.
+- `chess4` = nước / EXP nửa sao.
+
+Rule remake đã chốt:
+
+```text
+BoardExpUnit2 += starCount * 2 + waterCount
+FinalBoardExp = floor(BoardExpUnit2 / 2)
+```
+
+Điều còn cần biết nếu muốn đúng server Java tuyệt đối:
+
+- Server cũ có dùng đúng tỉ lệ `1 sao = 1 EXP`, `1 nước = 0.5 EXP` không, hay đây là pacing remake.
+- EXP board có cộng vào result `hs` chung hay cộng qua field riêng.
+- Có cap EXP board mỗi trận không.
+
+### 9. Gold từ icon vàng `chess6`
+
+User đã giải đáp mapping:
+
+- `chess6` = vàng / pending board gold.
+
+Rule remake đã chốt:
+
+```text
+GoldUnit10 += goldIconCount * 2
+FinalBoardGold = floor(GoldUnit10 / 10)
+```
+
+Điều còn cần biết nếu muốn đúng server Java tuyệt đối:
+
+- Server cũ có dùng gold board dạng fractional/accumulator không.
+- Mốc `10k => 10k Quan` được server xử lý ở đâu.
+- Gold board có cap mỗi trận không.
+- Có scale theo monster/map/level không. V1 đã chốt là không scale level.
 
 Những điểm này cần server source, packet log, hoặc replay/video đủ dày để suy ngược. Khi chưa có, mọi logic thay thế phải ghi là reconstruction/remake.
 
@@ -1765,7 +1958,7 @@ Nếu muốn đúng tuyệt đối ở các phần này, cần:
 
 Bước hợp lý tiếp theo không phải dựng asset registry nữa, mà là khóa spec logic:
 
-1. định nghĩa enum/const cho toàn bộ `nj node ids` và mapping 8 icon gameplay (`chess0` kiếm trắng, `chess1` tim, `chess3` đào, `chess8` kiếm lửa; bộ `/chess0..8` bỏ `chess7`)
+1. định nghĩa enum/const cho toàn bộ `nj node ids` và mapping 8 icon gameplay (`chess0` kiếm trắng, `chess1` tim, `chess2` Âm Dương/MP, `chess3` đào, `chess4` nước/EXP nửa sao, `chess5` sao xanh/EXP, `chess6` vàng, `chess8` kiếm lửa; bộ `/chess0..8` bỏ `chess7`)
 2. port nguyên match scan theo `mask`
 3. chỉnh local board contract: match thường clear/drop/refill, không tạo special tự nhiên; match `>= 4` cộng lượt theo số group
 4. giữ clear behavior `type 2/type 4` cho skill/packet/variant nếu phát hiện node đó thật sự xuất hiện
@@ -1777,6 +1970,31 @@ Bước hợp lý tiếp theo không phải dựng asset registry nữa, mà là
 Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic sẽ lệch ở những chỗ quan trọng nhất.
 
 ## Nhật ký chỉnh sửa
+
+### 2026-04-27 — Chốt mapping còn lại của 8 icon board và mở rộng note server Java
+
+- File tài liệu đã sửa:
+  - `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- Nội dung:
+  - Chốt mapping còn thiếu theo user xác nhận:
+    - `chess2` = Âm Dương / MP-Mana;
+    - `chess4` = nước / EXP nửa sao;
+    - `chess5` = sao xanh / EXP;
+    - `chess6` = vàng / pending board gold.
+  - Cập nhật bảng gameplay memory 8 icon và `Next Practical Step` để không còn mục cần đối chiếu cho Âm Dương/nước/sao xanh/vàng.
+  - Mở rộng mục `Server Java Cũ: Những điểm phải note lại để tính sau`, giải thích rõ từng packet/server-owned area:
+    - `nq.D` delta thời gian;
+    - `nq.F` delta lượt và edge case cascade/cross/skill;
+    - `nl[]` actor result/final combat delta;
+    - skill target arrays;
+    - refill queue/no-move reset;
+    - checksum/sync;
+    - reward roll item/equipment;
+    - EXP từ `chess5`/`chess4`;
+    - gold từ `chess6`.
+- Nguồn:
+  - User xác nhận trực tiếp ngày `2026-04-27`.
+  - Java client chỉ parse/apply các packet trên, không chứa server formula cuối.
 
 ### 2026-04-27 — Chốt công thức sao xanh, giọt tím/nước EXP và gold board
 
