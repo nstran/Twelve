@@ -601,28 +601,134 @@ remainingTurns += extraTurns
 
 #### Nhóm EXP/Gold/Quan
 
+Các công thức dưới đây đã chốt theo gameplay memory và pacing ngày `2026-04-27`. Đây là **reconstruction/remake**, không phải formula server Java gốc đọc trực tiếp từ client. Java client chỉ xác nhận result EXP/Gold cuối được parse/apply ở result screen; server Java cũ mới là nơi từng tính số cuối.
+
+##### EXP từ sao xanh và giọt tím/nước
+
 - Sao xanh:
   - cộng `pendingBoardExp` tạm.
-  - lượng EXP chính xác mỗi match chưa có server Java, phải tính sau.
-- Giọt tím EXP nửa sao:
-  - cộng `pendingBoardExp` tạm bằng khoảng `1/2` sao xanh theo gameplay memory "EXP nửa sao".
-  - công thức reconstruction cần giữ dạng:
+  - chốt pacing: `1` sao xanh = `1` board EXP.
+- Giọt tím / nước EXP nửa sao:
+  - chỉ tăng EXP.
+  - giá trị bằng `1/2` sao xanh.
+  - không có rule `+ lượt` riêng.
+  - match như gem thường, không tạo special tự nhiên theo gameplay memory.
+
+Để tránh mất phần `0.5 EXP`, dùng integer accumulator scale `x2`:
 
 ```text
-purpleDropExp = floor(blueStarExp / 2)
+BoardExpUnit2 += blueStarCount * 2
+BoardExpUnit2 += purpleDropOrWaterCount * 1
+
+FinalBoardExp = floor(BoardExpUnit2 / 2)
 ```
 
-- Vàng:
-  - cộng `pendingBoardGold` tạm.
-  - mốc user memory: tối đa/đạt `10k` vàng thì quy đổi `10k Quan`/tiền nạp sau này.
-  - công thức số học chính xác cần tính sau, tạm ghi boundary:
+Ví dụ:
 
 ```text
-pendingBoardGold += goldFromMatchedGoldIcon
+3 sao xanh:
+  BoardExpUnit2 += 3 * 2 = 6
+  FinalBoardExp += 3
+
+3 giọt tím/nước:
+  BoardExpUnit2 += 3
+  FinalBoardExp += floor(3 / 2) = 1 nếu chốt riêng
+  hoặc giữ Unit2 tới cuối trận để phần lẻ tích tiếp
+
+3 sao xanh + 3 giọt tím/nước:
+  BoardExpUnit2 += 6 + 3 = 9
+  FinalBoardExp = floor(9 / 2) = 4
+```
+
+Ghi chú quan trọng:
+
+- Giữ `BoardExpUnit2` tới cuối trận rồi mới chia để các nửa EXP cộng dồn không bị mất.
+- Match `>= 4` vẫn cộng lượt theo rule chung của group match đủ điều kiện; không phải do nước/giọt tím có rule extra-turn riêng.
+
+Công thức EXP level hiện tại trong server remake:
+
+```text
+ExpStep = 100
+
+ExpFloor(level) = 100 * (level - 1)^2
+ExpCeiling(level) = 100 * level^2
+
+ExpNeed(level -> level + 1)
+  = ExpCeiling(level) - ExpFloor(level)
+  = 100 * (2 * level - 1)
+```
+
+Ví dụ:
+
+```text
+Level 1 -> 2: 100 EXP
+Level 2 -> 3: 300 EXP
+Level 3 -> 4: 500 EXP
+Level 4 -> 5: 700 EXP
+Level 5 -> 6: 900 EXP
+Level 10 -> 11: 1900 EXP
+```
+
+Với `1 sao = 1 EXP` và `1 giọt tím/nước = 0.5 EXP`, EXP từ board là bonus nhỏ, tăng chậm theo curve level hiện tại, không làm level-up quá nhanh.
+
+##### Gold từ icon vàng
+
+- Vàng cộng `pendingBoardGold` tạm.
+- Không scale theo level.
+- Mục tiêu pacing: lên rất chậm vì mốc max/quy đổi lớn là `10k`.
+- Dùng integer accumulator scale `x10`:
+
+```text
+GoldUnit10 += goldIconCount * 2
+
+FinalBoardGold = floor(GoldUnit10 / 10)
+```
+
+Diễn giải:
+
+```text
+1 icon vàng = 0.2 gold
+match 3 vàng = 0.6 gold
+match 4 vàng = 0.8 gold
+match 5 vàng = 1.0 gold
+```
+
+Ví dụ tích lũy trong trận:
+
+```text
+Ăn 5 icon vàng:
+  GoldUnit10 = 5 * 2 = 10
+  FinalBoardGold = 1
+
+Ăn 15 icon vàng:
+  GoldUnit10 = 30
+  FinalBoardGold = 3
+
+Ăn 30 icon vàng:
+  GoldUnit10 = 60
+  FinalBoardGold = 6
+
+Ăn 50 icon vàng:
+  GoldUnit10 = 100
+  FinalBoardGold = 10
+```
+
+Quy đổi mốc `10k` giữ theo user memory:
+
+```text
+pendingBoardGold += FinalBoardGold
+
 if pendingBoardGold >= 10000:
   pendingBoardQuan += 10000
   pendingBoardGold -= 10000
 ```
+
+Ghi chú:
+
+- Không dùng `PlayerLevel` để scale gold.
+- Không cộng gold trực tiếp trong battle HUD.
+- Chỉ chốt pending gold khi thắng; thua xóa toàn bộ board gold của trận.
+- Nếu cần giữ phần lẻ qua các resolve trong cùng trận, giữ `GoldUnit10` tới cuối trận rồi mới `floor`.
 
 - Pending EXP/Gold/Quan chỉ chốt khi thắng; thua xóa toàn bộ.
 
@@ -642,7 +748,7 @@ Rule bảo toàn:
 - không hiển thị counter tạm trong battle HUD nếu muốn bám user memory Java cũ;
 - màn kết quả (`hs`) mới là nơi hiện tổng EXP/Gold cuối cùng;
 - reward item/equipment (`lm[]`, `ll[]`) vẫn là luồng riêng, không được trộn với board EXP/Gold/Quan;
-- công thức số học chính xác cho EXP sao xanh, EXP giọt tím, vàng, Quan và damage kiếm vẫn thuộc nhóm server Java cũ/remake cần tính sau.
+- công thức EXP sao xanh, giọt tím/nước EXP nửa sao và gold icon đã chốt ở mục `Nhóm EXP/Gold/Quan`; nếu sau này có packet log/server source Java thật thì đối chiếu lại.
 
 Nguồn:
 
@@ -1443,14 +1549,14 @@ Các phần sau liên quan server Java cũ hoặc packet authoritative, client c
    - Nếu lệch thì clear queue và request sync.
 7. Reward roll
    - Client chỉ nhận `ll[]`, `lm[]`, exp/gold/result flags rồi present.
-8. EXP từ sao xanh và giọt tím EXP nửa sao
+8. EXP từ sao xanh và giọt tím/nước EXP nửa sao
    - User xác nhận match sao xanh tăng EXP cho nhân vật nếu thắng trận.
-   - Giọt tím EXP nửa sao match như bình thường, không tạo special.
+   - Giọt tím/nước chỉ tăng EXP, giá trị bằng `1/2` sao xanh, match như bình thường, không tạo special.
    - User xác nhận vàng/sao/giọt tím chỉ âm thầm cộng pending reward, không cần hiện counter tạm trong trận; chỉ chốt/hiện ở màn kết quả nếu thắng.
-   - Công thức cộng EXP và điều kiện ghi EXP cuối trận cần tính sau.
+   - Công thức remake đã chốt: `BoardExpUnit2 += starCount * 2 + waterCount`, `FinalBoardExp = floor(BoardExpUnit2 / 2)`.
 9. Gold từ icon vàng
    - User xác nhận vàng tích điểm vào player, max `10k` thì quy đổi `10k Quan`.
-   - Công thức tích gold/quy đổi Quan cần tính sau, không suy từ reward item icon.
+   - Công thức remake đã chốt: không scale theo level, `GoldUnit10 += goldIconCount * 2`, `FinalBoardGold = floor(GoldUnit10 / 10)`.
 
 Những điểm này cần server source, packet log, hoặc replay/video đủ dày để suy ngược. Khi chưa có, mọi logic thay thế phải ghi là reconstruction/remake.
 
@@ -1671,6 +1777,23 @@ Bước hợp lý tiếp theo không phải dựng asset registry nữa, mà là
 Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic sẽ lệch ở những chỗ quan trọng nhất.
 
 ## Nhật ký chỉnh sửa
+
+### 2026-04-27 — Chốt công thức sao xanh, giọt tím/nước EXP và gold board
+
+- File tài liệu đã sửa:
+  - `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- Nội dung:
+  - Chốt sao xanh là EXP tạm: `1` sao xanh = `1` board EXP.
+  - Chốt giọt tím/nước chỉ tăng EXP, giá trị bằng `1/2` sao xanh; không có rule extra-turn riêng.
+  - Dùng accumulator integer scale `x2`: `BoardExpUnit2 += starCount * 2 + waterCount`, cuối trận `FinalBoardExp = floor(BoardExpUnit2 / 2)`.
+  - Ghi rõ match `>= 4` vẫn cộng lượt theo rule chung của group match đủ điều kiện, không phải do nước/giọt tím có rule riêng.
+  - Ghi lại curve EXP server hiện tại: `ExpFloor(level) = 100 * (level - 1)^2`, `ExpCeiling(level) = 100 * level^2`, `ExpNeed = 100 * (2 * level - 1)`.
+  - Chốt gold board lên chậm và không scale theo level: `GoldUnit10 += goldIconCount * 2`, cuối trận `FinalBoardGold = floor(GoldUnit10 / 10)`.
+  - Diễn giải pacing gold: `1` icon vàng = `0.2` gold, match `5` vàng = `1` gold; thắng mới chốt, thua xóa pending board gold.
+- Nguồn:
+  - User gameplay memory và cân bằng đã chốt ngày `2026-04-27`.
+  - `PlayerLevelProgression`: curve EXP hiện tại `ExpStep = 100`, level floor/ceiling dạng bình phương.
+  - Java client chỉ parse/apply result cuối qua `ky`/`hs`; không có source server Java cũ cho formula board reward.
 
 ### 2026-04-27 — Bổ sung ví dụ mốc chuẩn core battle board
 
