@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## 2026-04-26 (Z)
+
+### Create character không khởi tạo MP full
+
+**Vấn đề:**
+- Nhân vật mới tạo đang được `CreateCharacterHandler` set `player.Mp = player.MaxMp`, làm battle bootstrap trận đầu bằng MP full.
+- Policy mới đã chốt MP/Power là battle resource tạm: `/battle/result` reset `Player.Mp = 0`, `Player.Power = 0`; `PlayerBattleStateFactory` đọc current MP/Power từ DB để mở trận mới.
+- Vì vậy dữ liệu `mp = maxmp` trong DB khiến nhịp MP/Nộ sai dù công thức match gem đã chuyển sang server authority.
+
+**Sửa:**
+- Sửa `CreateCharacterHandler`:
+  - vẫn chạy `PlayerStatPipeline.RecalculateAndApply(player)` để tính `MaxHP/MaxMP/MaxPower` và derived stats;
+  - set `player.Hp = player.MaxHp`;
+  - set `player.Mp = 0`;
+  - set `player.Power = 0`;
+  - thêm comment nguồn từ `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`.
+- Cập nhật `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md` để ghi rõ nhân vật mới không seed `CurrentMP = MaxMP`.
+- Ghi chú vận hành: dữ liệu dev/test cũ có thể cần reset current battle resource bằng `UPDATE players SET mp = 0, power = 0;`.
+
+**Căn cứ:**
+- Java client chứng minh `lh.u/t`, `lh.w/v` là current/max bars nhưng không có server Java cũ cho policy carry-over resource.
+- Spec hiện tại xem MP/Power là tài nguyên tạm trong battle, còn HP sau thắng PvE giữ lại để train attrition có ý nghĩa.
+
+**Kiểm tra:**
+- Đang chờ chạy `npx tsc -p client/tsconfig.json --noEmit`.
+- Đang chờ chạy `dotnet build Twelve.sln`.
+
+**File đã sửa:**
+- `server/Twelve.Application/Handlers/CreateCharacterHandler.cs`
+- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-26 (Y)
 
 ### Battle result reset MP/Power sau trận

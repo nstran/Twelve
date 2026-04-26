@@ -196,6 +196,13 @@ namespace Twelve.Core.Monsters
         BattleSide InitialTurnSide = BattleSide.Player
     );
 
+    public sealed record BattleGemResourceBase(
+        int GemType,
+        int BaseHeal,
+        int BaseMana,
+        int BasePower
+    );
+
     /// <summary>
     /// Server-owned base gem resource values per match.
     /// Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
@@ -209,17 +216,33 @@ namespace Twelve.Core.Monsters
     public sealed record BattleGemResourceConfig(
         int BaseHealPerGem = 18,
         int BaseManaPerGem = 5,
-        int BasePowerPerGem = 5
+        int BasePowerPerGem = 5,
+        IReadOnlyList<BattleGemResourceBase>? PerGemBases = null
     )
     {
+        private static readonly BattleGemResourceBase[] RemakeV1PerGemBases =
+        [
+            // Source: 08-level-stat-exp-and-element-balance.md §5.
+            // Java client proves resource bars and board color families, but not the old server
+            // table. Keep the Java-feel per-color proportions on the server so FE does not
+            // hardcode HP/MP/Power math and mixed HP/MP gems do not inherit one global scalar.
+            new(0, 0, 0, 3),
+            new(1, 12, 0, 1),
+            new(2, 2, 8, 1),
+            new(3, 0, 0, 3),
+            new(4, 4, 3, 1),
+            new(5, 0, 5, 2),
+            new(6, 0, 0, 1),
+            new(8, 0, 0, 3)
+        ];
+
         /// <summary>
         /// Remake v1 server authority for gem resource bases.
         /// Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
-        /// MP intentionally uses a conservative base because this scalar applies to every
-        /// MP-bearing gem family; using the old peach-like value made gem 4/5 over-refill MP
-        /// compared with their Java-feel local values.
+        /// The legacy scalar fields remain for old clients; current clients prefer PerGemBases.
         /// </summary>
-        public static BattleGemResourceConfig CreateRemakeV1() => new();
+        public static BattleGemResourceConfig CreateRemakeV1() =>
+            new(PerGemBases: RemakeV1PerGemBases);
     }
 
     public sealed record MonsterBattleBootstrapResponse(

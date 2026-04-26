@@ -130,7 +130,12 @@ namespace Twelve.Application.Handlers
             // Không set HP theo hpMultiplier cũ tại đây để tránh lệch với runtime/equipment preview.
             PlayerStatPipeline.RecalculateAndApply(player);
             player.Hp = player.MaxHp;
-            player.Mp = player.MaxMp;
+            // Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
+            // MP/Power are battle resources. Java client proves current bars (lh.u/lh.w), but there is
+            // no old server evidence that a newly-created character starts every battle with full MP.
+            // Keep DB current MP/Power at 0; battle bootstrap reads these values and match/resource
+            // gain is then owned by server-provided formulas instead of FE hardcoded refill.
+            player.Mp = 0;
             player.Power = 0;
 
             // ── Lưu diện mạo ──────────────────────────────────────────────────

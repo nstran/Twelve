@@ -642,6 +642,8 @@ Nguyên tắc:
 - Ghi chú cân bằng 2026-04-26: `BaseManaPerGem` phải thấp hơn heal base vì một scalar server đang áp chung cho mọi gem có MP. Nếu để `12`, các gem MP nhẹ kiểu Java-feel (`3/5`) bị đẩy lên thành hồi MP quá nhanh, dẫn tới spam skill.
 - `Base*PerGem` là input pacing do server phát xuống, không phải công thức Java gốc; nếu sau này tìm được packet/server Java thật thì thay tại server config trước, FE không tự sửa công thức.
 - FE chỉ được clamp/tween bar để hiển thị mượt sau khi đã nhận config/snapshot từ server; không được tự tính lại `GainPercent` từ Strength/Magic ở client.
+- Nhân vật mới tạo phải khởi tạo `CurrentMP = 0` và `CurrentPower = 0`, không set `CurrentMP = MaxMP`. Lý do: MP/Power hiện đang là battle resource tạm; DB current resource được `PlayerBattleStateFactory` dùng trực tiếp để bootstrap trận mới. Nếu seed/tạo nhân vật để `mp = maxmp`, trận đầu/trận kế tiếp sẽ vào battle với MP full, lệch policy reset MP/Power sau result.
+- Nếu dữ liệu DB cũ đã có `mp = maxmp`, cần migrate/reset current battle resource hiện có, ví dụ `UPDATE players SET mp = 0, power = 0;` theo môi trường dev/test trước khi kiểm chứng pacing battle.
 
 ### 5.1 Cường Lực tăng hồi HP và nộ/Power
 
@@ -1127,6 +1129,14 @@ ElementResistanceCap = 20%
 ---
 
 ## 10. Nhật Ký Chỉnh Sửa
+
+### 2026-04-26 — Create character không khởi tạo MP full
+
+- Phát hiện dữ liệu DB nhân vật mới có `mp = maxmp`, làm battle bootstrap vào trận với MP full dù `/battle/result` đã reset MP/Power về `0`.
+- Chốt policy: `MaxMP` vẫn tính theo `40 + level * 6 + TotalMagic * 8 + EquipmentMP`, nhưng `CurrentMP`/`CurrentPower` là tài nguyên tạm trong battle, nhân vật mới tạo khởi tạo `0`.
+- File code đã sửa:
+  - `server/Twelve.Application/Handlers/CreateCharacterHandler.cs`
+- Ghi chú vận hành: dữ liệu dev/test cũ có thể cần chạy `UPDATE players SET mp = 0, power = 0;` để đồng bộ current battle resource với policy mới.
 
 ### 2026-04-26 — Battle MP base pacing correction
 

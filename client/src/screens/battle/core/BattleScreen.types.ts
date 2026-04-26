@@ -442,10 +442,18 @@ export interface MonsterBattleBootstrapRequest {
   initialTurnSide: BattleSide;
 }
 
+export interface BattleGemResourceBase {
+  gemType: number;
+  baseHeal: number;
+  baseMana: number;
+  basePower: number;
+}
+
 export interface BattleGemResourceConfig {
   baseHealPerGem: number;
   baseManaPerGem: number;
   basePowerPerGem: number;
+  perGemBases?: BattleGemResourceBase[] | null;
 }
 
 export interface MonsterBattleBootstrapResponse {

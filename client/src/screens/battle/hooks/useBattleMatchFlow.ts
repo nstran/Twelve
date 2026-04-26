@@ -5,6 +5,7 @@ import {
   calcSwordDamage,
   collapseResolvedBoard,
   getGemFX,
+  getGemRenderType,
   getAllValidMoves,
   scaleManaGainByMagic,
   scalePeachGainByStrength,
@@ -80,6 +81,29 @@ interface RageBurstState {
 interface BonusTurnState {
   granted: boolean;
 }
+
+const getServerGemResourceBase = (
+  gem: GemType,
+  config?: BattleGemResourceConfig | null,
+): { heal: number; mana: number; pow: number } => {
+  const fx = getGemFX(gem);
+  const perGemBases = config?.perGemBases;
+  if (!perGemBases || perGemBases.length === 0) {
+    return {
+      heal: config?.baseHealPerGem ?? fx.heal,
+      mana: config?.baseManaPerGem ?? fx.mana,
+      pow: config?.basePowerPerGem ?? fx.pow,
+    };
+  }
+
+  const renderType = getGemRenderType(gem);
+  const entry = perGemBases.find(base => base.gemType === gem || base.gemType === renderType);
+  return {
+    heal: entry?.baseHeal ?? fx.heal,
+    mana: entry?.baseMana ?? fx.mana,
+    pow: entry?.basePower ?? fx.pow,
+  };
+};
 
 export const useBattleMatchFlow = ({
   mountedRef,
@@ -250,18 +274,16 @@ export const useBattleMatchFlow = ({
     Object.entries(counts).forEach(([gemKey, count]) => {
       const gem = Number(gemKey) as GemType;
       const fx = getGemFX(gem);
-      const healBase = gemResourceConfig?.baseHealPerGem ?? fx.heal;
-      const manaBase = gemResourceConfig?.baseManaPerGem ?? fx.mana;
-      const powerBase = gemResourceConfig?.basePowerPerGem ?? fx.pow;
+      const resourceBase = getServerGemResourceBase(gem, gemResourceConfig);
       // Server authority note:
       // PvE/PvP battle resource base values come from MonsterBattleBootstrapResponse.GemResourceConfig,
       // which is produced by the .NET battle rule factory from
       // docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
       // FE only preserves Java board color semantics (which gem family can grant HP/MP/Power)
-      // and applies server-provided base coefficients + server-provided gain percents.
-      baseHeal += Math.trunc((fx.heal > 0 ? healBase : 0) * count! / 3);
-      baseMp += Math.trunc((fx.mana > 0 ? manaBase : 0) * count! / 3);
-      pow += Math.trunc((fx.pow > 0 ? powerBase : 0) * count! / 3);
+      // and applies server-provided per-gem base coefficients + server-provided gain percents.
+      baseHeal += Math.trunc((fx.heal > 0 ? resourceBase.heal : 0) * count! / 3);
+      baseMp += Math.trunc((fx.mana > 0 ? resourceBase.mana : 0) * count! / 3);
+      pow += Math.trunc((fx.pow > 0 ? resourceBase.pow : 0) * count! / 3);
     });
     // dmg từ calcSwordDamage đã tính đúng raw, không nhân chain.
 
