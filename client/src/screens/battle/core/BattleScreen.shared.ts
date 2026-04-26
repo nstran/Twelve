@@ -19,8 +19,12 @@ export type GemType =
 export type FXKind = 'gold' | 'mp' | 'sword' | 'crystal_red';
 
 export interface BattleResourceProfile {
-  strength: number;
-  magic: number;
+  // Source: server-owned remake resource formula from
+  // docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
+  // FE must not recalculate raw stat -> percent; it only applies server-provided coefficients.
+  healGainPercent: number;
+  manaGainPercent: number;
+  powerGainPercent: number;
 }
 
 export type AILevel =
@@ -142,29 +146,24 @@ export const SWORD_DAMAGE: Record<typeof WHITE_SWORD_GEM | typeof RED_SWORD_GEM,
 };
 
 const GEM_FX_BASE: Record<VisibleGemType, { dmg: number; heal: number; mana: number; pow: number }> = {
-  0: { dmg: 5, heal: 0, mana: 0, pow: 5 },
-  1: { dmg: 0, heal: 28, mana: 0, pow: 2 },
-  2: { dmg: 0, heal: 5, mana: 15, pow: 3 },
-  3: { dmg: 0, heal: 0, mana: 0, pow: 5 },
-  4: { dmg: 0, heal: 10, mana: 5, pow: 3 },
-  5: { dmg: 0, heal: 0, mana: 8, pow: 4 },
-  6: { dmg: 0, heal: 0, mana: 0, pow: 2 },
-  8: { dmg: 5, heal: 0, mana: 0, pow: 5 },
+  // Java reconstruction note:
+  // Java client confirms `lh.s/r`, `lh.u/t`, `lh.w/v` battle bars and the board node
+  // families, but the old server-side exact resource gain table is not present in
+  // decompiled client code. These are remake-local per-3-match base gains chosen to
+  // keep level-1 pacing close to observed Java feel: MP should not refill from only
+  // a few small matches, HP/peach should not let monsters heal back too quickly, and
+  // Power/nộ should build gradually rather than replacing skill/combat damage.
+  0: { dmg: 5, heal: 0, mana: 0, pow: 3 },
+  1: { dmg: 0, heal: 12, mana: 0, pow: 1 },
+  2: { dmg: 0, heal: 2, mana: 8, pow: 1 },
+  3: { dmg: 0, heal: 0, mana: 0, pow: 3 },
+  4: { dmg: 0, heal: 4, mana: 3, pow: 1 },
+  5: { dmg: 0, heal: 0, mana: 5, pow: 2 },
+  6: { dmg: 0, heal: 0, mana: 0, pow: 1 },
+  8: { dmg: 5, heal: 0, mana: 0, pow: 3 },
 };
 
 export const GEM_FX: Record<VisibleGemType, { dmg: number; heal: number; mana: number; pow: number }> = GEM_FX_BASE;
-
-const RESOURCE_GAIN_BASELINE_STAT = 10;
-// Java client exposes HP/MP/Power bars in lh/mx and sends base stats as
-// lh.h/lh.i/lh.j/lh.k. The exact old server resource formula is not present in
-// the client; these factors keep the server-remake behavior aligned with the
-// recovered rule: Cường Lực makes peach/nộ gains faster, Nội Lực makes MP gains
-// faster, using integer truncation like the Java codebase.
-const HEAL_GAIN_PERCENT_PER_STRENGTH = 3;
-const POWER_GAIN_PERCENT_PER_STRENGTH = 3;
-const MANA_GAIN_PERCENT_PER_MAGIC = 3;
-const MIN_RESOURCE_GAIN_PERCENT = 80;
-const MAX_RESOURCE_GAIN_PERCENT = 180;
 
 const GEM_FX_KIND_BASE: Record<VisibleGemType, FXKind> = {
   0: 'sword',
@@ -195,38 +194,23 @@ export const getGemCategory = (gem: GemType): number => GEM_CATEGORIES[gem];
 
 export const getGemFX = (gem: GemType) => GEM_FX_BASE[getGemRenderType(gem)];
 
-const resolveResourceGainPercent = (statValue: number, percentPerPoint: number): number => {
-  const normalizedStat = Number.isFinite(statValue) ? Math.trunc(statValue) : RESOURCE_GAIN_BASELINE_STAT;
-  const percent = 100 + ((normalizedStat - RESOURCE_GAIN_BASELINE_STAT) * percentPerPoint);
-  return Math.max(MIN_RESOURCE_GAIN_PERCENT, Math.min(MAX_RESOURCE_GAIN_PERCENT, percent));
-};
-
 const scaleResourceGain = (baseAmount: number, percent: number): number =>
   Math.max(0, Math.trunc((Math.max(0, baseAmount) * percent) / 100));
 
 export const scalePeachGainByStrength = (
   baseHeal: number,
   profile?: BattleResourceProfile | null,
-): number => scaleResourceGain(
-  baseHeal,
-  resolveResourceGainPercent(profile?.strength ?? RESOURCE_GAIN_BASELINE_STAT, HEAL_GAIN_PERCENT_PER_STRENGTH),
-);
+): number => scaleResourceGain(baseHeal, profile?.healGainPercent ?? 100);
 
 export const scalePowerGainByStrength = (
   basePower: number,
   profile?: BattleResourceProfile | null,
-): number => scaleResourceGain(
-  basePower,
-  resolveResourceGainPercent(profile?.strength ?? RESOURCE_GAIN_BASELINE_STAT, POWER_GAIN_PERCENT_PER_STRENGTH),
-);
+): number => scaleResourceGain(basePower, profile?.powerGainPercent ?? 100);
 
 export const scaleManaGainByMagic = (
   baseMana: number,
   profile?: BattleResourceProfile | null,
-): number => scaleResourceGain(
-  baseMana,
-  resolveResourceGainPercent(profile?.magic ?? RESOURCE_GAIN_BASELINE_STAT, MANA_GAIN_PERCENT_PER_MAGIC),
-);
+): number => scaleResourceGain(baseMana, profile?.manaGainPercent ?? 100);
 
 export const getGemFXKind = (gem: GemType): FXKind => GEM_FX_KIND_BASE[getGemRenderType(gem)];
 

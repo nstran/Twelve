@@ -155,7 +155,11 @@ namespace Twelve.Core.Monsters
         int DodgeRate,
         int CriticalDamage,
         IReadOnlyList<MonsterSkillInstance> Skills,
-        MonsterAppearanceTemplate Appearance
+        MonsterAppearanceTemplate Appearance,
+        // Server-owned resource gain coefficients — §5 of 08-level-stat-exp-and-element-balance.md
+        int HealGainPercent = 100,
+        int ManaGainPercent = 100,
+        int PowerGainPercent = 100
     );
 
     public sealed record BattleCombatantSnapshot(
@@ -178,7 +182,11 @@ namespace Twelve.Core.Monsters
         int HitRate,
         int DodgeRate,
         int CriticalDamage,
-        IReadOnlyList<MonsterSkillInstance> Skills
+        IReadOnlyList<MonsterSkillInstance> Skills,
+        // Server-owned resource gain coefficients — §5 of 08-level-stat-exp-and-element-balance.md
+        int HealGainPercent = 100,
+        int ManaGainPercent = 100,
+        int PowerGainPercent = 100
     );
 
     public sealed record MonsterBattleBootstrapRequest(

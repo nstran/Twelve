@@ -113,17 +113,27 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const enemyMaxPow = Math.max(1, monsterBootstrap.enemy.maxPower);
   const playerResourceProfile = useMemo(
     () => ({
-      strength: playerBootstrap.strength,
-      magic: playerBootstrap.magic,
+      healGainPercent: playerBootstrap.healGainPercent,
+      manaGainPercent: playerBootstrap.manaGainPercent,
+      powerGainPercent: playerBootstrap.powerGainPercent,
     }),
-    [playerBootstrap.magic, playerBootstrap.strength],
+    [
+      playerBootstrap.healGainPercent,
+      playerBootstrap.manaGainPercent,
+      playerBootstrap.powerGainPercent,
+    ],
   );
   const enemyResourceProfile = useMemo(
     () => ({
-      strength: monsterBootstrap.enemy.strength,
-      magic: monsterBootstrap.enemy.magic,
+      healGainPercent: monsterBootstrap.enemy.healGainPercent,
+      manaGainPercent: monsterBootstrap.enemy.manaGainPercent,
+      powerGainPercent: monsterBootstrap.enemy.powerGainPercent,
     }),
-    [monsterBootstrap.enemy.magic, monsterBootstrap.enemy.strength],
+    [
+      monsterBootstrap.enemy.healGainPercent,
+      monsterBootstrap.enemy.manaGainPercent,
+      monsterBootstrap.enemy.powerGainPercent,
+    ],
   );
   const isPvpBattle = monsterBootstrap.battleKind === 'pvp';
 

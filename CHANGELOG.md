@@ -1,5 +1,117 @@
 # CHANGELOG
 
+## 2026-04-26 (X)
+
+### Battle resource/damage chuyển sang server authority
+
+**Vấn đề:**
+- Battle FE còn tự hardcode một phần công thức HP/MP/Power gain và damage/resource, trong khi spec hiện tại yêu cầu áp dụng từ server để tránh lệch logic.
+- PvE monster bootstrap chưa phát đủ metadata resource gain server-owned cho client battle runtime.
+
+**Sửa:**
+- Mở rộng battle/session contract để trả `HealGainPercent`, `ManaGainPercent`, `PowerGainPercent`.
+- Sửa server battle bootstrap:
+  - player battle state lấy stat/resource từ `PlayerStatPipeline`/Java-faithful status hiện có;
+  - monster battle state tính resource gain trên server theo rule remake có ghi nguồn từ `08-level-stat-exp-and-element-balance.md §5`;
+  - snapshot bootstrap trả resource gain percent cho cả player và enemy.
+- Sửa client battle:
+  - thêm type contract cho resource gain percent;
+  - hydrate battle combatant từ server snapshot thay vì tự suy diễn bằng công thức FE;
+  - gem HP/MP/Power gain dùng percent server trả về, chỉ fallback `100` cho compatibility snapshot cũ.
+- Giữ `GEM_FX_BASE` ở FE là bảng base hiệu ứng gem/visual pacing; phần scale theo stat đã chuyển sang server authority.
+- Sửa `BattleTurnEngine` để damage/skill/power gain lấy stat server-owned từ `BattleSessionCombatantState`:
+  - damage dùng `MinDamage/MaxDamage`, `Defense`, `HitRate`, `DodgeRate`, `CriticalDamage`;
+  - bỏ cộng thêm stat/level hardcode FE-like trong turn engine để tránh double-count với `PlayerStatPipeline`;
+  - Power gain của người đánh/người bị đánh scale qua `PowerGainPercent` server bootstrap.
+
+**Căn cứ:**
+- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`: Java client xác nhận HP/MP/Power bar (`lh.s/r`, `lh.u/t`, `lh.w/v`) nhưng không có server formula cũ; remake v1 dùng integer math và TotalStat cho resource.
+- `PLAYER_CHARACTER_RECONSTRUCTION.md`: status/derived stat gửi client phải bám Java `jp/jq/js/jr`, không áp soft-cap ở tầng hiển thị nhân vật.
+- `docs/combat-formulas.md` và `BATTLE_SYSTEM_RECONSTRUCTION.md`: Java client chỉ render delta/kết quả server gửi, không chứa công thức damage cuối; server remake phải là authority cho damage/resource.
+
+**Kiểm tra:**
+- Chờ chạy `npx tsc -p client/tsconfig.json --noEmit`.
+- Chờ chạy `dotnet build Twelve.sln`.
+
+**File đã sửa:**
+- `server/Twelve.Core/Battle/BattleSessionContracts.cs`
+- `server/Twelve.Core/Monsters/MonsterContracts.cs`
+- `server/Twelve.Application/Battle/PlayerBattleStateFactory.cs`
+- `server/Twelve.Application/Battle/BattleTurnEngine.cs`
+- `server/Twelve.Application/Monsters/MonsterBattleBootstrapService.cs`
+- `client/src/screens/battle/core/BattleScreen.shared.ts`
+- `client/src/screens/battle/core/BattleScreen.types.ts`
+- `client/src/screens/battle/BattleScreen.tsx`
+- `CHANGELOG.md`
+
+---
+
+## 2026-04-26 (W)
+
+### Cân bằng lại công thức HP/MP/Nộ từ match gem — level 1 quá nhanh
+
+**Vấn đề:**
+- Level 1 ăn 3 viên MP đã thấy thanh MP tăng nhanh, trong khi Java cũ cần nhiều viên hơn mới thấy rõ tác dụng.
+- Quái vật ăn Trái Đào/viên đào hồi HP cực nhanh do Cường Lực scale `3%/point`, cap `180%` và giá trị base heal viên đào `28` quá lớn.
+- Power/nộ tích nhanh do scale `3%/point` khiến rage burst x2 xuất hiện sớm hơn dự tính.
+
+**Nguyên nhân:**
+- `GEM_FX_BASE` cũ: heal `28`, mana `15`, pow `5` — quá cao cho balance level 1.
+- `HEAL_GAIN_PERCENT_PER_STRENGTH/MANA_GAIN_PERCENT_PER_MAGIC/POWER_GAIN_PERCENT_PER_STRENGTH = 3%/point`, cap `180%` — Cường Lực/Nội Lực 10 điểm (level 1) đã cho `100%`, nhưng quái có stat cao hơn player thì heal/mp gain càng lớn.
+
+**Sửa:**
+- Sửa `client/src/screens/battle/core/BattleScreen.shared.ts`:
+  - `GEM_FX_BASE` viên đào (cat 1): `heal 28 → 12`, `pow 2 → 1`.
+  - `GEM_FX_BASE` viên đào/mana mixed (cat 2): `heal 5 → 2`, `mana 15 → 8`, `pow 3 → 1`.
+  - `GEM_FX_BASE` mixed (cat 4): `heal 10 → 4`, `mana 5 → 3`, `pow 3 → 1`.
+  - `GEM_FX_BASE` mana (cat 5): `mana 8 → 5`, `pow 4 → 2`.
+  - `GEM_FX_BASE` sword (cat 0/8): `pow 5 → 3`.
+  - `GEM_FX_BASE` gold (cat 6): `pow 2 → 1`.
+  - `HEAL_GAIN_PERCENT_PER_STRENGTH`: `3 → 1`.
+  - `POWER_GAIN_PERCENT_PER_STRENGTH`: `3 → 1`.
+  - `MANA_GAIN_PERCENT_PER_MAGIC`: `3 → 1`.
+  - `MIN_RESOURCE_GAIN_PERCENT`: `80 → 90`.
+  - `MAX_RESOURCE_GAIN_PERCENT`: `180 → 140`.
+  - Thêm comment ghi rõ đây là giá trị remake có kiểm soát, chưa có server Java source cụ thể.
+
+**Căn cứ:**
+- Java client xác nhận các bar `lh.s/r` (HP), `lh.u/t` (MP), `lh.w/v` (Power) nhưng không chứa bảng resource gain theo gem của server cũ.
+- Remake cần pacing gần Java cũ: ăn 3 viên MP nhỏ chỉ được ~1/4 thanh MP ở level 1, không phải hơn.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+- `dotnet build Twelve.sln` → thành công, 0 Warning, 0 Error.
+
+**File đã sửa:**
+- `client/src/screens/battle/core/BattleScreen.shared.ts`
+- `CHANGELOG.md`
+
+---
+
+## 2026-04-25 (V)
+
+### Khôi phục natural special spawn match 4/5 theo Java
+
+**Sửa:**
+- Sửa `client/src/screens/battle/core/BattleScreen.logic.ts`:
+  - khôi phục `resolveSpawnGem` theo `mq.java:691-699`;
+  - cross hoặc line `>= 5` spawn `20..25` (`type 4`, clear hàng + cột);
+  - line `>= 4` spawn `10..15` (`type 2`, clear 8 ô lân cận);
+  - node mask `64`/`70` không nâng cấp special tự nhiên.
+- Rà `Quan`/`Gold(KEN)` PvE reward: không phát hiện thêm chỗ cần sửa ngoài trạng thái Gold/KEN đã tách trước đó.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md` thêm nhật ký và boundary: `nq.D`/`nq.F` vẫn là packet/server result, local `bonusTurnCandidate` chỉ là heuristic cho đến khi có packet log/server source.
+
+**Kiểm tra:**
+- `npx tsc -p client/tsconfig.json --noEmit` → thành công.
+- `dotnet build Twelve.sln` → lần đầu fail do DLL bị lock bởi `Twelve.Server (PID 11464)`; đã `taskkill /F /PID 11464` rồi build lại thành công, 0 Warning, 0 Error.
+
+**File đã sửa:**
+- `client/src/screens/battle/core/BattleScreen.logic.ts`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-25 (U)
 
 ### Battle result tách Gold/KEN khỏi Quan paid currency

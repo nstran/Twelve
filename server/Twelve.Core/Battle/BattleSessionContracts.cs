@@ -39,7 +39,14 @@ namespace Twelve.Core.Battle
         IReadOnlyList<BattleSessionSkillInstance> Skills,
         int Level = 1,
         int IqValue = 0,
-        string? AiProfileId = null
+        string? AiProfileId = null,
+        // Remake battle resource coefficients from docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
+        // Java client only proves HP/MP/Power bars exist; exact old server formula is unavailable, so server owns these values.
+        // Formula: HealGainPercent = PowerGainPercent = clamp(80,180, 100 + (TotalStrength-10)*3)
+        //          ManaGainPercent = clamp(80,180, 100 + (TotalMagic-10)*3)
+        int HealGainPercent = 100,
+        int ManaGainPercent = 100,
+        int PowerGainPercent = 100
     );
 
     public sealed record BattleSessionState(

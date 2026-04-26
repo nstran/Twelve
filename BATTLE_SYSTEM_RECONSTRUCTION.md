@@ -918,6 +918,67 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
 
 ## Nhật ký chỉnh sửa
 
+### 2026-04-26 — Battle resource scale chuyển sang server authority
+
+- File code đã sửa:
+  - `server/Twelve.Core/Battle/BattleSessionContracts.cs`
+  - `server/Twelve.Core/Monsters/MonsterContracts.cs`
+  - `server/Twelve.Application/Battle/PlayerBattleStateFactory.cs`
+  - `server/Twelve.Application/Monsters/MonsterBattleBootstrapService.cs`
+  - `client/src/screens/battle/core/BattleScreen.shared.ts`
+  - `client/src/screens/battle/core/BattleScreen.types.ts`
+  - `client/src/screens/battle/BattleScreen.tsx`
+- Nội dung:
+  - Mở rộng combatant snapshot trả `HealGainPercent`, `ManaGainPercent`, `PowerGainPercent` để server là nguồn truth cho scale HP/MP/Nộ từ match gem.
+  - Player combat state lấy stat/status từ `PlayerStatPipeline`, giữ status Java-faithful `jp/jq/js/jr` đã port trước đó.
+  - Monster combat state tính resource percent ở server theo TotalStrength/TotalMagic của monster.
+  - Client bỏ tự suy diễn scale resource theo stat cục bộ; `applyGemFx` dùng percent server trả về, fallback `100%` chỉ để tương thích snapshot cũ.
+  - `GEM_FX_BASE` ở FE chỉ còn là base effect/visual pacing của từng loại gem, không còn là nơi quyết định stat scaling.
+  - `BattleTurnEngine` tiêu thụ trực tiếp stat server-owned trong `BattleSessionCombatantState`: `MinDamage/MaxDamage`, `Defense`, `HitRate`, `DodgeRate`, `CriticalDamage`, `PowerGainPercent`.
+  - Bỏ nhánh cộng thêm `ResolveAttackStat()`/level/stat hardcode trong damage turn engine để không double-count với `PlayerStatPipeline`/status Java-faithful.
+  - Power gain từ skill và từ nhận damage được scale bằng `PowerGainPercent` do server bootstrap, không để FE tự quyết.
+- Nguồn suy luận:
+  - `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`: Java client chỉ xác nhận HP/MP/Power bar, công thức gain là rule remake có kiểm soát.
+  - `PLAYER_CHARACTER_RECONSTRUCTION.md`: status hiển thị phải bám Java, battle/resource là tầng riêng được phép có remake rule khi ghi rõ nguồn.
+  - `docs/combat-formulas.md`: Java client chỉ áp/render delta authoritative, không chứa final server damage formula.
+  - Không có server Java mẫu, nên mọi resource/damage gain mới được comment là reconstruction/remake, không gắn nhãn Java gốc.
+
+### 2026-04-26 — Cân bằng lại HP/MP/Nộ từ match gem level thấp
+
+- File code đã sửa:
+  - `client/src/screens/battle/core/BattleScreen.shared.ts`
+- Nội dung:
+  - Giảm base resource gain của `GEM_FX_BASE` để level 1 không hồi MP/HP/nộ quá nhanh:
+    - viên đào `heal 28 -> 12`;
+    - viên MP chính `mana 15 -> 8`;
+    - các viên mixed giảm heal/mana/power tương ứng;
+    - Power/nộ trên sword/gold/resource giảm để thanh nộ tích dần hơn.
+  - Giảm scaling theo stat resource:
+    - Cường Lực tăng hồi HP/nộ từ `3%/point` xuống `1%/point`;
+    - Nội Lực tăng hồi MP từ `3%/point` xuống `1%/point`;
+    - cap resource từ `80..180%` thành `90..140%`.
+  - Lý do: Java client xác nhận bar `lh.s/r`, `lh.u/t`, `lh.w/v` và battle HUD `mx`, nhưng không có công thức server cũ chính xác cho bảng ăn gem. Remake phải ưu tiên pacing quan sát từ Java cũ: level 1 ăn 3 viên MP chỉ nên tăng khoảng một phần nhỏ thanh MP, quái ăn đào không được hồi quá nhanh chỉ vì stat Cường Lực.
+- Nguồn suy luận:
+  - `docs/player-character-reconstruction/02-truth-payload-and-tags.md`: mapping HP/MP/Power `lh`.
+  - `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`: resource là tầng remake có cap, không phải công thức Java status.
+  - Phản hồi test gameplay level 1: MP/HP/nộ tăng quá nhanh so với Java cũ.
+
+### 2026-04-25 — Khôi phục natural special spawn match 4/5 theo Java
+
+- File code đã sửa:
+  - `client/src/screens/battle/core/BattleScreen.logic.ts`
+- Nội dung:
+  - Rà lại `mq.java`, `mr.java`, `nj.java` để xác minh natural match dài thật sự spawn special node:
+    - cross hoặc line `>= 5` spawn `mr.y[baseId]` = `20..25` (`type 4`, clear hàng + cột);
+    - line `>= 4` spawn `mr.x[baseId]` = `10..15` (`type 2`, clear 8 ô lân cận);
+    - chỉ node có `mask < 64` mới được nâng cấp, nên node `70`/gold mask `64` không spawn special tự nhiên.
+  - Sửa `resolveSpawnGem` trong client để không còn disable natural special spawn. Special mới vẫn spawn sau khi clear line cũ, bám flow `mq.a(nj[][])`.
+  - Giữ ghi chú boundary: `nq.D` thêm thời gian và `nq.F` thêm lượt là kết quả packet/turn-result server Java, không chứng minh được 100% từ client rằng natural match 4/5 tự sinh thêm time/turn. Remake hiện tại vẫn giữ heuristic `bonusTurnCandidate` cho match `>= 4` như contract local cũ cho đến khi có packet log/server source.
+- Nguồn suy luận:
+  - `reference/redecoded/decompiled/mq.java:691-699`
+  - `reference/redecoded/decompiled/mr.java:4-6`
+  - `reference/redecoded/decompiled/nj.java:41-62`
+
 ### 2026-04-25 — Sửa visual special board và bỏ global API loading battle
 
 - File code đã sửa:

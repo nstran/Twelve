@@ -552,17 +552,23 @@ const collectSpecialChainKeys = (board: Board, initialKeys: Set<string>): Set<st
   return cleared;
 };
 
-const resolveSpawnGem = (_line: JavaAxisLine): GemType | null => {
-  // Java-reconstruction safety rule:
-  // The recovered client proves stateful board ids (`nj` state 2/4, ids 10..15/20..25)
-  // and skill-created mark state 10, but it does NOT prove Candy-Crush style
-  // "leave one special gem after matching >=4" for normal HP/MP/peach/gold pieces.
-  //
-  // The previous remake spawned 10..15/20..25 from natural 4/5 matches. That made
-  // ordinary mana/peach pieces persist with a special background and later clear
-  // a 3x3 or whole row+column, exactly the bug seen in screenshots. Until a Java
-  // method proves natural special spawning, normal matches must clear all matched
-  // pieces; special states remain reserved for explicit skill/server mutations.
+const resolveSpawnGem = (line: JavaAxisLine): GemType | null => {
+  // Java reconstruction note:
+  // `mq.a(nj[][])` lines 691-699 spawns `mr.y[baseId]` (20..25/type 4)
+  // for cross or len >= 5, and `mr.x[baseId]` (10..15/type 2) for len >= 4.
+  // `nj.java` line 60 shows mask 64 node `70` is not upgraded by this branch
+  // (`object.a.e < 64`), so only base categories 0..5 can naturally spawn specials.
+  const base = line.category;
+  if (base < 0 || base >= TYPE2_SPECIAL_BY_BASE.length) return null;
+
+  if ((line.hLen >= 3 && line.vLen >= 3) || line.hLen >= 5 || line.vLen >= 5) {
+    return TYPE4_SPECIAL_BY_BASE[base] ?? null;
+  }
+
+  if (line.hLen >= 4 || line.vLen >= 4) {
+    return TYPE2_SPECIAL_BY_BASE[base] ?? null;
+  }
+
   return null;
 };
 

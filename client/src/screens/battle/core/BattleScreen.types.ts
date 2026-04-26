@@ -399,6 +399,9 @@ export interface BattleCombatantSnapshotDto {
   hitRate: number;
   dodgeRate: number;
   criticalDamage: number;
+  healGainPercent: number;
+  manaGainPercent: number;
+  powerGainPercent: number;
   skills: MonsterBattleSkillInstanceDto[];
 }
 
@@ -425,6 +428,9 @@ export interface MonsterBattleInstanceDto {
   hitRate: number;
   dodgeRate: number;
   criticalDamage: number;
+  healGainPercent: number;
+  manaGainPercent: number;
+  powerGainPercent: number;
   skills: MonsterBattleSkillInstanceDto[];
   appearance: MonsterBattleAppearanceDto;
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System;
+using Twelve.Application.Battle;
 using Twelve.Core.Battle;
 using Twelve.Core.Entities;
 using Twelve.Core.Interfaces;
@@ -82,13 +83,17 @@ namespace Twelve.Application.Monsters
                 DodgeRate: battleTemplate.DodgeRate,
                 CriticalDamage: battleTemplate.CriticalDamage,
                 Skills: CreateSkillInstances(battleTemplate.Skills),
-                Appearance: battleTemplate.Appearance);
+                Appearance: battleTemplate.Appearance,
+                // Source: §5 of 08-level-stat-exp-and-element-balance.md; monsters use same formula as players.
+                HealGainPercent: ComputeStrengthResourceGainPercent(battleTemplate.Strength),
+                ManaGainPercent: ComputeMagicResourceGainPercent(battleTemplate.Magic),
+                PowerGainPercent: ComputeStrengthResourceGainPercent(battleTemplate.Strength));
 
             var sessionId = Guid.NewGuid().ToString("N");
             var initialBoard = _battleBoardService.CreateInitialBoard();
             var playerState = playerAggregate is null
-                ? CreateDefaultPlayerState()
-                : CreatePlayerSessionState(playerAggregate);
+                ? PlayerBattleStateFactory.CreateDefault()
+                : PlayerBattleStateFactory.Create(playerAggregate, BattleSide.Player);
             var enemyState = CreateEnemySessionState(enemy, spawnTemplate.IqValue, battleTemplate.AiProfileId);
 
             _battleSessionStore.Save(new BattleSessionState(
@@ -114,72 +119,18 @@ namespace Twelve.Application.Monsters
                 InitialTurnSide: request.InitialTurnSide,
                 SharedSheetFamily: asset?.SharedSheetFamily,
                 InitialBoard: initialBoard,
-                Player: CreateCombatantSnapshot(playerState),
+                Player: PlayerBattleStateFactory.CreateSnapshot(playerState),
                 Enemy: enemy);
         }
 
-        private static BattleSessionCombatantState CreatePlayerSessionState(PlayerAggregate aggregate)
-        {
-            var player = aggregate.Core;
-            var stats = aggregate.Stats;
-            var maxHp = Math.Max(1, player.MaxHp);
-            var currentHp = Math.Clamp(player.Hp <= 0 ? maxHp : player.Hp, 1, maxHp);
-            var maxMp = Math.Max(0, player.MaxMp);
-            var maxPower = Math.Max(0, player.MaxPower);
-            var minDamage = Math.Max(0, stats.MinDamage);
-            var maxDamage = Math.Max(minDamage, stats.MaxDamage);
+        // Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
+        // Java client proves HP/MP/Power bars (`lh.u/t`, `lh.w/v`) but not old server resource formula.
+        // Remake rule v1 keeps Java-like integer math and moves resource scaling to server authority.
+        private static int ComputeStrengthResourceGainPercent(int strength) =>
+            Math.Clamp(100 + ((strength - 10) * 3), 80, 180);
 
-            return new BattleSessionCombatantState(
-                CombatantId: $"player:{player.Id}",
-                DisplayName: player.Username,
-                Side: BattleSide.Player,
-                CurrentHp: currentHp,
-                MaxHp: maxHp,
-                CurrentMp: 0,
-                MaxMp: maxMp,
-                CurrentPower: 0,
-                MaxPower: maxPower,
-                Strength: stats.CuongLuc + stats.BonusCuongLuc,
-                Agility: stats.ThanPhap + stats.BonusThanPhap,
-                Magic: stats.NoiLuc + stats.BonusNoiLuc,
-                Vitality: stats.TheLuc + stats.BonusTheLuc,
-                MinDamage: minDamage,
-                MaxDamage: maxDamage,
-                Defense: stats.Defense,
-                HitRate: stats.Hit,
-                DodgeRate: stats.Dodge,
-                CriticalDamage: stats.Crit,
-                Skills: CreateSessionSkills(aggregate.Skills),
-                Level: player.Level,
-                IqValue: 0,
-                AiProfileId: null);
-        }
-
-        private static BattleSessionCombatantState CreateDefaultPlayerState() =>
-            new(
-                CombatantId: "player:self",
-                DisplayName: "Player",
-                Side: BattleSide.Player,
-                CurrentHp: 100,
-                MaxHp: 100,
-                CurrentMp: 30,
-                MaxMp: 100,
-                CurrentPower: 40,
-                MaxPower: 100,
-                Strength: 12,
-                Agility: 10,
-                Magic: 8,
-                Vitality: 10,
-                MinDamage: 10,
-                MaxDamage: 16,
-                Defense: 5,
-                HitRate: 85,
-                DodgeRate: 5,
-                CriticalDamage: 110,
-                Skills: [],
-                Level: 10,
-                IqValue: 0,
-                AiProfileId: null);
+        private static int ComputeMagicResourceGainPercent(int magic) =>
+            Math.Clamp(100 + ((magic - 10) * 3), 80, 180);
 
         private static BattleSessionCombatantState CreateEnemySessionState(
             MonsterBattleInstance enemy,
@@ -208,7 +159,10 @@ namespace Twelve.Application.Monsters
                 Skills: CreateSessionSkills(enemy.Skills),
                 Level: enemy.Level,
                 IqValue: iqValue,
-                AiProfileId: aiProfileId);
+                AiProfileId: aiProfileId,
+                HealGainPercent: enemy.HealGainPercent,
+                ManaGainPercent: enemy.ManaGainPercent,
+                PowerGainPercent: enemy.PowerGainPercent);
 
         private static IReadOnlyList<MonsterSkillInstance> CreateSkillInstances(
             IReadOnlyList<MonsterSkillTemplate> templates)
@@ -242,69 +196,6 @@ namespace Twelve.Application.Monsters
             foreach (var skill in skills)
             {
                 instances.Add(new BattleSessionSkillInstance(
-                    SkillId: skill.SkillId,
-                    Level: skill.Level,
-                    ManaCost: skill.ManaCost));
-            }
-
-            return instances;
-        }
-
-        private static IReadOnlyList<BattleSessionSkillInstance> CreateSessionSkills(
-            IReadOnlyList<PlayerSkillEntry> skills)
-        {
-            if (skills.Count == 0)
-            {
-                return [];
-            }
-
-            var instances = new List<BattleSessionSkillInstance>(skills.Count);
-            foreach (var skill in skills)
-            {
-                instances.Add(new BattleSessionSkillInstance(
-                    SkillId: skill.SkillId,
-                    Level: Math.Max(1, skill.Level),
-                    ManaCost: 0));
-            }
-
-            return instances;
-        }
-
-        private static BattleCombatantSnapshot CreateCombatantSnapshot(BattleSessionCombatantState state) =>
-            new(
-                CombatantId: state.CombatantId,
-                DisplayName: state.DisplayName,
-                Level: state.Level,
-                CurrentHp: state.CurrentHp,
-                MaxHp: state.MaxHp,
-                CurrentMp: state.CurrentMp,
-                MaxMp: state.MaxMp,
-                CurrentPower: state.CurrentPower,
-                MaxPower: state.MaxPower,
-                Strength: state.Strength,
-                Agility: state.Agility,
-                Magic: state.Magic,
-                Vitality: state.Vitality,
-                MinDamage: state.MinDamage,
-                MaxDamage: state.MaxDamage,
-                Defense: state.Defense,
-                HitRate: state.HitRate,
-                DodgeRate: state.DodgeRate,
-                CriticalDamage: state.CriticalDamage,
-                Skills: CreateSkillInstances(state.Skills));
-
-        private static IReadOnlyList<MonsterSkillInstance> CreateSkillInstances(
-            IReadOnlyList<BattleSessionSkillInstance> skills)
-        {
-            if (skills.Count == 0)
-            {
-                return [];
-            }
-
-            var instances = new List<MonsterSkillInstance>(skills.Count);
-            foreach (var skill in skills)
-            {
-                instances.Add(new MonsterSkillInstance(
                     SkillId: skill.SkillId,
                     Level: skill.Level,
                     ManaCost: skill.ManaCost));

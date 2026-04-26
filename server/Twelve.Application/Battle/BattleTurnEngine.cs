@@ -10,9 +10,10 @@ namespace Twelve.Application.Battle
     {
         private const int DefaultPlayerSkillLevel = 12;
         private const int MinimumPowerGain = 3;
-        private const int BaseHitChancePercent = 80;
-        private const int MinHitChancePercent = 20;
-        private const int MaxHitChancePercent = 95;
+        private const int BattleHitBasePercent = 75;
+        private const int BattleHitMinPercent = 60;
+        private const int BattleHitMaxPercent = 95;
+        private const int BattleCriticalDamagePercent = 150;
         private readonly IBattleSessionStore _battleSessionStore;
         private readonly IBattleBoardService _battleBoardService;
 
@@ -158,7 +159,7 @@ namespace Twelve.Application.Battle
                 actorDeltas.Add(new BattleSkillActorDelta(caster.Side, PowerDelta: -caster.CurrentPower));
             }
 
-            var casterPowerGain = CalculateCasterPowerGain(baseSeed, skillLevel, damage);
+            var casterPowerGain = CalculateCasterPowerGain(caster, baseSeed, skillLevel, damage);
             if (casterPowerGain != 0)
             {
                 actorDeltas.Add(new BattleSkillActorDelta(caster.Side, PowerDelta: casterPowerGain));
@@ -273,9 +274,9 @@ namespace Twelve.Application.Battle
             //   result deltas; no final damage formula exists in client, so this server-local
             //   authority must consume the Java-faithful character stats instead of client heuristics.
             var hitChance = Math.Clamp(
-                BaseHitChancePercent + ((caster.HitRate - target.DodgeRate) / 4),
-                MinHitChancePercent,
-                MaxHitChancePercent);
+                BattleHitBasePercent + ((caster.HitRate - target.DodgeRate) / 5),
+                BattleHitMinPercent,
+                BattleHitMaxPercent);
             if (!RollPercent(hitChance))
             {
                 return 0;
@@ -284,21 +285,18 @@ namespace Twelve.Application.Battle
             var weaponRoll = caster.MinDamage >= caster.MaxDamage
                 ? caster.MinDamage
                 : Random.Shared.Next(caster.MinDamage, caster.MaxDamage + 1);
-            var primaryStat = ResolveAttackStat(caster, familyCode);
-            var statBonus = Math.Max(0, primaryStat / 3);
-            var levelBonus = Math.Max(0, caster.Level + skillLevel);
-            var skillPercent = 100 + ((skillLevel - 1) * 6);
-            var rawDamage = ((weaponRoll + statBonus + levelBonus) * skillPercent) / 100;
+            var skillPercent = 100 + ((Math.Clamp(skillLevel, 1, DefaultPlayerSkillLevel) - 1) * 6);
+            var rawDamage = (Math.Max(1, weaponRoll) * skillPercent) / 100;
 
-            var defenseReduction = Math.Max(0, target.Defense) + Math.Max(0, target.Vitality / 4);
+            var defenseReduction = Math.Max(0, target.Defense);
             var mitigatedDamage = Math.Max(1, rawDamage - defenseReduction);
             var variancePercent = 92 + Random.Shared.Next(17);
             var variedDamage = Math.Max(1, (mitigatedDamage * variancePercent) / 100);
 
-            var critChance = Math.Clamp(caster.CriticalDamage, 0, 30);
+            var critChance = Math.Clamp(caster.CriticalDamage, 0, 40);
             if (RollPercent(critChance))
             {
-                variedDamage = (variedDamage * 150) / 100;
+                variedDamage = (variedDamage * BattleCriticalDamagePercent) / 100;
             }
 
             if (rageBurstActive)
@@ -389,16 +387,8 @@ namespace Twelve.Application.Battle
                 : null;
         }
 
-        private static int ResolveAttackStat(BattleSessionCombatantState caster, int familyCode) =>
-            (familyCode / 1000) switch
-            {
-                1 => caster.Strength + (caster.Agility / 3),
-                2 => caster.Magic + (caster.Agility / 2),
-                4 => caster.Magic + (caster.Vitality / 3),
-                _ => caster.Strength,
-            };
-
         private static int CalculateCasterPowerGain(
+            BattleSessionCombatantState caster,
             BattleSkillPacketSeed baseSeed,
             int skillLevel,
             int? damage)
@@ -416,20 +406,23 @@ namespace Twelve.Application.Battle
                 baseGain += Math.Clamp(damage.Value / 20, 1, 5);
             }
 
-            return Math.Clamp(baseGain + (skillLevel / 4), MinimumPowerGain, 14);
+            var unscaledGain = Math.Clamp(baseGain + (skillLevel / 4), MinimumPowerGain, 14);
+            return ScaleResourceGain(unscaledGain, caster.PowerGainPercent);
         }
 
         private static int CalculateTargetPowerGain(int damage, BattleSessionCombatantState target) =>
-            Math.Clamp(1 + (damage / Math.Max(20, target.MaxHp / 5)), 1, 7);
+            ScaleResourceGain(
+                Math.Clamp(1 + (damage / Math.Max(20, target.MaxHp / 5)), 1, 7),
+                target.PowerGainPercent);
 
         private static int EstimateSkillPressure(
             BattleSessionState session,
             BattleSessionSkillInstance skill)
         {
             var averageDamage = (session.Enemy.MinDamage + session.Enemy.MaxDamage) / 2;
-            var attackStat = ResolveAttackStat(session.Enemy, skill.SkillId);
-            var rawDamage = averageDamage + (attackStat / 3) + session.Enemy.Level + skill.Level;
-            var mitigatedDamage = rawDamage - (session.Player.Defense + (session.Player.Vitality / 4));
+            var skillPercent = 100 + ((Math.Clamp(skill.Level, 1, DefaultPlayerSkillLevel) - 1) * 6);
+            var rawDamage = (Math.Max(1, averageDamage) * skillPercent) / 100;
+            var mitigatedDamage = rawDamage - Math.Max(0, session.Player.Defense);
             return Math.Max(1, mitigatedDamage);
         }
 
@@ -486,6 +479,9 @@ namespace Twelve.Application.Battle
                 6 or 70 => 6,
                 _ => null,
             };
+
+        private static int ScaleResourceGain(int baseGain, int percent) =>
+            Math.Max(0, (Math.Max(0, baseGain) * Math.Clamp(percent, 0, 300)) / 100);
 
         private static bool RollPercent(int percent) =>
             Random.Shared.Next(100) < Math.Clamp(percent, 0, 100);

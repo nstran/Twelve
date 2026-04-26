@@ -1071,6 +1071,49 @@ ElementResistanceCap = 20%
 
 ## 10. Nhật Ký Chỉnh Sửa
 
+### 2026-04-26 — Battle resource scale chuyển sang server authority
+
+- Áp dụng rule resource §5 vào battle runtime từ server thay vì để FE tự hardcode theo stat.
+- Mở rộng battle/session snapshot thêm:
+  - `HealGainPercent`
+  - `ManaGainPercent`
+  - `PowerGainPercent`
+- Player battle state lấy chỉ số từ `PlayerStatPipeline`/status Java-faithful hiện có; không áp soft-cap vào tầng status hiển thị.
+- Monster battle state tính resource gain percent trên server bằng integer math theo rule remake §5:
+  - Cường Lực scale HP/Power.
+  - Nội Lực scale MP.
+- Client battle chỉ dùng percent server trả về để scale `GEM_FX_BASE`; fallback `100%` chỉ để tương thích payload cũ.
+- File code đã sửa:
+  - `server/Twelve.Core/Battle/BattleSessionContracts.cs`
+  - `server/Twelve.Core/Monsters/MonsterContracts.cs`
+  - `server/Twelve.Application/Battle/PlayerBattleStateFactory.cs`
+  - `server/Twelve.Application/Monsters/MonsterBattleBootstrapService.cs`
+  - `client/src/screens/battle/core/BattleScreen.shared.ts`
+  - `client/src/screens/battle/core/BattleScreen.types.ts`
+  - `client/src/screens/battle/BattleScreen.tsx`
+
+### 2026-04-26 — Battle damage/resource server authority
+
+- Áp dụng boundary battle mới: FE chỉ hydrate/render/tween HP/MP/Power, còn scale resource và damage turn result lấy từ server snapshot/session state.
+- File code đã sửa:
+  - `server/Twelve.Core/Battle/BattleSessionContracts.cs`
+  - `server/Twelve.Core/Monsters/MonsterContracts.cs`
+  - `server/Twelve.Application/Battle/PlayerBattleStateFactory.cs`
+  - `server/Twelve.Application/Monsters/MonsterBattleBootstrapService.cs`
+  - `server/Twelve.Application/Battle/BattleTurnEngine.cs`
+  - `client/src/screens/battle/core/BattleScreen.shared.ts`
+  - `client/src/screens/battle/core/BattleScreen.types.ts`
+  - `client/src/screens/battle/BattleScreen.tsx`
+- Nội dung logic:
+  - Battle snapshot trả `HealGainPercent`, `ManaGainPercent`, `PowerGainPercent`.
+  - Player battle combat state lấy status Java-faithful từ `PlayerStatPipeline`.
+  - Monster combat state tự tính resource percent ở server theo rule remake §5 vì không có server Java mẫu.
+  - `BattleTurnEngine` dùng `MinDamage/MaxDamage`, `Defense`, `HitRate`, `DodgeRate`, `CriticalDamage`, `PowerGainPercent` từ `BattleSessionCombatantState`; bỏ công thức cộng thêm stat/level hardcode để tránh double-count.
+  - Client `GEM_FX_BASE` chỉ còn là base effect/visual pacing, không còn là nguồn quyết định scale theo stat.
+- Căn cứ:
+  - Java client xác nhận `lh.s/r`, `lh.u/t`, `lh.w/v` và HUD `mx` nhưng chỉ render/apply delta server; không có công thức gain/damage cuối của server cũ trong client.
+  - Rule resource §5 là remake có kiểm soát, phải nằm ở server để tránh FE hardcode lệch logic.
+
 ### 2026-04-25 — Java-faithful status formula correction
 
 - Đối chiếu lại Java `jq/js/jr` và `com.mg.sq.a.a(lh)` để chốt công thức 6 chỉ số status:

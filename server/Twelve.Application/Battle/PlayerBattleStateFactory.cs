@@ -22,6 +22,8 @@ namespace Twelve.Application.Battle
             var maxPower = Math.Max(0, player.MaxPower);
             var minDamage = Math.Max(0, stats.MinDamage);
             var maxDamage = Math.Max(minDamage, stats.MaxDamage);
+            var totalStrength = stats.CuongLuc + stats.BonusCuongLuc;
+            var totalMagic = stats.NoiLuc + stats.BonusNoiLuc;
 
             return new BattleSessionCombatantState(
                 CombatantId: $"player:{player.Id}",
@@ -33,9 +35,9 @@ namespace Twelve.Application.Battle
                 MaxMp: maxMp,
                 CurrentPower: 0,
                 MaxPower: maxPower,
-                Strength: stats.CuongLuc + stats.BonusCuongLuc,
+                Strength: totalStrength,
                 Agility: stats.ThanPhap + stats.BonusThanPhap,
-                Magic: stats.NoiLuc + stats.BonusNoiLuc,
+                Magic: totalMagic,
                 Vitality: stats.TheLuc + stats.BonusTheLuc,
                 MinDamage: minDamage,
                 MaxDamage: maxDamage,
@@ -46,7 +48,10 @@ namespace Twelve.Application.Battle
                 Skills: CreateSessionSkills(aggregate.Skills),
                 Level: player.Level,
                 IqValue: iqValue,
-                AiProfileId: aiProfileId);
+                AiProfileId: aiProfileId,
+                HealGainPercent: ComputeStrengthResourceGainPercent(totalStrength),
+                ManaGainPercent: ComputeMagicResourceGainPercent(totalMagic),
+                PowerGainPercent: ComputeStrengthResourceGainPercent(totalStrength));
         }
 
         public static BattleSessionCombatantState CreateDefault() =>
@@ -73,7 +78,10 @@ namespace Twelve.Application.Battle
                 Skills: [],
                 Level: 10,
                 IqValue: 0,
-                AiProfileId: null);
+                AiProfileId: null,
+                HealGainPercent: ComputeStrengthResourceGainPercent(12),
+                ManaGainPercent: ComputeMagicResourceGainPercent(8),
+                PowerGainPercent: ComputeStrengthResourceGainPercent(12));
 
         public static BattleCombatantSnapshot CreateSnapshot(BattleSessionCombatantState state) =>
             new(
@@ -96,7 +104,10 @@ namespace Twelve.Application.Battle
                 HitRate: state.HitRate,
                 DodgeRate: state.DodgeRate,
                 CriticalDamage: state.CriticalDamage,
-                Skills: CreateSkillInstances(state.Skills));
+                Skills: CreateSkillInstances(state.Skills),
+                HealGainPercent: state.HealGainPercent,
+                ManaGainPercent: state.ManaGainPercent,
+                PowerGainPercent: state.PowerGainPercent);
 
         public static IReadOnlyList<MonsterSkillInstance> CreateSkillInstances(
             IReadOnlyList<BattleSessionSkillInstance> skills)
@@ -117,6 +128,15 @@ namespace Twelve.Application.Battle
 
             return instances;
         }
+
+        // Source: docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
+        // Java client proves HP/MP/Power bars (`lh.u/t`, `lh.w/v`, HUD `mx`) but not the old server resource formula.
+        // Remake rule v1 keeps Java-like integer math and moves resource scaling to server authority instead of FE.
+        private static int ComputeStrengthResourceGainPercent(int totalStrength) =>
+            Math.Clamp(100 + ((totalStrength - 10) * 3), 80, 180);
+
+        private static int ComputeMagicResourceGainPercent(int totalMagic) =>
+            Math.Clamp(100 + ((totalMagic - 10) * 3), 80, 180);
 
         private static IReadOnlyList<BattleSessionSkillInstance> CreateSessionSkills(
             IReadOnlyList<PlayerSkillEntry> skills)
