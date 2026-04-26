@@ -202,9 +202,453 @@ Rule gameplay đi kèm mapping này:
 - tim hồi HP và đào hồi nộ/Power ngay trong trận; công thức hiện dùng rule remake/server-owned trong `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`
 - sao xanh/giọt tím EXP và vàng là tích lũy tạm nội bộ trong trận; nếu thắng mới chốt/hiện ở màn kết quả, nếu thua mất hết phần EXP/Gold/Quan kiếm từ board trận đó
 - theo user memory, các item vàng/sao/giọt tím không cần hiện counter tạm trong battle HUD; chúng âm thầm cộng vào pending reward và chỉ thể hiện ở màn kết quả nếu thắng
-- kiếm lửa `chess8` là tile có tính chất trigger-on-touch: match với kiếm trắng cũng nổ, skill/cascade/refill/tác động sau đó rơi vào nó cũng phải nổ; vùng nổ user memory là `3x3`
+- kiếm lửa `chess8` là tile có tính chất trigger-on-touch: match với kiếm trắng cũng nổ, skill/cascade/refill/tác động sau đó rơi vào kiếm lửa cũng phải nổ; vùng nổ user memory là `3x3`
 - kiếm lửa gây sát thương ngay, với hệ số user memory `x1.5`; công thức base damage/target ownership vẫn là phần server Java cũ hoặc remake hiện tại phải tính sau
 - những công thức EXP/Gold/Quan và damage/nổ `3x3` của kiếm lửa là phần server Java cũ hoặc remake hiện tại phải tính sau, không suy bừa từ asset
+
+### 4.1. Công thức board item đang chốt để port/remake
+
+Các công thức dưới đây là **reconstruction/remake từ gameplay memory và pacing đã bàn**, không phải formula server Java gốc đọc trực tiếp được từ client. Java client chỉ xác nhận board/HUD/result apply; server Java cũ mới là nơi từng sinh số cuối.
+
+#### Nhóm Âm/Dương, HP, MP, Nộ
+
+Các dòng dưới đây là nhóm resource đã chốt ở mức công thức remake hiện tại. Tên icon cụ thể ngoài `chess1`/`chess3` vẫn cần đối chiếu thêm bằng image index/node, nhưng công thức tính đã được note để port.
+
+- Tim (`chess1`) / HP:
+  - effect chính: hồi HP ngay trong trận.
+  - công thức số học reconstruction đã chốt theo dữ kiện mới:
+
+```text
+HpScale = clamp(90, 140, 100 + (TotalStrength - 10))
+HealGainBase = max(3, floor(MaxHp * 6 / 100))
+HealGain = floor(HealGainBase * gemCount / 3 * HpScale / 100)
+currentHp = min(MaxHp, currentHp + HealGain)
+```
+
+  - `TotalStrength = 10` là mốc scale chuẩn `100%`.
+  - `gemCount` là số tim thực sự bị ăn/apply effect, bao gồm cả trường hợp bị kiếm đỏ nổ lan chứ không nhất thiết phải match 3.
+  - `max(3, ...)` là min-base level thấp đã chốt lại ngày `2026-04-27`; không dùng `max(12, ...)` vì với `MaxHp = 60` sẽ hồi `12 HP = 20% MaxHP` cho match `3` tim, quá cao khi HP còn scale thêm theo Cường Lực.
+  - Nếu có tim bị ăn và HP chưa full mà kết quả floor về `0`, min-base `3` đã đảm bảo match `3` tim tại scale chuẩn hồi ít nhất `3 HP`; không cần ép min `12`.
+
+- Âm/Dương / MP-Mana:
+  - nhóm Âm/Dương nếu map vào mana trong battle thì dùng chung resource bucket `MP/Mana` của Java (`lh.u/t`, `nl.c`).
+  - không tính theo UI, nhưng dữ kiện gameplay dùng pacing thanh MP có `4` cục để suy ra số:
+    - `10 Nội Lực`: ăn `4` lần match `3` Âm/Dương được `1` cục MP;
+    - tức `16` lần match `3` Âm/Dương đầy thanh MP;
+    - match `3` tại `10 Nội Lực` = `6.25% MaxMp`.
+  - công thức số học reconstruction đã chốt:
+
+```text
+ManaScale = clamp(70, 160, 100 + (TotalMagic - 10))
+ManaGain = floor(MaxMp * 625 * gemCount * ManaScale / (10000 * 3 * 100))
+if gemCount > 0 and currentMana < MaxMp:
+  ManaGain = max(1, ManaGain)
+currentMana = min(MaxMp, currentMana + ManaGain)
+```
+
+  - `625 / 10000 = 6.25% = 1/16`.
+  - `TotalMagic = 10` là mốc scale chuẩn `100%`.
+  - tại `TotalMagic = 10`, `gemCount = 3`:
+    - `ManaGain = floor(MaxMp * 625 * 3 * 100 / (10000 * 3 * 100))`;
+    - `ManaGain = floor(MaxMp / 16)`;
+    - `4` lần match `3` = `25% MaxMp` = `1` cục;
+    - `16` lần match `3` = `100% MaxMp`.
+  - nếu có Âm/Dương bị ăn và MP chưa full mà kết quả floor về `0`, bắt buộc min gain `1`.
+  - không được để icon MP/Âm/Dương fallback hồi nhầm HP; semantic từng icon phải tách riêng.
+  - nếu sau này xác nhận Âm và Dương là 2 icon riêng nhưng cùng hồi MP, vẫn giữ cùng formula trên và chỉ khác visual/mask.
+  - nếu sau này xác nhận Âm/Dương là cơ chế khắc hệ riêng, phải tách thành formula mới, không tự trộn vào HP/Nộ.
+
+- Đào (`chess3`) / Nộ-Power:
+  - effect chính theo gameplay memory: hồi Nộ/Power ngay trong trận.
+  - dữ kiện đã chốt:
+    - `powerbar.png` có pacing `19` vạch;
+    - ăn `3` đào tại `10 Cường Lực` được `3` vạch;
+    - tức mỗi quả đào = `1` vạch ở stat chuẩn;
+    - `19` quả đào tương đương full thanh Nộ.
+  - công thức số học reconstruction đã chốt:
+
+```text
+PowerScale = clamp(80, 150, 100 + (TotalStrength - 10))
+PowerGain = floor(MaxPower * gemCount * PowerScale / (19 * 100))
+currentPower = min(MaxPower, currentPower + PowerGain)
+```
+
+  - `TotalStrength = 10` là mốc scale chuẩn `100%`.
+  - tại `MaxPower = 100`, `TotalStrength = 10`:
+    - `1` đào = `floor(100 / 19) = 5` Power nếu dùng integer floor trực tiếp;
+    - giá trị lý tưởng là `5.26` Power = `1/19` thanh;
+    - `3` đào lý tưởng = `15.78` Power = `3/19` thanh;
+    - `19` đào xấp xỉ full thanh.
+  - nếu cần render/tính tích lũy chuẩn tuyệt đối theo `19` phần khi `MaxPower` không chia hết cho `19`, nên dùng accumulator/fixed-point để không mất phần dư.
+
+#### Nhóm kiếm trắng / kiếm đỏ damage
+
+Công thức dưới đây là **reconstruction/remake đã chốt theo dữ kiện gameplay và pipeline stat hiện tại**, không phải formula server Java gốc đọc được trực tiếp từ client.
+
+Nguồn damage chính của board kiếm là `AttackRoll`:
+
+```text
+AttackRoll = random(Actor.MinDamage, Actor.MaxDamage)
+```
+
+Không nhân thêm `TotalStrength`/`SwordStatScale` ở board.
+
+Lý do:
+
+- `MinDamage/MaxDamage` đã được `PlayerStatPipeline` tính theo hệ:
+  - Hỏa/Cường Lực: damage chính từ `CuongLuc`;
+  - Lôi/Thân Pháp: damage chính từ `ThanPhap` + một phần `CuongLuc`;
+  - Thủy/Nội Lực: damage chính từ `NoiLuc`.
+- Nếu board kiếm lại nhân thêm `TotalStrength`, hệ Cường Lực bị double-count.
+- Hệ Nội Lực/Thân Pháp bị sai bản sắc vì kiếm board phải dùng Tấn Công hiện tại của actor, mà Tấn Công đã phản ánh hệ chính.
+- Trang bị/stat khác hệ vẫn có giá trị nếu pipeline/status cho phép, vì chúng đã đi vào `MinDamage/MaxDamage`.
+
+- Kiếm trắng (`chess0`):
+  - là base sword damage item.
+  - kiếm trắng bị match trực tiếp hoặc bị nổ bởi kiếm đỏ đều được tính vào `whiteSwordCount`.
+  - công thức raw damage:
+
+```text
+SwordDamageRaw = floor(AttackRoll * 35 * whiteSwordCount / 100)
+```
+
+  - diễn giải:
+    - `1` kiếm trắng = `35%` một `AttackRoll`;
+    - match `3` kiếm trắng = `105%` một `AttackRoll`;
+    - match `4` kiếm trắng = `140%`;
+    - match `5` kiếm trắng = `175%`.
+
+- Kiếm đỏ / kiếm lửa (`chess8`):
+  - có thể match chung với kiếm trắng do cùng/compatible mask theo gameplay memory.
+  - chỉ cần `1` kiếm đỏ nằm trong cụm kiếm trắng được match thì kích hoạt nổ.
+  - vùng nổ user memory: `3x3` quanh kiếm đỏ bị tác động.
+  - hệ số damage user memory: `x1.5` so với kiếm trắng.
+  - công thức raw damage:
+
+```text
+FireSwordDamageRaw = floor(AttackRoll * 35 * redSwordCount * 150 / 10000)
+```
+
+  - tương đương:
+
+```text
+FireSwordDamageRaw = floor(AttackRoll * 52.5% * redSwordCount)
+```
+
+  - diễn giải:
+    - `1` kiếm đỏ = `1` kiếm trắng `x1.5` = `52.5% AttackRoll`;
+    - `3` kiếm đỏ = `157.5% AttackRoll`;
+    - ngoài damage trực tiếp, mỗi kiếm đỏ còn nổ `3x3` và apply/clear item trong vùng.
+
+- Resolve chain kiếm đỏ:
+  - kiếm đỏ nổ `3x3`;
+  - mọi item trong vùng nổ đều `apply effect` tương ứng;
+  - mọi item trong vùng nổ đều biến mất khỏi board;
+  - item trong vùng nổ **không cần match 3** vẫn được apply;
+  - kiếm đỏ khác bị nổ sẽ chain tiếp;
+  - dùng `resolvedKeys` để mỗi ô/cell chỉ apply effect `1` lần trong cùng chain;
+  - `whiteSwordCount` gồm cả kiếm trắng bị ăn trực tiếp và kiếm trắng bị kéo vào bởi vùng nổ kiếm đỏ;
+  - `redSwordCount` gồm các kiếm đỏ đã resolve trong chain, mỗi kiếm đỏ chỉ tính một lần theo `resolvedKeys`.
+
+Tổng raw board damage của một resolve step:
+
+```text
+RawBoardDamage =
+  floor(AttackRoll * 35 * whiteSwordCount / 100)
++ floor(AttackRoll * 35 * redSwordCount * 150 / 10000)
+```
+
+Sau đó apply defense/crit/element/mode **một lần trên tổng damage**, theo thứ tự thống nhất của docs combat §8.5:
+
+```text
+damage = RawBoardDamage
+damage = ApplyDefense(damage, targetDefense)
+damage = isCritical ? floor(damage * CriticalDamagePercent / 100) : damage
+damage = floor(damage * ElementPercentAfterResist / 100)
+damage = floor(damage * ModePercent / 100)
+damage = max(1, damage)
+```
+
+Rule hit/crit/resource:
+
+- Không hit/miss cho board item đã match/nổ:
+  - match thành công thì luôn có effect;
+  - kiếm đỏ nổ thành công thì item trong vùng luôn apply effect.
+- Crit vẫn có thể xảy ra, nhưng chỉ roll/apply `1` lần trên tổng `RawBoardDamage` của resolve step.
+- V1 **không cộng Nộ từ damage kiếm**:
+  - Nộ chỉ đến từ đào `chess3` và skill/effect server sau này;
+  - tránh Cường Lực/đánh kiếm tích nộ quá nhanh khi đã có đào;
+  - nếu test sau này thấy nộ quá chậm thì thêm `PowerFromDamage` sau, nhưng chưa chốt vào v1.
+
+#### Ví dụ mốc chuẩn cốt lõi: 10 Nội Lực / 10 Cường Lực / 10 Tấn Công
+
+Các ví dụ này là mốc sanity-check quan trọng khi port code. Nếu implementation chạy ra khác nhiều, phải kiểm tra lại integer math, accumulator hoặc thứ tự apply damage.
+
+##### MP / Âm Dương ở 10 Nội Lực
+
+Giả định:
+
+```text
+TotalMagic = 10
+ManaScale = 100
+```
+
+Công thức rút gọn:
+
+```text
+ManaGain = floor(MaxMp * gemCount / 48)
+```
+
+Vì:
+
+```text
+ManaGain = floor(MaxMp * 625 * gemCount * 100 / (10000 * 3 * 100))
+         = floor(MaxMp * gemCount / 48)
+```
+
+Ví dụ nếu `MaxMp = 100`:
+
+```text
+Ăn 1 Âm/Dương:
+ManaGain = floor(100 * 1 / 48) = 2
+
+Match 3 Âm/Dương:
+ManaGain = floor(100 * 3 / 48) = floor(6.25) = 6
+```
+
+Pacing lý tưởng:
+
+```text
+Match 3 Âm/Dương = 6.25% MaxMp = 1/16 thanh MP
+4 lần match 3 ≈ 25% MaxMp = 1 cục MP
+16 lần match 3 ≈ 100% MaxMp = đầy thanh
+```
+
+Ví dụ nếu `MaxMp = 160`:
+
+```text
+Match 3 = floor(160 * 3 / 48) = 10 MP
+16 lần match 3 = 160 MP = đầy thanh
+```
+
+Ví dụ nếu `MaxMp = 480`:
+
+```text
+Match 3 = floor(480 * 3 / 48) = 30 MP
+16 lần match 3 = 480 MP = đầy thanh
+```
+
+Ghi chú implementation:
+
+- nếu chỉ dùng `floor` từng lần với `MaxMp = 100`, match 3 cho `6 MP`, phần lý tưởng `0.25` bị mất;
+- nếu muốn đúng pacing thanh dài hạn, nên dùng accumulator/fixed-point cho phần dư MP;
+- nếu có Âm/Dương bị ăn và MP chưa full mà kết quả floor về `0`, rule hiện tại bắt buộc min gain `1`.
+
+##### Đào / Nộ ở 10 Cường Lực
+
+Giả định:
+
+```text
+TotalStrength = 10
+PowerScale = 100
+```
+
+Công thức rút gọn:
+
+```text
+PowerGain = floor(MaxPower * gemCount / 19)
+```
+
+Ví dụ nếu `MaxPower = 100`:
+
+```text
+Ăn 1 đào:
+PowerGain = floor(100 * 1 / 19) = floor(5.263...) = 5
+
+Match 3 đào:
+PowerGain = floor(100 * 3 / 19) = floor(15.789...) = 15
+
+Ăn 10 đào:
+PowerGain = floor(100 * 10 / 19) = floor(52.631...) = 52
+
+Ăn 19 đào:
+PowerGain = floor(100 * 19 / 19) = 100
+```
+
+Diễn giải theo `powerbar.png` pacing `19` vạch:
+
+```text
+1 đào ≈ 1/19 thanh
+3 đào ≈ 3/19 thanh
+10 đào ≈ 10/19 thanh
+19 đào = đầy thanh
+```
+
+Ghi chú implementation:
+
+- nếu cộng từng quả bằng `floor` trực tiếp thì `1 đào = 5`, `19 đào = 95`, bị hụt phần lẻ;
+- để đúng cảm giác `19` vạch, nên dùng accumulator/fixed-point cho Power/Nộ;
+- V1 không cộng Nộ từ damage kiếm, nên đào là nguồn Nộ chính của board.
+
+##### Kiếm trắng / kiếm đỏ với 10 Tấn Công
+
+Giả định để test deterministic:
+
+```text
+Actor.MinDamage = 10
+Actor.MaxDamage = 10
+AttackRoll = 10
+```
+
+Kiếm trắng `chess0`:
+
+```text
+SwordDamageRaw = floor(AttackRoll * 35 * whiteSwordCount / 100)
+```
+
+Ví dụ:
+
+```text
+1 kiếm trắng:
+floor(10 * 35 * 1 / 100) = floor(3.5) = 3
+
+Match 3 kiếm trắng:
+floor(10 * 35 * 3 / 100) = floor(10.5) = 10
+
+Match 4 kiếm trắng:
+floor(10 * 35 * 4 / 100) = floor(14) = 14
+
+Match 5 kiếm trắng:
+floor(10 * 35 * 5 / 100) = floor(17.5) = 17
+```
+
+Kiếm đỏ `chess8`:
+
+```text
+FireSwordDamageRaw = floor(AttackRoll * 35 * redSwordCount * 150 / 10000)
+```
+
+Tức mỗi kiếm đỏ:
+
+```text
+35% * 1.5 = 52.5% AttackRoll
+```
+
+Ví dụ:
+
+```text
+1 kiếm đỏ:
+floor(10 * 35 * 1 * 150 / 10000) = floor(5.25) = 5
+
+3 kiếm đỏ:
+floor(10 * 35 * 3 * 150 / 10000) = floor(15.75) = 15
+```
+
+Ví dụ chain có cả kiếm trắng và kiếm đỏ:
+
+```text
+whiteSwordCount = 3
+redSwordCount = 1
+AttackRoll = 10
+
+SwordDamageRaw = floor(10 * 35 * 3 / 100) = 10
+FireSwordDamageRaw = floor(10 * 35 * 1 * 150 / 10000) = 5
+
+RawBoardDamage = 10 + 5 = 15
+```
+
+Sau đó mới apply defense/crit/element/mode một lần:
+
+```text
+damage = ApplyDefense(15, targetDefense)
+damage = isCritical ? floor(damage * CriticalDamagePercent / 100) : damage
+damage = floor(damage * ElementPercentAfterResist / 100)
+damage = floor(damage * ModePercent / 100)
+damage = max(1, damage)
+```
+
+Tóm tắt sanity-check:
+
+```text
+10 Nội Lực:
+  Match 3 Âm/Dương = 1/16 MaxMp = 6.25% MaxMp
+
+10 Cường Lực:
+  1 đào = 1/19 MaxPower
+  3 đào = 3/19 MaxPower
+  10 đào = 10/19 MaxPower
+
+10 Tấn Công / AttackRoll 10:
+  1 kiếm trắng = floor(3.5) = 3 raw damage
+  3 kiếm trắng = floor(10.5) = 10 raw damage
+  1 kiếm đỏ = floor(5.25) = 5 raw damage
+  3 kiếm đỏ = floor(15.75) = 15 raw damage
+```
+
+#### Nhóm + lượt
+
+- Gameplay memory đã chốt:
+  - mỗi group match có độ dài `>= 4` thì `+1 lượt`.
+  - nếu một nước/cascade tạo nhiều group đủ điều kiện thì cộng theo số group.
+- Công thức reconstruction:
+
+```text
+extraTurns = count(distinctMatchGroups where group.length >= 4)
+remainingTurns += extraTurns
+```
+
+- Không gắn `+ lượt` với natural special spawn; match `>= 4` cộng lượt nhưng item vẫn biến mất.
+
+#### Nhóm EXP/Gold/Quan
+
+- Sao xanh:
+  - cộng `pendingBoardExp` tạm.
+  - lượng EXP chính xác mỗi match chưa có server Java, phải tính sau.
+- Giọt tím EXP nửa sao:
+  - cộng `pendingBoardExp` tạm bằng khoảng `1/2` sao xanh theo gameplay memory "EXP nửa sao".
+  - công thức reconstruction cần giữ dạng:
+
+```text
+purpleDropExp = floor(blueStarExp / 2)
+```
+
+- Vàng:
+  - cộng `pendingBoardGold` tạm.
+  - mốc user memory: tối đa/đạt `10k` vàng thì quy đổi `10k Quan`/tiền nạp sau này.
+  - công thức số học chính xác cần tính sau, tạm ghi boundary:
+
+```text
+pendingBoardGold += goldFromMatchedGoldIcon
+if pendingBoardGold >= 10000:
+  pendingBoardQuan += 10000
+  pendingBoardGold -= 10000
+```
+
+- Pending EXP/Gold/Quan chỉ chốt khi thắng; thua xóa toàn bộ.
+
+### 4.2. Pending reward từ board cần giữ riêng
+
+Các item board sinh reward tạm không phải `lm[]`/`ll[]` item reward packet cuối trận:
+
+- `pendingBoardExp`: EXP tạm từ sao xanh và giọt tím EXP nửa sao.
+- `pendingBoardGold`: vàng tạm từ icon vàng.
+- `pendingBoardQuan`: Quan/tiền nạp quy đổi sau này khi vàng đạt mốc user memory `10k`.
+- `pendingBoardDamage`: damage tức thời hoặc queued damage do kiếm trắng/kiếm lửa tạo ra trong lượt.
+
+Rule bảo toàn:
+
+- chỉ cộng pending EXP/Gold/Quan vào nhân vật/tài khoản khi battle result là thắng;
+- thua trận thì xóa toàn bộ pending EXP/Gold/Quan sinh từ board;
+- không hiển thị counter tạm trong battle HUD nếu muốn bám user memory Java cũ;
+- màn kết quả (`hs`) mới là nơi hiện tổng EXP/Gold cuối cùng;
+- reward item/equipment (`lm[]`, `ll[]`) vẫn là luồng riêng, không được trộn với board EXP/Gold/Quan;
+- công thức số học chính xác cho EXP sao xanh, EXP giọt tím, vàng, Quan và damage kiếm vẫn thuộc nhóm server Java cũ/remake cần tính sau.
+
+Nguồn:
+
+- User gameplay memory ngày `2026-04-26`: sao xanh/giọt tím/vàng tích lũy âm thầm, thắng mới nhận, thua mất.
+- Java client: `hs` chỉ trình bày result cuối; `ky` parse result/reward, không chứa công thức roll server.
+- Boundary phục dựng: không có server Java mẫu nên các công thức reward/damage mới phải ghi là `remake/reconstruction`.
 
 ## Runtime Turn State Machine Java
 
@@ -1220,12 +1664,79 @@ Bước hợp lý tiếp theo không phải dựng asset registry nữa, mà là
 3. chỉnh local board contract: match thường clear/drop/refill, không tạo special tự nhiên; match `>= 4` cộng lượt theo số group
 4. giữ clear behavior `type 2/type 4` cho skill/packet/variant nếu phát hiện node đó thật sự xuất hiện
 5. tách `timeLeft`, `remainingTurns`, `hasValidMove`
-6. chuẩn hóa local result model cho `hp/mp/power`, EXP từ sao xanh/giọt tím, gold/Quan từ vàng
-7. chỉ sau đó mới bind animation `mt/mx/mp`
+6. tách `pendingBoardExp`, `pendingBoardGold`, `pendingBoardQuan`, `pendingBoardDamage` khỏi reward item/equipment cuối trận
+7. chuẩn hóa local result model cho `hp/mp/power`, EXP từ sao xanh/giọt tím, gold/Quan từ vàng
+8. chỉ sau đó mới bind animation `mt/mx/mp`
 
 Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic sẽ lệch ở những chỗ quan trọng nhất.
 
 ## Nhật ký chỉnh sửa
+
+### 2026-04-27 — Bổ sung ví dụ mốc chuẩn core battle board
+
+- File tài liệu đã sửa:
+  - `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- Nội dung:
+  - Bổ sung ví dụ sanity-check cho `10 Nội Lực`, `10 Cường Lực`, `10 Tấn Công`.
+  - `10 Nội Lực`: `ManaScale = 100`, `ManaGain = floor(MaxMp * gemCount / 48)`, match 3 Âm/Dương = `1/16 MaxMp = 6.25% MaxMp`.
+  - `10 Cường Lực`: `PowerScale = 100`, `PowerGain = floor(MaxPower * gemCount / 19)`, `10` đào ≈ `10/19` thanh Nộ.
+  - `10 Tấn Công` với `AttackRoll = 10`: `1` kiếm trắng = `3` raw damage, `3` kiếm trắng = `10`, `1` kiếm đỏ = `5`, `3` kiếm đỏ = `15`.
+  - Ghi rõ MP/Power nên dùng accumulator/fixed-point nếu muốn không mất phần dư do `floor` từng lần.
+- Nguồn:
+  - User yêu cầu chốt ví dụ core gameplay ngày `2026-04-27`.
+  - Công thức đã chốt trong cùng tài liệu ở mục `Công thức board item đang chốt để port/remake`.
+
+### 2026-04-27 — Giảm min-base hồi HP từ tim level thấp
+
+- File tài liệu đã sửa:
+  - `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- Nội dung:
+  - Sửa công thức HP/tim `chess1` từ `HealGainBase = max(12, MaxHp * 6 / 100)` thành `HealGainBase = max(3, floor(MaxHp * 6 / 100))`.
+  - Lý do cân bằng: với `MaxHp = 60`, `TotalStrength = 10`, công thức cũ hồi `12 HP` cho match `3` tim, tương đương `20% MaxHP`, quá cao vì HP còn scale theo Cường Lực (`HpScale`).
+  - Công thức mới tại `MaxHp = 60`, `TotalStrength = 10`: match `3` tim hồi `3 HP` (`5% MaxHP`), hợp pacing hơn cho level thấp; Cường Lực cao vẫn tăng qua `HpScale`.
+- Nguồn:
+  - User xác nhận cân bằng ngày `2026-04-27`: min `12` hồi quá nhiều vì còn scale theo Cường Lực.
+
+### 2026-04-27 — Chốt công thức HP/MP/Nộ và damage kiếm board
+
+- File tài liệu đã sửa:
+  - `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- Nội dung:
+  - Chốt nhóm resource board:
+    - HP/tim `chess1`: `HpScale = clamp(90, 140, 100 + (TotalStrength - 10))`, `HealGain = floor(max(3, floor(MaxHp * 6 / 100)) * gemCount / 3 * HpScale / 100)`;
+    - MP/Âm Dương: `ManaScale = clamp(70, 160, 100 + (TotalMagic - 10))`, `ManaGain = floor(MaxMp * 625 * gemCount * ManaScale / (10000 * 3 * 100))`, nếu có gem bị ăn và MP chưa full thì min gain `1`;
+    - Nộ/đào `chess3`: `PowerScale = clamp(80, 150, 100 + (TotalStrength - 10))`, `PowerGain = floor(MaxPower * gemCount * PowerScale / (19 * 100))`.
+  - Chốt damage kiếm dùng `AttackRoll = random(Actor.MinDamage, Actor.MaxDamage)`, không nhân thêm Cường Lực ở board để tránh double-count vì `PlayerStatPipeline` đã đưa hệ/stat vào `MinDamage/MaxDamage`.
+  - Kiếm trắng `chess0`: `SwordDamageRaw = floor(AttackRoll * 35 * whiteSwordCount / 100)`.
+  - Kiếm đỏ `chess8`: damage bằng kiếm trắng `x1.5`, `FireSwordDamageRaw = floor(AttackRoll * 35 * redSwordCount * 150 / 10000)`.
+  - Tổng damage một resolve step: cộng raw damage kiếm trắng + kiếm đỏ, rồi apply defense/crit/element/mode một lần theo thứ tự docs combat §8.5.
+  - Kiếm đỏ nổ `3x3`, mọi item trong vùng nổ apply effect tương ứng và biến mất, không cần match 3; kiếm đỏ khác bị nổ sẽ chain tiếp; dùng `resolvedKeys` để mỗi cell chỉ apply một lần trong cùng chain.
+  - V1 không cộng Nộ từ damage kiếm; Nộ chỉ đến từ đào `chess3` và skill/effect server sau này.
+- Nguồn:
+  - User gameplay memory và công thức chốt ngày `2026-04-27`.
+  - `PlayerStatPipeline` hiện tại là nguồn đã tính `MinDamage/MaxDamage` theo hệ, nên board không tự nhân lại stat.
+
+### 2026-04-27 — Note pending EXP/Gold/Quan từ board để tính sau
+
+- File tài liệu đã sửa:
+  - `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- Nội dung:
+  - Bổ sung mục `Công thức board item đang chốt để port/remake`.
+  - Ghi lại các công thức/khung công thức đã bàn:
+    - HP từ tim: `hpGain = floor(BaseHealPerGem * matchedCount / 3)`, rồi `floor(hpGain * HealGainPercent / 100)`, cap bằng `maxHp`;
+    - Nộ/Power từ đào: `powerGain = floor(BasePowerPerGem * matchedCount / 3)`, rồi `floor(powerGain * PowerGainPercent / 100)`, cap bằng `maxPower`;
+    - Âm/Dương/MP nếu có icon mana: `manaGain = floor(BaseManaPerGem * matchedCount / 3)`, rồi `floor(manaGain * ManaGainPercent / 100)`, cap bằng `maxMana`;
+    - kiếm lửa `chess8`: nổ `3x3`, damage `floor(baseSwordDamage * 1.5)`;
+    - `+ lượt`: `count(distinctMatchGroups where length >= 4)`;
+    - giọt tím EXP nửa sao: `floor(blueStarExp / 2)`;
+    - vàng mốc `10000` thì quy đổi `10000 Quan` theo pending rule.
+  - Bổ sung mục `Pending reward từ board cần giữ riêng`.
+  - Chốt rõ sao xanh, giọt tím EXP nửa sao và vàng là reward tạm sinh từ board, không phải item/equipment reward `lm[]`/`ll[]`.
+  - Quy tắc runtime: thắng mới chốt EXP/Gold/Quan; thua xóa toàn bộ pending reward board; không cần counter tạm trong battle HUD.
+  - Tách thêm `pendingBoardExp`, `pendingBoardGold`, `pendingBoardQuan`, `pendingBoardDamage` vào bước practical tiếp theo để sau này tính công thức riêng, tránh trộn với HP/MP/Nộ hoặc reward packet cuối trận.
+- Nguồn:
+  - User gameplay memory ngày `2026-04-26`.
+  - Java client chỉ parse/apply result cuối qua `ky`/`hs`; không có server formula cho EXP/Gold/Quan từ board.
 
 ### 2026-04-26 — Cập nhật gameplay memory icon board, +lượt và bỏ natural special mặc định
 
