@@ -31,6 +31,48 @@ Mục tiêu của file này:
 | [oa.java](/d:/Twelve/reference/redecoded/decompiled/oa.java) | `oa` | popup nhận item reward |
 | [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java) | `om` | chest/equipment reward presentation |
 
+## Java Client Coverage / Mức độ đầy đủ hiện tại
+
+Tính riêng Java client đã decompile, không tính phần server Java cũ không có source:
+
+- JAR client đã được bóc tách/decompile gần như đầy đủ:
+  - `reference/redecoded/jar-contents.txt`: `2259` entries
+  - `.class`: `427`
+  - resource/non-class: `1832`
+  - `reference/redecoded/decompiled`: `427` file `.java`
+  - `reference/redecoded/cfr_fresh`: `427` file `.java`
+  - so khớp theo unique class stem: `425 / 425`, không thấy class Java client còn thiếu
+- Nhóm class liên quan trực tiếp battle/bàn cờ đã xác nhận có đủ trong cả hai bộ decompile:
+  - `mp`, `ms`, `mh`, `nj`, `nd`, `mq`, `mo`, `mt`, `mx`
+  - `lg`, `lh`, `nq`, `nl`, `ky`, `pc`
+  - `hs`, `oa`, `om`, `mw`, `my`, `mr`, `ne`, `np`, `oz`
+
+Đánh giá mức khôi phục nếu chỉ tính **bàn cờ Java client-side**:
+
+| Hạng mục | Mức đầy đủ | Ghi chú |
+|----------|-----------:|---------|
+| Java client class decompile coverage | ~100% | Không thấy class client còn nằm riêng trong JAR chưa bóc |
+| Board topology/model | 100% | `12x12`, active `8x8`, vùng `2..9` |
+| Node definition `nj` | 100% | `id`, `mask`, `type`, `imageIndex` |
+| Swap validation | 100% | Bám `mq`/`my` |
+| Match scan bằng mask + packed line | 100% | Bám `mq.a()`/`mq.b()` và `mw` |
+| Clear thường + special `type 2/type 4` | 100% theo Java client code | Bám `mq`; nhưng gameplay memory xác nhận bản gốc người chơi thấy "ăn xong biến mất", không dùng tạo item special tự nhiên |
+| Spawn special `10..15` / `20..25` | Cần khóa lại theo gameplay | Decompile có nhánh `mq`/`mr`, nhưng user memory xác nhận không item nào tạo special; tạm coi là nhánh Java/server/skill/unused hoặc không bật trong runtime gốc |
+| Drop/refill receiver/cascade phía client | 95-100% | Core rõ; refill bytes gốc là data packet |
+| No-move detection phía client | 100% | Bám `mo.d()` |
+| No-move presentation/reset receiver phía client | 95-100% | Client flow rõ; board mới là packet data |
+| State machine `mq` phía client | 95-98% | Core battle board rõ; còn vài chi tiết timing/visual nhỏ do obfuscation |
+| Skill board mutation/visual dispatch phía client | 90-95% | Client parse/dispatch rõ; payload cụ thể là data packet |
+| Actor HUD/result apply phía client | 95-100% | Client nhận/apply `nl[]`, không tự sinh formula |
+| Combo popup/visual board runtime | 95-100% | Rõ theo `mq`/`mt`/`nd`/`ne` |
+
+Kết luận coverage:
+
+- Nếu hỏi **logic bàn cờ client Java đã đủ để port chưa**: có, có thể coi là đủ.
+- Mức tin cậy thực dụng cho **board core client-side**: khoảng `97-99%`.
+- Không chấm `100%` tuyệt đối vì source bị obfuscate/decompile, một số tên semantic và timing visual nhỏ có thể cần đối chiếu bằng gameplay/video.
+- Những field như refill queue, board reset bytes, `nq.D`, `nq.F`, `nl[]`, reward list không phải thiếu client; trong Java client chúng là dữ liệu nhận vào rồi apply/render. Công thức sinh dữ liệu đó thuộc server cũ và sẽ được tính/remake sau dựa trên behavior client.
+
 ## Core Position
 
 Battle Java cũ không phải pure renderer.
@@ -42,31 +84,35 @@ Thực tế nó là hybrid:
 
 Vì bản hiện tại không có server, phần từng là authoritative packet phải được thay bằng local authority trong battle controller.
 
-## Java Boundary Chot
+## Java Boundary Chốt
 
-Neu muon "day xuong BE" ma van bam dung Java, thi boundary hop ly nen la:
+Nếu muốn "đẩy xuống BE" mà vẫn bám đúng Java, boundary hợp lý nên là:
 
 - `Server authority`
-  - xac thuc cast co hop le hay khong
-  - skill level that, mana/cooldown/unlock, khong lay tu client
-  - skill packet runtime cho `mq/mt`: `byArray/byArray2/objectArray/byArray3`
-  - actor result sau cast/turn: `hp/mp/power`, status timers, them luot, them thoi gian
+  - xác thực cast có hợp lệ hay không
+  - skill level thật, mana/cooldown/unlock, không lấy từ client
+  - skill packet runtime cho `mq/mt`: `byArray/byArray2/byArray3/byArray4` tương ứng row/col/extra board data/refill-or-effect data tùy skill
+  - actor result sau cast/turn: `hp/mp/power`, status timers, thêm lượt, thêm thời gian
+  - board refill bytes và board reset/no-move bytes trong bản Java cũ
+  - checksum/sync revision (`nq.b`, `nq.i`) để phát hiện lệch board client/server
   - reward/end-state
 - `Client authority`
   - input/cursor/menu/tree UI
-  - animation/runtime playback cua board + actor theo packet/result da co
+  - animation/runtime playback của board + actor theo packet/result đã có
   - swap/fall/explode/hint/no-move presentation
-  - HUD tween/popup tu delta authoritative
-- `Transitional hien tai trong repo`
-  - board core van dang local de thay cho packet server Java da mat
-  - skill cast geometry da di qua BE endpoint `/battle/skill-cast`
-  - nhung turn result tong quat van chua co endpoint authoritative rieng
+  - local scan match/cascade/drop để trình diễn và sync checksum
+  - HUD tween/popup từ delta authoritative
+- `Transitional hiện tại trong repo`
+  - board core vẫn đang local để thay cho packet server Java đã mất
+  - skill cast geometry đã đi qua BE endpoint `/battle/skill-cast`
+  - nhưng turn result tổng quát vẫn chưa có endpoint authoritative riêng
 
-He qua thuc dung:
+Hệ quả thực dụng:
 
-- khong de client tu suy target list skill
-- khong de client tu quyet `+ luot`, `+ time`, damage/heal cua skill khi packet server da biet
-- neu chua co player skill data that tren server, chi duoc gui `debugSkillLevel` tam thoi; khong duoc coi do la authority
+- không để client tự suy target list skill nếu skill đó trong Java đi từ packet `nq`
+- không để client tự quyết `+ lượt`, `+ time`, damage/heal của skill khi packet server đã biết
+- nếu chưa có player skill data thật trên server, chỉ được gửi `debugSkillLevel` tạm thời; không được coi đó là authority
+- mọi rule BE mới không thấy trong Java client phải ghi rõ là `remake/reconstruction`, không gắn nhãn Java gốc
 
 ## Board Model
 
@@ -117,6 +163,7 @@ Nguồn:
 | `70` | `1` | special node riêng, mask `64`, image index `6` |
 | `90` | `1` | empty |
 | `99` | `1` | blocked/sentinel |
+| `-16777215` | marker | giá trị synthetic Java dùng trong `mq.a(..., -16777215, ...)` để tạo clear/effect entry từ skill, không phải node bàn cờ bình thường |
 
 Lưu ý:
 
@@ -128,6 +175,83 @@ Nguồn:
 
 - [nj.java](/d:/Twelve/reference/redecoded/decompiled/nj.java:35)
 - [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:772)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1340)
+
+### 4. Gameplay memory mapping 8 icon board gốc
+
+Theo xác nhận user ngày `2026-04-26`, board Java cũ gameplay dùng `8` item từ bộ sheet `/chess0..8` nhưng **bỏ `chess7`**. Mapping này là gameplay memory/user evidence, phải được ghi riêng với `nj node id` decompile vì Java renderer dùng `imageIndex` còn logic match dùng `mask`.
+
+| Icon / gameplay memory | Chess sheet / node image liên quan | Behavior đã xác nhận |
+|------------------------|------------------------------------|----------------------|
+| Kiếm trắng/thường | `chess0` | Base sword; có thể match cùng kiếm lửa do user xác nhận "chỉ cần 1 kiếm lửa với các kiếm trắng cũng nổ hết" |
+| Tim hồi máu | `chess1` | Match hồi máu ngay trong trận; công thức hiện xem `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5` |
+| Đào | `chess3` | Match hồi nộ/Power ngay trong trận; công thức hiện xem `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5` |
+| Kiếm lửa | `chess8` | Item nổ vùng `3x3`; cứ bị tác động là nổ, kể cả match cùng kiếm trắng hoặc skill làm rơi/tác động vào kiếm lửa sau đó; gây sát thương ngay với hệ số user memory `x1.5` |
+| Sao xanh | cần đối chiếu image index/node | Match tích EXP tạm nội bộ; không cần hiện counter tạm trong trận, chỉ chốt cộng/hiện ở màn kết quả nếu thắng |
+| Vàng | cần đối chiếu image index/node | Tích gold nội bộ trong trận; max `10k` thì quy đổi thành `10k Quan`/tiền nạp sau này; không cần hiện counter tạm, nếu thua mất hết phần gold trận |
+| Giọt tím EXP nửa sao | cần đối chiếu image index/node | Match như gem thường, tích EXP tạm nội bộ bằng nửa sao; không tạo special; không cần hiện counter tạm, nếu thua mất hết phần EXP trận |
+| Các icon còn lại trong 8 icon | là các sheet còn lại trong `chess0..8` sau khi bỏ `chess7` | Match bình thường theo mask, clear/drop/refill |
+| Empty/block | `90`/`99` | Không phải icon gameplay active |
+
+Rule gameplay đi kèm mapping này:
+
+- tập icon gameplay user xác nhận là `chess0..8` nhưng loại `chess7`; tổng cộng `8` item active
+- tất cả icon match xong đều biến mất rồi drop/refill
+- không một item nào tạo special tự nhiên
+- giọt tím EXP nửa sao match bình thường nhưng không tạo special
+- tim hồi HP và đào hồi nộ/Power ngay trong trận; công thức hiện dùng rule remake/server-owned trong `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`
+- sao xanh/giọt tím EXP và vàng là tích lũy tạm nội bộ trong trận; nếu thắng mới chốt/hiện ở màn kết quả, nếu thua mất hết phần EXP/Gold/Quan kiếm từ board trận đó
+- theo user memory, các item vàng/sao/giọt tím không cần hiện counter tạm trong battle HUD; chúng âm thầm cộng vào pending reward và chỉ thể hiện ở màn kết quả nếu thắng
+- kiếm lửa `chess8` là tile có tính chất trigger-on-touch: match với kiếm trắng cũng nổ, skill/cascade/refill/tác động sau đó rơi vào nó cũng phải nổ; vùng nổ user memory là `3x3`
+- kiếm lửa gây sát thương ngay, với hệ số user memory `x1.5`; công thức base damage/target ownership vẫn là phần server Java cũ hoặc remake hiện tại phải tính sau
+- những công thức EXP/Gold/Quan và damage/nổ `3x3` của kiếm lửa là phần server Java cũ hoặc remake hiện tại phải tính sau, không suy bừa từ asset
+
+## Runtime Turn State Machine Java
+
+`mq.b()` là vòng update chính. Các state quan trọng liên quan bàn cờ:
+
+| State | Vai trò đã xác nhận |
+|-------|----------------------|
+| `0` | idle/chưa vào battle active hoặc chờ init |
+| `7` | chuyển vào flow turn mới sau khi nhận `nq` |
+| `9` | result/end-state presentation |
+| `10` | board reset/no-move animation path |
+| `11` | đã nhận skill affect, chuẩn bị xử lý skill |
+| `15` | apply turn result / chờ turn tiếp theo |
+| `16` | sau result/end-state, gọi cleanup/scene transition |
+| `19` | item/effect helper transition |
+| `20` | no-move text path, rồi chuyển state `10` |
+
+`nq.c` là loại turn/action packet. Trong `mq.t()`:
+
+| `nq.c` | Flow trong `mq` | Ý nghĩa thực dụng |
+|--------|------------------|-------------------|
+| `0` | chỉ update revision/end turn nhẹ | sync/update thường |
+| `1` | `f(nq.k, nq.j)` | update cursor/actor position/turn owner presentation |
+| `2` | `processUpdateMatch` + `nl[]` | update attribute/result không swap |
+| `3` | `processSwapChess` | swap board, board/refill buffer, actor result sau swap |
+| `4` | `processUseItem` | dùng item, có thể kèm board/result |
+| `5` | `processUsingSkill` | skill affect + board mutation + actor result |
+| `6` | `processAttack` | attack thường, actor result + animation |
+| `8` | battle result cuối | win/lose/draw, exp/gold/reward |
+
+Điểm rất quan trọng:
+
+- `mq` luôn queue `nq` vào `kr l`; chỉ xử lý packet tiếp khi HUD actor animation (`mx`) đã xong.
+- `nq.b` là revision/turn sequence; `mq.m` cập nhật theo packet.
+- `nq.i` là checksum server; sau local board resolution, Java tính checksum client bằng `oz.a(ms.l)` và nếu lệch thì clear queue + yêu cầu sync lại.
+- `nq.g` là danh sách byte buffer board/refill phụ; `mq.b(byte[])` đẩy vào `ms.a(byte[])`.
+- `nq.h` được gán vào `ms.o`; đây là buffer board reset/no-move hoặc board snapshot dùng bởi `ms.f()`.
+- `nq.D` và `nq.F` là delta server gửi, không có formula sinh ra trong client.
+
+Nguồn:
+
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:184)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:217)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:238)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1738)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1806)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1822)
 
 ## Local Board Simulation
 
@@ -271,10 +395,12 @@ resolveMatches(board, clearQueue):
 - Java clear line cũ trước, rồi mới spawn special mới
 - special mới spawn ra không được tự clear ngay trong cùng pass này
 - `X` là tập line sau khi merge/dedupe, không phải raw line ban đầu
+- sort/dedupe trong `mq.a(a, boolean)` không chỉ để đẹp: nếu 2 line trùng span, Java giữ line có spawn center phù hợp hơn (`h`/`i`) rồi bỏ line còn lại
+- merge ngang/dọc chỉ xảy ra khi cùng `mask` và vertical column thật sự nằm trong horizontal span, horizontal row thật sự nằm trong vertical span
 
-### 3.1. Tạo special piece đúng rule Java
+### 3.1. Tạo special piece: decompile có nhánh, gameplay gốc cần ưu tiên "không tạo special"
 
-Flow thật:
+Flow trong Java client code có nhánh xử lý:
 
 1. gom toàn bộ line ngang và dọc vào `mw[]`
 2. sort + dedupe từng nhóm line
@@ -282,42 +408,62 @@ Flow thật:
 4. clear board
 5. sau clear mới spawn special mới vào board model
 
+Tuy nhiên, theo gameplay memory do user xác nhận ngày `2026-04-26`:
+
+- "Không một item nào được tạo special"
+- tất cả item/gem sau khi match đều biến mất
+- giọt tím EXP nửa sao match như bình thường nhưng cũng không tạo special
+- board Java cũ chỉ có đúng 8 icon gameplay đã thấy, không có icon khác
+
+Kết luận reconstruction hiện tại:
+
+- không được coi natural match 4/5 tự tạo special là rule gameplay gốc chắc chắn
+- nhánh `mr.x/mr.y` trong decompile phải được note là logic Java client tồn tại nhưng có thể là:
+  - nhánh không bật trong runtime/server mode gốc
+  - nhánh phục vụ skill/packet/variant khác
+  - hoặc artifact còn lại nhưng không phải behavior game người chơi nhớ
+- khi port bản hiện tại, nếu muốn bám gameplay cũ theo user memory thì match thường chỉ clear rồi drop/refill, không spawn item special tự nhiên
+
 Nguồn:
 
 - [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:609)
 - [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1632)
 - [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1672)
 
-Rule nâng cấp:
+Rule nâng cấp theo nhánh code decompile, chỉ để tham khảo/đối chiếu:
 
 - nếu `horizontal >= 5`
 - hoặc `vertical >= 5`
 - hoặc `horizontal >= 3 && vertical >= 3`
-  - spawn `mr.y[baseId]` = `20..25`
-  - đây là special `type 4`
+  - code có thể spawn `mr.y[baseId]` = `20..25`
+  - node này là `type 4`
 
 - nếu `horizontal >= 4`
 - hoặc `vertical >= 4`
-  - spawn `mr.x[baseId]` = `10..15`
-  - đây là special `type 2`
+  - code có thể spawn `mr.x[baseId]` = `10..15`
+  - node này là `type 2`
 
-Giới hạn:
+Giới hạn trong code:
 
 - chỉ base node có `mask < 64` mới được nâng cấp
 - special đang có sẵn không nâng cấp tiếp trong logic này
+
+Nhưng rule gameplay đã chốt theo user memory:
+
+- match `>= 4` cộng lượt theo số group match, không tạo item special tự nhiên
+- mọi item sau match biến mất rồi board drop/refill
+- không dùng node `10..15`/`20..25` như natural special spawn trong gameplay local mặc định cho tới khi có packet log/video chứng minh ngược lại
 
 Nguồn:
 
 - [mr.java](/d:/Twelve/reference/redecoded/decompiled/mr.java:4)
 - [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:691)
 
-### 3.2. Vị trí spawn special
+### 3.2. Vị trí spawn special trong nhánh code decompile
 
-Đây là chỗ rất dễ port sai.
+Đây là nhánh chỉ giữ để đối chiếu Java code, không còn là contract gameplay mặc định sau khi user xác nhận không item nào tạo special.
 
-Java không spawn “ở ô vừa swap tới” theo kiểu tùy ý.
-
-Quy tắc thật:
+Nếu nhánh decompile này được bật, Java không spawn “ở ô vừa swap tới” theo kiểu tùy ý:
 
 - line ngang > 3, không có giao dọc:
   - spawn tại `startCol + ((len - 1) >> 1)`
@@ -326,14 +472,21 @@ Quy tắc thật:
 - T/L/cross:
   - spawn đúng tại ô giao giữa line ngang và line dọc
 
-Hệ quả:
+Hệ quả nếu bật nhánh này:
 
 - line 4 ngang spawn ở ô thứ `2` tính từ đầu line
 - line 4 dọc cũng vậy
 - T/L spawn ở giao điểm, không ở đầu line
 
+Contract gameplay hiện tại:
+
+- match dài chỉ ảnh hưởng clear/drop/refill và `+ lượt`
+- không để lại special tại tâm line/giao điểm
+
 Nguồn:
 
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1632)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1672)
 - [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1691)
 - [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1727)
 
@@ -497,6 +650,21 @@ Kết luận:
 
 là 3 khái niệm phải tách riêng, không được gộp.
 
+### 4.1. Rule gameplay đã xác nhận cho `+ lượt`
+
+Theo user memory ngày `2026-04-26`:
+
+- cứ match `>= 4` thì được `+ lượt`
+- nếu một nước đi tạo nhiều group match `>= 4` thì cộng theo số group đó
+- ví dụ đồng thời ăn 2 group đủ điều kiện thì `+2 lượt`
+- rule này là gameplay memory để phục dựng local/server mới; Java client vẫn chỉ thấy `nq.F` là delta server gửi, không có formula sinh `F`
+
+Kết luận implementation:
+
+- local/remake có thể tính `extraTurns = count(matchGroups where length >= 4 hoặc merged group đủ điều kiện)`
+- vẫn phải ghi rõ đây là rule phục dựng từ gameplay memory, không phải formula đọc trực tiếp từ client Java
+- không gắn rule này với natural special spawn; match `>= 4` cộng lượt nhưng item vẫn biến mất theo memory mới nhất
+
 ### 5. Validate swap đúng kiểu Java
 
 Java check swap hợp lệ bằng cách:
@@ -550,6 +718,62 @@ Lưu ý:
 
 - Java reject sớm nếu 2 ô đang trỏ cùng `nj` singleton
 - không có rule riêng cho swap special ở đây; hợp lệ hay không vẫn dựa trên packed line sau swap
+- `my.e[0..3]` giữ lần lượt packed line ngang/dọc của ô thứ nhất và ngang/dọc của ô thứ hai; controller dùng lại để seed clear queue thay vì scan lại tùy ý
+
+## Skill Packet và Board Mutation Java
+
+Skill trong Java không phải chỉ là animation. `nq.c == 5` đi qua flow:
+
+1. `mq.t()` nhận `nq`
+2. gọi `a(nq, true)` để xử lý owner/turn UI
+3. nạp các buffer board/refill từ `nq.g`
+4. gán board reset/snapshot từ `nq.h`
+5. gọi `mq.a(ownerSide, skillId, skillLevelPlusOne, byArray, byArray2, byArray3, byArray4)`
+6. `mq` mutate board/actor status theo skill id
+7. `mt.a(lv, ...)` chạy projectile/impact/visual
+8. sau delay, `mq` quay về state result để apply `nl[]`
+
+Mapping tham số trong decompile:
+
+- `nq.n` = skill id
+- `nq.r` = skill level/index; `mq` dùng `I = n4 + 1`
+- `nq.s`, `nq.o`, `nq.q`, `nq.p` = các byte arrays truyền vào skill processor
+- `byArray`/`byArray2` thường là row/col target cell
+- `byArray3` có skill dùng như danh sách row/line hoặc tham số phụ
+- `byArray4` truyền tiếp xuống renderer/effect
+
+Skill board mutation đã thấy trực tiếp trong `mq`:
+
+| Skill id | Board/status behavior trong `mq` | Note |
+|----------|----------------------------------|------|
+| `1000` | clear các cell `byArray/byArray2` bằng marker `-16777215` | board clear/effect từ server target list |
+| `1001` | set cell thành node `10`, push vào `a.p[]` | fire-sword mark; dễ đụng với natural special node id `10` nên renderer phải phân biệt bằng trigger context |
+| `1002` | gọi actor owner `.a(I)` | status/helper timer, không clear board trực tiếp |
+| `1003`, `1005` | không clear board trong `mq`, chỉ visual/result | server/renderer xử lý |
+| `1006`, `1007` | clear target cells từ packet | target list server |
+| `1008` | clear target cells theo nhóm, delay giảm dần `16,14,...` | effect nhiều đợt |
+| `2000`, `2003`, `2007`, `2008` | clear target cells từ packet | target list server |
+| `2001` | actor owner `.c(I)` | status/helper timer |
+| `2002` | actor owner `.d(I)` | status/helper timer |
+| `2004` | actor đối thủ `.e(I)` rồi fall-through `2005` | status/helper timer; không break trước `2005` là behavior Java |
+| `2006` | sort `byArray3`, clear toàn hàng theo 1-2 row packet gửi, hướng delay phụ thuộc side | line clear do server chọn row |
+| `4000`, `4006`, `4007`, `4008` | clear target cells từ packet | target list server |
+| `4001`, `4004`, `4005` | không clear board trong `mq` | visual/result |
+| `4002` | actor đối thủ `.b(I)` | status/helper timer |
+
+Kết luận boundary:
+
+- Với skill, client Java không tự tìm target list từ hình học asset. Target row/col/line phần lớn đã nằm trong packet.
+- Port hiện tại nếu để FE tự đoán target list skill sẽ dễ sai; BE nên trả target arrays giống shape `nq`.
+- Các actor status timer do skill set nằm ở `lg`, nhưng tên gameplay chính xác của từng `.a/.b/.c/.d/.e(I)` cần map thêm từ skill data/visual, không nên đoán tên.
+
+Nguồn:
+
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1311)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1323)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1336)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1556)
+- [mt.java](/d:/Twelve/reference/redecoded/decompiled/mt.java:989)
 
 ## HP / MP / Nộ / Combo
 
@@ -616,18 +840,55 @@ Nguồn:
 ### 4. Combo popup
 
 Combo `"xN"` là visual riêng, dùng star sprite của battle scene, không phải stat resource.
+`ne` tạo vòng 20 sprite sao bay ra, radius tăng từ `3` tới `35 + (combo - 1) * 5`; text chỉ hiện sau khi radius >= `7`.
 
 Nguồn:
 
 - [mp.java](/d:/Twelve/reference/redecoded/decompiled/mp.java:394)
 - [mt.java](/d:/Twelve/reference/redecoded/decompiled/mt.java:844)
 - [ne.java](/d:/Twelve/reference/redecoded/decompiled/ne.java:23)
+- [ne.java](/d:/Twelve/reference/redecoded/decompiled/ne.java:40)
 
 Kết luận:
 
 - `HP`, `MP`, `Nộ` là stat runtime thật
 - `Sao` trong battle là combo FX/popup
 - không được lưu `star` như resource battle nếu Java không dùng kiểu đó
+
+## Chess Cell Animation Runtime
+
+`nd` là runtime cell animation, không phải nơi quyết định logic match.
+
+Các mode/state animation thấy trong `nd.k()`:
+
+| `nd.e` | Ý nghĩa thực dụng |
+|--------|-------------------|
+| `0` | inactive/hidden sau explode |
+| `1` | idle chess frame |
+| `2` | explode/clear animation, chạy tới frame cuối rồi về `0` |
+| `3` | falling/drop animation, tới đích rồi về `1` |
+| `4` | swap/move animation, tới đích rồi về `1` |
+| `5` | highlight/focus pulse có `t = 28` giảm dần |
+| `6` | delayed transition: sau delay set position/image rồi vào mode `1` hoặc `2` |
+
+Cell sprite lấy từ `Image[] B`, mỗi sheet chia 7 frame ngang:
+
+```java
+this.o = this.b.getWidth() / 7;
+this.p = this.b.getHeight();
+```
+
+Kết luận port:
+
+- animation mode không được dùng làm truth logic board
+- logic board phải cập nhật `nj`/node trước, animation chỉ playback
+- visual special `10..15`/`20..25` vẫn lấy image index từ `nj.g`, không được map sang hidden dragon/phoenix ornament
+
+Nguồn:
+
+- [nd.java](/d:/Twelve/reference/redecoded/decompiled/nd.java:28)
+- [nd.java](/d:/Twelve/reference/redecoded/decompiled/nd.java:96)
+- [nd.java](/d:/Twelve/reference/redecoded/decompiled/nd.java:132)
 
 ## Status Timers
 
@@ -713,6 +974,53 @@ Rule local nên dùng:
     - có match sẵn ngay lúc spawn
     - không còn move hợp lệ
 
+## Server Java Cũ: Những điểm phải note lại để tính sau
+
+Các phần sau liên quan server Java cũ hoặc packet authoritative, client chỉ apply/render nên chưa thể chốt formula 100%:
+
+1. `nq.D` thêm/giảm thời gian turn
+   - Client chỉ cộng vào `ms.g`, rồi set `np.a = seconds * 1000`.
+   - Không thấy formula sinh `D` trong client.
+2. `nq.F` thêm/giảm lượt còn lại
+   - Client chỉ cộng vào biến lượt `B` nếu mode không phải `oq.o == 1`.
+   - Không thấy formula sinh `F` trong client.
+   - Gameplay memory đã xác nhận rule phục dựng: match `>= 4` cộng lượt theo số group match đủ điều kiện.
+3. `nl[]` actor result
+   - Client nhận `hp/mp/power/damage/flag`, update HUD và popup.
+   - Final damage/heal/resource gain formula nằm server cũ.
+4. Skill target arrays
+   - Client dùng row/col/line arrays từ `nq`, không tự suy toàn bộ.
+   - BE hiện tại cần sinh packet shape tương đương nếu muốn bám Java.
+5. Refill queue và no-move board reset
+   - `ms.m[ms.n++]` lấy từ byte buffer packet.
+   - `ms.o` dùng cho board reset/snapshot; client không tự generate như server cũ.
+6. Checksum/sync
+   - Server gửi checksum `nq.i`; client tính `oz.a(ms.l)`.
+   - Nếu lệch thì clear queue và request sync.
+7. Reward roll
+   - Client chỉ nhận `ll[]`, `lm[]`, exp/gold/result flags rồi present.
+8. EXP từ sao xanh và giọt tím EXP nửa sao
+   - User xác nhận match sao xanh tăng EXP cho nhân vật nếu thắng trận.
+   - Giọt tím EXP nửa sao match như bình thường, không tạo special.
+   - User xác nhận vàng/sao/giọt tím chỉ âm thầm cộng pending reward, không cần hiện counter tạm trong trận; chỉ chốt/hiện ở màn kết quả nếu thắng.
+   - Công thức cộng EXP và điều kiện ghi EXP cuối trận cần tính sau.
+9. Gold từ icon vàng
+   - User xác nhận vàng tích điểm vào player, max `10k` thì quy đổi `10k Quan`.
+   - Công thức tích gold/quy đổi Quan cần tính sau, không suy từ reward item icon.
+
+Những điểm này cần server source, packet log, hoặc replay/video đủ dày để suy ngược. Khi chưa có, mọi logic thay thế phải ghi là reconstruction/remake.
+
+Nguồn:
+
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:223)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:232)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:245)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1251)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1311)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1570)
+- [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1584)
+- [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:1832)
+
 ## Skill Trigger và Board Mutation
 
 Skill family mutation đúng phải đi qua `mq` rồi `mt`:
@@ -768,7 +1076,7 @@ Java cũ từng dựa vào packet cho nhiều kết quả battle. Bản hiện t
 Battle controller local phải tự quyết định toàn bộ:
 
 1. swap có hợp lệ hay không
-2. match ngang/dọc và special spawn/clear
+2. match ngang/dọc, clear/drop/refill; natural special spawn tắt theo gameplay memory hiện tại
 3. cascade và refill
 4. no-move detection và xử lý lại board
 5. skill trigger từ pattern / power / state
@@ -812,7 +1120,7 @@ Nếu triển khai battle local bây giờ, nên giữ contract sau:
 - thêm riêng 3 nhánh: `time`, `extra turns`, `no-move`
 - coi `star` là combo FX, không phải resource
 - tách `board node`, `reward item`, `UI icon` thành 3 lớp khác nhau
-- giữ đúng rule spawn special ở tâm line hoặc giao điểm
+- không coi natural special spawn là gameplay mặc định: user memory xác nhận không item nào tạo special; nhánh spawn tâm line/giao điểm chỉ giữ như note decompile để đối chiếu
 - giữ combo theo từng màu trong cùng turn, không gộp thành 1 biến global
 
 ## Client Port Status
@@ -829,8 +1137,8 @@ Tính đến bản client hiện tại, phần board core đã được port loc
   - scan line ngang/dọc bằng packed span
   - dedupe line theo axis
   - merge ngang/dọc theo giao điểm
-  - spawn special `10..15` và `20..25`
-  - clear chain cho special `type 2` và `type 4`
+  - hiện đang có nhánh spawn special `10..15` và `20..25`, nhưng cần chỉnh/tắt nếu bám gameplay memory mới nhất: match xong item biến mất, không tạo special tự nhiên
+  - clear chain cho special `type 2` và `type 4` chỉ nên giữ cho packet/skill/variant nếu thật sự có node đó
 - `collapseResolvedBoard()`
   - drop bottom-up từng cột
   - refill từ queue RNG local
@@ -852,22 +1160,22 @@ Luồng hook hiện tại:
 
 ### Lưu ý rất quan trọng về `+ lượt`
 
-Code client hiện tại chỉ có thể làm `bonusTurnCandidate` theo heuristic:
+Code client hiện tại có `bonusTurnCandidate` theo heuristic:
 
 - line `>= 4`
 - hoặc line merge có trục `>= 4`
 
-Lý do:
+Sau xác nhận user ngày `2026-04-26`, rule phục dựng nên đổi thành:
+
+- match `>= 4` thì cộng lượt
+- cộng theo số group match đủ điều kiện trong cùng nước đi/cascade tùy contract turn local
+- không tạo special tự nhiên kèm theo việc cộng lượt
+
+Lý do vẫn phải ghi boundary:
 
 - Java client chỉ parse `nq.F`
-- không có công thức authoritative trong client giải thích chính xác khi nào server tăng `nq.F`
-
-Cho nên:
-
-- board algorithm hiện đã bám Java hơn nhiều
-- nhưng `+ lượt` mới chỉ là local approximation, chưa thể khẳng định 100% đúng server cũ
-
-Nếu muốn khóa nốt phần này, cần packet log hoặc replay thật để suy ngược rule `nq.F`.
+- formula server cũ sinh `nq.F` không nằm trong client
+- rule `match >= 4 => + lượt theo group` là gameplay memory/user-confirmed, không phải dòng code client Java sinh trực tiếp
 
 ## 100% Boundary
 
@@ -880,8 +1188,8 @@ Có 2 mức “giống Java”:
 - match scan theo mask
 - merge line ngang/dọc
 - special clear
-- special spawn rule
-- special spawn position
+- special clear rule nếu packet/skill thật sự sinh node `type 2/type 4`
+- nhánh special spawn/position có trong decompile nhưng không còn coi là gameplay mặc định nếu bám memory "không item nào tạo special"
 - drop logic
 - cascade scan
 - no-move detection
@@ -907,16 +1215,84 @@ Nếu muốn đúng tuyệt đối ở các phần này, cần:
 
 Bước hợp lý tiếp theo không phải dựng asset registry nữa, mà là khóa spec logic:
 
-1. định nghĩa enum/const cho toàn bộ `nj node ids`
+1. định nghĩa enum/const cho toàn bộ `nj node ids` và mapping 8 icon gameplay (`chess0` kiếm trắng, `chess1` tim, `chess3` đào, `chess8` kiếm lửa; bộ `/chess0..8` bỏ `chess7`)
 2. port nguyên match scan theo `mask`
-3. port clear behavior cho `type 2` và `type 4`
-4. tách `timeLeft`, `remainingTurns`, `hasValidMove`
-5. chuẩn hóa local result model cho `hp/mp/power`
-6. chỉ sau đó mới bind animation `mt/mx/mp`
+3. chỉnh local board contract: match thường clear/drop/refill, không tạo special tự nhiên; match `>= 4` cộng lượt theo số group
+4. giữ clear behavior `type 2/type 4` cho skill/packet/variant nếu phát hiện node đó thật sự xuất hiện
+5. tách `timeLeft`, `remainingTurns`, `hasValidMove`
+6. chuẩn hóa local result model cho `hp/mp/power`, EXP từ sao xanh/giọt tím, gold/Quan từ vàng
+7. chỉ sau đó mới bind animation `mt/mx/mp`
 
 Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic sẽ lệch ở những chỗ quan trọng nhất.
 
 ## Nhật ký chỉnh sửa
+
+### 2026-04-26 — Cập nhật gameplay memory icon board, +lượt và bỏ natural special mặc định
+
+  - File tài liệu đã sửa:
+    - `BATTLE_SYSTEM_RECONSTRUCTION.md`
+  - Nội dung:
+    - Ghi nhận xác nhận gameplay memory:
+      - board gameplay dùng `8` item từ `/chess0..8` nhưng bỏ `chess7`;
+      - `chess0` là kiếm trắng/thường;
+      - tim hồi máu là `chess1` và hồi ngay trong trận;
+      - đào là `chess3` và hồi nộ/Power ngay trong trận;
+      - kiếm lửa là `chess8`, nổ vùng `3x3`, có tính chất cứ bị tác động là nổ, gây sát thương ngay với hệ số user memory `x1.5`;
+      - chỉ cần `1` kiếm lửa nằm trong match với các kiếm trắng thì toàn bộ cụm kiếm đó kích hoạt nổ;
+      - skill/cascade/refill/tác động sau đó rơi vào kiếm lửa cũng phải kích hoạt nổ;
+      - sao xanh/giọt tím EXP và vàng là tích lũy tạm nội bộ trong trận, không cần hiện counter tạm, chỉ chốt/hiện ở màn kết quả nếu thắng; thua trận mất hết EXP/Gold/Quan kiếm được từ board trận đó;
+      - giọt tím EXP nửa sao match như bình thường nhưng không tạo special.
+    - Sửa lại kết luận natural special spawn: decompile có nhánh `mr.x/mr.y` spawn `10..15`/`20..25`, nhưng user memory xác nhận "không một item nào được tạo special"; vì vậy không coi natural special spawn là gameplay mặc định.
+    - Chốt rule phục dựng `+ lượt`: match `>= 4` cộng lượt theo số group match đủ điều kiện, tách khỏi special spawn.
+    - Liên kết HP từ tim và nộ từ đào với công thức remake/server-owned trong `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`.
+    - Note các phần cần tính sau từ server/remake: công thức EXP từ sao xanh/giọt tím, công thức gold/Quan, base damage/target ownership của kiếm lửa `3x3`; riêng hệ số sát thương user memory đã xác nhận là `x1.5`.
+  - Nguồn:
+    - User gameplay memory trả lời trực tiếp ngày `2026-04-26`.
+    - `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5` cho công thức HP/MP/Power match gem hiện tại.
+    - Java client vẫn chỉ parse/apply `nq.F`, `nl[]`, reward/EXP/gold result; không có source server formula.
+
+### 2026-04-26 — Bổ sung coverage Java client battle/bàn cờ
+
+- File tài liệu đã sửa:
+  - `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- Nội dung:
+  - Bổ sung section `Java Client Coverage / Mức độ đầy đủ hiện tại`.
+  - Ghi rõ kết quả kiểm tra JAR client:
+    - `2259` entries;
+    - `427` `.class`;
+    - `1832` resource/non-class;
+    - `427` file `.java` trong `decompiled`;
+    - `427` file `.java` trong `cfr_fresh`;
+    - unique class stem match `425 / 425`.
+  - Xác nhận nhóm class battle/bàn cờ chính đều tồn tại ở cả `decompiled` và `cfr_fresh`.
+  - Chốt mức khôi phục nếu chỉ tính bàn cờ Java client-side là khoảng `97-99%`; phần còn lại chủ yếu là tên semantic/timing visual nhỏ do obfuscation, không phải thiếu core logic.
+  - Ghi rõ các field packet như refill queue, board reset bytes, `nq.D`, `nq.F`, `nl[]`, reward list là data client nhận/apply, không phải phần client tự sinh formula.
+- Nguồn kiểm tra:
+  - `reference/redecoded/jar-contents.txt`
+  - `reference/redecoded/decompiled`
+  - `reference/redecoded/cfr_fresh`
+
+### 2026-04-26 — Tổng hợp lại boundary và logic Java battle bàn cờ
+
+- File tài liệu đã sửa:
+  - `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- Nội dung:
+  - Chuẩn hóa lại `Java Boundary Chốt`, tách rõ phần client Java tự simulate board với phần server Java cũ từng gửi qua `nq`.
+  - Bổ sung state machine `mq`: các state runtime quan trọng (`7`, `10`, `11`, `15`, `20`) và mapping `nq.c` (`swap`, `skill`, `attack`, `result`, `use item`).
+  - Bổ sung note checksum/sync: client Java tính checksum board sau local cascade và so với `nq.i`; lệch thì clear queue/request sync.
+  - Bổ sung skill packet board mutation: `nq.n/r/s/o/q/p`, target arrays row/col, các skill id `1000..4008` đã thấy trong `mq`, và cảnh báo target list thuộc packet/server.
+  - Bổ sung `nd` cell animation runtime và `ne` combo-star popup để tránh nhầm visual asset với logic board.
+  - Bổ sung danh sách các điểm chắc chắn thuộc server Java cũ cần tính sau: `nq.D`, `nq.F`, `nl[]`, refill queue, no-move reset board, reward roll.
+- Nguồn suy luận:
+  - `reference/redecoded/decompiled/mq.java`
+  - `reference/redecoded/decompiled/mr.java`
+  - `reference/redecoded/decompiled/mw.java`
+  - `reference/redecoded/decompiled/my.java`
+  - `reference/redecoded/decompiled/nq.java`
+  - `reference/redecoded/decompiled/nl.java`
+  - `reference/redecoded/decompiled/nd.java`
+  - `reference/redecoded/decompiled/ne.java`
+  - `reference/redecoded/decompiled/np.java`
 
 ### 2026-04-26 — Sửa fallback gem resource khiến MP hồi nhầm HP
 

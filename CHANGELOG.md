@@ -1,5 +1,78 @@
 # CHANGELOG
 
+## 2026-04-26 (AC)
+
+### Cập nhật battle board theo gameplay memory: icon, +lượt, bỏ natural special mặc định
+
+**Mục tiêu:**
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md` theo xác nhận gameplay memory mới nhất về bàn cờ Java gốc.
+- Tách rõ nhánh decompile có `mr.x/mr.y` với behavior người chơi nhớ: match xong item biến mất, không tạo special tự nhiên.
+
+**Sửa:**
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md`:
+  - thêm mapping 8 icon gameplay gốc:
+    - kiếm thường/trắng là `chess0`;
+    - tim hồi máu là `chess1`;
+    - đào là `chess3`, dùng hồi nộ/Power;
+    - kiếm lửa là `chess8`, nổ vùng `3x3`, gây sát thương ngay với hệ số user memory `x1.5`;
+    - sao xanh tăng EXP nếu thắng trận;
+    - vàng tích điểm, max `10k` quy đổi `10k Quan`;
+    - giọt tím EXP nửa sao match bình thường, không tạo special;
+    - vàng/sao/giọt tím chỉ tích pending reward nội bộ, không cần hiện counter tạm trong battle HUD.
+  - sửa kết luận natural special spawn:
+    - decompile có nhánh spawn `10..15`/`20..25`;
+    - nhưng gameplay memory xác nhận không item nào tạo special;
+    - vì vậy không coi natural special spawn là gameplay mặc định.
+  - chốt rule phục dựng `+ lượt`:
+    - match `>= 4` cộng lượt;
+    - cộng theo số group match đủ điều kiện;
+    - tách khỏi special spawn.
+  - note các công thức cần tính sau: HP từ tim, nộ từ đào, EXP từ sao xanh/giọt tím, gold/Quan từ vàng, base damage/target ownership của kiếm lửa; riêng multiplier kiếm lửa `x1.5` đã xác nhận từ gameplay memory.
+- Cập nhật `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`:
+  - ghi rõ gameplay memory về resource/reward board item;
+  - thêm contract `BattleTemporaryRewards`: EXP/Gold/Quan từ board chỉ commit khi thắng, thua thì discard, không cần hiện counter tạm trong battle HUD;
+  - ghi rõ đào trên bàn cờ `chess3` hồi Power/Nộ, không nhầm với item tiêu hao hồi HP;
+  - thêm ràng buộc kiếm lửa `chess8` là behavior board riêng, không đồng nghĩa với natural special node `10..15`/`20..25`;
+  - ghi rõ kiếm lửa nổ `3x3` gây sát thương với multiplier user memory `x1.5`, còn base damage/target/owner vẫn là rule server/remake cần tính sau.
+
+**Kiểm tra:**
+- Không chạy `dotnet build` vì task chỉ sửa tài liệu, không sửa code server.
+- Đã kiểm tra nội dung tài liệu qua phản hồi `replace_in_file`.
+
+**File đã sửa:**
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`
+- `CHANGELOG.md`
+
+---
+
+## 2026-04-26 (AB)
+
+### Tổng hợp lại logic Java battle bàn cờ
+
+**Mục tiêu:**
+- Rà lại logic Java liên quan battle/bàn cờ và cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md`.
+- Sửa/bỏ các kết luận dễ gây sai lệch, tách rõ logic client Java tự simulate với phần server Java cũ từng gửi qua packet.
+
+**Sửa:**
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md`:
+  - chuẩn hóa `Java Boundary Chốt`;
+  - bổ sung state machine `mq` và mapping `nq.c`;
+  - ghi rõ checksum/sync board qua `nq.i` và `oz.a(ms.l)`;
+  - bổ sung skill packet board mutation từ `nq.n/r/s/o/q/p` và target arrays;
+  - bổ sung runtime cell animation `nd` và combo popup `ne`;
+  - note riêng các phần thuộc server Java cũ cần tính sau: `nq.D`, `nq.F`, `nl[]`, refill queue, no-move reset board, reward roll.
+
+**Kiểm tra:**
+- Không chạy `dotnet build` vì task chỉ sửa tài liệu, không sửa code server.
+- Đã kiểm tra lại nội dung tài liệu sau khi ghi qua phản hồi `replace_in_file`.
+
+**File đã sửa:**
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
 ## [26/04/2026]
 
 ### Battle System – Bỏ cơ chế Special Gem (Match 4/5)

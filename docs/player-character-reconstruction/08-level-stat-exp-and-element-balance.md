@@ -579,11 +579,13 @@ CriticalDamage = clamp(150, 250, 150 + EffectiveAgilityForOffense / 10 + Equipme
 
 ## 5. Resource Gain Trong Battle
 
-Nguồn Java:
+Nguồn Java / gameplay memory:
 - Client có HP/MP/Power bar.
 - `lh.u/t` là MP.
 - `lh.w/v` là Power/nộ.
 - Không có công thức server cũ chính xác cho resource gain.
+- User gameplay memory ngày `2026-04-26` xác nhận board gốc dùng 8 item từ `/chess0..8` nhưng bỏ `chess7`; `chess1` là tim hồi HP ngay trong trận, `chess3` là đào hồi nộ/Power ngay trong trận.
+- `chess8` là kiếm lửa nổ vùng `3x3`, cứ bị tác động là nổ; nếu nằm trong match cùng kiếm trắng (`chess0`) cũng kích hoạt nổ cả cụm; user memory xác nhận kiếm lửa gây sát thương ngay với hệ số `x1.5`.
 
 Rule remake v1:
 
@@ -641,6 +643,7 @@ Nguyên tắc:
 - Fallback FE chỉ để tương thích payload cũ, không phải source of truth.
 - Ghi chú cân bằng 2026-04-26: `BaseManaPerGem` phải thấp hơn heal base vì một scalar server đang áp chung cho mọi gem có MP. Nếu để `12`, các gem MP nhẹ kiểu Java-feel (`3/5`) bị đẩy lên thành hồi MP quá nhanh, dẫn tới spam skill.
 - `Base*PerGem` là input pacing do server phát xuống, không phải công thức Java gốc; nếu sau này tìm được packet/server Java thật thì thay tại server config trước, FE không tự sửa công thức.
+- Mapping gameplay hiện tại phải bám `BATTLE_SYSTEM_RECONSTRUCTION.md`: tim `chess1` dùng HP, đào `chess3` dùng Power/Nộ. Không được để gem MP/hỗn hợp fallback nhầm sang hồi HP.
 - FE chỉ được clamp/tween bar để hiển thị mượt sau khi đã nhận config/snapshot từ server; không được tự tính lại `GainPercent` từ Strength/Magic ở client.
 - Nhân vật mới tạo phải khởi tạo `CurrentMP = 0` và `CurrentPower = 0`, không set `CurrentMP = MaxMP`. Lý do: MP/Power hiện đang là battle resource tạm; DB current resource được `PlayerBattleStateFactory` dùng trực tiếp để bootstrap trận mới. Nếu seed/tạo nhân vật để `mp = maxmp`, trận đầu/trận kế tiếp sẽ vào battle với MP full, lệch policy reset MP/Power sau result.
 - Nếu dữ liệu DB cũ đã có `mp = maxmp`, cần migrate/reset current battle resource hiện có, ví dụ `UPDATE players SET mp = 0, power = 0;` theo môi trường dev/test trước khi kiểm chứng pacing battle.
@@ -673,7 +676,79 @@ Lý do:
 - Không cho MP gain vượt quá 140% để tránh spam skill vô hạn. Cap 180% cũ quá cao gây mất cân bằng.
 - Dùng cùng tốc độ 1%/point với Cường Lực để cân bằng giữa hệ vật lý và hệ kỹ năng.
 
-### 5.3 Item Hồi Phục như Trái Đào
+### 5.3 EXP/Gold/Quan tạm trong trận từ board item
+
+Theo gameplay memory ngày `2026-04-26`:
+
+- sao xanh và giọt tím EXP nửa sao tích EXP tạm nội bộ trong trận
+- vàng tích gold/Quan tạm nội bộ trong trận
+- user memory xác nhận các item vàng/sao/giọt tím không cần hiện counter tạm trong battle HUD
+- chỉ khi thắng mới chốt cộng vào nhân vật/tài khoản và thể hiện ở màn kết quả
+- nếu thua thì mất toàn bộ EXP/Gold/Quan kiếm từ board trong trận đó
+- vàng có mốc max user nhớ là `10k`, quy đổi thành `10k Quan`/tiền nạp sau này
+
+Contract server/remake v1:
+
+```text
+BattleTemporaryRewards:
+  PendingExpFromBoard
+  PendingGoldFromBoard
+  PendingQuanFromBoard
+
+OnBoardClear:
+  if clearedFamily == BlueStarExp:
+    PendingExpFromBoard += ResolveBlueStarExp(...)
+  if clearedFamily == PurpleHalfStarExp:
+    PendingExpFromBoard += ResolvePurpleHalfStarExp(...)
+  if clearedFamily == Gold:
+    PendingGoldFromBoard += ResolveGold(...)
+    PendingQuanFromBoard = min(10000, ResolveQuanProgress(PendingGoldFromBoard))
+
+OnBattleEnd:
+  if Result == Win:
+    commit PendingExpFromBoard / PendingGoldFromBoard / PendingQuanFromBoard
+  else:
+    discard all pending board reward values
+```
+
+Ràng buộc:
+
+- Công thức `ResolveBlueStarExp`, `ResolvePurpleHalfStarExp`, `ResolveGold`, `ResolveQuanProgress` chưa có server Java cũ, phải coi là remake/server-owned.
+- Không ghi EXP/Gold/Quan vĩnh viễn ngay lúc match nếu trận chưa kết thúc.
+- Không lấy reward item icon (`lm`/`ll`) làm truth cho board icon vàng/sao; reward packet cuối và board temporary reward là 2 luồng khác nhau.
+- `10k Quan` là cap/mốc quy đổi gameplay memory, chưa phải công thức final server Java.
+
+### 5.4 Kiếm lửa `chess8` và damage/nổ board
+
+Theo gameplay memory ngày `2026-04-26`:
+
+- kiếm thường/trắng là `chess0`
+- kiếm lửa là `chess8`
+- kiếm lửa nổ vùng `3x3`
+- kiếm lửa gây sát thương ngay, hệ số user memory `x1.5`
+- cứ bị tác động là nổ:
+  - nằm trong match cùng kiếm trắng cũng nổ
+  - skill tác động vào nó cũng nổ
+  - cascade/refill/drop sau đó tạo tác động vào nó cũng phải xét nổ
+
+Contract phục dựng v1:
+
+```text
+if ClearedOrTouchedCells contains FireSword(chess8):
+  for each fireSword in triggeredFireSwords:
+    clear/damage 3x3 around fireSword
+    baseDamage = ResolveFireSwordBaseDamage(...)
+    finalDamage = floor(baseDamage * 150 / 100)
+    apply FireSwordBattleEffect(finalDamage) according to server-owned target/owner formula
+```
+
+Ràng buộc:
+
+- Base damage và target/owner của kiếm lửa chưa có công thức server Java cũ, không suy bừa từ asset; riêng multiplier `x1.5` là user gameplay memory đã xác nhận.
+- Kiếm lửa là board item behavior riêng, không đồng nghĩa với natural special node `10..15`/`20..25` trong `nj`.
+- Renderer phải phân biệt kiếm lửa `chess8` với skill mark/fire-sword packet id khác nếu có.
+
+### 5.5 Item Hồi Phục như Trái Đào
 
 Các item hồi phục như `Trái Đào` vẫn nên được hưởng lợi từ chỉ số tương ứng, để người chơi cảm nhận rõ build của mình.
 
@@ -740,7 +815,8 @@ ManaFromItem = min(ManaFromItem, MissingMP)
 
 Ghi chú quan trọng:
 - Đây là rule remake vì chưa có công thức server Java cũ cho item heal.
-- Nếu sau này decompile/client data chỉ ra `Trái Đào` là hồi fixed amount tuyệt đối, có thể chuyển item thường thành fixed và chỉ để item cao cấp/buff chịu stat scaling.
+- Lưu ý tên `Trái Đào` ở mục item tiêu hao không được nhầm với board icon đào `chess3`: theo gameplay memory, đào trên bàn cờ hồi Power/Nộ ngay trong trận, không phải item hồi HP.
+- Nếu sau này decompile/client data chỉ ra item tiêu hao hồi fixed amount tuyệt đối, có thể chuyển item thường thành fixed và chỉ để item cao cấp/buff chịu stat scaling.
 - V1 nên cho scaling có cap vì hợp lý với gameplay stat/build và giúp Cường Lực/Nội Lực có bản sắc rõ hơn ngoài damage.
 
 ---
