@@ -2,6 +2,22 @@
 
 ## 2026-04-28
 
+### [BATTLE] Sửa cộng lượt cascade cho match group >=4
+
+**Vấn đề:** Sau khi đã sửa `bonusTurnCount` theo số group trong một resolve, flow vẫn còn khóa `BonusTurnState.granted` theo toàn bộ swap/cascade. Điều này làm cascade sau drop/refill nếu tạo thêm match group `>=4` thật thì không được cộng lượt tiếp.
+
+**Giải pháp:**
+- Đổi `BonusTurnState` từ flag một lần `granted` sang state theo dõi `grantedGroups`.
+- Mỗi resolve step/cascade có `resolved.bonusTurnCandidate` sẽ cộng đúng `resolved.bonusTurnCount`.
+- Khóa rule gameplay memory: trong cùng turn/swap flow, mỗi distinct match group `>=4` cộng `+1 lượt`; match-5 chỉ là `+1 group`, còn match-4 + match-5 trong cùng resolve là `+2`.
+
+**Files đã sửa:**
+- `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+**Build:** `npx --prefix client tsc -p client/tsconfig.json --noEmit`
+
 ### [BATTLE] Áp khắc hệ cho damage kiếm board local
 
 **Vấn đề:** Raw damage kiếm trắng/kiếm đỏ đã scale theo `MinDamage/MaxDamage`, nên số `15` không còn là hardcode. Tuy nhiên local board flow chưa truyền hệ số khắc hệ `100/112/92` như server `BattleTurnEngine`, có thể làm preview/flow bàn cờ lệch với combat skill server-authoritative.
@@ -30,7 +46,7 @@
 **Giải pháp:**
 - `resolveJavaBoardStep()` trả thêm `bonusTurnCount`.
 - `useBattleMatchFlow()` cộng số lượt theo `bonusTurnCount`, ví dụ match-4 + match-5 trong cùng resolve bank `+2 lượt`.
-- Vẫn khóa không cộng lặp do cascade bằng `BonusTurnState.granted` trong flow hiện tại.
+- Cập nhật 2026-04-28: bỏ khóa `BonusTurnState.granted` theo toàn bộ swap/cascade; cascade sau drop/refill nếu tạo thêm group `>=4` thật thì tiếp tục bank lượt theo `bonusTurnCount`.
 
 **Files đã sửa:**
 - `client/src/screens/battle/core/BattleScreen.logic.ts`

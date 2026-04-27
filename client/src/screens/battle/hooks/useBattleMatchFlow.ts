@@ -79,7 +79,12 @@ interface RageBurstState {
 }
 
 interface BonusTurnState {
-  granted: boolean;
+  // Gameplay memory lock:
+  // Trong cùng một turn/swap flow, mỗi resolve step được cộng lượt theo số
+  // distinct match group >= 4 mà step đó thật sự ăn được. Không dùng flag
+  // `granted` một lần cho cả cascade, vì cascade trong turn vẫn phải cộng
+  // thêm nếu rơi ngọc tạo match-4/match-5 mới.
+  grantedGroups: number;
 }
 
 export const useBattleMatchFlow = ({
@@ -161,7 +166,7 @@ export const useBattleMatchFlow = ({
     const resultLocked = isBattleResultLocked();
     const passiveAfterResult = isPassiveObserver;
 
-    const activeBonusTurn = bonusTurnState ?? { granted: false };
+    const activeBonusTurn = bonusTurnState ?? { grantedGroups: 0 };
     const activeRageBurst = rageBurstState ?? {
       active: turnRef.current === 'player'
         ? maxPow > 0 && playerPowerRef.current >= maxPow
@@ -233,18 +238,17 @@ export const useBattleMatchFlow = ({
         flashComboBadge(chain + 1);
       }
 
-      if (resolved.bonusTurnCandidate && !activeBonusTurn.granted) {
-        // Java mq/mt reconstruction:
-        // - Java does not prove Candy-Crush style natural special spawning, but mt.a(mw,int)
-        //   routes matched spans with len >= 4 through the highlighted combat/effect path.
-        // - Gameplay memory lock: each independent initial resolved match group with len >= 4
-        //   grants one retained turn. Example: one match-4 plus one match-5 in the same swap
-        //   banks 2 turns.
-        // - Store banked extra turns only once per full swap/cascade, otherwise chain falls can
-        //   incorrectly report multiple remaining turns.
-        activeBonusTurn.granted = true;
+      if (resolved.bonusTurnCandidate) {
+        // Java mq/mt reconstruction + gameplay memory lock:
+        // - Match group >= 4 chỉ cộng lượt, không spawn natural special item.
+        // - Trong một turn/swap flow, ăn được bao nhiêu distinct match group
+        //   đủ điều kiện thì cộng bấy nhiêu lượt: match-4 = +1 group,
+        //   match-5 = +1 group, match-4 + match-5 trong cùng resolve = +2.
+        // - Cascade sau drop/refill vẫn thuộc turn hiện tại; nếu cascade đó
+        //   tạo thêm group >= 4 thật thì tiếp tục cộng lượt theo rule chung.
+        const grantedTurns = Math.max(1, resolved.bonusTurnCount);
+        activeBonusTurn.grantedGroups += grantedTurns;
         if (!passiveAfterResult) {
-          const grantedTurns = Math.max(1, resolved.bonusTurnCount);
           const newExtra = extraTurnsRef.current + grantedTurns;
           extraTurnsRef.current = newExtra;
           setExtraTurns(newExtra);

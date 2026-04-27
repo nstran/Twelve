@@ -1573,7 +1573,7 @@ mỗi distinct match group có length >= 4 => +1 lượt
 
 Cần giải đáp sau để khóa edge case server cũ:
 
-- Cascade tự động có được cộng lượt không, hay chỉ nước swap đầu tiên?
+- Cascade tự động được cộng lượt nếu trong cascade đó thật sự ăn được match group `>= 4`; không chỉ giới hạn ở nước swap đầu tiên.
 - Cross/T/L tính là `1 group` merged hay tính riêng từng line nếu cả ngang và dọc đều `>= 4`?
 - Kiếm đỏ nổ lan có tạo group `>= 4` để cộng lượt không, hay chỉ match line ban đầu?
 - Skill clear line/clear vùng có được cộng lượt như match board không?
@@ -1907,7 +1907,7 @@ Code client hiện tại có `bonusTurnCandidate` theo heuristic:
 Sau xác nhận user ngày `2026-04-26`, rule phục dựng nên đổi thành:
 
 - match `>= 4` thì cộng lượt
-- cộng theo số group match đủ điều kiện trong cùng nước đi/cascade tùy contract turn local
+- cộng theo số group match đủ điều kiện trong cùng turn/swap flow, bao gồm cả resolve ban đầu và các cascade sau drop/refill; mỗi distinct group `>= 4` chỉ cộng `+1 lượt`, kể cả match-5/L/T/cross nếu đã merge thành một group
 - không gộp `+ lượt` với special spawn; bản port hiện tại cộng lượt nhưng không tạo special mới theo gameplay memory
 
 Lý do vẫn phải ghi boundary:
@@ -2437,6 +2437,6 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
   - `resolveJavaBoardStep()` bổ sung `bonusTurnCount = count(mergedLines where unique cell count >= 4)`.
   - `useBattleMatchFlow()` không còn cộng cứng `+1` cho cả resolve step; thay vào đó cộng `resolved.bonusTurnCount`.
   - Khóa gameplay memory: nếu cùng một swap/resolve tạo đồng thời nhiều group đủ điều kiện, ví dụ một match-4 và một match-5, thì bank đúng `+2 lượt`.
-  - Vẫn giữ `BonusTurnState.granted` theo toàn bộ swap/cascade để không cộng lặp từ các fall chain sau đó trong cùng flow local hiện tại.
+  - Cập nhật 2026-04-28: bỏ khóa `BonusTurnState.granted` một lần cho toàn bộ swap/cascade. Cascade sau drop/refill vẫn thuộc turn hiện tại; nếu cascade đó tạo thêm group `>= 4` thật thì tiếp tục cộng lượt theo `resolved.bonusTurnCount`.
 - Nguồn suy luận:
   - `BATTLE_SYSTEM_RECONSTRUCTION.md §Nhóm + lượt`: mỗi group match có tổng số ô `>= 4` thì `+1 lượt`, nếu một nước/cascade tạo nhiều group đủ điều kiện thì cộng theo số group.
