@@ -159,6 +159,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const [phase,     setPhase]     = useState<BattlePhase>('idle');
   const [result,    setResult]    = useState<BattleResult | null>(null);
   const [battleReward, setBattleReward] = useState<BattleResultRewardResponse | null>(null);
+  const boardExpUnit2Ref = useRef(0);
+  const boardGoldUnit10Ref = useRef(0);
+  const boardQuanRef = useRef(0);
   const [resultSplashVisible, setResultSplashVisible] = useState(false);
   const [resultPopupVisible, setResultPopupVisible] = useState(false);
   const [playerAction, setPlayerAction] = useState<CharacterAction>('idle');
@@ -214,6 +217,9 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     setEnemyPower(Math.min(monsterBootstrap.enemy.currentPower, enemyMaxPow));
     setResult(null);
     setBattleReward(null);
+    boardExpUnit2Ref.current = 0;
+    boardGoldUnit10Ref.current = 0;
+    boardQuanRef.current = 0;
     setResultSplashVisible(false);
     setResultPopupVisible(false);
     resultRevealTimersRef.current.forEach(clearTimeout);
@@ -610,6 +616,27 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
   const showBonusBanner = useCallback((msg: string) => {
     showGainPopup('player', msg);
   }, [showGainPopup]);
+
+  const addPlayerBoardPendingReward = useCallback((expUnit2Delta: number, goldUnit10Delta: number) => {
+    if (expUnit2Delta > 0) {
+      boardExpUnit2Ref.current += expUnit2Delta;
+    }
+
+    if (goldUnit10Delta <= 0) {
+      return;
+    }
+
+    boardGoldUnit10Ref.current += goldUnit10Delta;
+    const pendingGold = Math.floor(boardGoldUnit10Ref.current / 10);
+    const quanChunks = Math.floor(pendingGold / 10000);
+    if (quanChunks <= 0) {
+      return;
+    }
+
+    const quanDelta = quanChunks * 10000;
+    boardQuanRef.current += quanDelta;
+    boardGoldUnit10Ref.current -= quanDelta * 10;
+  }, []);
   const {
     battleMenuItems,
     handleLeftSoftkey,
@@ -692,6 +719,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     flashExtraTurnsBadge,
     flashComboBadge,
     showDamagePopup,
+    addPlayerBoardPendingReward,
     spawnCollectFX,
     playExplosion,
     animateFall,

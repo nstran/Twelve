@@ -62,6 +62,7 @@ interface UseBattleMatchFlowArgs {
   flashExtraTurnsBadge: (turns: number) => void;
   flashComboBadge: (multiplier: number) => void;
   showDamagePopup: (side: 'player' | 'enemy', amount: number) => void;
+  addPlayerBoardPendingReward: (expUnit2Delta: number, goldUnit10Delta: number) => void;
   spawnCollectFX: (matched: Set<string>, board: Board, collectorSide: 'player' | 'enemy', healAmount: number) => void;
   playExplosion: (matched: Set<string>, expanded: Set<string>, board: Board, onDone: () => void) => void;
   animateFall: (newBoard: Board, fallMap: CollapseResult['fallMap'], onDone: () => void) => void;
@@ -119,6 +120,7 @@ export const useBattleMatchFlow = ({
   flashExtraTurnsBadge,
   flashComboBadge,
   showDamagePopup,
+  addPlayerBoardPendingReward,
   spawnCollectFX,
   playExplosion,
   animateFall,
@@ -233,6 +235,9 @@ export const useBattleMatchFlow = ({
     let peachCount = 0;
     let manaGemCount = 0;
     let powerPeachCount = 0;
+    let boardStarExpCount = 0;
+    let boardWaterExpHalfCount = 0;
+    let boardGoldIconCount = 0;
 
     matched.forEach(key => {
       const [r, c] = key.split(',').map(Number);
@@ -243,6 +248,9 @@ export const useBattleMatchFlow = ({
       if (renderType === 1) peachCount += 1;
       if (renderType === 2) manaGemCount += 1;
       if (renderType === 3) powerPeachCount += 1;
+      if (renderType === 4) boardWaterExpHalfCount += 1;
+      if (renderType === 5) boardStarExpCount += 1;
+      if (renderType === 6) boardGoldIconCount += 1;
     });
 
     // Java mq.java: resource gain không nhân theo chain global; combo chỉ là
@@ -266,6 +274,18 @@ export const useBattleMatchFlow = ({
     heal = calcPeachGainByStrength(collectorMaxHp, peachCount, collectorProfile);
     mp = calcManaGainByMagic(collectorMaxMp, manaGemCount, collectorProfile);
     pow = calcPowerGainByStrength(collectorMaxPower, powerPeachCount, collectorProfile);
+
+    // Reconstruction/remake pending board reward (source:
+    // BATTLE_SYSTEM_RECONSTRUCTION.md §Nhóm EXP/Gold/Quan). Java client ky/hs
+    // only renders the final result; old server formula is unavailable.
+    // Count all truly cleared cells (`clearedKeys`), including fire-sword 3x3
+    // absorption/chain cells, not only the initial match trigger cells.
+    if (turnRef.current === 'player') {
+      addPlayerBoardPendingReward(
+        boardStarExpCount * 2 + boardWaterExpHalfCount,
+        boardGoldIconCount * 2,
+      );
+    }
 
     setTimeout(() => {
       if (!mountedRef.current || phaseRef.current === 'over') return;

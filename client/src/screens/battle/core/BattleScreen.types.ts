@@ -304,6 +304,13 @@ export interface BattleResultClaimRequest {
   playerCurrentHp: number;
   playerCurrentMp: number;
   playerCurrentPower: number;
+  // Board pending reward reconstruction/remake:
+  // - Source: BATTLE_SYSTEM_RECONSTRUCTION.md §Nhóm EXP/Gold/Quan.
+  // - Java client only renders final ky/hs result; old server formula is unavailable.
+  // - Client sends integer accumulators so server can fold them into authoritative result on victory.
+  boardExpUnit2?: number;
+  boardGoldUnit10?: number;
+  boardQuan?: number;
 }
 
 export interface BattleResultRewardResponse {
