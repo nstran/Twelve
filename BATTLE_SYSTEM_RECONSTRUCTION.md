@@ -358,7 +358,8 @@ FireSwordDamageRaw = floor(AttackRoll * 52.5% * redSwordCount)
   - kiếm đỏ khác bị nổ sẽ chain tiếp;
   - dùng `resolvedKeys` để mỗi ô/cell chỉ apply effect `1` lần trong cùng chain;
   - `whiteSwordCount` gồm cả kiếm trắng bị ăn trực tiếp và kiếm trắng bị kéo vào bởi vùng nổ kiếm đỏ;
-  - `redSwordCount` gồm các kiếm đỏ đã resolve trong chain, mỗi kiếm đỏ chỉ tính một lần theo `resolvedKeys`.
+  - `redSwordCount` gồm các kiếm đỏ đã resolve trong chain, mỗi kiếm đỏ chỉ tính một lần theo `resolvedKeys`;
+  - HP/MP/Nộ/EXP/Gold/Quan pending phải đếm trên toàn bộ `clearedKeys`/item thật sự bị clear, không chỉ `triggerKeys` của match ban đầu, vì kiếm đỏ hấp thụ tài nguyên trong vùng nổ.
 
 Tổng raw board damage của một resolve step:
 

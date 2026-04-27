@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 2026-04-27 (AF)
+
+### Sửa kiếm đỏ hấp thụ item trong vùng nổ
+
+**Mục tiêu:**
+- Đảm bảo kiếm đỏ `chess8` nổ `3x3` không chỉ clear visual/board mà còn hấp thụ/apply effect của toàn bộ item trong vùng nổ.
+
+**Sửa:**
+- Cập nhật `client/src/screens/battle/hooks/useBattleMatchFlow.ts`:
+  - HP/MP/Nộ giờ đếm trên `resolved.clearedKeys` thay vì chỉ `resolved.triggerKeys`;
+  - collect FX cũng chạy trên toàn bộ item bị clear để phản ánh item bị kiếm đỏ nổ lan;
+  - giữ damage kiếm tính trên `clearedKeys`, nên kiếm trắng/kiếm đỏ bị kéo vào chain vẫn gây damage đúng.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md`:
+  - ghi rõ HP/MP/Nộ/EXP/Gold/Quan pending phải tính từ toàn bộ `clearedKeys`, không chỉ match ban đầu.
+
+**Kiểm tra:**
+- Cần chạy `npx tsc -p client/tsconfig.json --noEmit`.
+
+**File đã sửa:**
+- `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-27 (AE)
 
 ### Khóa gameplay bàn cờ v1 theo Java + gameplay memory

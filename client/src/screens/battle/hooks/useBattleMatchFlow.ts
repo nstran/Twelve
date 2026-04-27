@@ -234,7 +234,7 @@ export const useBattleMatchFlow = ({
     let manaGemCount = 0;
     let powerPeachCount = 0;
 
-    raw.forEach(key => {
+    matched.forEach(key => {
       const [r, c] = key.split(',').map(Number);
       const gem = board[r][c];
       if (gem === null) return;
@@ -246,8 +246,9 @@ export const useBattleMatchFlow = ({
     });
 
     // Java mq.java: resource gain không nhân theo chain global; combo chỉ là
-    // visual popup `xN` theo màu. Damage/heal/mp/pow dùng raw count từ
-    // triggerKeys — KHÔNG nhân chain multiplier global ở đây.
+    // visual popup `xN` theo màu. Damage/heal/mp/pow dùng số item thật sự bị
+    // clear/apply trong resolve step (`clearedKeys`), vì kiếm đỏ nổ 3x3 hấp thụ
+    // mọi item trong vùng nổ và item đó phải apply effect dù không match 3.
     //
     // Reconstruction/remake formula chốt 2026-04-27:
     // - HP/tim chess1 dùng MaxHp + TotalStrength percent từ server.
@@ -270,7 +271,7 @@ export const useBattleMatchFlow = ({
       if (!mountedRef.current || phaseRef.current === 'over') return;
 
       const collectorSide = turnRef.current === 'player' ? 'player' : 'enemy';
-      spawnCollectFX(raw, board, collectorSide, heal);
+      spawnCollectFX(matched, board, collectorSide, heal);
       playExplosion(raw, matched, board, () => {
         if (!mountedRef.current) return;
 
