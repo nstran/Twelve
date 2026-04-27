@@ -186,6 +186,14 @@ const mapRuntimePacket = (
   durationMs: packet.durationMs ?? null,
 });
 
+const toServerInt = (value: number, fallback = 0): number => {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.trunc(value));
+};
+
 const toHttpBaseUrl = (socketUrl: string): string => {
   try {
     const parsed = new URL(socketUrl);
@@ -388,12 +396,12 @@ export const createBattleSessionSyncResolver = (
           sessionId: request.sessionId,
           board: request.board,
           activeTurn: request.activeTurn === 'enemy' ? 'Enemy' : 'Player',
-          playerCurrentHp: request.playerCurrentHp,
-          playerCurrentMp: request.playerCurrentMp,
-          playerCurrentPower: request.playerCurrentPower,
-          enemyCurrentHp: request.enemyCurrentHp,
-          enemyCurrentMp: request.enemyCurrentMp,
-          enemyCurrentPower: request.enemyCurrentPower,
+          playerCurrentHp: toServerInt(request.playerCurrentHp),
+          playerCurrentMp: toServerInt(request.playerCurrentMp),
+          playerCurrentPower: toServerInt(request.playerCurrentPower),
+          enemyCurrentHp: toServerInt(request.enemyCurrentHp),
+          enemyCurrentMp: toServerInt(request.enemyCurrentMp),
+          enemyCurrentPower: toServerInt(request.enemyCurrentPower),
         }),
         signal: controller.signal,
       });
@@ -500,9 +508,9 @@ export const createBattleResultResolver = (
         body: JSON.stringify({
           sessionId: request.sessionId,
           result: request.result === 'victory' ? 'Victory' : 'Defeat',
-          playerCurrentHp: request.playerCurrentHp,
-          playerCurrentMp: request.playerCurrentMp,
-          playerCurrentPower: request.playerCurrentPower,
+          playerCurrentHp: toServerInt(request.playerCurrentHp),
+          playerCurrentMp: toServerInt(request.playerCurrentMp),
+          playerCurrentPower: toServerInt(request.playerCurrentPower),
         }),
         signal: controller.signal,
       });

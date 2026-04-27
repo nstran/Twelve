@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## 2026-04-27 (AH)
+
+### Fix 400 Bad Request khi sync/result battle do HP/MP/Power không phải int hợp lệ
+
+**Vấn đề:**
+- Trong trận chiến, `/battle/session-sync` và `/battle/result` có thể trả `400 Bad Request`.
+- Server log báo `System.Text.Json.JsonException` tại `$.playerCurrentHp` khi deserialize vào `BattleResultClaimRequest`.
+- Nguyên nhân trực tiếp: client gửi giá trị HP/MP/Power không hợp lệ cho contract C# `int` non-nullable, ví dụ `NaN`/`Infinity` bị `JSON.stringify` chuyển thành `null` hoặc số không phù hợp.
+
+**Sửa:**
+- Cập nhật `client/src/screens/battle/core/BattleScreen.packetResolver.ts`:
+  - thêm helper `toServerInt()`;
+  - trước khi gửi `/battle/session-sync`, ép toàn bộ `playerCurrentHp/playerCurrentMp/playerCurrentPower/enemyCurrentHp/enemyCurrentMp/enemyCurrentPower` về integer finite `>= 0`;
+  - trước khi gửi `/battle/result`, ép `playerCurrentHp/playerCurrentMp/playerCurrentPower` về integer finite `>= 0`.
+- Mục tiêu là khóa contract HTTP battle: client không bao giờ gửi `NaN`/`Infinity`/decimal/null vào các field server đang nhận `int`.
+
+**Kiểm tra:**
+- Cần chạy `npx --prefix client tsc -p client/tsconfig.json --noEmit`.
+
+**File đã sửa:**
+- `client/src/screens/battle/core/BattleScreen.packetResolver.ts`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-27 (AG)
 
 ### Sửa cộng lượt cho group match L/T/cross

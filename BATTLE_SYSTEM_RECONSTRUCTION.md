@@ -1963,6 +1963,19 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
 
 ## Nhật ký chỉnh sửa
 
+### 2026-04-27 — Fix contract HTTP battle sync/result không gửi HP/MP/Power không hợp lệ
+
+- File code đã sửa:
+  - `client/src/screens/battle/core/BattleScreen.packetResolver.ts`
+- Nội dung:
+  - Thêm helper `toServerInt()` ở packet resolver.
+  - Trước khi gọi `/battle/session-sync`, client ép `playerCurrentHp`, `playerCurrentMp`, `playerCurrentPower`, `enemyCurrentHp`, `enemyCurrentMp`, `enemyCurrentPower` về integer finite `>= 0`.
+  - Trước khi gọi `/battle/result`, client ép `playerCurrentHp`, `playerCurrentMp`, `playerCurrentPower` về integer finite `>= 0`.
+  - Mục tiêu là khóa contract C# hiện tại: các field resource/runtime HP-MP-Nộ server đang nhận là `int` non-nullable, nên client không được gửi `NaN`/`Infinity`/decimal/null. `JSON.stringify(NaN)` sẽ thành `null`, gây `System.Text.Json.JsonException`/`400 Bad Request` tại endpoint result hoặc sync.
+- Nguồn suy luận:
+  - Java client chỉ render/apply runtime HP/MP/Power qua `lh.s/r`, `lh.u/t`, `lh.w/v` và result delta từ packet; không có bằng chứng server Java cũ cho kiểu payload HTTP vì HTTP API là remake hiện tại.
+  - Đây là guard contract ở tầng React Native ↔ .NET 9, không thay đổi công thức Java/remake của board item.
+
 ### 2026-04-27 — Chốt mapping còn lại của 8 icon board và mở rộng note server Java
 
 - File tài liệu đã sửa:
