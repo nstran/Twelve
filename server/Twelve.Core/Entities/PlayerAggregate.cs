@@ -27,7 +27,6 @@ namespace Twelve.Core.Entities
         public bool Hidden0 { get; init; }
         public bool Hidden1 { get; init; }
         public int SpecialActorForm { get; init; }
-        public string AppearanceJson { get; init; } = "{}";
     }
 
     public sealed class PlayerStatSnapshot

@@ -1,5 +1,78 @@
 # CHANGELOG
 
+## 2026-04-27
+
+### [BATTLE] Khóa hiển thị Gold/KEN và Quan theo mốc 10k
+
+**Vấn đề:** raw `gold`/KEN đang có nguy cơ bị hiểu trực tiếp là Quan, làm trường hợp chưa đủ mốc như `284/10000` có thể hiển thị thành `284 Quan` thay vì `0 Quan`.
+
+**Giải pháp:**
+- Chuẩn hóa tài liệu battle: `pendingBoardGold`/server `gold` là raw gold/KEN.
+- Quan hiển thị phải là `floor(totalRawGold / 10000)`.
+- Thanh tiến trình gold/KEN hiển thị phần dư `totalRawGold % 10000`.
+- Board battle chỉ tích raw gold pending; không tự cộng Quan trước khi qua luồng chốt ví server.
+
+**Files đã sửa:**
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+**Build:** Không chạy `dotnet build` vì chỉ cập nhật tài liệu, không sửa code Server.
+
+### [PLAYER_CHARACTER] Dọn `AppearanceJson` duplicate khỏi runtime/schema
+
+**Vấn đề:** `AppearanceJson` là snapshot duplicate của dữ liệu diện mạo đã có sẵn dưới dạng scalar Java-compatible (`Gender`, `Element`, `RawElementCode`, `FaceStyle`, `HairStyle`, `HairColor`, `SkinColor`, `AppearanceHidden0/1`, `SpecialActorForm`). Nếu vừa lưu JSON vừa lưu scalar sẽ dễ lệch source-of-truth khi tạo nhân vật/đổi appearance.
+
+**Giải pháp:**
+- Xóa dependency/runtime write `AppearanceJson` khỏi luồng player runtime/repository.
+- Cập nhật schema khởi tạo không tạo mới `AppearanceJson`.
+- Thêm migration drop cột `AppearanceJson` cho DB hiện có.
+- Cập nhật tài liệu player-character reconstruction, ghi rõ `BonusCuongLuc/BonusThanPhap/BonusNoiLuc/BonusTheLuc` vẫn giữ vì là field Java `lh.l/m/n/o` cho stat bonus/equipment pipeline, không phải duplicate.
+
+**Files đã sửa:**
+- `server/Twelve.Application/Handlers/CreateCharacterHandler.cs`
+- `server/Twelve.Core/Entities/Player.cs`
+- `server/Twelve.Core/Entities/PlayerAggregate.cs`
+- `server/Twelve.Infrastructure/Repositories/PlayerRepository.cs`
+- `server/Twelve.Infrastructure/Repositories/PlayerAggregateRepository.cs`
+- `server/Twelve.Application/Players/PlayerRuntimeService.cs`
+- `server/Database/07_player_character_aggregate.sql`
+- `server/Database/13_remove_appearance_json.sql`
+- `docs/player-character-reconstruction/01-implementation-plan-csharp.md`
+- `CHANGELOG.md`
+
+**Build:** `dotnet build Twelve.sln` — Build succeeded. 0 Warning(s), 0 Error(s).
+
+### [PLAYER_STATS] Xóa các cột derived + MaxPower khỏi DB — computed on-the-fly
+
+**Vấn đề:** `PlayerRuntimeService` / `PlayerCharacterPacketFactory` / `PlayerBattleStateFactory` đang đọc damage/defense/MaxPower từ các cột cache cứng trong DB row (`DerivedMinDamage`, `DerivedMaxDamage`, `DerivedDefense`, `DerivedDodge`, `DerivedHit`, `DerivedCrit`, `MaxPower`). Cột này không được cập nhật khi stat thay đổi → damage luôn hiện 15 (giá trị hardcode cũ từ lúc khởi tạo).
+
+**Nguyên nhân gốc:**
+- `PlayerStatPipeline.Apply()` trước đây ghi các giá trị tính toán ngược lại vào `player.DerivedXxx`, nhưng không phải lúc nào cũng được persist đúng thời điểm.
+- `MaxPower` không bao giờ thay đổi (luôn = 100) → không cần lưu.
+
+**Giải pháp:**
+- Xóa 7 properties khỏi `Player.cs`: `DerivedMinDamage`, `DerivedMaxDamage`, `DerivedDefense`, `DerivedDodge`, `DerivedHit`, `DerivedCrit`, `MaxPower`.
+- `PlayerStatPipeline.Apply()` đơn giản hóa — chỉ cập nhật MaxHp/MaxMp, không còn ghi derived.
+- `PlayerDerivedStats` record: xóa field `MaxPower`.
+- Mọi nơi cần derived stats (PacketFactory, RuntimeService, AggregateRepository, BattleStateFactory) đều gọi `PlayerStatPipeline.Calculate()` on-the-fly thay vì đọc từ DB.
+- `PlayerRuntimeService.ClonePlayer()`: xóa 7 dòng copy derived.
+- `PlayerBattleStateFactory`: `maxPower = 100` constant thay vì `player.MaxPower`.
+
+**Files đã sửa:**
+- `server/Twelve.Core/Entities/Player.cs`
+- `server/Twelve.Core/GameLogic/PlayerStatPipeline.cs`
+- `server/Twelve.Infrastructure/Repositories/PlayerRepository.cs`
+- `server/Twelve.Infrastructure/Repositories/PlayerAggregateRepository.cs`
+- `server/Twelve.Application/Players/PlayerCharacterPacketFactory.cs`
+- `server/Twelve.Application/Players/PlayerRuntimeService.cs`
+- `server/Twelve.Application/Battle/PlayerBattleStateFactory.cs`
+
+**Migration:**
+- `server/Database/migrations/007_remove_derived_columns.sql` — DROP COLUMN 7 cột trên PostgreSQL.
+
+**Build:** `dotnet build` — Build succeeded. 0 Warning(s), 0 Error(s).
+
+
 ## 2026-04-27 (AJ)
 
 ### Sửa sword damage hardcode → scale theo stat Tấn Công

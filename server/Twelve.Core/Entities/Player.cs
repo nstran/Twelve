@@ -24,7 +24,6 @@ namespace Twelve.Core.Entities
         public int Mp { get; set; } = 0;
         public int MaxMp { get; set; } = 0;
         public int Power { get; set; } = 0;
-        public int MaxPower { get; set; } = 0;
 
         // Base stats (4 chỉ số gốc — phân điểm tiềm năng)
         // Giá trị mặc định Level 1 theo element, xem CreateCharacterHandler
@@ -39,12 +38,6 @@ namespace Twelve.Core.Entities
         public int BonusTheLuc { get; set; } = 0;   // lh.o
         public int SkillPoints { get; set; } = 0;   // lh.L
         public int Honor { get; set; } = 0;         // lh.ab
-        public int DerivedMinDamage { get; set; } = 0; // lh.x
-        public int DerivedMaxDamage { get; set; } = 0; // lh.y
-        public int DerivedDefense { get; set; } = 0;   // lh.z
-        public int DerivedDodge { get; set; } = 0;     // lh.A
-        public int DerivedHit { get; set; } = 0;       // lh.B
-        public int DerivedCrit { get; set; } = 0;      // lh.C
 
         // Visual & Elemental Traits
         public int Gender { get; set; } = 0;   // 0=Nam, 1=Nữ
@@ -57,7 +50,6 @@ namespace Twelve.Core.Entities
         public bool AppearanceHidden0 { get; set; } = false; // lh.Z
         public bool AppearanceHidden1 { get; set; } = false; // lh.aa
         public int SpecialActorForm { get; set; } = 0;       // lh.Y
-        public string AppearanceJson { get; set; } = "{}";
 
         public string? TitleMain { get; set; }
         public string? TitleSub { get; set; }

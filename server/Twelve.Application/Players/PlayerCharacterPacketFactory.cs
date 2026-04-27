@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Twelve.Core.Entities;
+using Twelve.Core.GameLogic;
 using Twelve.Core.Tlv;
 
 namespace Twelve.Application.Players
@@ -18,6 +19,7 @@ namespace Twelve.Application.Players
         {
             var player = aggregate.Core;
             var appearance = aggregate.Appearance;
+            var derived = PlayerStatPipeline.Calculate(player);
 
             return new List<byte[]>
             {
@@ -39,7 +41,7 @@ namespace Twelve.Application.Players
                 TlvCodec.MakeTag((int)TagCode.CurrentMp, player.Mp),
                 TlvCodec.MakeTag((int)TagCode.MaxMp, player.MaxMp),
                 TlvCodec.MakeTag((int)TagCode.CurrentPower, player.Power),
-                TlvCodec.MakeTag((int)TagCode.MaxPower, player.MaxPower),
+                TlvCodec.MakeTag((int)TagCode.MaxPower, 100),
                 TlvCodec.MakeTag((int)TagCode.ExperienceValue, player.Exp),
                 TlvCodec.MakeTag((int)TagCode.ExperienceFloor, player.ExpFloor),
                 TlvCodec.MakeTag((int)TagCode.ExperienceCeiling, player.ExpCeiling),
@@ -60,12 +62,12 @@ namespace Twelve.Application.Players
                 TlvCodec.MakeTag((int)TagCode.TitleSecondary, player.TitleSub ?? string.Empty),
                 TlvCodec.MakeTag((int)TagCode.WalletQuan, player.Gold),
 
-                // Temporary client-new combat tags until Java-faithful derived tags are finalized.
-                TlvCodec.MakeTag((int)TagCode.TanCong, player.DerivedMinDamage),
-                TlvCodec.MakeTag((int)TagCode.ChinhXac, player.DerivedHit),
-                TlvCodec.MakeTag((int)TagCode.PThu, player.DerivedDefense),
-                TlvCodec.MakeTag((int)TagCode.NeTranh, player.DerivedDodge),
-                TlvCodec.MakeTag((int)TagCode.ChiMang, player.DerivedCrit),
+                // Derived combat stats — computed on-the-fly via PlayerStatPipeline.
+                TlvCodec.MakeTag((int)TagCode.TanCong, derived.MinDamage),
+                TlvCodec.MakeTag((int)TagCode.ChinhXac, derived.Hit),
+                TlvCodec.MakeTag((int)TagCode.PThu, derived.Defense),
+                TlvCodec.MakeTag((int)TagCode.NeTranh, derived.Dodge),
+                TlvCodec.MakeTag((int)TagCode.ChiMang, derived.Crit),
             };
         }
 

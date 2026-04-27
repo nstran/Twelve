@@ -296,7 +296,7 @@ ALTER TABLE Players
     ADD COLUMN IF NOT EXISTS KenProgressCap BIGINT NOT NULL DEFAULT 10000,
     ADD COLUMN IF NOT EXISTS AppearanceHidden0 BOOLEAN NOT NULL DEFAULT FALSE,
     ADD COLUMN IF NOT EXISTS AppearanceHidden1 BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD COLUMN IF NOT EXISTS AppearanceJson JSONB NOT NULL DEFAULT '{}'::jsonb;
+    ADD COLUMN IF NOT EXISTS SpecialActorForm INT NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS PlayerEquipment (
     PlayerId INT NOT NULL REFERENCES Players(Id) ON DELETE CASCADE,
@@ -478,6 +478,24 @@ Client nhận qua `PlayerRuntimeSnapshot.mapMoveSpeed/mapJumpSpeed`, merge vào 
   - `lh.x`/`runtime.minDamage` là số hiển thị ở ô `Tấn Công`.
   - `lh.y`/`runtime.maxDamage` chỉ giữ làm damage trần cho battle range hoặc công thức skill nếu cần.
   - Cập nhật `client/src/screens/character/status/CharacterStatus.api.ts` để merge `combat.attack = runtime.minDamage`.
+
+### Nhật ký chỉnh sửa 2026-04-27 — Dọn AppearanceJson duplicate
+
+- Loại `AppearanceJson` khỏi runtime C# và schema đề xuất vì dữ liệu diện mạo đã có source-of-truth scalar theo Java-compatible tags:
+  - `Gender`, `Element`, `RawElementCode`, `FaceStyle`, `HairStyle`, `HairColor`, `SkinColor`
+  - `AppearanceHidden0`/`AppearanceHidden1` (`lh.Z`/`lh.aa`)
+  - `SpecialActorForm` (`lh.Y`)
+- Cập nhật code:
+  - `server/Twelve.Application/Handlers/CreateCharacterHandler.cs`
+  - `server/Twelve.Core/Entities/Player.cs`
+  - `server/Twelve.Core/Entities/PlayerAggregate.cs`
+  - `server/Twelve.Infrastructure/Repositories/PlayerRepository.cs`
+  - `server/Twelve.Infrastructure/Repositories/PlayerAggregateRepository.cs`
+  - `server/Twelve.Application/Players/PlayerRuntimeService.cs`
+- Cập nhật migration:
+  - `server/Database/07_player_character_aggregate.sql`: không tạo mới `AppearanceJson`.
+  - `server/Database/13_remove_appearance_json.sql`: drop cột duplicate khỏi DB hiện có.
+- Giữ nguyên `BonusCuongLuc/BonusThanPhap/BonusNoiLuc/BonusTheLuc` vì đây là field Java `lh.l/m/n/o` phục vụ stat bonus/equipment pipeline, không phải dữ liệu duplicate.
 
 ### Nhật ký chỉnh sửa 2026-04-25 — Battle damage dùng stat nhân vật thật
 

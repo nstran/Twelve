@@ -55,12 +55,10 @@ namespace Twelve.Core.GameLogic
             int finalMaxAttack = baseStats.MaxDamage + totalModifier.FlatAttack + maxPercentAttack;
             int maxHp = baseStats.MaxHp + totalModifier.MaxHp;
             int maxMp = CalculateMaxMp(player.Level, noiLuc);
-            int maxPower = 100;
 
             return new PlayerDerivedStats(
                 MaxHp: maxHp,
                 MaxMp: maxMp,
-                MaxPower: maxPower,
                 MinDamage: finalMinAttack,
                 MaxDamage: System.Math.Max(finalMinAttack, finalMaxAttack),
                 Defense: baseStats.PThu + totalModifier.Defense,
@@ -92,18 +90,12 @@ namespace Twelve.Core.GameLogic
                 player.Mp = player.MaxMp;
             }
 
-            player.MaxPower = stats.MaxPower;
-            if (player.Power > player.MaxPower)
+            // MaxPower is always 100 (constant), no longer stored on Player entity.
+            const int maxPower = 100;
+            if (player.Power > maxPower)
             {
-                player.Power = player.MaxPower;
+                player.Power = maxPower;
             }
-
-            player.DerivedMinDamage = stats.MinDamage;
-            player.DerivedMaxDamage = stats.MaxDamage;
-            player.DerivedDefense = stats.Defense;
-            player.DerivedDodge = stats.Dodge;
-            player.DerivedHit = stats.Hit;
-            player.DerivedCrit = stats.Crit;
         }
 
         private static int CalculateMaxMp(int level, int totalNoiLuc)
@@ -138,7 +130,6 @@ namespace Twelve.Core.GameLogic
     public sealed record PlayerDerivedStats(
         int MaxHp,
         int MaxMp,
-        int MaxPower,
         int MinDamage,
         int MaxDamage,
         int Defense,

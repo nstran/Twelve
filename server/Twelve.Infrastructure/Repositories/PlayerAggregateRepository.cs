@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dapper;
 using Twelve.Core.Entities;
+using Twelve.Core.GameLogic;
 using Twelve.Core.Interfaces;
 using Twelve.Infrastructure.Data;
 
@@ -114,28 +115,9 @@ namespace Twelve.Infrastructure.Repositories
                     SkinColor = player.SkinColor,
                     Hidden0 = player.AppearanceHidden0,
                     Hidden1 = player.AppearanceHidden1,
-                    SpecialActorForm = player.SpecialActorForm,
-                    AppearanceJson = player.AppearanceJson
+                    SpecialActorForm = player.SpecialActorForm
                 },
-                Stats = new PlayerStatSnapshot
-                {
-                    CuongLuc = player.CuongLuc,
-                    ThanPhap = player.ThanPhap,
-                    NoiLuc = player.NoiLuc,
-                    TheLuc = player.TheLuc,
-                    BonusCuongLuc = player.BonusCuongLuc,
-                    BonusThanPhap = player.BonusThanPhap,
-                    BonusNoiLuc = player.BonusNoiLuc,
-                    BonusTheLuc = player.BonusTheLuc,
-                    FreePoints = player.FreePoints,
-                    SkillPoints = player.SkillPoints,
-                    MinDamage = player.DerivedMinDamage,
-                    MaxDamage = player.DerivedMaxDamage,
-                    Defense = player.DerivedDefense,
-                    Dodge = player.DerivedDodge,
-                    Hit = player.DerivedHit,
-                    Crit = player.DerivedCrit
-                },
+                Stats = BuildStatSnapshot(player, equipment.AsList()),
                 Equipment = equipment.AsList(),
                 Inventory = inventory.AsList(),
                 Skills = skills.AsList(),
@@ -145,6 +127,33 @@ namespace Twelve.Infrastructure.Repositories
                     MapId = player.CurrentMap,
                     RoomId = player.CurrentRoom
                 }
+            };
+        }
+
+        private static PlayerStatSnapshot BuildStatSnapshot(
+            Player player,
+            System.Collections.Generic.IReadOnlyList<PlayerEquipmentEntry> equippedEntries)
+        {
+            // Compute derived stats on-the-fly — never read from stale cached DB columns.
+            var derived = PlayerStatPipeline.Calculate(player);
+            return new PlayerStatSnapshot
+            {
+                CuongLuc = player.CuongLuc,
+                ThanPhap = player.ThanPhap,
+                NoiLuc = player.NoiLuc,
+                TheLuc = player.TheLuc,
+                BonusCuongLuc = player.BonusCuongLuc,
+                BonusThanPhap = player.BonusThanPhap,
+                BonusNoiLuc = player.BonusNoiLuc,
+                BonusTheLuc = player.BonusTheLuc,
+                FreePoints = player.FreePoints,
+                SkillPoints = player.SkillPoints,
+                MinDamage = derived.MinDamage,
+                MaxDamage = derived.MaxDamage,
+                Defense = derived.Defense,
+                Dodge = derived.Dodge,
+                Hit = derived.Hit,
+                Crit = derived.Crit
             };
         }
 

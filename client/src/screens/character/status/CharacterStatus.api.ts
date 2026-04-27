@@ -168,15 +168,23 @@ export const mergePlayerRuntimeAppearance = (
 ): CharacterAppearance => {
   const expDenominator = Math.max(1, runtime.expCeiling - runtime.expFloor);
   const expPct = Math.max(0, Math.min(100, Math.floor(((runtime.exp - runtime.expFloor) * 100) / expDenominator)));
+  // Java/remake wallet lock: server `gold` is raw KEN/gold. Only each full
+  // QuanProgressCap chunk (10_000 by default) becomes one displayed Quan;
+  // the remainder stays on the gold progress bar.
+  // Source: gameplay memory + BATTLE_SYSTEM_RECONSTRUCTION.md §EXP/Gold/Quan.
+  const quanProgressCap = Math.max(1, runtime.quanProgressCap || 10000);
+  const rawGold = Math.max(0, Math.floor(runtime.gold));
+  const walletQuan = Math.floor(rawGold / quanProgressCap);
+  const goldProgress = rawGold % quanProgressCap;
 
   return {
     ...current,
     username: runtime.username,
     elementIndex: runtime.element,
     level: runtime.level,
-    walletQuan: runtime.gold,
-    quan: `${runtime.gold} Quan`,
-    quanProgress: { cur: runtime.quanProgress, max: runtime.quanProgressCap },
+    walletQuan,
+    quan: `${walletQuan} Quan`,
+    quanProgress: { cur: goldProgress, max: quanProgressCap },
     hp: { cur: runtime.currentHp, max: runtime.maxHp },
     exp: { cur: expPct, max: 100 },
     expRange: { value: runtime.exp, floor: runtime.expFloor, ceiling: runtime.expCeiling },

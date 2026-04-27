@@ -734,9 +734,8 @@ Quy đổi mốc `10k` giữ theo user memory:
 ```text
 pendingBoardGold += FinalBoardGold
 
-if pendingBoardGold >= 10000:
-  pendingBoardQuan += 10000
-  pendingBoardGold -= 10000
+WalletQuan = floor(totalRawGold / 10000)
+GoldProgress = totalRawGold % 10000
 ```
 
 Ghi chú:
@@ -753,8 +752,8 @@ Ghi chú:
 Các item board sinh reward tạm không phải `lm[]`/`ll[]` item reward packet cuối trận:
 
 - `pendingBoardExp`: EXP tạm từ sao xanh và giọt tím EXP nửa sao.
-- `pendingBoardGold`: vàng tạm từ icon vàng.
-- `pendingBoardQuan`: Quan/tiền nạp quy đổi sau này khi vàng đạt mốc user memory `10k`.
+- `pendingBoardGold`: vàng tạm từ icon vàng, giữ là raw gold/KEN cho tới khi thắng và server chốt vào ví.
+- `pendingBoardQuan`: giá trị hiển thị suy ra từ raw gold/KEN, chỉ tăng khi `floor(totalRawGold / 10000)` tăng; không cộng thẳng mỗi icon vàng thành Quan.
 - `pendingBoardDamage`: damage tức thời hoặc queued damage do kiếm trắng/kiếm lửa tạo ra trong lượt.
 
 Rule bảo toàn:
@@ -1963,6 +1962,21 @@ Bước hợp lý tiếp theo không phải dựng asset registry nữa, mà là
 Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic sẽ lệch ở những chỗ quan trọng nhất.
 
 ## Nhật ký chỉnh sửa
+
+### 2026-04-27 — Khóa hiển thị Gold/KEN và Quan theo mốc 10k
+
+- File code đã sửa:
+  - `client/src/screens/character/status/CharacterStatus.api.ts`
+  - `client/src/network/SocketClient.ts`
+  - `client/src/screens/battle/BattleScreen.tsx`
+- Nội dung:
+  - Sửa luồng hiển thị character runtime/socket: server field `gold`/`Tag.WALLET_QUAN` hiện là raw KEN/gold, không phải số Quan đã quy đổi.
+  - UI chỉ hiển thị `walletQuan = floor(rawGold / QuanProgressCap)` và thanh tiến trình gold là `rawGold % QuanProgressCap`.
+  - Battle board chỉ tích `GoldUnit10`/raw board gold pending, không tự cộng `boardQuanRef` khi chưa qua luồng chốt ví server.
+  - Khóa rule: chưa đủ `10000` raw gold/KEN thì phải hiển thị `0 Quan`, ví dụ `284/10000` không được thành `284 Quan`.
+- Nguồn:
+  - Gameplay memory về mốc `10k`.
+  - Kiểm tra client runtime hiện tại: `CharacterStatus.api.ts`, `SocketClient.ts`, `BattleScreen.tsx`.
 
 ### 2026-04-27 — Không consume monster roster khi bootstrap battle
 

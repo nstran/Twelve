@@ -643,16 +643,12 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       return;
     }
 
+    // Board gold is accumulated as raw KEN/gold units. Do not eagerly convert
+    // into Quan unless the server/payment wallet later persists a full 10_000
+    // chunk. This prevents UI states like "284 Quan" when the player only has
+    // 284/10000 gold progress.
+    // Source: gameplay memory + BATTLE_SYSTEM_RECONSTRUCTION.md §EXP/Gold/Quan.
     boardGoldUnit10Ref.current += goldUnit10Delta;
-    const pendingGold = Math.floor(boardGoldUnit10Ref.current / 10);
-    const quanChunks = Math.floor(pendingGold / 10000);
-    if (quanChunks <= 0) {
-      return;
-    }
-
-    const quanDelta = quanChunks * 10000;
-    boardQuanRef.current += quanDelta;
-    boardGoldUnit10Ref.current -= quanDelta * 10;
   }, []);
   const {
     battleMenuItems,

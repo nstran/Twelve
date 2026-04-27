@@ -174,9 +174,16 @@ export class SocketClient extends EventEmitter {
         const danhVong       = this.parseIntTag(payload, Tag.HONOR);
         const titlePrimary   = this.parseStringTag(payload, Tag.TITLE_PRIMARY);
         const titleSecondary = this.parseStringTag(payload, Tag.TITLE_SECONDARY);
-        const walletQuan     = this.parseLongTag(payload, Tag.WALLET_QUAN);
+        const rawGold        = this.parseLongTag(payload, Tag.WALLET_QUAN);
         const expDenominator = Math.max(1, expCeiling - expFloor);
         const expPct = Math.max(0, Math.min(100, Math.floor(((expValue - expFloor) * 100) / expDenominator)));
+        // Java/remake wallet lock: Tag.WALLET_QUAN currently carries raw KEN/gold.
+        // Only a complete 10_000-gold chunk is displayed as Quan; the remainder
+        // remains on the gold progress bar.
+        // Source: gameplay memory + BATTLE_SYSTEM_RECONSTRUCTION.md §EXP/Gold/Quan.
+        const quanProgressCap = Math.max(1, quanCap || 10000);
+        const walletQuan = Math.floor(Math.max(0, rawGold) / quanProgressCap);
+        const goldProgress = Math.max(0, rawGold) % quanProgressCap;
 
         this.emit('characterInfo', {
           genderIndex,
@@ -191,8 +198,8 @@ export class SocketClient extends EventEmitter {
           xepHang: titleSecondary || undefined,
           danhVong,
           walletQuan,
-          quan: `${quanProgress}/${quanCap || 10000} Quan`,
-          quanProgress: { cur: quanProgress, max: quanCap || 10000 },
+          quan: `${walletQuan} Quan`,
+          quanProgress: { cur: goldProgress, max: quanProgressCap },
           hp: { cur: hpCur, max: hpMax },
           exp: { cur: expPct, max: 100 },
           expRange: { value: expValue, floor: expFloor, ceiling: expCeiling },

@@ -20,7 +20,7 @@ namespace Twelve.Application.Battle
             var currentHp = Math.Clamp(player.Hp <= 0 ? maxHp : player.Hp, 1, maxHp);
             var maxMp = Math.Max(0, player.MaxMp);
             var currentMp = Math.Clamp(player.Mp, 0, maxMp);
-            var maxPower = Math.Max(0, player.MaxPower);
+            const int maxPower = 100;
             var currentPower = Math.Clamp(player.Power, 0, maxPower);
             var minDamage = Math.Max(0, stats.MinDamage);
             var maxDamage = Math.Max(minDamage, stats.MaxDamage);

@@ -1,5 +1,4 @@
 using System;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Twelve.Core;
@@ -139,20 +138,12 @@ namespace Twelve.Application.Handlers
             player.Power = 0;
 
             // ── Lưu diện mạo ──────────────────────────────────────────────────
+            // Source-of-truth là các cột scalar theo tag Java:
+            // GenderStyle(25), Element(20), RawElement(15), Face(21), HairStyle(22), HairColor(23), SkinColor(24).
+            // Không lưu snapshot JSON duplicate để tránh lệch dữ liệu giữa column thật và metadata.
             player.AppearanceHidden0 = false;
             player.AppearanceHidden1 = false;
             player.SpecialActorForm = 0;
-            player.AppearanceJson = JsonSerializer.Serialize(new
-            {
-                source = "create-character",
-                gender,
-                storageElement = element,
-                rawElementCode = player.RawElementCode,
-                faceStyle,
-                hairStyle,
-                hairColor,
-                skinColor
-            });
 
             try
             {
