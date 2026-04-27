@@ -599,7 +599,8 @@ Tóm tắt sanity-check:
 #### Nhóm + lượt
 
 - Gameplay memory đã chốt:
-  - mỗi group match có độ dài `>= 4` thì `+1 lượt`.
+  - mỗi group match có tổng số ô `>= 4` thì `+1 lượt`.
+  - group chữ L/T/cross được merge theo giao điểm cùng category/mask: ví dụ `3` ô ngang + `2` ô dọc cắt nhau ở một ô là `4` ô unique và vẫn `+1 lượt`; ví dụ `3` ngang + `3` dọc là `5` ô unique và vẫn `+1 lượt`.
   - nếu một nước/cascade tạo nhiều group đủ điều kiện thì cộng theo số group.
 - Công thức reconstruction:
 
@@ -1210,7 +1211,7 @@ Theo user memory ngày `2026-04-26`:
 
 Kết luận implementation:
 
-- local/remake có thể tính `extraTurns = count(matchGroups where length >= 4 hoặc merged group đủ điều kiện)`
+- local/remake có thể tính `extraTurns = count(matchGroups where uniqueCellCount >= 4 hoặc merged group đủ điều kiện)`; merged L/T/cross phải tính `hLen + vLen - 1`, không chỉ kiểm tra riêng từng line thẳng.
 - vẫn phải ghi rõ đây là rule phục dựng từ gameplay memory, không phải formula đọc trực tiếp từ client Java
 - không gắn rule này với natural special spawn; match `>= 4` cộng lượt nhưng item vẫn biến mất theo memory mới nhất
 
@@ -2015,6 +2016,7 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
   - Bổ sung/khóa mapping active icon `0,1,2,3,4,5,6,8`; `chess7` không nằm trong pool. `chess8` là kiếm đỏ/kiếm lửa, render riêng nhưng match chung mask kiếm với kiếm trắng `chess0`.
   - Server board bootstrap/evaluate move cũng dùng pool `0,1,2,3,4,5,6,8`, map `0/8` cùng category kiếm để PvP/bootstrap không lệch client.
   - `resolveJavaBoardStep()` tiếp tục không spawn natural special item từ match dài/cross theo gameplay memory hiện tại: match group `>= 4` chỉ set `bonusTurnCandidate`, item bị clear rồi drop/refill.
+  - Sửa `bonusTurnCandidate` cho match dạng L/T/cross: group merge theo giao điểm cùng category/mask và tính `hLen + vLen - 1`, nên case `3` ngang + `2` dọc hoặc `3` ngang + `3` dọc không thẳng hàng vẫn cộng lượt.
   - Giữ clear-chain cho special node có sẵn từ packet/skill/debug/legacy data: `10..15` type 2 clear 8 ô quanh, `20..25` type 4 clear hàng + cột.
   - Kiếm đỏ `chess8`/stateful id `10` được xử lý trigger-on-touch trong clear queue: bị match, bị special clear, hoặc bị kiếm đỏ khác nổ chạm vào đều nổ vùng `3x3` và chain sang kiếm đỏ khác.
   - Công thức resource/damage board v1 được ghi comment nguồn:

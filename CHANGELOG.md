@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## 2026-04-27 (AG)
+
+### Sửa cộng lượt cho group match L/T/cross
+
+**Mục tiêu:**
+- Khóa rule gameplay memory: match group có tổng số ô unique `>= 4` thì `+1 lượt`, kể cả shape L/T/cross không có line thẳng dài `>= 4`.
+
+**Sửa:**
+- Cập nhật `client/src/screens/battle/core/BattleScreen.logic.ts`:
+  - `bonusTurnCandidate` dùng `group.keys.size >= 4` thay vì chỉ xét từng span thẳng `>= 4`;
+  - L/T/cross merge theo giao điểm cùng category/mask, ví dụ `3` ngang + `2` dọc hoặc `3` ngang + `3` dọc đều cộng lượt;
+  - vẫn không spawn natural special item, chỉ cộng lượt và clear/drop/refill theo gameplay memory.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md`:
+  - ghi rõ rule `uniqueCellCount >= 4`;
+  - note merged L/T/cross phải tính `hLen + vLen - 1`, không chỉ kiểm tra line thẳng;
+  - cập nhật nhật ký chỉnh sửa cho batch này.
+
+**Kiểm tra:**
+- Cần chạy `npx tsc -p client/tsconfig.json --noEmit`.
+
+**File đã sửa:**
+- `client/src/screens/battle/core/BattleScreen.logic.ts`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-27 (AF)
 
 ### Sửa kiếm đỏ hấp thụ item trong vùng nổ

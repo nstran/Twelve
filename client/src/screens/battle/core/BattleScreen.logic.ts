@@ -451,6 +451,10 @@ const collectJavaAxisLines = (
   };
 };
 
+const getJavaAxisLineCellCount = (line: JavaAxisLine) => line.hLen + line.vLen - 1;
+
+const isBonusTurnLine = (line: JavaAxisLine) => getJavaAxisLineCellCount(line) >= 4;
+
 const mergeJavaAxisLines = (
   horizontal: JavaAxisLine[],
   vertical: JavaAxisLine[],
@@ -592,7 +596,7 @@ export function resolveJavaBoardStep(
     clearedKeys,
     boardAfterClear: nextBoard,
     spawnedSpecials,
-    bonusTurnCandidate: mergedLines.some(line => line.hLen >= 4 || line.vLen >= 4),
+    bonusTurnCandidate: mergedLines.some(isBonusTurnLine),
   };
 }
 
@@ -671,7 +675,14 @@ export function hasBonusTurn(matched: Set<string>, board: Board): boolean {
   for (const key of matched) {
     const [r, c] = key.split(',').map(Number);
     if (!inBounds(r, c)) continue;
-    if (unpackLen(getSpanHorizontal(board, r, c)) >= 4 || unpackLen(getSpanVertical(board, r, c)) >= 4) {
+
+    const horizontal = getSpanHorizontal(board, r, c);
+    const vertical = getSpanVertical(board, r, c);
+    const hLen = unpackLen(horizontal);
+    const vLen = unpackLen(vertical);
+    const shapeCount = (hLen >= 3 ? hLen : 1) + (vLen >= 3 ? vLen : 1) - 1;
+
+    if (shapeCount >= 4) {
       return true;
     }
   }
