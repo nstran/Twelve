@@ -16,7 +16,6 @@ import {
   type BattleTurn,
   type Board,
   type CollapseResult,
-  type GemType,
   reshuffleBoard,
   resolveJavaBoardStep,
   validateSwap,
@@ -135,6 +134,10 @@ export const useBattleMatchFlow = ({
     setResult('victory');
   }, [pendingVictoryRef, phaseRef, setPhase, setResult]);
 
+  const isBattleResultLocked = useCallback(() => (
+    phaseRef.current === 'over' || pendingVictoryRef.current
+  ), [pendingVictoryRef, phaseRef]);
+
   const processMatches = useCallback((
     board: Board,
     chain: number,
@@ -144,6 +147,8 @@ export const useBattleMatchFlow = ({
     isPassiveObserver = false,
   ) => {
     if (!mountedRef.current) return;
+
+    const passiveAfterResult = isPassiveObserver || isBattleResultLocked();
 
     const activeBonusTurn = bonusTurnState ?? { granted: false };
     const activeRageBurst = rageBurstState ?? {
@@ -157,7 +162,13 @@ export const useBattleMatchFlow = ({
       if (resolved === null) {
         setBoard(board);
         if (pendingVictoryRef.current) {
-          if (!isPassiveObserver) finalizeVictory();
+          if (!passiveAfterResult) finalizeVictory();
+          return;
+        }
+
+        if (passiveAfterResult) {
+          phaseRef.current = 'over';
+          setPhase('over');
           return;
         }
 
@@ -167,7 +178,7 @@ export const useBattleMatchFlow = ({
           resetBoardAnim(reshuffled, () => {
             if (!mountedRef.current) return;
             boardRef.current = reshuffled;
-            if (!isPassiveObserver) {
+            if (!passiveAfterResult) {
               setTurnCycle(v => v + 1);
             }
             phaseRef.current = 'idle';
@@ -176,9 +187,9 @@ export const useBattleMatchFlow = ({
           return;
         }
 
-        if (isPassiveObserver) {
-          phaseRef.current = 'idle';
-          setPhase('idle');
+        if (passiveAfterResult) {
+          phaseRef.current = 'over';
+          setPhase('over');
           return;
         }
 
@@ -214,9 +225,9 @@ export const useBattleMatchFlow = ({
         // - Client-side remake keeps the old "match 4/5 grants one retained turn" contract.
         // - Store banked extra turns only once per full swap/cascade, otherwise chain falls can
         //   incorrectly report multiple remaining turns.
-        activeBonusTurn.granted = true;
-        if (!isPassiveObserver) {
-          const newExtra = extraTurnsRef.current + 1;
+         activeBonusTurn.granted = true;
+         if (!passiveAfterResult) {
+           const newExtra = extraTurnsRef.current + 1;
           extraTurnsRef.current = newExtra;
           setExtraTurns(newExtra);
           flashExtraTurnsBadge(newExtra);
@@ -280,7 +291,7 @@ export const useBattleMatchFlow = ({
     // only renders the final result; old server formula is unavailable.
     // Count all truly cleared cells (`clearedKeys`), including fire-sword 3x3
     // absorption/chain cells, not only the initial match trigger cells.
-    if (turnRef.current === 'player') {
+     if (turnRef.current === 'player' && !passiveAfterResult) {
       addPlayerBoardPendingReward(
         boardStarExpCount * 2 + boardWaterExpHalfCount,
         boardGoldIconCount * 2,
@@ -288,7 +299,7 @@ export const useBattleMatchFlow = ({
     }
 
     setTimeout(() => {
-      if (!mountedRef.current || phaseRef.current === 'over') return;
+      if (!mountedRef.current) return;
 
       const collectorSide = turnRef.current === 'player' ? 'player' : 'enemy';
       spawnCollectFX(matched, board, collectorSide, heal);
@@ -325,17 +336,17 @@ export const useBattleMatchFlow = ({
 
         const continueAfterFall = () => {
           if (!mountedRef.current) return;
-          if (lethalPlayerResolution) {
+          if (lethalPlayerResolution && !passiveAfterResult) {
             lethalFallCompleted = true;
             tryFinalizeLethalVictory();
             return;
           }
 
-          if (pendingVictoryRef.current) {
+          if (pendingVictoryRef.current && !passiveAfterResult) {
             finalizeVictory();
             return;
           }
-          setTimeout(() => processMatches(newBoard, chain + 1, affectedKeys, activeRageBurst, activeBonusTurn, isPassiveObserver), 80);
+          setTimeout(() => processMatches(newBoard, chain + 1, affectedKeys, activeRageBurst, activeBonusTurn, passiveAfterResult), 80);
         };
         animateFall(newBoard, fallMap, continueAfterFall);
 
@@ -381,11 +392,11 @@ export const useBattleMatchFlow = ({
             });
           };
 
-            if (dmg > 0) {
+            if (dmg > 0 && !passiveAfterResult) {
               playPlayerSwordAttack(
                 () => {
                   if (!mountedRef.current) return;
-                  if (!isPassiveObserver) applyPlayerDamage();
+                  if (!passiveAfterResult) applyPlayerDamage();
                 },
                 () => {
                   if (!mountedRef.current) return;
@@ -393,28 +404,28 @@ export const useBattleMatchFlow = ({
                     playMonsterDefeatSequence(() => {
                       if (!mountedRef.current) return;
                       lethalAttackCompleted = true;
-                      if (!isPassiveObserver) tryFinalizeLethalVictory();
+                      if (!passiveAfterResult) tryFinalizeLethalVictory();
                     });
                     return;
                   }
 
-                  if (pendingVictoryRef.current && !isPassiveObserver) {
+                  if (pendingVictoryRef.current && !passiveAfterResult) {
                     finalizeVictory();
                   }
                 },
               );
             }
 
-            if (!isPassiveObserver) applyPlayerRewards();
+            if (!passiveAfterResult) applyPlayerRewards();
         } else {
-            if (dmg > 0) {
+            if (dmg > 0 && !passiveAfterResult) {
               playMonsterSwordAttack(
                 () => {
                   if (!mountedRef.current) return;
-                  if (!isPassiveObserver) consumeRageIfNeeded();
-                  onPlayerHit();
-                  showDamagePopup('player', dmg);
-                  if (!isPassiveObserver) {
+                  if (!passiveAfterResult) consumeRageIfNeeded();
+                  if (!passiveAfterResult) onPlayerHit();
+                  if (!passiveAfterResult) showDamagePopup('player', dmg);
+                  if (!passiveAfterResult) {
                     setPlayerHP(hp => {
                       const next = Math.max(0, hp - dmg);
                       if (next === 0 && phaseRef.current !== 'over') {
@@ -429,7 +440,7 @@ export const useBattleMatchFlow = ({
                 () => {},
               );
             }
-            if (!isPassiveObserver) {
+            if (!passiveAfterResult) {
               if (heal > 0) setEnemyHP(hp => Math.min(maxEHP, hp + heal));
               if (mp > 0) setEnemyMana(value => Math.min(enemyMaxMP, value + mp));
               if (pow > 0) {
@@ -452,6 +463,7 @@ export const useBattleMatchFlow = ({
     flashExtraTurnsBadge,
     maxEHP,
     maxHP,
+    isBattleResultLocked,
     maxMP,
     maxPow,
     enemyMaxMP,

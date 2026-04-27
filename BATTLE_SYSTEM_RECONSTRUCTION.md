@@ -212,7 +212,8 @@ Rule gameplay đi kèm mapping này:
 - theo user memory, các item vàng/sao/giọt tím không cần hiện counter tạm trong battle HUD; chúng âm thầm cộng vào pending reward và chỉ thể hiện ở màn kết quả nếu thắng
 - kiếm lửa `chess8` là tile có tính chất trigger-on-touch: match với kiếm trắng cũng nổ, skill/cascade/refill/tác động sau đó rơi vào kiếm lửa cũng phải nổ; vùng nổ user memory là `3x3`
 - kiếm lửa gây sát thương ngay, với hệ số user memory `x1.5`; công thức base damage/target ownership vẫn là phần server Java cũ hoặc remake hiện tại phải tính sau
-- cascade tự động sau drop/refill vẫn là board match thật: nếu cascade sinh group `>= 4` thì cũng cộng lượt theo rule chung; nếu cascade/tác động làm kiếm đỏ chạm/nổ thì resolve kiếm đỏ và apply item trong vùng như bình thường
+- sau khi đã có kết quả thắng/thua (`phase=over` hoặc pending victory), cascade đang chạy vẫn được resolve board/clear/drop/refill và vẫn phát collect/explosion FX để "ăn item" cho hết match đang phát sinh; riêng kiếm/sword damage không được kích thêm đòn tấn công HP nữa sau result lock để tránh quái/người đánh tiếp khi màn kết quả đã hiện
+- cascade tự động sau drop/refill vẫn là board match thật: nếu cascade sinh group `>= 4` thì cũng cộng lượt theo rule chung trước khi result lock; nếu cascade/tác động làm kiếm đỏ chạm/nổ thì resolve kiếm đỏ và apply item trong vùng như bình thường, nhưng không tiếp tục gây sword attack nếu trận đã over/pending result
 - skill clear board cũng được tính như item bị ăn/tác động: ô nào bị skill clear thì apply effect tương ứng của item đó; nếu skill clear trúng kiếm đỏ thì kiếm đỏ nổ `3x3` và có thể chain sang kiếm đỏ khác
 - những công thức EXP/Gold/Quan và damage/nổ `3x3` của kiếm lửa là phần server Java cũ hoặc remake hiện tại phải tính sau, không suy bừa từ asset
 
@@ -2289,6 +2290,19 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
   - `docs/player-character-reconstruction/02-truth-payload-and-tags.md`: mapping HP/MP/Power `lh`.
   - `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`: resource là tầng remake có cap, không phải công thức Java status.
   - Phản hồi test gameplay level 1: MP/HP/nộ tăng quá nhanh so với Java cũ.
+
+### 2026-04-27 — Sửa treo lượt monster và result-lock cascade board
+
+- File code đã sửa:
+  - `client/src/screens/battle/hooks/useBattleMonsterTurn.ts`
+  - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- Nội dung:
+  - Sửa monster turn lock: mọi nhánh planner timeout/null/pass/lỗi, playback bị abort, skill finish/cascade đều release `enemyTurnRequestRef` và `monsterTurnStateRef`, tránh trạng thái quái đứng im không ăn item/không tấn công sau một lượt lỗi.
+  - Thêm timeout local fallback cho enemy planner: nếu packet/plan server chậm, client chọn nước đi hợp lệ local bằng `getAllValidMoves` để không treo battle.
+  - Sửa flow sau khi thắng/thua: khi `phase=over` hoặc đang pending victory, cascade/match còn lại vẫn được resolve để clear/drop/refill và phát collect/explosion FX; nhưng sword/fire-sword damage không kích thêm animation tấn công hoặc trừ HP sau result lock.
+  - Giữ boundary Java: damage cuối/turn result authoritative vẫn là phần server-old/unknown; rule result-lock cascade là behavior client remake để khớp gameplay memory "bàn cờ vẫn ăn item nếu tiếp tục match, nhưng ăn kiếm thì không tấn công nữa".
+- Kiểm tra:
+  - `node client\node_modules\typescript\bin\tsc --project client\tsconfig.json --noEmit` passed.
 
 ### 2026-04-25 — Khôi phục natural special spawn match 4/5 theo Java
 

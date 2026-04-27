@@ -142,6 +142,11 @@ export const useBattleMonsterTurn = ({
     monsterTurnTimersRef.current = [];
   }, []);
 
+  const releaseMonsterTurnLock = useCallback(() => {
+    enemyTurnRequestRef.current = false;
+    monsterTurnStateRef.current = 'idle';
+  }, []);
+
   const pickFallbackMove = useCallback(() => {
     const validMoves = getAllValidMoves(boardRef.current);
     if (validMoves.length <= 0) {
@@ -153,11 +158,11 @@ export const useBattleMonsterTurn = ({
 
   const handBackTurnToPlayer = useCallback((message?: string) => {
     if (!mountedRef.current) {
+      releaseMonsterTurnLock();
       return;
     }
 
-    enemyTurnRequestRef.current = false;
-    monsterTurnStateRef.current = 'idle';
+    releaseMonsterTurnLock();
     if (message) {
       showBonusBanner(message);
     }
@@ -166,7 +171,7 @@ export const useBattleMonsterTurn = ({
     turnRef.current = 'player';
     setTurn('player');
     setTurnCycle(cycle => cycle + 1);
-  }, [mountedRef, setAiStep, setTurn, setTurnCycle, showBonusBanner, turnRef]);
+  }, [mountedRef, releaseMonsterTurnLock, setAiStep, setTurn, setTurnCycle, showBonusBanner, turnRef]);
 
   const playbackMove = useCallback((move: {
     fromRow: number;
@@ -181,6 +186,9 @@ export const useBattleMonsterTurn = ({
 
     const pickSecondTimer = setTimeout(() => {
       if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') {
+        releaseMonsterTurnLock();
+        setAiStep(null);
+        setSelected(null);
         return;
       }
 
@@ -190,11 +198,13 @@ export const useBattleMonsterTurn = ({
 
       const swapTimer = setTimeout(() => {
         if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') {
+          releaseMonsterTurnLock();
+          setAiStep(null);
+          setSelected(null);
           return;
         }
 
-        enemyTurnRequestRef.current = false;
-        monsterTurnStateRef.current = 'idle';
+        releaseMonsterTurnLock();
         setAiStep(null);
         setSelected(null);
         doDirectSwapRef.current(move.fromRow, move.fromCol, move.toRow, move.toCol);
@@ -208,6 +218,7 @@ export const useBattleMonsterTurn = ({
     doDirectSwapRef,
     mountedRef,
     phaseRef,
+    releaseMonsterTurnLock,
     setAiStep,
     setCursorCell,
     setSelected,
@@ -345,6 +356,7 @@ export const useBattleMonsterTurn = ({
       ) {
         const markMatches = findMatchesFromAffected(boardRef.current, packet.boardMutation.cells);
         if (markMatches.size > 0) {
+          releaseMonsterTurnLock();
           processMatchesRef.current(boardRef.current, 0, packet.boardMutation.cells);
           return;
         }
@@ -365,9 +377,11 @@ export const useBattleMonsterTurn = ({
         setTurnCycle(cycle => cycle + 1);
         phaseRef.current = 'idle';
         setPhase('idle');
+        releaseMonsterTurnLock();
         return;
       }
 
+      releaseMonsterTurnLock();
       turnRef.current = 'player';
       setTurn('player');
       setTurnCycle(cycle => cycle + 1);
@@ -416,14 +430,14 @@ export const useBattleMonsterTurn = ({
     skillCastTimersRef,
     startPlayerDefeatSequence,
     playMonsterSkillCast,
+    releaseMonsterTurnLock,
     turnRef,
   ]);
 
   useEffect(() => () => {
     clearMonsterTurnTimers();
-    enemyTurnRequestRef.current = false;
-    monsterTurnStateRef.current = 'idle';
-  }, [clearMonsterTurnTimers]);
+    releaseMonsterTurnLock();
+  }, [clearMonsterTurnTimers, releaseMonsterTurnLock]);
 
   useEffect(() => {
     if (phase !== 'idle' || turn !== 'monster' || result !== null || isPvpBattle) {
@@ -447,6 +461,27 @@ export const useBattleMonsterTurn = ({
     setHintMove(null);
 
     const thinkTimer = setTimeout(() => {
+      const runFallbackMove = (message: string) => {
+        if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') {
+          releaseMonsterTurnLock();
+          setAiStep(null);
+          return;
+        }
+
+        const fallbackMove = pickFallbackMove();
+        if (!fallbackMove) {
+          handBackTurnToPlayer(message);
+          return;
+        }
+
+        playbackMove({
+          fromRow: fallbackMove.r1,
+          fromCol: fallbackMove.c1,
+          toRow: fallbackMove.r2,
+          toCol: fallbackMove.c2,
+        });
+      };
+
       const plannerPromise = resolveEnemyTurnPlan
         ? Promise.resolve(resolveEnemyTurnPlan({
           sessionId,
@@ -454,62 +489,37 @@ export const useBattleMonsterTurn = ({
         }))
         : Promise.resolve(null);
 
-      void plannerPromise
+      const plannerTimeout = new Promise<null>((resolve) => {
+        const timeoutTimer = setTimeout(() => resolve(null), 1200);
+        monsterTurnTimersRef.current.push(timeoutTimer);
+      });
+
+      void Promise.race([plannerPromise, plannerTimeout])
         .then((plan) => {
           if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') {
+            releaseMonsterTurnLock();
+            setAiStep(null);
             return;
           }
 
           if (!plan || plan.action === 'pass') {
-            const fallbackMove = pickFallbackMove();
-            if (!fallbackMove) {
-              handBackTurnToPlayer('Quái hết nước đi');
-              return;
-            }
-
-            playbackMove({
-              fromRow: fallbackMove.r1,
-              fromCol: fallbackMove.c1,
-              toRow: fallbackMove.r2,
-              toCol: fallbackMove.c2,
-            });
+            runFallbackMove('Quái hết nước đi');
             return;
           }
 
           if (plan.action === 'move') {
             const move = plan.move;
             if (!move) {
-              const fallbackMove = pickFallbackMove();
-              if (!fallbackMove) {
-                handBackTurnToPlayer('Quái thiếu nước đi');
-                return;
-              }
-
-              playbackMove({
-                fromRow: fallbackMove.r1,
-                fromCol: fallbackMove.c1,
-                toRow: fallbackMove.r2,
-                toCol: fallbackMove.c2,
-              });
+              runFallbackMove('Quái thiếu nước đi');
               return;
             }
+
             playbackMove(move);
             return;
           }
 
           if (!plan.skillPacket || plan.skillPacket.runtimeSource !== 'server_packet') {
-            const fallbackMove = pickFallbackMove();
-            if (!fallbackMove) {
-              handBackTurnToPlayer('Quái không tạo được skill plan');
-              return;
-            }
-
-            playbackMove({
-              fromRow: fallbackMove.r1,
-              fromCol: fallbackMove.c1,
-              toRow: fallbackMove.r2,
-              toCol: fallbackMove.c2,
-            });
+            runFallbackMove('Quái không tạo được skill plan');
             return;
           }
 
@@ -518,18 +528,7 @@ export const useBattleMonsterTurn = ({
           playbackSkillPacket(plan.skillPacket);
         })
         .catch(() => {
-          const fallbackMove = pickFallbackMove();
-          if (!fallbackMove) {
-            handBackTurnToPlayer('Lượt quái lỗi server planner');
-            return;
-          }
-
-          playbackMove({
-            fromRow: fallbackMove.r1,
-            fromCol: fallbackMove.c1,
-            toRow: fallbackMove.r2,
-            toCol: fallbackMove.c2,
-          });
+          runFallbackMove('Lượt quái lỗi server planner');
         });
     }, 550);
 
@@ -545,6 +544,7 @@ export const useBattleMonsterTurn = ({
     pickFallbackMove,
     playbackMove,
     playbackSkillPacket,
+    releaseMonsterTurnLock,
     resolveEnemyTurnPlan,
     result,
     sessionId,
@@ -555,6 +555,5 @@ export const useBattleMonsterTurn = ({
     setSelected,
     turn,
     turnRef,
-    sessionId,
   ]);
 };

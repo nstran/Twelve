@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## 2026-04-27 (AJ)
+
+### Sửa treo lượt monster và khóa cascade sau kết quả battle
+
+**Vấn đề:**
+- Một số nhánh lượt quái có thể giữ `enemyTurnRequestRef`/`monsterTurnStateRef`, khiến quái đứng im sau planner timeout/null/pass/lỗi hoặc playback bị abort.
+- Khi trận đã pending victory/over, cascade còn lại cần tiếp tục clear/drop/refill và phát collect FX, nhưng kiếm trắng/kiếm đỏ không được gây thêm damage/animation tấn công sau khi kết quả đã khóa.
+
+**Sửa:**
+- Cập nhật `client/src/screens/battle/hooks/useBattleMonsterTurn.ts`:
+  - release lock ở các nhánh planner timeout/null/pass/error, playback abort, skill/cascade finish;
+  - thêm fallback planner local bằng `getAllValidMoves` nếu server/packet chậm để không treo battle.
+- Cập nhật `client/src/screens/battle/hooks/useBattleMatchFlow.ts`:
+  - cho phép cascade/match tiếp tục resolve board sau `phase=over` hoặc pending victory;
+  - chặn sword/fire-sword damage khi result đã lock, tránh quái/người đánh thêm sau màn kết quả.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md`:
+  - ghi rõ boundary result-lock cascade là behavior client remake theo gameplay memory;
+  - damage cuối/turn result authoritative vẫn là `server-old/unknown`.
+
+**Kiểm tra:**
+- `node client\node_modules\typescript\bin\tsc --project client\tsconfig.json --noEmit` passed.
+
+**File đã sửa:**
+- `client/src/screens/battle/hooks/useBattleMonsterTurn.ts`
+- `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-27 (AI)
 
 ### Sửa lỗi vào trận quái lần 2 bị not_found/404 do consume roster quá sớm
