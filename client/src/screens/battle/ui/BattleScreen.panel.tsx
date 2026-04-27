@@ -381,7 +381,7 @@ export const BattlePanel: React.FC<BattlePanelProps> = ({
             opacity: extraTurnsBadgeAnim,
           }}
         >
-          <Text style={{ color: extraTurnsBadgeValue === 1 ? '#fff' : '#111', fontSize: 12, fontWeight: 'bold' }}>
+          <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
             Còn {extraTurnsBadgeValue} lượt
           </Text>
         </Animated.View>

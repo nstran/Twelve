@@ -2,6 +2,19 @@
 
 ## 2026-04-28
 
+### [BATTLE] Đổi màu text badge lượt còn lại sang trắng
+
+**Vấn đề:** Badge "Còn 2/3 lượt" đang dùng màu tối khi số lượt lớn hơn 1, khó đọc trên nền battle.
+
+**Giải pháp:**
+- Đổi text `Còn {extraTurnsBadgeValue} lượt` sang màu trắng cố định cho mọi số lượt.
+
+**Files đã sửa:**
+- `client/src/screens/battle/ui/BattleScreen.panel.tsx`
+- `CHANGELOG.md`
+
+**Build:** `npx --prefix client tsc -p client/tsconfig.json --noEmit`
+
 ### [BATTLE] Sửa cộng lượt cascade cho match group >=4
 
 **Vấn đề:** Sau khi đã sửa `bonusTurnCount` theo số group trong một resolve, flow vẫn còn khóa `BonusTurnState.granted` theo toàn bộ swap/cascade. Điều này làm cascade sau drop/refill nếu tạo thêm match group `>=4` thật thì không được cộng lượt tiếp.
