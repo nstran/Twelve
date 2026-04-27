@@ -2,6 +2,22 @@
 
 ## 2026-04-27
 
+### [BATTLE] Fix mons 0 HP nhưng chưa mở thắng
+
+**Vấn đề:** Có trường hợp kiếm gây sát thương chí mạng làm monster HP về `0`, nhưng result chưa chuyển sang `victory` vì resolver cascade đã đi qua nhánh `no match` trước khi `pendingVictoryRef` được set ở impact frame.
+
+**Giải pháp:**
+- Thêm fallback finalize sau animation quái chết.
+- Vẫn giữ rule drain cascade kiểu Java-like: chỉ mở result khi board hiện tại không còn match pending.
+- Ngăn trạng thái kẹt `enemyHP = 0` nhưng `phase/result` chưa vào thắng.
+
+**Files đã sửa:**
+- `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+**Build:** `npx --prefix client tsc -p client/tsconfig.json --noEmit`
+
 ### [BATTLE] Khóa hiển thị Gold/KEN và Quan theo mốc 10k
 
 **Vấn đề:** raw `gold`/KEN đang có nguy cơ bị hiểu trực tiếp là Quan, làm trường hợp chưa đủ mốc như `284/10000` có thể hiển thị thành `284 Quan` thay vì `0 Quan`.

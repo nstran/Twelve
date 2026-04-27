@@ -1963,6 +1963,18 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
 
 ## Nhật ký chỉnh sửa
 
+### 2026-04-27 — Fix mons 0 HP nhưng chưa mở thắng
+
+- File code đã sửa:
+  - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- Nội dung:
+  - Thêm fallback finalize victory sau animation quái chết cho trường hợp damage kiếm chí mạng được apply ở impact frame nhưng resolver cascade đã chạy tới trạng thái `no match` trước khi `pendingVictoryRef` được set.
+  - Vẫn giữ rule Java-like: không mở result ngay khi vừa lethal nếu bàn còn cascade; chỉ finalize khi board hiện tại không còn match pending (`resolveJavaBoardStep(boardRef.current) === null`).
+  - Ngăn trạng thái lỗi: enemy HP đã về `0`, phase chưa `over`, result chưa `victory`.
+- Nguồn:
+  - Gameplay bug report 2026-04-27: mons hết máu nhưng chưa thắng.
+  - Result-lock drain rule trong tài liệu này: lethal damage phải drain cascade trước khi hiện result.
+
 ### 2026-04-27 — Khóa hiển thị Gold/KEN và Quan theo mốc 10k
 
 - File code đã sửa:

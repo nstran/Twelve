@@ -400,9 +400,30 @@ export const useBattleMatchFlow = ({
                   if (lethalPlayerResolution) {
                     playMonsterDefeatSequence(() => {
                       if (!mountedRef.current) return;
-                      // Do not finalize here. The board may have produced a
-                      // cascade after the lethal clear/drop. processMatches()
-                      // will finalize when the board has no remaining matches.
+
+                      // Lethal sword hit fallback:
+                      // Damage is applied on the actor impact frame, while the
+                      // board cascade resolver has already been scheduled after
+                      // clear/drop. If that resolver reaches "no match" before
+                      // the HP state/ref is marked as pending victory, the old
+                      // flow can leave the monster at 0 HP without opening the
+                      // victory result. Java-like behavior still drains existing
+                      // cascades first; this fallback only finalizes when the
+                      // current board has no pending match left.
+                      // Source: gameplay bug report 2026-04-27 + 
+                      // BATTLE_SYSTEM_RECONSTRUCTION.md result-lock drain rule.
+                      setTimeout(() => {
+                        if (
+                          !mountedRef.current ||
+                          phaseRef.current === 'over' ||
+                          !pendingVictoryRef.current ||
+                          resolveJavaBoardStep(boardRef.current) !== null
+                        ) {
+                          return;
+                        }
+
+                        finalizeVictory();
+                      }, 0);
                     });
                     return;
                   }
