@@ -4,13 +4,11 @@ import {
   buildAffectedScanFromSwap,
   calcSwordDamage,
   collapseResolvedBoard,
-  getGemFX,
-  getGemRenderType,
   getAllValidMoves,
-  scaleManaGainByMagic,
-  scalePeachGainByStrength,
-  scalePowerGainByStrength,
-  type BattleGemResourceConfig,
+  getGemRenderType,
+  calcManaGainByMagic,
+  calcPeachGainByStrength,
+  calcPowerGainByStrength,
   type BattleResourceProfile,
   type JavaBoardEngine,
   type BattlePhase,
@@ -41,7 +39,6 @@ interface UseBattleMatchFlowArgs {
   maxPow: number;
   enemyMaxMP: number;
   enemyMaxPow: number;
-  gemResourceConfig?: BattleGemResourceConfig | null;
   playerResourceProfile: BattleResourceProfile;
   enemyResourceProfile: BattleResourceProfile;
   setBoard: Dispatch<SetStateAction<Board>>;
@@ -82,33 +79,6 @@ interface BonusTurnState {
   granted: boolean;
 }
 
-const getServerGemResourceBase = (
-  gem: GemType,
-  config?: BattleGemResourceConfig | null,
-): { heal: number; mana: number; pow: number } => {
-  const fx = getGemFX(gem);
-  const perGemBases = config?.perGemBases;
-  if (!perGemBases || perGemBases.length === 0) {
-    // Reconstruction/remake boundary:
-    // Java client only proves HP/MP/Power bars and board color families; it does not prove
-    // an old server scalar that should be applied to every gem family. If a stale bootstrap
-    // payload misses `perGemBases`, keep the local per-color semantic table instead of using
-    // global BaseHeal/BaseMana/BasePower for all gems. Otherwise MP-family gems with small
-    // `fx.heal > 0` would inherit BaseHealPerGem and incorrectly heal HP when collecting MP.
-    // Source: BATTLE_SYSTEM_RECONSTRUCTION.md §HP / MP / Nộ / Combo and
-    // docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
-    return fx;
-  }
-
-  const renderType = getGemRenderType(gem);
-  const entry = perGemBases.find(base => base.gemType === gem || base.gemType === renderType);
-  return {
-    heal: entry?.baseHeal ?? fx.heal,
-    mana: entry?.baseMana ?? fx.mana,
-    pow: entry?.basePower ?? fx.pow,
-  };
-};
-
 export const useBattleMatchFlow = ({
   mountedRef,
   phaseRef,
@@ -126,7 +96,6 @@ export const useBattleMatchFlow = ({
   maxPow,
   enemyMaxMP,
   enemyMaxPow,
-  gemResourceConfig,
   playerResourceProfile,
   enemyResourceProfile,
   setBoard,
@@ -261,42 +230,41 @@ export const useBattleMatchFlow = ({
     let heal = 0;
     let mp = 0;
     let pow = 0;
-    let baseHeal = 0;
-    let baseMp = 0;
-    const counts: Partial<Record<GemType, number>> = {};
+    let peachCount = 0;
+    let manaGemCount = 0;
+    let powerPeachCount = 0;
 
     raw.forEach(key => {
       const [r, c] = key.split(',').map(Number);
       const gem = board[r][c];
-      if (gem !== null) counts[gem] = (counts[gem] ?? 0) + 1;
+      if (gem === null) return;
+
+      const renderType = getGemRenderType(gem);
+      if (renderType === 1) peachCount += 1;
+      if (renderType === 2) manaGemCount += 1;
+      if (renderType === 3) powerPeachCount += 1;
     });
 
     // Java mq.java: resource gain không nhân theo chain global; combo chỉ là
     // visual popup `xN` theo màu. Damage/heal/mp/pow dùng raw count từ
     // triggerKeys — KHÔNG nhân chain multiplier global ở đây.
-    // Nguồn: mq.java:667, mq.java:705, mt.java:844.
-    Object.entries(counts).forEach(([gemKey, count]) => {
-      const gem = Number(gemKey) as GemType;
-      const fx = getGemFX(gem);
-      const resourceBase = getServerGemResourceBase(gem, gemResourceConfig);
-      // Server authority note:
-      // PvE/PvP battle resource base values come from MonsterBattleBootstrapResponse.GemResourceConfig,
-      // which is produced by the .NET battle rule factory from
-      // docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5.
-      // FE only preserves Java board color semantics (which gem family can grant HP/MP/Power)
-      // and applies server-provided per-gem base coefficients + server-provided gain percents.
-      baseHeal += Math.trunc((fx.heal > 0 ? resourceBase.heal : 0) * count! / 3);
-      baseMp += Math.trunc((fx.mana > 0 ? resourceBase.mana : 0) * count! / 3);
-      pow += Math.trunc((fx.pow > 0 ? resourceBase.pow : 0) * count! / 3);
-    });
-    // dmg từ calcSwordDamage đã tính đúng raw, không nhân chain.
-
+    //
+    // Reconstruction/remake formula chốt 2026-04-27:
+    // - HP/tim chess1 dùng MaxHp + TotalStrength percent từ server.
+    // - MP/Âm Dương chess2 dùng MaxMp + TotalMagic percent từ server.
+    // - Nộ/đào chess3 dùng MaxPower + TotalStrength percent từ server.
+    // Bỏ công thức cũ BaseValue * matchedCount / 3 để thống nhất với
+    // BATTLE_SYSTEM_RECONSTRUCTION.md §Resource / damage formulas.
     const collectorProfile = turnRef.current === 'player'
       ? playerResourceProfile
       : enemyResourceProfile;
-    heal = scalePeachGainByStrength(baseHeal, collectorProfile);
-    mp = scaleManaGainByMagic(baseMp, collectorProfile);
-    pow = scalePowerGainByStrength(pow, collectorProfile);
+    const collectorMaxHp = turnRef.current === 'player' ? maxHP : maxEHP;
+    const collectorMaxMp = turnRef.current === 'player' ? maxMP : enemyMaxMP;
+    const collectorMaxPower = turnRef.current === 'player' ? maxPow : enemyMaxPow;
+
+    heal = calcPeachGainByStrength(collectorMaxHp, peachCount, collectorProfile);
+    mp = calcManaGainByMagic(collectorMaxMp, manaGemCount, collectorProfile);
+    pow = calcPowerGainByStrength(collectorMaxPower, powerPeachCount, collectorProfile);
 
     setTimeout(() => {
       if (!mountedRef.current || phaseRef.current === 'over') return;
@@ -461,7 +429,6 @@ export const useBattleMatchFlow = ({
     finalizeVictory,
     flashComboBadge,
     flashExtraTurnsBadge,
-    gemResourceConfig,
     maxEHP,
     maxHP,
     maxMP,

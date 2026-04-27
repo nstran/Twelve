@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## 2026-04-27 (AD)
+
+### Tắt lại natural special spawn, giữ special clear cho node có sẵn
+
+**Mục tiêu:**
+- Khớp lại `resolveJavaBoardStep()` và `BATTLE_SYSTEM_RECONSTRUCTION.md` với gameplay memory user đã chốt: match `>= 4` chỉ cộng lượt, item match xong biến mất/drop/refill, không để lại special mới.
+- Vẫn giữ note nhánh decompile `mq/mr` như tham chiếu/feature flag tương lai nếu có packet log/replay chứng minh mode server cũ từng bật natural special spawn.
+
+**Sửa:**
+- Cập nhật `client/src/screens/battle/core/BattleScreen.logic.ts`:
+  - không spawn special mới `10..15`/`20..25` sau line match `>= 4`, `>= 5` hoặc cross;
+  - vẫn giữ chain clear nếu special node đã tồn tại sẵn trong clear queue từ packet/skill/debug/legacy data:
+    - `type 2` (`10..15`) clear 8 ô xung quanh;
+    - `type 4` (`20..25`) clear hàng + cột;
+  - giữ `bonusTurnCandidate`/extra-turn candidate cho match group `>= 4`, tách khỏi special spawn.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md`:
+  - sửa coverage và mục special spawn: decompile có nhánh `mq/mr`, nhưng không bật mặc định theo gameplay memory hiện tại;
+  - chốt rõ match `>= 4` cộng lượt nhưng không tạo special mới;
+  - ghi lại nếu sau này có packet log/replay chứng minh server cũ bật natural spawn thì phải thêm feature flag riêng, không bật mặc định;
+  - cập nhật nhật ký chỉnh sửa ngày `2026-04-27`.
+
+**Kiểm tra:**
+- Đang chạy `npx tsc -p client/tsconfig.json --noEmit` sau khi cập nhật mục này.
+
+**File đã sửa:**
+- `client/src/screens/battle/core/BattleScreen.logic.ts`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-26 (AC)
 
 ### Cập nhật battle board theo gameplay memory: icon, +lượt, bỏ natural special mặc định

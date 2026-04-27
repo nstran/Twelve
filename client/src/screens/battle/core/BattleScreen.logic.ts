@@ -552,29 +552,6 @@ const collectSpecialChainKeys = (board: Board, initialKeys: Set<string>): Set<st
   return cleared;
 };
 
-const resolveSpawnGem = (line: JavaAxisLine): GemType | null => {
-  // Java reconstruction note:
-  // `mq.a(nj[][])` lines 691-699 spawns `mr.y[baseId]` (20..25/type 4)
-  // for cross or len >= 5, and `mr.x[baseId]` (10..15/type 2) for len >= 4.
-  // `nj.java` line 60 shows mask 64 node `70` is not upgraded by this branch
-  // (`object.a.e < 64`), so only base categories 0..5 can naturally spawn specials.
-  const base = line.category;
-  if (base < 0 || base >= TYPE2_SPECIAL_BY_BASE.length) return null;
-
-  if ((line.hLen >= 3 && line.vLen >= 3) || line.hLen >= 5 || line.vLen >= 5) {
-    return TYPE4_SPECIAL_BY_BASE[base] ?? null;
-  }
-
-  if (line.hLen >= 4 || line.vLen >= 4) {
-    return TYPE2_SPECIAL_BY_BASE[base] ?? null;
-  }
-
-  return null;
-};
-
-const mergeSpawnGemPriority = (current: GemType | undefined, next: GemType): GemType =>
-  current === undefined ? next : getGemStateClass(next) >= getGemStateClass(current) ? next : current;
-
 export function resolveJavaBoardStep(
   board: Board,
   scanTargets?: Iterable<string | BattleCell>,
@@ -583,10 +560,12 @@ export function resolveJavaBoardStep(
   if (triggerKeys.size === 0) return null;
 
   const mergedLines = mergeJavaAxisLines(horizontal, vertical);
-  // Java gốc KHÔNG có cơ chế special gem (TYPE2/TYPE4 spawn).
-  // Chỉ xóa đúng các ô trong match, không mở rộng bằng collectSpecialChainKeys
-  // và không spawn special gem mới.
-  const clearedKeys = triggerKeys;
+  // Reconstruction policy:
+  // Gameplay memory confirms match >= 4 only grants the extra-turn candidate and
+  // clears the matched items; it does not leave a newly spawned special board item.
+  // Keep chain clear only for special nodes that already exist on the board from
+  // packet/skill/debug data, but never create natural `mr.x/mr.y` specials here.
+  const clearedKeys = collectSpecialChainKeys(board, triggerKeys);
   const nextBoard = cloneBoard(board);
 
   clearedKeys.forEach(key => {
@@ -594,11 +573,13 @@ export function resolveJavaBoardStep(
     if (inBounds(r, c)) nextBoard[r][c] = null;
   });
 
+  const spawnedSpecials: Array<{ r: number; c: number; gem: GemType }> = [];
+
   return {
     triggerKeys,
     clearedKeys,
     boardAfterClear: nextBoard,
-    spawnedSpecials: [],
+    spawnedSpecials,
     bonusTurnCandidate: mergedLines.some(line => line.hLen >= 4 || line.vLen >= 4),
   };
 }

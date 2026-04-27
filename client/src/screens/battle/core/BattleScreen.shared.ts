@@ -194,23 +194,56 @@ export const getGemCategory = (gem: GemType): number => GEM_CATEGORIES[gem];
 
 export const getGemFX = (gem: GemType) => GEM_FX_BASE[getGemRenderType(gem)];
 
-const scaleResourceGain = (baseAmount: number, percent: number): number =>
-  Math.max(0, Math.trunc((Math.max(0, baseAmount) * percent) / 100));
+const scalePercent = (value: number, percent: number): number =>
+  Math.max(0, Math.trunc((Math.max(0, value) * percent) / 100));
 
-export const scalePeachGainByStrength = (
-  baseHeal: number,
+export const calcPeachGainByStrength = (
+  maxHp: number,
+  peachCount: number,
   profile?: BattleResourceProfile | null,
-): number => scaleResourceGain(baseHeal, profile?.healGainPercent ?? 100);
+): number => {
+  if (peachCount <= 0 || maxHp <= 0) return 0;
 
-export const scalePowerGainByStrength = (
-  basePower: number,
-  profile?: BattleResourceProfile | null,
-): number => scaleResourceGain(basePower, profile?.powerGainPercent ?? 100);
+  // Reconstruction/remake formula, chốt 2026-04-27:
+  // HpScale = clamp(... server-owned percent from TotalStrength ...)
+  // HealGainBase = max(3, floor(MaxHp * 6 / 100))
+  // HealGain = floor(HealGainBase * peachCount / 3 * HpScale / 100)
+  // Source: BATTLE_SYSTEM_RECONSTRUCTION.md §Resource / damage formulas.
+  const basePerThree = Math.max(3, Math.trunc((maxHp * 6) / 100));
+  return scalePercent(Math.trunc((basePerThree * peachCount) / 3), profile?.healGainPercent ?? 100);
+};
 
-export const scaleManaGainByMagic = (
-  baseMana: number,
+export const calcManaGainByMagic = (
+  maxMp: number,
+  manaGemCount: number,
   profile?: BattleResourceProfile | null,
-): number => scaleResourceGain(baseMana, profile?.manaGainPercent ?? 100);
+): number => {
+  if (manaGemCount <= 0 || maxMp <= 0) return 0;
+
+  // Reconstruction/remake formula, chốt 2026-04-27:
+  // ManaScale = clamp(... server-owned percent from TotalMagic ...)
+  // ManaGain = floor(MaxMp * 625 * gemCount * ManaScale / (10000 * 3 * 100))
+  // Equivalent before server percent: floor(MaxMp * 625 * gemCount / (10000 * 3)).
+  // Source: BATTLE_SYSTEM_RECONSTRUCTION.md §Resource / damage formulas.
+  const raw = Math.trunc((maxMp * 625 * manaGemCount) / (10000 * 3));
+  const scaled = scalePercent(raw, profile?.manaGainPercent ?? 100);
+  return scaled > 0 ? scaled : 1;
+};
+
+export const calcPowerGainByStrength = (
+  maxPower: number,
+  peachCount: number,
+  profile?: BattleResourceProfile | null,
+): number => {
+  if (peachCount <= 0 || maxPower <= 0) return 0;
+
+  // Reconstruction/remake formula, chốt 2026-04-27:
+  // PowerScale = clamp(... server-owned percent from TotalStrength ...)
+  // PowerGain = floor(MaxPower * peachCount * PowerScale / (19 * 100)).
+  // Source: BATTLE_SYSTEM_RECONSTRUCTION.md §Resource / damage formulas.
+  const raw = Math.trunc((maxPower * peachCount) / 19);
+  return scalePercent(raw, profile?.powerGainPercent ?? 100);
+};
 
 export const getGemFXKind = (gem: GemType): FXKind => GEM_FX_KIND_BASE[getGemRenderType(gem)];
 

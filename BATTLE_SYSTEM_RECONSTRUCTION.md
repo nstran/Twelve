@@ -56,8 +56,8 @@ Tính riêng Java client đã decompile, không tính phần server Java cũ kh�
 | Node definition `nj` | 100% | `id`, `mask`, `type`, `imageIndex` |
 | Swap validation | 100% | Bám `mq`/`my` |
 | Match scan bằng mask + packed line | 100% | Bám `mq.a()`/`mq.b()` và `mw` |
-| Clear thường + special `type 2/type 4` | 100% theo Java client code | Bám `mq`; nhưng gameplay memory xác nhận bản gốc người chơi thấy "ăn xong biến mất", không dùng tạo item special tự nhiên |
-| Spawn special `10..15` / `20..25` | Cần khóa lại theo gameplay | Decompile có nhánh `mq`/`mr`, nhưng user memory xác nhận không item nào tạo special; tạm coi là nhánh Java/server/skill/unused hoặc không bật trong runtime gốc |
+| Clear thường + special `type 2/type 4` | 100% theo Java client code | Bám `mq`: special cũ nằm trong clear queue sẽ kích hoạt chain |
+| Spawn special `10..15` / `20..25` | Có nhánh decompile, không bật mặc định theo gameplay memory hiện tại | Decompile có nhánh `mq`/`mr`, nhưng user memory đã chốt runtime gameplay: match `>=4` chỉ cộng lượt, item bị clear rồi drop/refill, không để lại special mới. Bản hiện tại tắt natural spawn; chỉ giữ clear behavior nếu special node xuất hiện từ packet/skill/debug |
 | Drop/refill receiver/cascade phía client | 95-100% | Core rõ; refill bytes gốc là data packet |
 | No-move detection phía client | 100% | Bám `mo.d()` |
 | No-move presentation/reset receiver phía client | 95-100% | Client flow rõ; board mới là packet data |
@@ -204,9 +204,9 @@ Rule gameplay đi kèm mapping này:
   - `chess5` = sao xanh / EXP
   - `chess6` = vàng / pending board gold
   - `chess8` = kiếm lửa / kiếm đỏ nổ `3x3`
-- tất cả icon match xong đều biến mất rồi drop/refill
-- không một item nào tạo special tự nhiên
-- giọt tím EXP nửa sao match bình thường nhưng không tạo special
+- base icon match xong bị đưa vào clear queue rồi drop/refill; theo gameplay memory hiện tại, match dài/cross không để lại node special mới
+- decompile Java có nhánh natural special spawn `10..15`/`20..25`, nhưng runtime gameplay user xác nhận "không một item nào tạo special"; vì vậy bản port hiện tại không bật natural spawn mặc định, chỉ giữ nhánh này như note server/mode cũ cần đối chiếu nếu sau này có packet log/replay
+- giọt tím EXP nửa sao match bình thường; nếu node/mask của nó thuộc nhóm `mask >= 64` thì không nâng cấp special theo branch `object.a.e < 64`
 - tim hồi HP và đào hồi nộ/Power ngay trong trận; công thức hiện dùng rule remake/server-owned trong `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`
 - sao xanh/giọt tím EXP và vàng là tích lũy tạm nội bộ trong trận; nếu thắng mới chốt/hiện ở màn kết quả, nếu thua mất hết phần EXP/Gold/Quan kiếm từ board trận đó
 - theo user memory, các item vàng/sao/giọt tím không cần hiện counter tạm trong battle HUD; chúng âm thầm cộng vào pending reward và chỉ thể hiện ở màn kết quả nếu thắng
@@ -949,19 +949,19 @@ resolveMatches(board, clearQueue):
 
   clear base lines trong clearQueue cũ
   clear chain reaction của special cũ nằm trong clearQueue
-  spawn special mới từ X
+  nếu mode/server bật nhánh Java decompile: spawn special mới từ X
   cập nhật combo counter theo baseId
 ```
 
 Điểm cần giữ:
 
-- Java clear line cũ trước, rồi mới spawn special mới
-- special mới spawn ra không được tự clear ngay trong cùng pass này
+- Java decompile có nhánh clear line cũ trước, rồi mới spawn special mới; nhưng gameplay memory hiện tại không bật natural spawn mặc định
+- nếu sau này bật feature flag natural spawn, special mới spawn ra không được tự clear ngay trong cùng pass này
 - `X` là tập line sau khi merge/dedupe, không phải raw line ban đầu
 - sort/dedupe trong `mq.a(a, boolean)` không chỉ để đẹp: nếu 2 line trùng span, Java giữ line có spawn center phù hợp hơn (`h`/`i`) rồi bỏ line còn lại
 - merge ngang/dọc chỉ xảy ra khi cùng `mask` và vertical column thật sự nằm trong horizontal span, horizontal row thật sự nằm trong vertical span
 
-### 3.1. Tạo special piece: decompile có nhánh, gameplay gốc cần ưu tiên "không tạo special"
+### 3.1. Tạo special piece đúng rule Java
 
 Flow trong Java client code có nhánh xử lý:
 
@@ -971,21 +971,13 @@ Flow trong Java client code có nhánh xử lý:
 4. clear board
 5. sau clear mới spawn special mới vào board model
 
-Tuy nhiên, theo gameplay memory do user xác nhận ngày `2026-04-26`:
-
-- "Không một item nào được tạo special"
-- tất cả item/gem sau khi match đều biến mất
-- giọt tím EXP nửa sao match như bình thường nhưng cũng không tạo special
-- board Java cũ chỉ có đúng 8 icon gameplay đã thấy, không có icon khác
-
 Kết luận reconstruction hiện tại:
 
-- không được coi natural match 4/5 tự tạo special là rule gameplay gốc chắc chắn
-- nhánh `mr.x/mr.y` trong decompile phải được note là logic Java client tồn tại nhưng có thể là:
-  - nhánh không bật trong runtime/server mode gốc
-  - nhánh phục vụ skill/packet/variant khác
-  - hoặc artifact còn lại nhưng không phải behavior game người chơi nhớ
-- khi port bản hiện tại, nếu muốn bám gameplay cũ theo user memory thì match thường chỉ clear rồi drop/refill, không spawn item special tự nhiên
+- decompile Java có nhánh `mq/mr` để spawn special, nhưng không coi đó là gameplay mặc định của bản port hiện tại.
+- gameplay memory user đã chốt: match `>=4` hoặc cross chỉ cộng lượt theo group đủ điều kiện; item match xong biến mất, sau đó drop/refill, không để lại special mới.
+- bản hiện tại tắt natural special spawn trong `resolveJavaBoardStep()`.
+- vẫn giữ clear behavior cho special node `10..15`/`20..25` nếu node đó đã tồn tại sẵn từ packet/skill/debug/legacy data: `type 2` clear 8 ô xung quanh, `type 4` clear hàng + cột.
+- nếu sau này packet log/replay chứng minh có mode server cũ bật natural spawn, phải thêm feature flag riêng thay vì bật mặc định và làm sai gameplay memory hiện tại.
 
 Nguồn:
 
@@ -993,17 +985,17 @@ Nguồn:
 - [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1632)
 - [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:1672)
 
-Rule nâng cấp theo nhánh code decompile, chỉ để tham khảo/đối chiếu:
+Nhánh nâng cấp trong Java decompile, chỉ dùng làm tham chiếu/feature flag nếu cần đối chiếu server cũ:
 
 - nếu `horizontal >= 5`
 - hoặc `vertical >= 5`
 - hoặc `horizontal >= 3 && vertical >= 3`
-  - code có thể spawn `mr.y[baseId]` = `20..25`
+  - spawn `mr.y[baseId]` = `20..25`
   - node này là `type 4`
 
 - nếu `horizontal >= 4`
 - hoặc `vertical >= 4`
-  - code có thể spawn `mr.x[baseId]` = `10..15`
+  - spawn `mr.x[baseId]` = `10..15`
   - node này là `type 2`
 
 Giới hạn trong code:
@@ -1011,22 +1003,20 @@ Giới hạn trong code:
 - chỉ base node có `mask < 64` mới được nâng cấp
 - special đang có sẵn không nâng cấp tiếp trong logic này
 
-Nhưng rule gameplay đã chốt theo user memory:
+Ghi chú gameplay memory đang áp dụng:
 
-- match `>= 4` cộng lượt theo số group match, không tạo item special tự nhiên
-- mọi item sau match biến mất rồi board drop/refill
-- không dùng node `10..15`/`20..25` như natural special spawn trong gameplay local mặc định cho tới khi có packet log/video chứng minh ngược lại
+- match `>= 4` cộng lượt theo số group match là rule phục dựng từ user memory vì Java client chỉ nhận `nq.F`
+- natural special spawn và `+ lượt` là hai nhánh khác nhau; bản port hiện tại chọn nhánh gameplay memory: cộng lượt nhưng không tạo special mới
+- nếu packet log/video chứng minh runtime gốc có mode bật natural special, ghi feature flag riêng và chỉ bật cho mode đó
 
 Nguồn:
 
 - [mr.java](/d:/Twelve/reference/redecoded/decompiled/mr.java:4)
 - [mq.java](/d:/Twelve/reference/redecoded/decompiled/mq.java:691)
 
-### 3.2. Vị trí spawn special trong nhánh code decompile
+### 3.2. Vị trí spawn special nếu bật nhánh decompile
 
-Đây là nhánh chỉ giữ để đối chiếu Java code, không còn là contract gameplay mặc định sau khi user xác nhận không item nào tạo special.
-
-Nếu nhánh decompile này được bật, Java không spawn “ở ô vừa swap tới” theo kiểu tùy ý:
+Bản port hiện tại không bật natural special spawn mặc định. Nếu sau này cần bật lại nhánh decompile theo packet/replay, Java không spawn “ở ô vừa swap tới” theo kiểu tùy ý:
 
 - line ngang > 3, không có giao dọc:
   - spawn tại `startCol + ((len - 1) >> 1)`
@@ -1035,16 +1025,11 @@ Nếu nhánh decompile này được bật, Java không spawn “ở ô vừa sw
 - T/L/cross:
   - spawn đúng tại ô giao giữa line ngang và line dọc
 
-Hệ quả nếu bật nhánh này:
+Hệ quả:
 
 - line 4 ngang spawn ở ô thứ `2` tính từ đầu line
 - line 4 dọc cũng vậy
 - T/L spawn ở giao điểm, không ở đầu line
-
-Contract gameplay hiện tại:
-
-- match dài chỉ ảnh hưởng clear/drop/refill và `+ lượt`
-- không để lại special tại tâm line/giao điểm
 
 Nguồn:
 
@@ -1824,7 +1809,7 @@ Java cũ từng dựa vào packet cho nhiều kết quả battle. Bản hiện t
 Battle controller local phải tự quyết định toàn bộ:
 
 1. swap có hợp lệ hay không
-2. match ngang/dọc, clear/drop/refill; natural special spawn tắt theo gameplay memory hiện tại
+2. match ngang/dọc, special clear/spawn theo Java `mq/mr`, clear/drop/refill
 3. cascade và refill
 4. no-move detection và xử lý lại board
 5. skill trigger từ pattern / power / state
@@ -1868,7 +1853,7 @@ Nếu triển khai battle local bây giờ, nên giữ contract sau:
 - thêm riêng 3 nhánh: `time`, `extra turns`, `no-move`
 - coi `star` là combo FX, không phải resource
 - tách `board node`, `reward item`, `UI icon` thành 3 lớp khác nhau
-- không coi natural special spawn là gameplay mặc định: user memory xác nhận không item nào tạo special; nhánh spawn tâm line/giao điểm chỉ giữ như note decompile để đối chiếu
+- không bật natural special spawn mặc định theo gameplay memory hiện tại; nếu sau này bật feature flag theo Java `mq/mr` thì phải spawn ở tâm line hoặc giao điểm
 - giữ combo theo từng màu trong cùng turn, không gộp thành 1 biến global
 
 ## Client Port Status
@@ -1885,8 +1870,8 @@ Tính đến bản client hiện tại, phần board core đã được port loc
   - scan line ngang/dọc bằng packed span
   - dedupe line theo axis
   - merge ngang/dọc theo giao điểm
-  - hiện đang có nhánh spawn special `10..15` và `20..25`, nhưng cần chỉnh/tắt nếu bám gameplay memory mới nhất: match xong item biến mất, không tạo special tự nhiên
-  - clear chain cho special `type 2` và `type 4` chỉ nên giữ cho packet/skill/variant nếu thật sự có node đó
+  - không spawn special tự nhiên sau match dài/cross theo gameplay memory hiện tại
+  - clear chain cho special `type 2` và `type 4` nếu special cũ nằm trong clear queue từ packet/skill/debug/legacy data
 - `collapseResolvedBoard()`
   - drop bottom-up từng cột
   - refill từ queue RNG local
@@ -1917,7 +1902,7 @@ Sau xác nhận user ngày `2026-04-26`, rule phục dựng nên đổi thành:
 
 - match `>= 4` thì cộng lượt
 - cộng theo số group match đủ điều kiện trong cùng nước đi/cascade tùy contract turn local
-- không tạo special tự nhiên kèm theo việc cộng lượt
+- không gộp `+ lượt` với special spawn; bản port hiện tại cộng lượt nhưng không tạo special mới theo gameplay memory
 
 Lý do vẫn phải ghi boundary:
 
@@ -1936,8 +1921,8 @@ Có 2 mức “giống Java”:
 - match scan theo mask
 - merge line ngang/dọc
 - special clear
-- special clear rule nếu packet/skill thật sự sinh node `type 2/type 4`
-- nhánh special spawn/position có trong decompile nhưng không còn coi là gameplay mặc định nếu bám memory "không item nào tạo special"
+- special clear rule cho node `type 2/type 4`
+- special spawn/position theo `mq/mr`
 - drop logic
 - cascade scan
 - no-move detection
@@ -1965,8 +1950,8 @@ Bước hợp lý tiếp theo không phải dựng asset registry nữa, mà là
 
 1. định nghĩa enum/const cho toàn bộ `nj node ids` và mapping 8 icon gameplay (`chess0` kiếm trắng, `chess1` tim, `chess2` Âm Dương/MP, `chess3` đào, `chess4` nước/EXP nửa sao, `chess5` sao xanh/EXP, `chess6` vàng, `chess8` kiếm lửa; bộ `/chess0..8` bỏ `chess7`)
 2. port nguyên match scan theo `mask`
-3. chỉnh local board contract: match thường clear/drop/refill, không tạo special tự nhiên; match `>= 4` cộng lượt theo số group
-4. giữ clear behavior `type 2/type 4` cho skill/packet/variant nếu phát hiện node đó thật sự xuất hiện
+3. chỉnh local board contract: match scan bằng mask, clear special cũ nếu nằm trong queue, không spawn special tự nhiên mặc định; match `>= 4` cộng lượt theo số group là nhánh reconstruction của `nq.F`
+4. giữ clear behavior `type 2/type 4` cho skill/packet/debug/legacy special nếu node đó xuất hiện
 5. tách `timeLeft`, `remainingTurns`, `hasValidMove`
 6. tách `pendingBoardExp`, `pendingBoardGold`, `pendingBoardQuan`, `pendingBoardDamage` khỏi reward item/equipment cuối trận
 7. chuẩn hóa local result model cho `hp/mp/power`, EXP từ sao xanh/giọt tím, gold/Quan từ vàng
@@ -2150,6 +2135,26 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
   - `reference/redecoded/decompiled/nd.java`
   - `reference/redecoded/decompiled/ne.java`
   - `reference/redecoded/decompiled/np.java`
+
+### 2026-04-27 — Tắt lại natural special spawn, chỉ giữ special clear cho node có sẵn
+
+- File code đã sửa:
+  - `client/src/screens/battle/core/BattleScreen.logic.ts`
+- Nội dung:
+  - Sửa lại `resolveJavaBoardStep()` theo gameplay memory hiện tại:
+    - raw match span trước tiên tạo `triggerKeys`;
+    - các special node cũ nằm trong vùng clear vẫn được kích hoạt dây chuyền:
+      - `type 2` (`10..15`) clear 8 ô xung quanh;
+      - `type 4` (`20..25`) clear toàn hàng + cột;
+    - không còn spawn special mới từ line match `>=4`/cross; match xong item biến mất rồi drop/refill.
+  - Lý do: user xác nhận gameplay runtime "không một item nào tạo special"; match `>=4` chỉ cộng lượt, không để lại item mới.
+  - Giữ note nhánh decompile `mq/mr` như tham chiếu/feature flag tương lai nếu có packet log/replay chứng minh mode server cũ từng bật.
+  - Giữ boundary cũ: `+ lượt` (`nq.F`) vẫn là server Java packet result; client hiện dùng `bonusTurnCandidate` cho match `>= 4` theo gameplay memory.
+- Nguồn suy luận:
+  - `BATTLE_SYSTEM_RECONSTRUCTION.md §3.0-3.2`
+  - `reference/redecoded/decompiled/mq.java:609,691,772,1632,1672`
+  - `reference/redecoded/decompiled/mr.java:4`
+  - `reference/redecoded/decompiled/nj.java`
 
 ### 2026-04-26 — Sửa fallback gem resource khiến MP hồi nhầm HP
 
