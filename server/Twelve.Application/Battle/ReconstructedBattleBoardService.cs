@@ -16,10 +16,15 @@ namespace Twelve.Application.Battle
         // - reference/redecoded/cfr_fresh/mr.java:
         //   mr.x = 10..15 are special gems created by run >= 4.
         //   mr.y = 20..25 are stronger special gems created by cross run >= 3x3 or run >= 5.
-        // Gameplay memory/user evidence chốt board active dùng 8 icon `chess0..8` bỏ `chess7`.
-        // Java `nj` vẫn dùng mask/type/imageIndex; node 8 được port như kiếm đỏ/fire sword mask kiếm,
-        // match chung kiếm trắng và trigger nổ 3x3 ở client board resolver.
-        private static readonly int[] BaseGems = [0, 1, 2, 3, 4, 5, 6, 8];
+        // Java reconstruction source:
+        // - reference/redecoded/cfr_fresh/nj.java defines normal active board nodes only
+        //   for ids 0..5. Id 70 is a separate mask-64 node, not part of mr.x/mr.y;
+        //   id 8 is only the render index for special sword id 10.
+        // - reference/redecoded/cfr_fresh/mr.java special arrays are x={10..15},
+        //   y={20..25}. Therefore board spawn/refill must use 6 Java base gems only.
+        // This prevents remake-local over-spawning of sword category caused by adding
+        // both 0 and 8 to the random pool.
+        private static readonly int[] BaseGems = [0, 1, 2, 3, 4, 5];
         private static readonly int[] LineSpecialGems = [10, 11, 12, 13, 14, 15];
         private static readonly int[] CrossSpecialGems = [20, 21, 22, 23, 24, 25];
 

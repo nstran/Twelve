@@ -67,11 +67,15 @@ export const GEM_SHEETS: Record<VisibleGemType, any> = {
 
 export const GEM_CRYSTAL_OVERLAY = require('../../../../assets/battle/03_crystals_casting/chesscrystal.png');
 
-// Gameplay memory/user evidence chốt board active có 8 icon từ `/chess0..8`
-// nhưng bỏ `chess7`: `0,1,2,3,4,5,6,8`. Java `nj` decompile vẫn giữ node
-// id/mask/type riêng; `8` được port như kiếm đỏ/fire sword active có mask kiếm
-// để match chung kiếm trắng và trigger nổ 3x3 khi bị touch/clear.
-export const GEM_TYPES: readonly GemType[] = [0, 1, 2, 3, 4, 5, 6, 8];
+// Java reconstruction source:
+// - reference/redecoded/cfr_fresh/nj.java defines normal active board nodes only
+//   for ids 0..5. Id 70 is a separate mask-64 node, not part of mr.x/mr.y;
+//   id 8 is only the render index for special sword id 10.
+// - reference/redecoded/cfr_fresh/mr.java special arrays are x={10..15},
+//   y={20..25}. Therefore board spawn/refill must use 6 Java base gems only.
+// This prevents remake-local over-spawning of sword category caused by adding
+// both 0 and 8 to the random pool.
+export const GEM_TYPES: readonly GemType[] = [0, 1, 2, 3, 4, 5];
 
 const GEM_RENDER_MAP: Record<GemType, VisibleGemType> = {
   0: 0,

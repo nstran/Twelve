@@ -205,6 +205,7 @@ Rule gameplay đi kèm mapping này:
   - `chess6` = vàng / pending board gold
   - `chess8` = kiếm lửa / kiếm đỏ nổ `3x3`
 - base icon match xong bị đưa vào clear queue rồi drop/refill; theo gameplay memory hiện tại, match dài/cross không để lại node special mới
+- kiểm tra ngày `2026-04-27`: runtime damage kiếm trắng/kiếm đỏ hiện **đã scale theo Tấn Công** qua `BattleAttackProfile { minDamage, maxDamage }`; `15 damage` chỉ là hệ quả khi `AttackRoll` của actor khoảng `15` và match 3 kiếm trắng = `floor(15 * 35 / 100) * 3 = 15`, không còn là hardcode runtime cố định. Fallback `SWORD_DAMAGE` trong `BattleScreen.shared.ts` chỉ dành cho test/tool không truyền actor stats.
 - decompile Java có nhánh natural special spawn `10..15`/`20..25`, nhưng runtime gameplay user xác nhận "không một item nào tạo special"; vì vậy bản port hiện tại không bật natural spawn mặc định, chỉ giữ nhánh này như note server/mode cũ cần đối chiếu nếu sau này có packet log/replay
 - giọt tím EXP nửa sao match bình thường; nếu node/mask của nó thuộc nhóm `mask >= 64` thì không nâng cấp special theo branch `object.a.e < 64`
 - tim hồi HP và đào hồi nộ/Power ngay trong trận; công thức hiện dùng rule remake/server-owned trong `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`
@@ -359,6 +360,7 @@ FireSwordDamageRaw = floor(AttackRoll * 52.5% * redSwordCount)
   - kiếm đỏ khác bị nổ sẽ chain tiếp;
   - dùng `resolvedKeys` để mỗi ô/cell chỉ apply effect `1` lần trong cùng chain;
   - `whiteSwordCount` gồm cả kiếm trắng bị ăn trực tiếp và kiếm trắng bị kéo vào bởi vùng nổ kiếm đỏ;
+  - implementation hiện tại: `client/src/screens/battle/core/BattleScreen.logic.ts::calcSwordDamage(board, matched, attackProfile)` nhận `attackProfile` từ `useBattleMatchFlow`; flow chọn `playerAttackProfile` hoặc `enemyAttackProfile` theo turn đang resolve. Vì vậy cùng một board match nhưng player/quái có `MinDamage/MaxDamage` khác nhau sẽ ra damage kiếm khác nhau.
   - `redSwordCount` gồm các kiếm đỏ đã resolve trong chain, mỗi kiếm đỏ chỉ tính một lần theo `resolvedKeys`;
   - HP/MP/Nộ/EXP/Gold/Quan pending phải đếm trên toàn bộ `clearedKeys`/item thật sự bị clear, không chỉ `triggerKeys` của match ban đầu, vì kiếm đỏ hấp thụ tài nguyên trong vùng nổ.
 

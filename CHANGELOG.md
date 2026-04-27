@@ -133,6 +133,12 @@
   - sửa note board v1 từ `5`/`7.5` sang công thức `35%` đúng;
   - thêm nhật ký chỉnh sửa.
 
+**Kiểm tra bổ sung 2026-04-27:**
+- Runtime hiện tại đã truyền `BattleAttackProfile` vào `calcSwordDamage()`.
+- Nếu vẫn thấy damage khoảng `15`, đó là do actor đang có `AttackRoll` khoảng `15`: match 3 kiếm trắng = `floor(15 * 35 / 100) * 3 = 15`, không phải hardcode cố định.
+- `SWORD_DAMAGE` chỉ còn là fallback legacy cho test/tool không truyền actor stats.
+- Đã ghi rõ trạng thái này vào `BATTLE_SYSTEM_RECONSTRUCTION.md`.
+
 **Kiểm tra:**
 - Cần chạy `npx --prefix client tsc -p client/tsconfig.json --noEmit`.
 
