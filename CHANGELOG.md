@@ -2,6 +2,23 @@
 
 ## 2026-04-27
 
+### [BATTLE] Khóa cộng lượt theo số group match >=4
+
+**Vấn đề:** Flow local đang dùng `bonusTurnCandidate` dạng boolean nên một resolve có nhiều group match đủ điều kiện (`>=4`) vẫn chỉ bank `+1 lượt`.
+
+**Giải pháp:**
+- `resolveJavaBoardStep()` trả thêm `bonusTurnCount`.
+- `useBattleMatchFlow()` cộng số lượt theo `bonusTurnCount`, ví dụ match-4 + match-5 trong cùng resolve bank `+2 lượt`.
+- Vẫn khóa không cộng lặp do cascade bằng `BonusTurnState.granted` trong flow hiện tại.
+
+**Files đã sửa:**
+- `client/src/screens/battle/core/BattleScreen.logic.ts`
+- `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+**Build:** `npx --prefix client tsc -p client/tsconfig.json --noEmit`
+
 ### [BATTLE] Fix mons 0 HP nhưng chưa mở thắng
 
 **Vấn đề:** Có trường hợp kiếm gây sát thương chí mạng làm monster HP về `0`, nhưng result chưa chuyển sang `victory` vì resolver cascade đã đi qua nhánh `no match` trước khi `pendingVictoryRef` được set ở impact frame.

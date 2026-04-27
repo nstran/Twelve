@@ -61,6 +61,7 @@ export interface JavaBoardResolveResult {
   boardAfterClear: Board;
   spawnedSpecials: Array<{ r: number; c: number; gem: GemType }>;
   bonusTurnCandidate: boolean;
+  bonusTurnCount: number;
 }
 
 const REFILL_BATCH_SIZE = 96;
@@ -598,6 +599,11 @@ export function resolveJavaBoardStep(
     boardAfterClear: nextBoard,
     spawnedSpecials,
     bonusTurnCandidate: mergedLines.some(isBonusTurnLine),
+    // Gameplay memory lock: every independent resolved match group with >= 4 cells
+    // grants one retained turn. A same-swap board that resolves one match-4 plus
+    // one match-5 must therefore bank 2 turns, while cascades still reuse the
+    // same BonusTurnState to avoid granting extra turns from later falls.
+    bonusTurnCount: mergedLines.filter(isBonusTurnLine).length,
   };
 }
 

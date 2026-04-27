@@ -237,12 +237,15 @@ export const useBattleMatchFlow = ({
         // Java mq/mt reconstruction:
         // - Java does not prove Candy-Crush style natural special spawning, but mt.a(mw,int)
         //   routes matched spans with len >= 4 through the highlighted combat/effect path.
-        // - Client-side remake keeps the old "match 4/5 grants one retained turn" contract.
+        // - Gameplay memory lock: each independent initial resolved match group with len >= 4
+        //   grants one retained turn. Example: one match-4 plus one match-5 in the same swap
+        //   banks 2 turns.
         // - Store banked extra turns only once per full swap/cascade, otherwise chain falls can
         //   incorrectly report multiple remaining turns.
-         activeBonusTurn.granted = true;
-         if (!passiveAfterResult) {
-           const newExtra = extraTurnsRef.current + 1;
+        activeBonusTurn.granted = true;
+        if (!passiveAfterResult) {
+          const grantedTurns = Math.max(1, resolved.bonusTurnCount);
+          const newExtra = extraTurnsRef.current + grantedTurns;
           extraTurnsRef.current = newExtra;
           setExtraTurns(newExtra);
           flashExtraTurnsBadge(newExtra);

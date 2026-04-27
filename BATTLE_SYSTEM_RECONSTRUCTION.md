@@ -2411,3 +2411,16 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
   - Truyền `attackProfile` từ `useBattleMatchFlow` → `calcSwordDamage` theo turn đang hoạt động.
   - Thêm `playerAttackProfile` và `enemyAttackProfile` `useMemo` vào `BattleScreen.tsx`, đọc từ `playerBootstrap.minDamage/maxDamage` và `monsterBootstrap.enemy.minDamage/maxDamage`.
   - Cập nhật ghi chú §board v1 status từ `5`/`7.5` sang công thức `35%` đúng.
+
+### 2026-04-27 — Khóa cộng lượt theo số group match >=4 trong cùng resolve
+
+- File code đã sửa:
+  - `client/src/screens/battle/core/BattleScreen.logic.ts`
+  - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- Nội dung:
+  - `resolveJavaBoardStep()` bổ sung `bonusTurnCount = count(mergedLines where unique cell count >= 4)`.
+  - `useBattleMatchFlow()` không còn cộng cứng `+1` cho cả resolve step; thay vào đó cộng `resolved.bonusTurnCount`.
+  - Khóa gameplay memory: nếu cùng một swap/resolve tạo đồng thời nhiều group đủ điều kiện, ví dụ một match-4 và một match-5, thì bank đúng `+2 lượt`.
+  - Vẫn giữ `BonusTurnState.granted` theo toàn bộ swap/cascade để không cộng lặp từ các fall chain sau đó trong cùng flow local hiện tại.
+- Nguồn suy luận:
+  - `BATTLE_SYSTEM_RECONSTRUCTION.md §Nhóm + lượt`: mỗi group match có tổng số ô `>= 4` thì `+1 lượt`, nếu một nước/cascade tạo nhiều group đủ điều kiện thì cộng theo số group.
