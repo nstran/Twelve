@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -26,8 +24,6 @@ namespace Twelve.Application.Handlers
         };
 
         private readonly IMonsterBattleBootstrapService _monsterBattleBootstrapService;
-        private readonly IMapMonsterRosterService _mapMonsterRosterService;
-        private readonly IMonsterSpawnCatalog _monsterSpawnCatalog;
         private readonly IPlayerAggregateRepository _playerAggregateRepository;
 
         public MonsterEncounterHandler(
@@ -37,8 +33,6 @@ namespace Twelve.Application.Handlers
             IPlayerAggregateRepository playerAggregateRepository)
         {
             _monsterBattleBootstrapService = monsterBattleBootstrapService;
-            _mapMonsterRosterService = mapMonsterRosterService;
-            _monsterSpawnCatalog = monsterSpawnCatalog;
             _playerAggregateRepository = playerAggregateRepository;
         }
 
@@ -90,25 +84,10 @@ namespace Twelve.Application.Handlers
 
             await SendBootstrapResponseAsync(session, ok: true, data: response, error: null);
 
-            var removedEncounter = _mapMonsterRosterService.DeactivateEncounter(
-                bootstrapRequest.MapId,
-                bootstrapRequest.RoomId,
-                bootstrapRequest.MonsterKey);
-            if (removedEncounter is null)
-            {
-                return;
-            }
-
-            var spawnTemplates = _monsterSpawnCatalog
-                .GetAll()
-                .ToDictionary(template => template.SpawnTemplateKey, template => template, System.StringComparer.OrdinalIgnoreCase);
-            var removePayload = MonsterRuntimePacketFactory.BuildRuntimePacket(
-                bootstrapRequest.MapId,
-                bootstrapRequest.RoomId,
-                mode: 1,
-                encounters: new[] { removedEncounter },
-                spawnTemplates: spawnTemplates);
-            await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.MapMonsterRoster, removePayload));
+            // Java/gameplay memory: touching a map monster starts a battle but does not permanently consume
+            // the map encounter at bootstrap time. The old consume-on-bootstrap remake caused stale
+            // client monsterKey clicks to return not_found/404 on the next battle. Keep roster stable here;
+            // victory/despawn reward flow is server-old/unknown and must be handled by a later battle-result rule.
         }
 
         private static Task SendBootstrapResponseAsync(

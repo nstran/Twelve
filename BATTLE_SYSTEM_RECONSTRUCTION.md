@@ -1963,6 +1963,19 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
 
 ## Nhật ký chỉnh sửa
 
+### 2026-04-27 — Không consume monster roster khi bootstrap battle
+
+- File code đã sửa:
+  - `server/Twelve.Application/Handlers/MonsterEncounterHandler.cs`
+- Nội dung:
+  - Sửa socket `MonsterBootstrapRequest`: sau khi bootstrap battle thành công, server không gọi `DeactivateEncounter()` và không gửi packet `MapMonsterRoster mode=1` để xóa encounter khỏi map ngay tại thời điểm bắt đầu trận.
+  - Lý do: gameplay memory/Java boundary cho thấy click/touch monster chỉ mở battle bootstrap; việc despawn sau thắng/thua/reward thuộc luồng result/despawn server-old chưa có source. Consume ở bootstrap là rule remake sai thời điểm, làm client giữ `monsterKey` stale và trận kế tiếp trả `not_found`/HTTP 404.
+  - Giữ roster ổn định để người chơi có thể vào trận tiếp theo với cùng encounter key; khi phục dựng được battle result/despawn authoritative thì xử lý consume ở flow đó, không ở bootstrap.
+- Nguồn suy luận:
+  - `MonsterEncounterHandler`: lỗi phát sinh do gọi `DeactivateEncounter()` ngay sau `Bootstrap()`.
+  - `InMemoryMapMonsterRosterService.FindEncounter()` chỉ tìm trong active roster, nên encounter đã deactivate sẽ không bootstrap lại được.
+  - Java client chỉ chứng minh battle bootstrap/turn/result nhận packet authoritative; server-old despawn/reward roll chưa có source nên phải ghi rõ `server-old/unknown`.
+
 ### 2026-04-27 — Fix contract HTTP battle sync/result không gửi HP/MP/Power không hợp lệ
 
 - File code đã sửa:

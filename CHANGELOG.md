@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## 2026-04-27 (AI)
+
+### Sửa lỗi vào trận quái lần 2 bị not_found/404 do consume roster quá sớm
+
+**Vấn đề:**
+- Sau khi bootstrap trận quái thành công, socket handler gọi `DeactivateEncounter()` và gửi `MapMonsterRoster mode=1` để xóa encounter khỏi active roster ngay tại thời điểm bắt đầu battle.
+- `FindEncounter()` chỉ tìm trong active roster, nên nếu client còn giữ/click lại cùng `monsterKey` ở trận kế tiếp thì bootstrap trả `not_found`; HTTP endpoint tương ứng trả `404`.
+- Java client chỉ chứng minh flow bootstrap/turn/result nhận packet authoritative; despawn/reward sau thắng/thua thuộc server-old/unknown, không nên consume encounter ở bootstrap.
+
+**Sửa:**
+- Cập nhật `server/Twelve.Application/Handlers/MonsterEncounterHandler.cs`:
+  - không gọi `_mapMonsterRosterService.DeactivateEncounter(...)` sau bootstrap thành công;
+  - không gửi packet xóa roster `MapMonsterRoster mode=1` ở bootstrap;
+  - giữ roster ổn định, để consume/despawn chuyển sang flow battle result/despawn khi có rule authoritative hơn.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md` với nhật ký và boundary `server-old/unknown`.
+
+**Kiểm tra:**
+- Cần chạy `dotnet build Twelve.sln`.
+
+**File đã sửa:**
+- `server/Twelve.Application/Handlers/MonsterEncounterHandler.cs`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-27 (AH)
 
 ### Fix 400 Bad Request khi sync/result battle do HP/MP/Power không phải int hợp lệ
