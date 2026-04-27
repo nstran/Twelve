@@ -1,5 +1,46 @@
 # CHANGELOG
 
+## 2026-04-27 (AE)
+
+### Khóa gameplay bàn cờ v1 theo Java + gameplay memory
+
+**Mục tiêu:**
+- Đồng bộ client/server board pool với 8 icon active `0,1,2,3,4,5,6,8` và bỏ `chess7`.
+- Khóa rule kiếm đỏ `chess8`: match chung kiếm trắng, trigger-on-touch, nổ `3x3`, chain sang kiếm đỏ khác.
+- Giữ match `>=4` chỉ cộng lượt, không tạo natural special item theo gameplay memory hiện tại.
+- Ghi rõ resource/damage board v1 là reconstruction/remake khi Java client chỉ nhận packet kết quả cuối.
+
+**Sửa:**
+- Cập nhật `client/src/screens/battle/core/BattleScreen.shared.ts`:
+  - thêm `chess8` vào pool refill/initial board;
+  - map `chess8` cùng mask/category kiếm với `chess0`;
+  - khóa helper tính HP/MP/Nộ theo percent server-owned và comment nguồn reconstruction/remake;
+  - kiếm đỏ dùng damage pacing `x1.5` so với kiếm trắng.
+- Cập nhật `client/src/screens/battle/core/BattleScreen.logic.ts`:
+  - kiếm đỏ trong clear queue nổ `3x3`;
+  - kiếm đỏ bị nổ có thể chain tiếp;
+  - special node có sẵn vẫn giữ behavior type 2/type 4;
+  - natural special spawn vẫn tắt, `bonusTurnCandidate` tách riêng.
+- Cập nhật `server/Twelve.Application/Battle/ReconstructedBattleBoardService.cs`:
+  - board server bootstrap/evaluate move dùng pool `0,1,2,3,4,5,6,8`;
+  - category `0/8` cùng là kiếm để server không lệch client.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md`:
+  - thêm nhật ký chỉnh sửa cho batch code hôm nay;
+  - note rõ boundary `nq.D`, `nq.F`, `nl[]`, refill/reward vẫn là server-old/unknown hoặc remake rule.
+
+**Kiểm tra:**
+- Cần chạy `npx tsc -p client/tsconfig.json --noEmit`.
+- Cần chạy `dotnet build Twelve.sln` vì đã sửa code server.
+
+**File đã sửa:**
+- `client/src/screens/battle/core/BattleScreen.shared.ts`
+- `client/src/screens/battle/core/BattleScreen.logic.ts`
+- `server/Twelve.Application/Battle/ReconstructedBattleBoardService.cs`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-04-27 (AD)
 
 ### Tắt lại natural special spawn, giữ special clear cho node có sẵn

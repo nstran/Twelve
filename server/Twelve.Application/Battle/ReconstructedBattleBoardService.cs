@@ -16,7 +16,10 @@ namespace Twelve.Application.Battle
         // - reference/redecoded/cfr_fresh/mr.java:
         //   mr.x = 10..15 are special gems created by run >= 4.
         //   mr.y = 20..25 are stronger special gems created by cross run >= 3x3 or run >= 5.
-        private static readonly int[] BaseGems = [0, 1, 2, 3, 4, 5, 6];
+        // Gameplay memory/user evidence chốt board active dùng 8 icon `chess0..8` bỏ `chess7`.
+        // Java `nj` vẫn dùng mask/type/imageIndex; node 8 được port như kiếm đỏ/fire sword mask kiếm,
+        // match chung kiếm trắng và trigger nổ 3x3 ở client board resolver.
+        private static readonly int[] BaseGems = [0, 1, 2, 3, 4, 5, 6, 8];
         private static readonly int[] LineSpecialGems = [10, 11, 12, 13, 14, 15];
         private static readonly int[] CrossSpecialGems = [20, 21, 22, 23, 24, 25];
 
@@ -429,7 +432,7 @@ namespace Twelve.Application.Battle
 
         private static int GetCategory(int gem) => gem switch
         {
-            0 => 0,
+            0 or 8 => 0,
             1 => 1,
             2 => 2,
             3 => 3,

@@ -2003,6 +2003,30 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
   - `PlayerLevelProgression`: curve EXP hiện tại `ExpStep = 100`, level floor/ceiling dạng bình phương.
   - Java client chỉ parse/apply result cuối qua `ky`/`hs`; không có source server Java cũ cho formula board reward.
 
+### 2026-04-27 — Khóa gameplay bàn cờ v1 theo Java + gameplay memory
+
+- File code đã sửa:
+  - `client/src/screens/battle/core/BattleScreen.shared.ts`
+  - `client/src/screens/battle/core/BattleScreen.logic.ts`
+  - `server/Twelve.Application/Battle/ReconstructedBattleBoardService.cs`
+- Nội dung:
+  - Client board v1 giữ engine `8x8` local tương ứng active Java `12x12` vùng `row/col 2..9`, validate swap bằng packed span và match bằng `mask AND`.
+  - Bổ sung/khóa mapping active icon `0,1,2,3,4,5,6,8`; `chess7` không nằm trong pool. `chess8` là kiếm đỏ/kiếm lửa, render riêng nhưng match chung mask kiếm với kiếm trắng `chess0`.
+  - Server board bootstrap/evaluate move cũng dùng pool `0,1,2,3,4,5,6,8`, map `0/8` cùng category kiếm để PvP/bootstrap không lệch client.
+  - `resolveJavaBoardStep()` tiếp tục không spawn natural special item từ match dài/cross theo gameplay memory hiện tại: match group `>= 4` chỉ set `bonusTurnCandidate`, item bị clear rồi drop/refill.
+  - Giữ clear-chain cho special node có sẵn từ packet/skill/debug/legacy data: `10..15` type 2 clear 8 ô quanh, `20..25` type 4 clear hàng + cột.
+  - Kiếm đỏ `chess8`/stateful id `10` được xử lý trigger-on-touch trong clear queue: bị match, bị special clear, hoặc bị kiếm đỏ khác nổ chạm vào đều nổ vùng `3x3` và chain sang kiếm đỏ khác.
+  - Công thức resource/damage board v1 được ghi comment nguồn:
+    - HP/tim dùng `calcPeachGainByStrength(maxHp, gemCount, profile)` với `HealGainPercent` server-owned;
+    - MP/Âm Dương dùng `calcManaGainByMagic(maxMp, gemCount, profile)` với `ManaGainPercent` server-owned;
+    - Nộ/đào dùng `calcPowerGainByStrength(maxPower, gemCount, profile)` với `PowerGainPercent` server-owned;
+    - kiếm trắng gây base local `5`, kiếm đỏ dùng hệ số gameplay memory `x1.5` thành `7.5` ở FE pacing; damage cuối/defense/crit/target vẫn là server/remake, không gắn nhãn Java gốc.
+- Nguồn suy luận:
+  - `reference/redecoded/cfr_fresh/mq.java`, `mo.java`, `mw.java`, `my.java`: active board, validate swap, packed line, clear/drop/cascade/no-move.
+  - `reference/redecoded/cfr_fresh/nj.java`, `mr.java`: id/mask/type/imageIndex và special node families.
+  - Gameplay memory đã ghi trong tài liệu: 8 icon bỏ `chess7`, kiếm đỏ `chess8` nổ `3x3`, match `>=4` cộng lượt nhưng không tạo special item.
+  - Java client chỉ nhận/apply packet cho phần `nq.D`, `nq.F`, `nl[]`, reward roll/refill authoritative; những công thức resource/damage hiện tại là reconstruction/remake có kiểm soát.
+
 ### 2026-04-27 — Bổ sung ví dụ mốc chuẩn core battle board
 
 - File tài liệu đã sửa:

@@ -59,11 +59,11 @@ export const GEM_SHEETS: Record<VisibleGemType, any> = {
 
 export const GEM_CRYSTAL_OVERLAY = require('../../../../assets/battle/03_crystals_casting/chesscrystal.png');
 
-// Java `nj` node ids only generate the base board pieces `0..6` plus stateful
-// overlays such as `10..15` and `20..25`. `8` exists as an image index
-// (`chess8`), not as a normal board node id, so it must not appear in random
-// refills or fresh board generation.
-export const GEM_TYPES: readonly GemType[] = [0, 1, 2, 3, 4, 5, 6];
+// Gameplay memory/user evidence chốt board active có 8 icon từ `/chess0..8`
+// nhưng bỏ `chess7`: `0,1,2,3,4,5,6,8`. Java `nj` decompile vẫn giữ node
+// id/mask/type riêng; `8` được port như kiếm đỏ/fire sword active có mask kiếm
+// để match chung kiếm trắng và trigger nổ 3x3 khi bị touch/clear.
+export const GEM_TYPES: readonly GemType[] = [0, 1, 2, 3, 4, 5, 6, 8];
 
 const GEM_RENDER_MAP: Record<GemType, VisibleGemType> = {
   0: 0,
@@ -142,7 +142,9 @@ export const WHITE_SWORD_GEM = 0 as const;
 export const RED_SWORD_GEM = 8 as const;
 export const SWORD_DAMAGE: Record<typeof WHITE_SWORD_GEM | typeof RED_SWORD_GEM, number> = {
   0: 5,
-  8: 5,
+  // Gameplay memory chốt kiếm đỏ/fire sword gây sát thương ngay với hệ số x1.5
+  // so với kiếm trắng. Formula damage cuối vẫn là remake/server-owned.
+  8: 7.5,
 };
 
 const GEM_FX_BASE: Record<VisibleGemType, { dmg: number; heal: number; mana: number; pow: number }> = {

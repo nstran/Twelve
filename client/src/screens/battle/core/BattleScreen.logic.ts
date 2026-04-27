@@ -533,8 +533,20 @@ const collectSpecialChainKeys = (board: Board, initialKeys: Set<string>): Set<st
     if (gem === null || gem === undefined) continue;
 
     const stateClass = getGemStateClass(gem);
-    if (stateClass === 1) continue;
-    activated.add(key);
+    // Gameplay memory: kiếm đỏ/fire sword (`chess8`, plus stateful id 10) is
+    // trigger-on-touch. When it is part of a match or touched by another clear
+    // chain, it explodes 3x3 and can chain into nearby red swords. Java client
+    // decompile exposes node id/mask/type/imageIndex but final server effect is
+    // unknown; this local board rule intentionally only resolves board clears.
+    if (isRedSwordGem(gem)) {
+      activated.add(key);
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          addSpecialClearTarget(board, cleared, queue, r + dr, c + dc);
+        }
+      }
+      continue;
+    }
 
     if (stateClass === 2) {
       TYPE2_OFFSETS.forEach(([dr, dc]) => {
@@ -713,7 +725,7 @@ export function calcSwordDamage(board: Board, matched: Set<string>): number {
     if (gem !== null && gem !== undefined && getGemCategory(gem) === getGemCategory(WHITE_SWORD_GEM)) {
       const renderType = getGemRenderType(gem);
       if (renderType === WHITE_SWORD_GEM) {
-      total += SWORD_DAMAGE[WHITE_SWORD_GEM];
+        total += SWORD_DAMAGE[WHITE_SWORD_GEM];
       } else {
         total += SWORD_DAMAGE[renderType as typeof WHITE_SWORD_GEM | typeof RED_SWORD_GEM];
       }
