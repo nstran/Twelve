@@ -23,6 +23,7 @@ interface UseBattleMonsterTurnArgs {
   charsRowHeight: number;
   charsTop: number;
   doDirectSwapRef: MutableRefObject<(r1: number, c1: number, r2: number, c2: number) => void>;
+  enemyHPRef: MutableRefObject<number>;
   extraTurnsRef: MutableRefObject<number>;
   flashExtraTurnsBadge: (turns: number) => void;
   maxEHP: number;
@@ -76,6 +77,7 @@ interface UseBattleMonsterTurnArgs {
   turn: BattleTurn;
   turnRef: MutableRefObject<BattleTurn>;
   isPvpBattle?: boolean;
+  pendingVictoryRef: MutableRefObject<boolean>;
 }
 
 export const useBattleMonsterTurn = ({
@@ -85,6 +87,7 @@ export const useBattleMonsterTurn = ({
   charsRowHeight,
   charsTop,
   doDirectSwapRef,
+  enemyHPRef,
   extraTurnsRef,
   flashExtraTurnsBadge,
   maxEHP,
@@ -132,6 +135,7 @@ export const useBattleMonsterTurn = ({
   turn,
   turnRef,
   isPvpBattle,
+  pendingVictoryRef,
 }: UseBattleMonsterTurnArgs) => {
   const enemyTurnRequestRef = useRef(false);
   const monsterTurnStateRef = useRef<'idle' | 'planning' | 'playback_move' | 'skill'>('idle');
@@ -147,6 +151,15 @@ export const useBattleMonsterTurn = ({
     monsterTurnStateRef.current = 'idle';
   }, []);
 
+  const isMonsterTurnAborted = useCallback(() => (
+    !mountedRef.current ||
+    phaseRef.current === 'over' ||
+    result !== null ||
+    pendingVictoryRef.current ||
+    enemyHPRef.current <= 0 ||
+    turnRef.current !== 'monster'
+  ), [enemyHPRef, mountedRef, pendingVictoryRef, phaseRef, result, turnRef]);
+
   const pickFallbackMove = useCallback(() => {
     const validMoves = getAllValidMoves(boardRef.current);
     if (validMoves.length <= 0) {
@@ -157,7 +170,7 @@ export const useBattleMonsterTurn = ({
   }, [boardRef]);
 
   const handBackTurnToPlayer = useCallback((message?: string) => {
-    if (!mountedRef.current) {
+    if (!mountedRef.current || pendingVictoryRef.current || enemyHPRef.current <= 0 || phaseRef.current === 'over' || result !== null) {
       releaseMonsterTurnLock();
       return;
     }
@@ -185,7 +198,7 @@ export const useBattleMonsterTurn = ({
     setSelected([move.fromRow, move.fromCol]);
 
     const pickSecondTimer = setTimeout(() => {
-      if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') {
+      if (isMonsterTurnAborted() || phaseRef.current !== 'idle') {
         releaseMonsterTurnLock();
         setAiStep(null);
         setSelected(null);
@@ -197,7 +210,7 @@ export const useBattleMonsterTurn = ({
       setSelected([move.toRow, move.toCol]);
 
       const swapTimer = setTimeout(() => {
-        if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') {
+        if (isMonsterTurnAborted() || phaseRef.current !== 'idle') {
           releaseMonsterTurnLock();
           setAiStep(null);
           setSelected(null);
@@ -216,6 +229,7 @@ export const useBattleMonsterTurn = ({
     monsterTurnTimersRef.current.push(pickSecondTimer);
   }, [
     doDirectSwapRef,
+    isMonsterTurnAborted,
     mountedRef,
     phaseRef,
     releaseMonsterTurnLock,
@@ -226,6 +240,12 @@ export const useBattleMonsterTurn = ({
   ]);
 
   const playbackSkillPacket = useCallback((packet: BattleSkillRuntimePacket) => {
+    if (isMonsterTurnAborted() || phaseRef.current !== 'idle') {
+      releaseMonsterTurnLock();
+      setAiStep(null);
+      return;
+    }
+
     setPhase('busy');
     phaseRef.current = 'busy';
     monsterTurnStateRef.current = 'skill';
@@ -254,14 +274,14 @@ export const useBattleMonsterTurn = ({
     const boardMutationTimers =
       packet.boardMutation.kind === 'mark'
         ? packet.boardMutation.cells.map((cell, index) => setTimeout(() => {
-          if (!mountedRef.current) {
+          if (isMonsterTurnAborted()) {
             return;
           }
 
           applyServerPacketMarkCell(cell, packet.boardMutation.stateId ?? 10);
         }, cast.boardMutationDelayMs + index * 4 * 40))
         : [setTimeout(() => {
-          if (!mountedRef.current) {
+          if (isMonsterTurnAborted()) {
             return;
           }
 
@@ -269,7 +289,7 @@ export const useBattleMonsterTurn = ({
         }, cast.boardMutationDelayMs)];
 
     const impactTimer = setTimeout(() => {
-      if (!mountedRef.current) {
+      if (isMonsterTurnAborted()) {
         return;
       }
 
@@ -344,13 +364,14 @@ export const useBattleMonsterTurn = ({
     }, cast.impactDelayMs);
 
     const finishTimer = setTimeout(() => {
-      if (!mountedRef.current) {
+      if (isMonsterTurnAborted()) {
         return;
       }
 
       setActiveSkillCasts(prev => prev.filter(item => item.key !== cast.key));
 
       if (
+        !isMonsterTurnAborted() &&
         packet.boardMutation.kind === 'mark' &&
         processMatchesRef.current
       ) {
@@ -397,6 +418,7 @@ export const useBattleMonsterTurn = ({
     charsRowHeight,
     charsTop,
     extraTurnsRef,
+    isMonsterTurnAborted,
     flashExtraTurnsBadge,
     maxEHP,
     maxHP,
@@ -411,6 +433,7 @@ export const useBattleMonsterTurn = ({
     panelLeft,
     panelTop,
     phaseRef,
+    pendingVictoryRef,
     playPlayerHitReaction,
     playerBaseLeft,
     playerSize,
@@ -431,6 +454,8 @@ export const useBattleMonsterTurn = ({
     startPlayerDefeatSequence,
     playMonsterSkillCast,
     releaseMonsterTurnLock,
+    result,
+    setAiStep,
     turnRef,
   ]);
 
@@ -440,7 +465,14 @@ export const useBattleMonsterTurn = ({
   }, [clearMonsterTurnTimers, releaseMonsterTurnLock]);
 
   useEffect(() => {
-    if (phase !== 'idle' || turn !== 'monster' || result !== null || isPvpBattle) {
+    if (
+      phase !== 'idle' ||
+      turn !== 'monster' ||
+      result !== null ||
+      isPvpBattle ||
+      pendingVictoryRef.current ||
+      enemyHPRef.current <= 0
+    ) {
       return;
     }
 
@@ -462,7 +494,7 @@ export const useBattleMonsterTurn = ({
 
     const thinkTimer = setTimeout(() => {
       const runFallbackMove = (message: string) => {
-        if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') {
+        if (isMonsterTurnAborted() || phaseRef.current !== 'idle') {
           releaseMonsterTurnLock();
           setAiStep(null);
           return;
@@ -496,7 +528,7 @@ export const useBattleMonsterTurn = ({
 
       void Promise.race([plannerPromise, plannerTimeout])
         .then((plan) => {
-          if (!mountedRef.current || phaseRef.current !== 'idle' || turnRef.current !== 'monster') {
+          if (isMonsterTurnAborted() || phaseRef.current !== 'idle') {
             releaseMonsterTurnLock();
             setAiStep(null);
             return;
@@ -538,9 +570,12 @@ export const useBattleMonsterTurn = ({
     clearMonsterTurnTimers,
     doDirectSwapRef,
     handBackTurnToPlayer,
+    enemyHPRef,
+    isMonsterTurnAborted,
     mountedRef,
     phase,
     phaseRef,
+    pendingVictoryRef,
     pickFallbackMove,
     playbackMove,
     playbackSkillPacket,

@@ -7,11 +7,13 @@
 **Vấn đề:**
 - Một số nhánh lượt quái có thể giữ `enemyTurnRequestRef`/`monsterTurnStateRef`, khiến quái đứng im sau planner timeout/null/pass/lỗi hoặc playback bị abort.
 - Khi trận đã pending victory/over, cascade còn lại cần tiếp tục clear/drop/refill và phát collect FX, nhưng kiếm trắng/kiếm đỏ không được gây thêm damage/animation tấn công sau khi kết quả đã khóa.
+- Sau khi HP quái về `0` trong lúc cascade đang drain/pending victory, timer lượt quái còn sống vẫn có thể tiếp tục planner/playback/cast skill, làm quái đánh người chơi trước khi bảng kết quả hiện.
 
 **Sửa:**
 - Cập nhật `client/src/screens/battle/hooks/useBattleMonsterTurn.ts`:
   - release lock ở các nhánh planner timeout/null/pass/error, playback abort, skill/cascade finish;
-  - thêm fallback planner local bằng `getAllValidMoves` nếu server/packet chậm để không treo battle.
+  - thêm fallback planner local bằng `getAllValidMoves` nếu server/packet chậm để không treo battle;
+  - thêm guard `pendingVictoryRef` + `enemyHPRef` cho toàn bộ think/planner/playback move/skill impact/board mutation để quái abort ngay khi battle đã pending victory hoặc HP quái `<= 0`.
 - Cập nhật `client/src/screens/battle/hooks/useBattleMatchFlow.ts`:
   - cho phép cascade/match tiếp tục resolve board sau `phase=over` hoặc pending victory;
   - chặn sword/fire-sword damage khi result đã lock, tránh quái/người đánh thêm sau màn kết quả.
@@ -20,11 +22,12 @@
   - damage cuối/turn result authoritative vẫn là `server-old/unknown`.
 
 **Kiểm tra:**
-- `node client\node_modules\typescript\bin\tsc --project client\tsconfig.json --noEmit` passed.
+- `node client\node_modules\typescript\bin\tsc --project client\tsconfig.json --noEmit` → thành công.
 
 **File đã sửa:**
 - `client/src/screens/battle/hooks/useBattleMonsterTurn.ts`
 - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- `client/src/screens/battle/BattleScreen.tsx`
 - `BATTLE_SYSTEM_RECONSTRUCTION.md`
 - `CHANGELOG.md`
 

@@ -2300,7 +2300,8 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
   - Sửa monster turn lock: mọi nhánh planner timeout/null/pass/lỗi, playback bị abort, skill finish/cascade đều release `enemyTurnRequestRef` và `monsterTurnStateRef`, tránh trạng thái quái đứng im không ăn item/không tấn công sau một lượt lỗi.
   - Thêm timeout local fallback cho enemy planner: nếu packet/plan server chậm, client chọn nước đi hợp lệ local bằng `getAllValidMoves` để không treo battle.
   - Sửa flow sau khi thắng/thua: khi `phase=over` hoặc đang pending victory, cascade/match còn lại vẫn được resolve để clear/drop/refill và phát collect/explosion FX; nhưng sword/fire-sword damage không kích thêm animation tấn công hoặc trừ HP sau result lock.
-  - Giữ boundary Java: damage cuối/turn result authoritative vẫn là phần server-old/unknown; rule result-lock cascade là behavior client remake để khớp gameplay memory "bàn cờ vẫn ăn item nếu tiếp tục match, nhưng ăn kiếm thì không tấn công nữa".
+  - Khóa thêm timer lượt quái bằng `pendingVictoryRef`, `enemyHPRef`, `phaseRef` và `result`: nếu quái đã bị hạ HP về `0` trong lúc cascade đang drain/pending victory, mọi nhánh think/planner/playback move/skill impact/board mutation đều abort và release lock, không được swap, ăn item, cast skill hoặc đánh người chơi nữa.
+  - Giữ boundary Java: damage cuối/turn result authoritative vẫn là phần server-old/unknown; rule result-lock cascade và guard quái sau pending victory là behavior client remake để khớp gameplay memory "bàn cờ vẫn ăn item nếu tiếp tục match, nhưng ăn kiếm thì không tấn công nữa".
 - Kiểm tra:
   - `node client\node_modules\typescript\bin\tsc --project client\tsconfig.json --noEmit` passed.
 

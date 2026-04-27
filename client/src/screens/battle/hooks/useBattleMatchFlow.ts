@@ -134,6 +134,11 @@ export const useBattleMatchFlow = ({
     setResult('victory');
   }, [pendingVictoryRef, phaseRef, setPhase, setResult]);
 
+  const markPendingVictory = useCallback(() => {
+    pendingVictoryRef.current = true;
+    enemyHPRef.current = 0;
+  }, [enemyHPRef, pendingVictoryRef]);
+
   const isBattleResultLocked = useCallback(() => (
     phaseRef.current === 'over' || pendingVictoryRef.current
   ), [pendingVictoryRef, phaseRef]);
@@ -148,7 +153,8 @@ export const useBattleMatchFlow = ({
   ) => {
     if (!mountedRef.current) return;
 
-    const passiveAfterResult = isPassiveObserver || isBattleResultLocked();
+    const resultLocked = isBattleResultLocked();
+    const passiveAfterResult = isPassiveObserver;
 
     const activeBonusTurn = bonusTurnState ?? { granted: false };
     const activeRageBurst = rageBurstState ?? {
@@ -161,8 +167,12 @@ export const useBattleMatchFlow = ({
       const resolved = resolveJavaBoardStep(board, scanTargets);
       if (resolved === null) {
         setBoard(board);
-        if (pendingVictoryRef.current) {
-          if (!passiveAfterResult) finalizeVictory();
+        if ((pendingVictoryRef.current || enemyHPRef.current <= 0) && !passiveAfterResult) {
+          finalizeVictory();
+          return;
+        }
+
+        if (pendingVictoryRef.current || enemyHPRef.current <= 0) {
           return;
         }
 
@@ -312,40 +322,19 @@ export const useBattleMatchFlow = ({
           turnRef.current === 'player' &&
           dmg > 0 &&
           enemyHPRef.current - dmg <= 0;
-        let lethalFallCompleted = false;
-        let lethalAttackCompleted = false;
-
-        const tryFinalizeLethalVictory = () => {
-          if (!lethalPlayerResolution || !mountedRef.current) {
-            return;
-          }
-
-          if (!pendingVictoryRef.current) {
-            return;
-          }
-
-          if (!lethalFallCompleted || !lethalAttackCompleted) {
-            return;
-          }
-
-          finalizeVictory();
-        };
-
         boardRef.current = newBoard;
         setBoard(clearedBoard);
 
         const continueAfterFall = () => {
           if (!mountedRef.current) return;
-          if (lethalPlayerResolution && !passiveAfterResult) {
-            lethalFallCompleted = true;
-            tryFinalizeLethalVictory();
-            return;
-          }
 
-          if (pendingVictoryRef.current && !passiveAfterResult) {
-            finalizeVictory();
-            return;
-          }
+          // Result-lock drain rule (reconstruction/gameplay memory):
+          // Even after lethal damage has marked pendingVictory, do not show the
+          // result/stat panel immediately. Java-like board playback must first
+          // drain any matches that already exist after clear/drop/refill (for
+          // example 3 hearts formed by the last fall), collect their resource/
+          // pending reward effects, then finalize only when resolve returns no
+          // further match. Sword damage is suppressed separately by resultLocked.
           setTimeout(() => processMatches(newBoard, chain + 1, affectedKeys, activeRageBurst, activeBonusTurn, passiveAfterResult), 80);
         };
         animateFall(newBoard, fallMap, continueAfterFall);
@@ -387,12 +376,12 @@ export const useBattleMatchFlow = ({
             showDamagePopup('enemy', dmg);
             setEnemyHP(hp => {
             const next = Math.max(0, hp - dmg);
-              if (next === 0) pendingVictoryRef.current = true;
+              if (next === 0) markPendingVictory();
               return next;
             });
           };
 
-            if (dmg > 0 && !passiveAfterResult) {
+            if (dmg > 0 && !passiveAfterResult && !resultLocked) {
               playPlayerSwordAttack(
                 () => {
                   if (!mountedRef.current) return;
@@ -403,14 +392,11 @@ export const useBattleMatchFlow = ({
                   if (lethalPlayerResolution) {
                     playMonsterDefeatSequence(() => {
                       if (!mountedRef.current) return;
-                      lethalAttackCompleted = true;
-                      if (!passiveAfterResult) tryFinalizeLethalVictory();
+                      // Do not finalize here. The board may have produced a
+                      // cascade after the lethal clear/drop. processMatches()
+                      // will finalize when the board has no remaining matches.
                     });
                     return;
-                  }
-
-                  if (pendingVictoryRef.current && !passiveAfterResult) {
-                    finalizeVictory();
                   }
                 },
               );
@@ -418,7 +404,7 @@ export const useBattleMatchFlow = ({
 
             if (!passiveAfterResult) applyPlayerRewards();
         } else {
-            if (dmg > 0 && !passiveAfterResult) {
+            if (dmg > 0 && !passiveAfterResult && !resultLocked) {
               playMonsterSwordAttack(
                 () => {
                   if (!mountedRef.current) return;
@@ -464,6 +450,7 @@ export const useBattleMatchFlow = ({
     maxEHP,
     maxHP,
     isBattleResultLocked,
+    markPendingVictory,
     maxMP,
     maxPow,
     enemyMaxMP,

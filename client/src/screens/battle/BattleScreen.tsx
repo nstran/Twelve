@@ -811,6 +811,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     charsRowHeight,
     charsTop,
     doDirectSwapRef,
+    enemyHPRef,
     extraTurnsRef,
     flashExtraTurnsBadge,
     maxEHP,
@@ -858,6 +859,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     turn,
     turnRef,
     isPvpBattle,
+    pendingVictoryRef,
   });
   const { turnTimeLeft } = useBattleTurnTimer({
     phase,
