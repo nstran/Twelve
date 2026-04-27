@@ -2050,7 +2050,7 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
     - HP/tim dùng `calcPeachGainByStrength(maxHp, gemCount, profile)` với `HealGainPercent` server-owned;
     - MP/Âm Dương dùng `calcManaGainByMagic(maxMp, gemCount, profile)` với `ManaGainPercent` server-owned;
     - Nộ/đào dùng `calcPowerGainByStrength(maxPower, gemCount, profile)` với `PowerGainPercent` server-owned;
-    - kiếm trắng gây base local `5`, kiếm đỏ dùng hệ số gameplay memory `x1.5` thành `7.5` ở FE pacing; damage cuối/defense/crit/target vẫn là server/remake, không gắn nhãn Java gốc.
+    - kiếm trắng gây `floor(AttackRoll * 35 / 100)` mỗi gem, kiếm đỏ gây `floor(AttackRoll * 35 * 150 / 10000)` mỗi gem (`AttackRoll = floor((minDamage + maxDamage) / 2)` từ server bootstrap); damage cuối/defense/crit/target vẫn là server/remake, không gắn nhãn Java gốc. *(Đã sửa từ hardcode `5`/`7.5` sang đúng công thức 2026-04-27.)*
 - Nguồn suy luận:
   - `reference/redecoded/cfr_fresh/mq.java`, `mo.java`, `mw.java`, `my.java`: active board, validate swap, packed line, clear/drop/cascade/no-move.
   - `reference/redecoded/cfr_fresh/nj.java`, `mr.java`: id/mask/type/imageIndex và special node families.
@@ -2366,4 +2366,22 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
 - Nội dung:
   - Sửa lỗi giật/chậm (stuck loop) khi quan sát viên (passive observer) nhận update board PvP. Chuyển `doDirectSwap` sang dùng `animateValidSwap` thay vì set state đột ngột, đảm bảo đồng bộ timing animation.
   - Khớp luồng swap local với server sync: refactor `animateValidSwap` ra khỏi luồng tương tác UI trực tiếp để có thể trigger từ websocket packet.
-  - Sửa lỗi visual special item (type 4) sau match 5+: loại bỏ overlay `hiddendragon` và `hiddenphoenix` sai bản chất khỏi board renderer. Phục dựng chuẩn Java: node `20..25` (type 4) chỉ dùng asset base `chess0..5` kèm frame animation từ `nd.java` thay vì dùng UI ornament tĩnh lấy từ `pc.java`.
+   - Sửa lỗi visual special item (type 4) sau match 5+: loại bỏ overlay `hiddendragon` và `hiddenphoenix` sai bản chất khỏi board renderer. Phục dựng chuẩn Java: node `20..25` (type 4) chỉ dùng asset base `chess0..5` kèm frame animation từ `nd.java` thay vì dùng UI ornament tĩnh lấy từ `pc.java`.
+
+### 2026-04-27 — Sửa sword damage hardcode → scale theo stat Tấn Công từ server bootstrap
+
+- File code đã sửa:
+  - `client/src/screens/battle/core/BattleScreen.logic.ts`
+  - `client/src/screens/battle/core/BattleScreen.shared.ts`
+  - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+  - `client/src/screens/battle/BattleScreen.tsx`
+- Nội dung:
+  - Phát hiện: `calcSwordGemDamage` dùng hằng số cứng `5`/`7.5` per gem (kiếm trắng/đỏ), dẫn đến mọi actor đều tấn công `15` per match 3 kiếm trắng, bất kể stat Tấn Công.
+  - Thêm `BattleAttackProfile { minDamage, maxDamage }` vào `BattleScreen.shared.ts`.
+  - Sửa `calcSwordGemDamage` và `calcSwordDamage` trong `BattleScreen.logic.ts` theo đúng công thức tài liệu §Nhóm kiếm trắng / kiếm đỏ damage:
+    - `AttackRoll = floor((minDamage + maxDamage) / 2)` — FE dùng average vì không có server RNG.
+    - Kiếm trắng per gem: `floor(AttackRoll * 35 / 100)`.
+    - Kiếm đỏ per gem: `floor(AttackRoll * 35 * 150 / 10000)` (`x1.5` theo gameplay memory).
+  - Truyền `attackProfile` từ `useBattleMatchFlow` → `calcSwordDamage` theo turn đang hoạt động.
+  - Thêm `playerAttackProfile` và `enemyAttackProfile` `useMemo` vào `BattleScreen.tsx`, đọc từ `playerBootstrap.minDamage/maxDamage` và `monsterBootstrap.enemy.minDamage/maxDamage`.
+  - Cập nhật ghi chú §board v1 status từ `5`/`7.5` sang công thức `35%` đúng.

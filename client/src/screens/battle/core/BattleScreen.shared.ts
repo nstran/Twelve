@@ -27,6 +27,14 @@ export interface BattleResourceProfile {
   powerGainPercent: number;
 }
 
+export interface BattleAttackProfile {
+  // Source: BATTLE_SYSTEM_RECONSTRUCTION.md §Resource / damage formulas + gameplay memory.
+  // Sword match damage must come from the active combatant attack range supplied by server
+  // bootstrap, not from the old remake-local fixed 5 damage per white sword gem.
+  minDamage: number;
+  maxDamage: number;
+}
+
 export type AILevel =
   | 'borm'
   | 'dan_thuong'
@@ -141,6 +149,8 @@ export const SWORD_CAT = 0;
 export const WHITE_SWORD_GEM = 0 as const;
 export const RED_SWORD_GEM = 8 as const;
 export const SWORD_DAMAGE: Record<typeof WHITE_SWORD_GEM | typeof RED_SWORD_GEM, number> = {
+  // Legacy fallback only. Runtime board damage is scaled by active actor min/max damage in
+  // calcSwordDamage(). Keep this as a safe default for tests/tools that do not pass actor stats.
   0: 5,
   // Gameplay memory chốt kiếm đỏ/fire sword gây sát thương ngay với hệ số x1.5
   // so với kiếm trắng. Formula damage cuối vẫn là remake/server-owned.

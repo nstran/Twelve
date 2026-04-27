@@ -2,6 +2,44 @@
 
 ## 2026-04-27 (AJ)
 
+### Sửa sword damage hardcode → scale theo stat Tấn Công
+
+**Vấn đề:**
+- Logic match kiếm trắng/kiếm đỏ trên client vẫn dùng damage cứng theo gem (`5`/`7.5`), nên match 3 kiếm trắng luôn ra khoảng `15` damage bất kể nhân vật/quái có Tấn Công bao nhiêu.
+- Công thức đã chốt trong `BATTLE_SYSTEM_RECONSTRUCTION.md` là phải dùng `AttackRoll` từ `MinDamage/MaxDamage` server bootstrap:
+  - kiếm trắng: `floor(AttackRoll * 35 / 100)` mỗi gem;
+  - kiếm đỏ: `floor(AttackRoll * 35 * 150 / 10000)` mỗi gem (`x1.5`).
+
+**Sửa:**
+- Cập nhật `client/src/screens/battle/core/BattleScreen.shared.ts`:
+  - thêm `BattleAttackProfile { minDamage, maxDamage }`.
+- Cập nhật `client/src/screens/battle/core/BattleScreen.logic.ts`:
+  - `calcSwordDamage()` nhận `attackProfile`;
+  - `calcSwordGemDamage()` không dùng hardcode runtime nữa, chuyển sang công thức `35% AttackRoll` và `x1.5` cho kiếm đỏ;
+  - FE dùng `AttackRoll = floor((minDamage + maxDamage) / 2)` để pacing visual deterministic vì server RNG/final hit chưa authoritative.
+- Cập nhật `client/src/screens/battle/hooks/useBattleMatchFlow.ts`:
+  - nhận `playerAttackProfile`/`enemyAttackProfile`;
+  - chọn profile theo turn đang resolve để damage kiếm của player/quái scale đúng stat riêng.
+- Cập nhật `client/src/screens/battle/BattleScreen.tsx`:
+  - tạo attack profile từ `playerBootstrap.minDamage/maxDamage` và `monsterBootstrap.enemy.minDamage/maxDamage`;
+  - truyền xuống match flow.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md`:
+  - sửa note board v1 từ `5`/`7.5` sang công thức `35%` đúng;
+  - thêm nhật ký chỉnh sửa.
+
+**Kiểm tra:**
+- Cần chạy `npx --prefix client tsc -p client/tsconfig.json --noEmit`.
+
+**File đã sửa:**
+- `client/src/screens/battle/core/BattleScreen.shared.ts`
+- `client/src/screens/battle/core/BattleScreen.logic.ts`
+- `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- `client/src/screens/battle/BattleScreen.tsx`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+---
+
 ### Sửa treo lượt monster và khóa cascade sau kết quả battle
 
 **Vấn đề:**

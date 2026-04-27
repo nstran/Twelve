@@ -135,6 +135,23 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       monsterBootstrap.enemy.powerGainPercent,
     ],
   );
+  // Source: BATTLE_SYSTEM_RECONSTRUCTION.md §Resource / damage formulas + gameplay memory.
+  // Sword match damage must scale with the active actor's attack range supplied by server
+  // bootstrap, not the old remake-local fixed 5 per white sword gem.
+  const playerAttackProfile = useMemo(
+    () => ({
+      minDamage: playerBootstrap.minDamage,
+      maxDamage: playerBootstrap.maxDamage,
+    }),
+    [playerBootstrap.minDamage, playerBootstrap.maxDamage],
+  );
+  const enemyAttackProfile = useMemo(
+    () => ({
+      minDamage: monsterBootstrap.enemy.minDamage,
+      maxDamage: monsterBootstrap.enemy.maxDamage,
+    }),
+    [monsterBootstrap.enemy.minDamage, monsterBootstrap.enemy.maxDamage],
+  );
   const isPvpBattle = monsterBootstrap.battleKind === 'pvp';
 
   const boardEngineRef = useRef(createJavaBoardEngine(battleSeed));
@@ -698,6 +715,8 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     enemyMaxPow,
     playerResourceProfile,
     enemyResourceProfile,
+    playerAttackProfile,
+    enemyAttackProfile,
     setBoard,
     setPhase,
     setTurn,

@@ -9,6 +9,7 @@ import {
   calcManaGainByMagic,
   calcPeachGainByStrength,
   calcPowerGainByStrength,
+  type BattleAttackProfile,
   type BattleResourceProfile,
   type JavaBoardEngine,
   type BattlePhase,
@@ -40,6 +41,8 @@ interface UseBattleMatchFlowArgs {
   enemyMaxPow: number;
   playerResourceProfile: BattleResourceProfile;
   enemyResourceProfile: BattleResourceProfile;
+  playerAttackProfile: BattleAttackProfile;
+  enemyAttackProfile: BattleAttackProfile;
   setBoard: Dispatch<SetStateAction<Board>>;
   setPhase: Dispatch<SetStateAction<BattlePhase>>;
   setTurn: Dispatch<SetStateAction<BattleTurn>>;
@@ -98,6 +101,8 @@ export const useBattleMatchFlow = ({
   enemyMaxPow,
   playerResourceProfile,
   enemyResourceProfile,
+  playerAttackProfile,
+  enemyAttackProfile,
   setBoard,
   setPhase,
   setTurn,
@@ -246,7 +251,10 @@ export const useBattleMatchFlow = ({
         }
       }
 
-    let dmg = calcSwordDamage(board, matched);
+    const attackerProfile = turnRef.current === 'player'
+      ? playerAttackProfile
+      : enemyAttackProfile;
+    let dmg = calcSwordDamage(board, matched, attackerProfile);
     if (activeRageBurst.active && dmg > 0) {
       dmg *= 2;
     }
@@ -456,6 +464,7 @@ export const useBattleMatchFlow = ({
     enemyMaxMP,
     enemyMaxPow,
     enemyResourceProfile,
+    enemyAttackProfile,
     enemyPowerRef,
     mountedRef,
     onPlayerDefeat,
@@ -486,6 +495,7 @@ export const useBattleMatchFlow = ({
     turnRef,
     playerPowerRef,
     playerResourceProfile,
+    playerAttackProfile,
   ]);
 
   const doDirectSwap = useCallback((r1: number, c1: number, r2: number, c2: number, isPassiveObserver = false) => {

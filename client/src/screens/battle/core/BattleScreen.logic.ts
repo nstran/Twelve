@@ -1,6 +1,7 @@
 import { BOARD_COLS, BOARD_ROWS } from './BattleScreen.styles';
 import {
   AILevel,
+  type BattleAttackProfile,
   Board,
   FallEntry,
   GEM_TYPES,
@@ -727,7 +728,39 @@ export function expandSword(matched: Set<string>, board: Board): Set<string> {
   return out;
 }
 
-export function calcSwordDamage(board: Board, matched: Set<string>): number {
+const calcSwordGemDamage = (
+  renderType: typeof WHITE_SWORD_GEM | typeof RED_SWORD_GEM,
+  attackProfile?: BattleAttackProfile | null,
+): number => {
+  if (!attackProfile) {
+    return SWORD_DAMAGE[renderType];
+  }
+
+  // Source: BATTLE_SYSTEM_RECONSTRUCTION.md §Nhóm kiếm trắng / kiếm đỏ damage.
+  // Formula per gem (FE uses average of server-provided min/max for visual pacing;
+  // the server may roll the actual hit):
+  //   AttackRoll = floor((minDamage + maxDamage) / 2)
+  //   WhiteSword per gem: floor(AttackRoll * 35 / 100)
+  //   RedSword per gem:   floor(AttackRoll * 35 * 150 / 10000)   [= x1.5 vs white]
+  //
+  // With AttackRoll = 10: white = floor(3.5) = 3; red = floor(5.25) = 5
+  // With AttackRoll = 20: white = floor(7.0) = 7; red = floor(10.5) = 10
+  const minDamage = Math.max(0, Math.trunc(attackProfile.minDamage));
+  const maxDamage = Math.max(minDamage, Math.trunc(attackProfile.maxDamage));
+  const attackRoll = Math.max(1, Math.trunc((minDamage + maxDamage) / 2));
+
+  if (renderType === RED_SWORD_GEM) {
+    return Math.max(1, Math.trunc((attackRoll * 35 * 150) / 10000));
+  }
+
+  return Math.max(1, Math.trunc((attackRoll * 35) / 100));
+};
+
+export function calcSwordDamage(
+  board: Board,
+  matched: Set<string>,
+  attackProfile?: BattleAttackProfile | null,
+): number {
   let total = 0;
 
   matched.forEach(key => {
@@ -735,11 +768,7 @@ export function calcSwordDamage(board: Board, matched: Set<string>): number {
     const gem = board[r]?.[c];
     if (gem !== null && gem !== undefined && getGemCategory(gem) === getGemCategory(WHITE_SWORD_GEM)) {
       const renderType = getGemRenderType(gem);
-      if (renderType === WHITE_SWORD_GEM) {
-        total += SWORD_DAMAGE[WHITE_SWORD_GEM];
-      } else {
-        total += SWORD_DAMAGE[renderType as typeof WHITE_SWORD_GEM | typeof RED_SWORD_GEM];
-      }
+      total += calcSwordGemDamage(renderType as typeof WHITE_SWORD_GEM | typeof RED_SWORD_GEM, attackProfile);
     }
   });
 
