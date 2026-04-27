@@ -72,6 +72,32 @@ const deriveBattleSeed = (sessionId: string): number => {
   return Math.abs(hash);
 };
 
+// Source: server/Twelve.Application/Battle/BattleTurnEngine.cs ResolveElementDamagePercent()
+// Remake v1 element wheel: Cường Lực(0) > Thân Pháp(1) > Nội Lực(2) > Cường Lực(0).
+// Used only to make local board sword previews match server-authoritative skill damage order.
+const resolveElementDamagePercent = (attackerElementCode?: number | null, defenderElementCode?: number | null): number => {
+  const attacker = attackerElementCode === 0 || attackerElementCode === 1 || attackerElementCode === 2
+    ? attackerElementCode
+    : null;
+  const defender = defenderElementCode === 0 || defenderElementCode === 1 || defenderElementCode === 2
+    ? defenderElementCode
+    : null;
+
+  if (attacker === null || defender === null || attacker === defender) {
+    return 100;
+  }
+
+  if (
+    (attacker === 0 && defender === 1) ||
+    (attacker === 1 && defender === 2) ||
+    (attacker === 2 && defender === 0)
+  ) {
+    return 112;
+  }
+
+  return 92;
+};
+
 export const BattleScreen: React.FC<BattleScreenProps> = ({
   monsterType,
   monsterBootstrap,
@@ -142,15 +168,27 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     () => ({
       minDamage: playerBootstrap.minDamage,
       maxDamage: playerBootstrap.maxDamage,
+      elementDamagePercent: resolveElementDamagePercent(appearance.elementIndex, monsterBootstrap.enemy.element),
     }),
-    [playerBootstrap.minDamage, playerBootstrap.maxDamage],
+    [
+      appearance.elementIndex,
+      monsterBootstrap.enemy.element,
+      playerBootstrap.minDamage,
+      playerBootstrap.maxDamage,
+    ],
   );
   const enemyAttackProfile = useMemo(
     () => ({
       minDamage: monsterBootstrap.enemy.minDamage,
       maxDamage: monsterBootstrap.enemy.maxDamage,
+      elementDamagePercent: resolveElementDamagePercent(monsterBootstrap.enemy.element, appearance.elementIndex),
     }),
-    [monsterBootstrap.enemy.minDamage, monsterBootstrap.enemy.maxDamage],
+    [
+      appearance.elementIndex,
+      monsterBootstrap.enemy.element,
+      monsterBootstrap.enemy.minDamage,
+      monsterBootstrap.enemy.maxDamage,
+    ],
   );
   const isPvpBattle = monsterBootstrap.battleKind === 'pvp';
 

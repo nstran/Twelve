@@ -778,7 +778,16 @@ export function calcSwordDamage(
     }
   });
 
-  return total;
+  if (total <= 0 || !attackProfile) {
+    return total;
+  }
+
+  // Source: server/Twelve.Application/Battle/BattleTurnEngine.cs
+  // ResolveElementDamagePercent() is applied after base/varied damage using Java-like
+  // integer truncation. Local board sword damage mirrors that server-authoritative
+  // order so khắc hệ affects normal white/red sword matches too.
+  const elementDamagePercent = Math.max(0, Math.trunc(attackProfile.elementDamagePercent ?? 100));
+  return Math.max(1, Math.trunc((total * elementDamagePercent) / 100));
 }
 
 export function collapseLogic(

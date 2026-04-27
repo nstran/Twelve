@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 2026-04-28
+
+### [BATTLE] Áp khắc hệ cho damage kiếm board local
+
+**Vấn đề:** Raw damage kiếm trắng/kiếm đỏ đã scale theo `MinDamage/MaxDamage`, nên số `15` không còn là hardcode. Tuy nhiên local board flow chưa truyền hệ số khắc hệ `100/112/92` như server `BattleTurnEngine`, có thể làm preview/flow bàn cờ lệch với combat skill server-authoritative.
+
+**Giải pháp:**
+- Thêm `resolveElementDamagePercent()` trong `BattleScreen.tsx`, ghi rõ nguồn từ `server/Twelve.Application/Battle/BattleTurnEngine.cs::ResolveElementDamagePercent()`.
+- `playerAttackProfile` / `enemyAttackProfile` truyền thêm `elementDamagePercent`.
+- Giữ nguyên công thức raw kiếm:
+  - kiếm trắng: `floor(AttackRoll * 35 * whiteSwordCount / 100)`;
+  - kiếm đỏ: `floor(AttackRoll * 35 * redSwordCount * 150 / 10000)`.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md` để khóa kết luận: damage kiếm đã scale theo Tấn Công; `15` chỉ là kết quả khi `AttackRoll ≈ 15` với match 3 kiếm trắng.
+
+**Files đã sửa:**
+- `client/src/screens/battle/BattleScreen.tsx`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+**Build:** `npx --prefix client tsc -p client/tsconfig.json --noEmit`
+
 ## 2026-04-27
 
 ### [BATTLE] Khóa cộng lượt theo số group match >=4

@@ -33,6 +33,10 @@ export interface BattleAttackProfile {
   // bootstrap, not from the old remake-local fixed 5 damage per white sword gem.
   minDamage: number;
   maxDamage: number;
+  // Source: server/Twelve.Application/Battle/BattleTurnEngine.cs
+  // ResolveElementDamagePercent(): 100 neutral, 112 advantage, 92 disadvantage.
+  // FE board damage applies the same integer percent after base sword damage.
+  elementDamagePercent?: number;
 }
 
 export type AILevel =

@@ -205,7 +205,8 @@ Rule gameplay đi kèm mapping này:
   - `chess6` = vàng / pending board gold
   - `chess8` = kiếm lửa / kiếm đỏ nổ `3x3`
 - base icon match xong bị đưa vào clear queue rồi drop/refill; theo gameplay memory hiện tại, match dài/cross không để lại node special mới
-- kiểm tra ngày `2026-04-27`: runtime damage kiếm trắng/kiếm đỏ hiện **đã scale theo Tấn Công** qua `BattleAttackProfile { minDamage, maxDamage }`; `15 damage` chỉ là hệ quả khi `AttackRoll` của actor khoảng `15` và match 3 kiếm trắng = `floor(15 * 35 / 100) * 3 = 15`, không còn là hardcode runtime cố định. Fallback `SWORD_DAMAGE` trong `BattleScreen.shared.ts` chỉ dành cho test/tool không truyền actor stats.
+- kiểm tra ngày `2026-04-27`: runtime damage kiếm trắng/kiếm đỏ hiện **đã scale theo Tấn Công** qua `BattleAttackProfile { minDamage, maxDamage }`; `15 damage` chỉ là hệ quả khi `AttackRoll` của actor khoảng `15` và match 3 kiếm trắng = `floor(15 * 35 * 3 / 100) = 15`, không còn là hardcode runtime cố định. Fallback `SWORD_DAMAGE` trong `BattleScreen.shared.ts` chỉ dành cho test/tool không truyền actor stats.
+- kiểm tra ngày `2026-04-28`: board sword damage local đã truyền thêm `elementDamagePercent` vào `BattleAttackProfile` để áp dụng cùng vòng khắc hệ server-authoritative (`100/112/92`) sau raw sword damage. Nhánh này chỉ dùng để local preview/flow hiện tại khớp thứ tự server `BattleTurnEngine.ResolveElementDamagePercent()`, không thay đổi công thức raw kiếm trắng/kiếm đỏ.
 - decompile Java có nhánh natural special spawn `10..15`/`20..25`, nhưng runtime gameplay user xác nhận "không một item nào tạo special"; vì vậy bản port hiện tại không bật natural spawn mặc định, chỉ giữ nhánh này như note server/mode cũ cần đối chiếu nếu sau này có packet log/replay
 - giọt tím EXP nửa sao match bình thường; nếu node/mask của nó thuộc nhóm `mask >= 64` thì không nâng cấp special theo branch `object.a.e < 64`
 - tim hồi HP và đào hồi nộ/Power ngay trong trận; công thức hiện dùng rule remake/server-owned trong `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md §5`
@@ -361,6 +362,7 @@ FireSwordDamageRaw = floor(AttackRoll * 52.5% * redSwordCount)
   - dùng `resolvedKeys` để mỗi ô/cell chỉ apply effect `1` lần trong cùng chain;
   - `whiteSwordCount` gồm cả kiếm trắng bị ăn trực tiếp và kiếm trắng bị kéo vào bởi vùng nổ kiếm đỏ;
   - implementation hiện tại: `client/src/screens/battle/core/BattleScreen.logic.ts::calcSwordDamage(board, matched, attackProfile)` nhận `attackProfile` từ `useBattleMatchFlow`; flow chọn `playerAttackProfile` hoặc `enemyAttackProfile` theo turn đang resolve. Vì vậy cùng một board match nhưng player/quái có `MinDamage/MaxDamage` khác nhau sẽ ra damage kiếm khác nhau.
+  - ngày `2026-04-28`: `BattleScreen.tsx` còn truyền `elementDamagePercent = ResolveElementDamagePercent(attackerElement, defenderElement)` vào attack profile, bám server `server/Twelve.Application/Battle/BattleTurnEngine.cs`. Raw sword damage vẫn tính từ `AttackRoll`; khắc hệ chỉ apply một lần sau tổng raw board damage để local board flow không lệch skill/combat server.
   - `redSwordCount` gồm các kiếm đỏ đã resolve trong chain, mỗi kiếm đỏ chỉ tính một lần theo `resolvedKeys`;
   - HP/MP/Nộ/EXP/Gold/Quan pending phải đếm trên toàn bộ `clearedKeys`/item thật sự bị clear, không chỉ `triggerKeys` của match ban đầu, vì kiếm đỏ hấp thụ tài nguyên trong vùng nổ.
 
@@ -378,7 +380,7 @@ Sau đó apply defense/crit/element/mode **một lần trên tổng damage**, th
 damage = RawBoardDamage
 damage = ApplyDefense(damage, targetDefense)
 damage = isCritical ? floor(damage * CriticalDamagePercent / 100) : damage
-damage = floor(damage * ElementPercentAfterResist / 100)
+damage = floor(damage * ElementPercentAfterResist / 100) // v1 local board hiện dùng 100/112/92 từ BattleTurnEngine.ResolveElementDamagePercent()
 damage = floor(damage * ModePercent / 100)
 damage = max(1, damage)
 ```
@@ -2318,6 +2320,18 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
   - `docs/player-character-reconstruction/02-truth-payload-and-tags.md`: mapping HP/MP/Power `lh`.
   - `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`: resource là tầng remake có cap, không phải công thức Java status.
   - Phản hồi test gameplay level 1: MP/HP/nộ tăng quá nhanh so với Java cũ.
+
+### 2026-04-28 — Áp khắc hệ cho damage kiếm board local
+
+- File code đã sửa:
+  - `client/src/screens/battle/BattleScreen.tsx`
+- Nội dung:
+  - Rà lại câu hỏi "match kiếm trắng/đỏ có scale theo Tấn Công chưa hay đang hardcode 15": phần raw damage đã scale theo `BattleAttackProfile { minDamage, maxDamage }`; `15` là kết quả hợp lệ khi `AttackRoll ≈ 15` và match 3 kiếm trắng.
+  - Bổ sung `resolveElementDamagePercent()` ở client, ghi rõ nguồn từ `server/Twelve.Application/Battle/BattleTurnEngine.cs::ResolveElementDamagePercent()`.
+  - `playerAttackProfile` và `enemyAttackProfile` truyền thêm `elementDamagePercent` (`100` trung lập, `112` lợi hệ, `92` bất lợi hệ) để `calcSwordDamage()` áp khắc hệ sau tổng raw sword damage.
+  - Không sửa công thức raw kiếm trắng/kiếm đỏ: vẫn là `floor(AttackRoll * 35 * whiteSwordCount / 100)` và `floor(AttackRoll * 35 * redSwordCount * 150 / 10000)`.
+- Kiểm tra:
+  - `node client\node_modules\typescript\bin\tsc --project client\tsconfig.json --noEmit` passed.
 
 ### 2026-04-27 — Sửa treo lượt monster và result-lock cascade board
 
