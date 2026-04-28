@@ -1916,6 +1916,1781 @@ rules:
 9. Never guess gameplay values from `/offline/<id>` filenames alone.
 10. Numeric family art and battle template must be linked explicitly by catalog.
 
+## Deep Java Trace Addendum — Monster Runtime Details
+
+Phần này bổ sung các chi tiết đọc trực tiếp từ Java decompile trong lượt rà soát
+`jo.java`, `ki.java`, `kj.java`, `om.java`, `ha.java`, và `ky.java`.
+
+### `kj.java` — Monster Roaming Algorithm
+
+`kj` là updater rất nhỏ nhưng là nơi thể hiện rõ nhất "cảm giác" monster trên
+map Java cũ. Logic quan trọng nằm trong
+[kj.java:6](/d:/Twelve/reference/redecoded/decompiled/kj.java:6).
+
+Một frame update cho monster làm các bước sau:
+
+1. gọi `ki.i()` để tick animation/state hiện tại
+2. nếu monster đang ở state `0`, xử lý roaming/contact
+3. nếu được bật aggro (`bl2`) và player đang ở state đi ngang (`kl.j == 1 || kl.j == 0`),
+   kiểm tra hitbox monster `ki.e` với player rect `kl.t`
+4. nếu chạm player và player còn `m()`, monster chuyển sang state `1`
+5. nếu không chạm player, monster tự trôi theo hướng hiện tại
+6. kiểm tra collision tile để đổi hướng
+7. kiểm tra viewport/boundary helper `kh.a(ki)` để đổi hướng khi ra khỏi vùng hợp lệ
+
+Pseudo-code faithful:
+
+```java
+ki.i();
+
+if (ki.a() == 0) {
+    if (player != null && enableAggro && ki.m()
+        && (player.j == 1 || player.j == 0)
+        && player.t.a(ki.e)
+        && player.m()) {
+        int facing = ki.e.a > player.t.a ? 2 : 3;
+        ki.a(1, facing);
+        player.b(facing == 2 ? 8 : 4);
+        return;
+    }
+
+    ki.b(ki.d * ki.a[ki.c], ki.d * ki.b[ki.c]);
+
+    int row = (ki.o() + ki.q() - 5) / 32;
+    int col = (ki.n() + (ki.c == 2 ? 0 : ki.e.c)) / 32;
+
+    if (logic[row][col] != false) {
+        ki.a(0, ki.c == 2 ? 3 : 2);
+    }
+}
+
+if (viewport.a(ki)) {
+    int next = ki.c == 2 ? 3 : ki.c == 3 ? 2 : ki.c == 0 ? 1 : 0;
+    ki.a(0, next);
+}
+```
+
+Important reconstruction notes:
+
+- `ki.d` là tốc độ bước ngẫu nhiên được set khi spawn trong `om` (`cv.a(2, 4)`).
+- `ki.c` là hướng/facing hiện tại.
+- `ki.a[]` và `ki.b[]` là vector di chuyển theo hướng.
+- state `0` là roaming bình thường.
+- state `1` là contact/aggressive/engagement-ready.
+- hướng `2 <-> 3` dùng nhiều cho trái/phải khi chạm tile.
+- nếu boundary helper chặn movement thì flip theo bảng:
+  - `2 -> 3`
+  - `3 -> 2`
+  - `0 -> 1`
+  - còn lại `-> 0`
+
+Comment nguồn gốc khi port logic:
+
+```csharp
+// Reconstructed from Java client kj.java:6-50.
+// Monster roaming is local playback: tick animation, move by facing vector,
+// flip on tile/boundary collision, and enter state 1 on player contact.
+```
+
+### `om.java` — Spawn Construction Details
+
+`om.a(int x, int y, jo data, Image sharedImage)` là factory tạo `ki` map monster.
+Nguồn: [om.java:485](/d:/Twelve/reference/redecoded/decompiled/om.java:485).
+
+Sheet selection:
+
+| Java rule | Sheet field | Legacy resource | Anchor offset |
+|-----------|-------------|-----------------|---------------|
+| `jo.c >> 1 == 0` | `this.r` | `/monster` | `14` |
+| `jo.c >> 1 == 1` | `this.s` | `/zap` | `5` |
+| otherwise | `this.t` | `/ice` | `13` |
+
+Construction sequence:
+
+```java
+switch (jo.c >> 1) {
+    case 0: image = this.r; n4 = 14; break;
+    case 1: image = this.s; n4 = 5; break;
+    default: image = this.t; n4 = 13;
+}
+
+ki monster = new ki(image, 1, 6, jo, go.k, sharedImage);
+monster.c(n4);
+monster.a(monster.n(), monster.o(), monster.p() - 12, 20);
+monster.d = cv.a(2, 4);
+monster.c(x - (monster.p() - 32), y - (monster.q() - 32));
+monster.a(0, cv.a(2, 3));
+this.H.b.a(monster);
+```
+
+Reconstruction implications:
+
+- map monster visuals are resolved from the raw type byte, not from battle stats
+- the Java constructor arguments are misleading (`1, 6`) because `ki` itself
+  hard-codes 6 frames and 1 row
+- every live monster starts in state `0`
+- initial facing is random in `[2, 3]`
+- local roam speed is random in `[2, 4]`
+- collision rect/name anchor is adjusted immediately after construction
+- render bucket insertion happens inside the factory, not only after spawn loop
+
+### `om.java` — Remove Contract
+
+`om.a(jo[])` removes by stable key only.
+Nguồn: [om.java:456](/d:/Twelve/reference/redecoded/decompiled/om.java:456).
+
+Removal sequence:
+
+1. loop input `jo[]`
+2. find live `ki` in `this.I` where `ki.f.a.equals(jo.a)`
+3. remove from `this.I`
+4. find matching `ki` in render bucket `this.H.b`
+5. remove first matching render actor
+
+This proves removal is not coordinate-based, not name-based, and not sprite-based.
+The only safe key is `jo.a`.
+
+### `om.java` — Encounter Trigger Details
+
+There are two visible trigger paths in `om.n()`.
+
+#### Player-driven collision
+
+Nguồn: [om.java:660](/d:/Twelve/reference/redecoded/decompiled/om.java:660).
+
+Condition:
+
+- player `l.m()` is true
+- target actor `ki.m()` is true
+- player small collision box `l.u` overlaps monster rect `ki.e`
+
+Effect:
+
+```java
+this.a(monster, true);
+this.U = monsterIndex;
+
+if (monster.e.a < player.t.a) {
+    monster.b(3);
+    player.b(4);
+} else {
+    monster.b(2);
+    player.b(8);
+}
+```
+
+`bl2 == true` is sent into battle request and preview constructor, so this flag
+must be preserved as an initiative/context flag.
+
+#### Monster-driven aggressive contact
+
+Nguồn: [om.java:690](/d:/Twelve/reference/redecoded/decompiled/om.java:690).
+
+Every visible monster except the currently selected one is updated by `kj`.
+If after update `ki.a() == 1` and dialog `191919` is not already open, `om`
+starts encounter with:
+
+```java
+this.U = monsterIndex;
+this.a(monster, false);
+this.am.c(null);
+```
+
+This makes monster engagement a modal state guarded by dialog id `191919`.
+
+### `om.java` — Battle Handoff Details
+
+Nguồn: [om.java:797](/d:/Twelve/reference/redecoded/decompiled/om.java:797).
+
+The handoff does more than send a socket request:
+
+```java
+this.y();
+if (!bl2) {
+    ag.a().b(10);
+}
+ag.b().l();
+this.N = true;
+this.Y = 10;
+this.r();
+this.e(false);
+
+E = new cu(ki.e.a + ki.e.c / 2, ki.e.b + ki.e.d);
+this.q = new ha(this.l.e.u(), ki.b(), false, bl2, 99030, this.X);
+this.q.a(this.am);
+
+ks.a().a(ki.f.a, bl2);
+```
+
+Important reconstruction points:
+
+- map is frozen with `N = true`
+- `Y = 10` creates a short transition/countdown window
+- player state is cached through `r()`
+- encounter anchor `E` is bottom-center of monster collision rect
+- preview receives `ki.b()` clone, not original live actor
+- socket request sends `ki.f.a` (`jo.a`) and initiative/context flag `bl2`
+- `jo.d` and `jo.e` are read but ignored at send site; they are preview-only here
+
+### `ha.java` — Encounter Preview Contract
+
+`ha(at player, at monster, ...)` is the map-backed constructor.
+Nguồn: [ha.java:47](/d:/Twelve/reference/redecoded/decompiled/ha.java:47).
+
+When `this.y == false`, the right/left actor is a `ki` map monster and the
+constructor reads:
+
+| Java read | Meaning |
+|-----------|---------|
+| `((ki)at3).f.c` | raw visual/icon type byte (`jo.c`) |
+| `((ki)at3).f.e` | IQ numeric value (`jo.e`) |
+| `((ki)at3).f.b` | display name (`jo.b`) |
+
+Exact IQ bucket logic:
+
+```java
+this.G = this.N < 3 ? "Siêu gà"
+       : (this.N < 7 ? "Bờm"
+       : (this.N < 10 ? "Ma lanh"
+       : (this.N == 11 ? "Tốc chiến" : "Tuyệt đỉnh")));
+```
+
+Render-time fields for map monster preview:
+
+```java
+this.a(graphics, panel, this.q, ki.f.d, this.I, side, "IQ: " + this.G);
+```
+
+So the displayed fields are:
+
+- icon/element marker = `jo.c`
+- level = `jo.d`
+- name = `jo.b`
+- secondary line = `"IQ: " + bucket(jo.e)`
+
+Special tint:
+
+```java
+int bg = v.aj;
+if (this.N == 11) {
+    bg = 0xFDBDBD;
+}
+```
+
+`jo.e == 11` therefore visually marks `"Tốc chiến"` encounters with a distinct
+pink/red dialog background.
+
+Dialog/callback constants:
+
+| Id | Source | Meaning |
+|----|--------|---------|
+| `191919` | `ha.b(191919)` | modal encounter/combat preview dialog id |
+| `99030` | `this.M = 99030` | callback id sent when preview completes |
+
+Port rule:
+
+```csharp
+// Reconstructed from Java client ha.java:82-98 and ha.java:221-260.
+// Encounter preview uses lightweight jo fields only. Do not show battle HP/MP/skills here.
+```
+
+### `ky.java` — Authoritative Battle Fighter Packet Tags
+
+The parser `ky.a(ku)` reads a full `lh` fighter payload.
+Nguồn: [ky.java:1003](/d:/Twelve/reference/redecoded/decompiled/ky.java:1003).
+
+Observed tag map:
+
+| `lh` field | Packet tag | Java line | Meaning |
+|------------|------------|-----------|---------|
+| constructor byte / `lh.a` | `15` nested/default | `1008-1009` | fighter type/id inherited from `ld` |
+| `lh.b` | `9` | `1010` | battle display name |
+| `lh.c` | `26` | `1011` | extra display/title string |
+| `lh.g` | `15` | `1012` | battle element/type byte |
+| `lh.f` | `16` | `1013` | fighter style/side byte |
+| `lh.G` | `27` | `1014` | level |
+| `lh.s` | `17` | `1015` | current HP |
+| `lh.r` | `47` | `1016` | max HP |
+| `lh.u` | `18` | `1017` | current MP |
+| `lh.t` | `48` | `1018` | max MP |
+| `lh.h` | `118` | `1019` | strength-like base stat |
+| `lh.j` | `119` | `1020` | agility-like base stat |
+| `lh.i` | `120` | `1021` | magic-like base stat |
+| `lh.k` | `121` | `1022` | vitality-like base stat |
+| `lh.l` | `196` | `1023` | additive stat bonus 1 |
+| `lh.m` | `197` | `1024` | additive stat bonus 2 |
+| `lh.n` | `198` | `1025` | additive stat bonus 3 |
+| `lh.o` | `199` | `1026` | additive stat bonus 4 |
+| `lh.p` | `116` | `1027` | addHealth |
+| `lh.q` | `115` | `1028` | health-percent-like field |
+| `lh.J` | `42` | `1030` | extra battle numeric |
+| `lh.H` | `43` | `1031` | extra battle numeric |
+| `lh.I` | `99` | `1032` | extra battle numeric, default `10000` |
+| `lh.K` | `53` | `1033` | extra battle numeric |
+| `lh.L` | `76` | `1034` | extra battle numeric |
+| `lh.M` | `73` | `1035` | extra battle numeric |
+| `lh.N` | `74` | `1036` | extra battle numeric |
+| `lh.S` | `209` | `1037` | extra string |
+| `lh.R` | `210` | `1038` | extra string |
+| `lh.ab` | `160` | `1042` | extra battle numeric |
+| `lh.Z` | `165` | `1043` | boolean flag |
+| `lh.aa` | `166` | `1044` | boolean flag |
+| `lh.E` | repeated `64` | `1045-1060` | skill entries |
+| `lh.D` | repeated `83` | `1061-1069` | equipped item/visual entries |
+| `lh.F` | parser `k(ku)` | `1070` | carried item entries |
+| `lh.U/V/W` | repeated `90` + slot `91` | `1071-1100` | appearance layer descriptors |
+
+`lh.Q` title fallback:
+
+```java
+lh.Q = lh.G > 100 && lh.G <= 200 ? "Đại Hiệp"
+     : (lh.G > 200 ? "Chiến Vương" : "Hào Kiệt");
+```
+
+This appears to be generic fighter-rank text, not monster-specific species data.
+
+### `ky.java` — `lv` Skill Entry Tags
+
+Inside the repeated tag `64` block:
+
+```java
+lh.E[n] = new lv(ku.a(blockStart, -1));         // skill id
+lh.E[n].f = ku.a((short)67, blockStart, next, -1); // skill level
+lh.E[n].e = ku.a((short)68, blockStart, next, -1); // mana cost
+ku.a((short)89, blockStart, next, (byte)-1);       // extra ignored byte
+```
+
+Reconstruction rule:
+
+- monster skill id, level, and mana cost belong to `lh.E`
+- they are **not** available in the map `jo` packet
+- the replacement server must resolve them at battle bootstrap time
+
+### `ky.java` — Appearance Layer Tags
+
+Inside repeated tag `90`:
+
+```java
+int baseId = ku.a(blockStart, 0);
+int slot = ku.a((short)91, blockStart, next, (byte)0);
+
+df layer = new df(baseId);
+
+int sourcePaletteId = ku.a((short)93, blockStart, next, 0);
+byte[] sourcePaletteBytes = ku.c((short)95, blockStart, next);
+layer.d = new dg(sourcePaletteId, sourcePaletteBytes);
+layer.f = new dg[]{layer.d};
+
+int destinationPaletteId = ku.a((short)96, blockStart, next, 0);
+byte[] destinationPaletteBytes = ku.c((short)98, blockStart, next);
+layer.e = new dg(destinationPaletteId, destinationPaletteBytes);
+
+switch (slot) {
+    case 0: lh.U = layer; break;
+    case 1: lh.V = layer; break;
+    case 2: lh.W = layer; break;
+}
+```
+
+This proves battle monster appearance is packet-driven body composition with
+palette remapping. It must not be collapsed into the map sprite sheet system.
+
+### Reconstruction Summary From This Trace
+
+The deep trace reinforces the same hard boundary:
+
+```text
+jo packet
+  -> lightweight map encounter record
+  -> local ki actor
+  -> ha preview using jo fields
+  -> ks sends jo.a
+  -> server returns lh/lv/df battle truth
+  -> battle actor assembled from lh appearance and runtime stats
+```
+
+Do not let any of these layers leak into each other:
+
+- `/offline/<id>.png` is asset evidence, not stat evidence
+- `jo.c` is preview/icon/sheet evidence, not battle element authority
+- `jo.d` is display level for preview, not necessarily the final `lh.G`
+- `jo.e` is IQ label value for preview/contact feel, not full AI behavior
+- `lh.E` is battle skill authority
+- `lh.U/V/W` are battle body appearance authority
+- `nq/nl` turn result packets are runtime delta authority
+
+## Battle Monster Java Classes — Deep Field Mapping
+
+Phần này bổ sung lớp **battle monster** sau khi rà soát sâu các Java class:
+`lh.java`, `lg.java`, `lv.java`, `nl.java`, `nq.java`, `df.java`,
+`ni.java`, và `mb.java`.
+
+Mục tiêu của section này là chốt rõ:
+
+- field nào trong battle payload là stat thật
+- field nào là runtime value
+- field nào là skill / turn delta / appearance
+- battle monster khác map monster ở đâu
+- khi port sang .NET 9 phải giữ boundary nào
+
+### `lh.java` — Authoritative Fighter Payload
+
+`lh` là object gần nhất với "battle monster truth" mà Java client còn giữ.
+Nó kế thừa từ `ld`, nên các field base như `a`, `b`, `c`, `d` đến từ class
+cha, còn phần stat/skill/appearance nằm trong `lh`.
+
+Evidence quan trọng nhất là `lh.toString()` tại
+[lh.java:135](/d:/Twelve/reference/redecoded/decompiled/lh.java:135).
+
+#### Confirmed Combat Stat Fields from `toString()`
+
+| Field | Meaning | Java evidence |
+|-------|---------|---------------|
+| `lh.h` | Strength | `"Streng = " + this.h` |
+| `lh.k` | Vitality | `"vitalit = " + this.k` |
+| `lh.j` | Agility | `"agility = " + this.j` |
+| `lh.i` | Magic | `"magic = " + this.i` |
+| `lh.l` | additive Strength | `"addStreng = " + this.l` |
+| `lh.o` | additive Vitality | `"addvitalit = " + this.o` |
+| `lh.m` | additive Agility | `"addagility = " + this.m` |
+| `lh.n` | additive Magic | intended by field group; decompile print line appears typoed |
+| `lh.s / lh.r` | current HP / max HP | `"HP: " + this.s + " / " + this.r` |
+| `lh.u / lh.t` | current MP / max MP | `"Mana: " + this.u + " / " + this.t` |
+| `lh.w / lh.v` | current Power / max Power | `"Power: " + this.w + " / " + this.v` |
+| `lh.x / lh.y` | min damage / max damage | `"MinDam: " + this.x + " / " + this.y` |
+| `lh.A` | dodge rate | `"Dodgerate: " + this.A` |
+| `lh.B` | hit rate | `"hitrate: " + this.B` |
+| `lh.z` | defense | `"Defende: " + this.z` |
+| `lh.C` | critical damage | `"criticaldamge " + this.C` |
+| `lh.g` | element / hệ | `"hệ: " + this.g` |
+
+Important correction:
+
+- earlier reconstruction guessed several names correctly from usage
+- `lh.toString()` now confirms the stat names directly
+- `lh.h/j/i/k` order should be documented as:
+  - `h = Strength`
+  - `j = Agility`
+  - `i = Magic`
+  - `k = Vitality`
+
+Port comment:
+
+```csharp
+// Reconstructed from Java client lh.java:135-152.
+// lh is the battle fighter payload. It carries authoritative combat stats:
+// STR=h, AGI=j, MAG=i, VIT=k, HP=s/r, MP=u/t, Power=w/v,
+// damage=x/y, defense=z, dodge=A, hit=B, critDamage=C, element=g.
+```
+
+#### `lh.a()` Clone Behavior
+
+`lh.a()` creates a deep-ish clone used by battle runtime.
+
+Important copied groups:
+
+- identity/display: `a`, `b`, `c`, `d`
+- battle state: `f`, `g`, `G`
+- resources: `s/r`, `u/t`, `w/v`
+- combat stats: `h/i/j/k`, `x/y`, `z`, `A/B/C`
+- equipment: `D[]` cloned via `ll.d()`
+- items: `F[]` cloned via `lm.b()`
+- skills: `E[]` cloned into new `lv`
+- appearance: `U/V/W` cloned through `df.a()`
+- flags: `O`, `Z`
+
+Reconstruction implication:
+
+- catalog templates should be immutable
+- battle session instances should be cloned from templates
+- runtime HP/MP/Power/status changes must not mutate the template object
+
+### `lh.D`, `lh.E`, `lh.F`, `lh.U/V/W`
+
+`lh` carries several arrays that matter for monsters in battle.
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `lh.D` | `ll[]` | equipment / equipped visual-stat entries |
+| `lh.E` | `lv[]` | battle skill list |
+| `lh.F` | `lm[]` | carried item entries |
+| `lh.U` | `df` | appearance layer slot 0 |
+| `lh.V` | `df` | appearance layer slot 1 |
+| `lh.W` | `df` | appearance layer slot 2 |
+| `lh.ac` | `lt[]` | extra timed/long-value entries parsed from packet |
+
+The old client does not treat battle monster visuals as a single sprite.
+It uses the `lh` payload to build a composited actor.
+
+### `lv.java` — Skill Entry
+
+`lv` extends `ld`, so skill id/name/description are inherited from base class.
+
+Evidence: [lv.java:15](/d:/Twelve/reference/redecoded/decompiled/lv.java:15).
+
+| Field | Meaning | Java evidence |
+|-------|---------|---------------|
+| `lv.a` | skill id, inherited from `ld` | `"Skill " + ((ld)object).a` |
+| `lv.b` | skill name, inherited from `ld` | `": " + this.b` |
+| `lv.d` | skill description, inherited from `ld` | printed on next line |
+| `lv.f` | skill level | `"Level: " + this.f` |
+| `lv.e` | mana cost | `"Mana: " + this.e` |
+| `lv.g` | max level | `"Max Level: " + this.g` |
+| `lv.h` | extra strings / description lines | iterated if non-null |
+
+Packet parsing in `ky.java` confirms battle skills are embedded inside `lh.E`:
+
+- repeated tag `64` = skill entry
+- base/default int = skill id
+- tag `67` = skill level
+- tag `68` = mana cost
+- tag `89` = extra ignored byte in this decode path
+
+Reconstruction rule:
+
+```csharp
+// Reconstructed from Java client ky.java skill block and lv.java:15-29.
+// Monster skills are battle payload data (lh.E), not map spawn data (jo).
+```
+
+### `lg.java` — Runtime Battle Wrapper
+
+`lg` wraps `lh` and exposes mutable live battle values.
+
+Evidence: [lg.java](/d:/Twelve/reference/redecoded/decompiled/lg.java).
+
+#### Resource Getters / Setters
+
+| Method | Meaning |
+|--------|---------|
+| `a()` | returns wrapped `lh` |
+| `b()` | returns `lh.O` |
+| `c()` | returns level `lh.G` |
+| `d()` | returns `lh.T` |
+| `j()` | returns display name `lh.b` |
+| `l()` | max HP `lh.r` |
+| `m()` | current HP `lh.s` |
+| `g(int)` | set current HP `lh.s` |
+| `n()` | current MP `lh.u` |
+| `o()` | max MP `lh.t` |
+| `h(int)` | set current MP `lh.u` |
+| `q()` | current Power `lh.w` |
+| `r()` | max Power `lh.v` |
+| `j(int)` | set current Power `lh.w` |
+| `p()` | Power full check `lh.w >= lh.v` |
+| `i(skillId)` | lookup `lv` by skill id in `lh.E` |
+
+#### Status Timer Slots
+
+`lg` has 5 countdown-style integer timers.
+
+| Timer field | Check method | Setter | Tick behavior |
+|-------------|--------------|--------|---------------|
+| `lg.d` | `e()` | `a(int)` | decremented in `s()` |
+| `lg.e` | `g()` | `c(int)` | decremented in `s()` |
+| `lg.f` | `h()` | `d(int)` | decremented in `s()` |
+| `lg.g` | `f()` | `b(int)` | decremented in `s()` |
+| `lg.h` | `i()` | `e(int)` | decremented in `s()` |
+
+The exact human-readable status names are not recovered from client alone.
+But the structure is clear:
+
+- battle fighter can have multiple active timers
+- each turn/frame tick decrements them
+- monsters must not be modeled as stateless HP bags
+
+Recommended remake model:
+
+```csharp
+public sealed record MonsterRuntimeStatus(
+    string StatusId,
+    int RemainingTicks
+);
+```
+
+Do not hard-code only one status slot; Java had at least five timer slots.
+
+### `nl.java` — Per-Fighter Attribute Delta
+
+`nl` is the object applied after a battle turn/skill to update fighter runtime
+attributes.
+
+Evidence: [nl.java:21](/d:/Twelve/reference/redecoded/decompiled/nl.java:21).
+
+Constructor:
+
+```java
+public nl(String string, int n2, int n3, int n4, int n5, int n6) {
+    this.a = string;
+    this.e = n2;
+    this.b = n3;
+    this.c = n4;
+    this.d = n5;
+    this.f = n6;
+}
+```
+
+`toString()` confirms names:
+
+| Field | Meaning | Java evidence |
+|-------|---------|---------------|
+| `nl.a` | fighter name / owner key in Java client | `"PlayerAttribute " + this.a` |
+| `nl.e` | damage value | `"dam  " + this.e` |
+| `nl.f` | life / extra value | `"life" + this.f` |
+| `nl.b` | resulting HP | `"hp = " + this.b` |
+| `nl.c` | resulting MP | `"mana = " + this.c` |
+| `nl.d` | resulting Power | `"power = " + this.d` |
+
+Constructor order should be read as:
+
+```text
+nl(name, damage, hp, mana, power, lifeOrExtra)
+```
+
+Important Java limitation:
+
+- the old client matches deltas by fighter name string
+- the remake should use stable combatant ids internally
+- display names should not be the authority key
+
+Recommended C# shape:
+
+```csharp
+public sealed record BattleActorDeltaResult(
+    string CombatantId,
+    string DisplayName,
+    int? Damage,
+    int? CurrentHp,
+    int? CurrentMp,
+    int? CurrentPower,
+    int? LifeOrExtra
+);
+```
+
+### `nq.java` — Turn Result Model
+
+`nq` is a broad turn/result model used by battle flow.
+
+Evidence: [nq.java](/d:/Twelve/reference/redecoded/decompiled/nq.java).
+
+`toString()`:
+
+```java
+return "TurnModel[type=" + this.c + ",rev=" + this.b + "]";
+```
+
+Confirmed fields:
+
+| Field | Type | Likely meaning |
+|-------|------|----------------|
+| `nq.a` | `String` | owner/caster/display name |
+| `nq.b` | `int` | revision / sequence |
+| `nq.c` | `byte` | turn type |
+| `nq.d` | `boolean` | flag |
+| `nq.e` | `int` | extra int |
+| `nq.f` | `nl[]` | actor attribute deltas |
+| `nq.g` | `byte[][]` | board / visual byte matrix |
+| `nq.h` | `byte[]` | extra byte payload |
+| `nq.i` | `long` | timing / id value |
+| `nq.j/k/l/m` | `int` | coordinate / index style values |
+| `nq.o/p/q/s` | `byte[]` | additional byte arrays |
+| `nq.y/z` | `int[]` | coordinate / index arrays |
+| `nq.A` | `ll[]` | equipment result entries |
+| `nq.B` | `lm[]` | item result entries |
+| `nq.D/F` | `byte` | extra type flags |
+| `nq.E` | `boolean` | extra flag |
+
+Reconstruction rule:
+
+- `nq` is not a monster template
+- it is a per-action/per-turn result packet model
+- monster battle runtime changes should flow through `nq.f -> nl[]`
+
+### `df.java` — Appearance Layer Descriptor
+
+`df` describes one appearance layer and its palette mapping.
+
+Evidence: [df.java](/d:/Twelve/reference/redecoded/decompiled/df.java).
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `df.a` | `int` | base numeric asset id |
+| `df.b` | `String` | display/name string |
+| `df.c` | `int` | extra numeric value |
+| `df.d` | `dg` | source palette |
+| `df.e` | `dg` | destination palette |
+| `df.f` | `dg[]` | palette variants |
+
+Clone method `df.a()` deep-clones palettes:
+
+- copies `a`, `b`, `c`
+- clones `d`
+- clones `e`
+- clones each entry in `f`
+
+This proves battle appearance is not just "choose PNG".
+It includes palette remap data.
+
+### `mb.java` — Battle Body-Part Compositor
+
+`mb.a(lh)` constructs body metadata bundles from the battle fighter payload.
+
+Evidence: [mb.java:689](/d:/Twelve/reference/redecoded/decompiled/mb.java:689).
+
+#### Metadata Bundle Construction
+
+`mb.a(lh)` creates 4 `mb` metadata entries:
+
+| Index | Java source | Meaning |
+|-------|-------------|---------|
+| `mbArray[0]` | equipment slot 0 or `lh.U.a + 99` | main body/head layer |
+| `mbArray[1]` | `lh.V.a + 99` | secondary body layer |
+| `mbArray[2]` | equipment slot 1 or default `79899/79999` | weapon / hand layer |
+| `mbArray[3]` | equipment slot 2 or default `89999` | accessory / extra layer |
+
+Default weapon-like metadata id depends on `lh.f`:
+
+```java
+int n2 = lh2.f == 1 ? 79999 : 79899;
+```
+
+Equipment metadata source:
+
+```java
+if (equipment.e < 4) {
+    nArray[equipment.e] = equipment.n - equipment.n % 10;
+}
+```
+
+So equipment with `e < 4` can override the body-part metadata bundle.
+
+#### Cache Key Includes Palettes
+
+`mb.a(lh, mb2, mb3, mb4, mb5, int)` builds a cache key from:
+
+- animation/state id
+- layer metadata ids
+- `lh.W.e.c`
+- `lh.V.e.c`
+- `lh.U.e.c`
+
+Evidence: [mb.java:735](/d:/Twelve/reference/redecoded/decompiled/mb.java:735).
+
+Implication:
+
+- actor appearance cache must include palette destination signatures
+- otherwise different palette variants can incorrectly reuse the same body cache
+
+#### Equipment Visual Tier Helper in `lh.c()`
+
+`lh.c()` computes a visual/equipment tier-like rank.
+
+Evidence: [lh.java:196](/d:/Twelve/reference/redecoded/decompiled/lh.java:196).
+
+Rules:
+
+- count equipped entries where `ll.j >= 7`
+- exclude slots `e == 8` and `e == 4`
+- if at least 4 qualifying pieces:
+  - any piece `< 9` -> rank `1`
+  - any piece `< 11` -> rank `2`
+  - any piece `< 13` -> rank `3`
+  - if 4+ pieces `>= 13` -> rank `4`
+- otherwise rank `0`
+
+This is not monster-only, but battle monsters use the same fighter/appearance
+system, so the remake should keep this generic at fighter level.
+
+### `ni.java` — Battle Actor State Machine
+
+`ni` is the battle actor runtime state machine for composited fighters.
+
+Evidence: [ni.java](/d:/Twelve/reference/redecoded/decompiled/ni.java).
+
+Constructor receives:
+
+```java
+ni(int side, mg idle, mg strike, mg moveA, mg moveB, mg hurt, mg down, mc cast, nr effect)
+```
+
+The decompiled field assignments are:
+
+| Constructor arg | Field | Role |
+|-----------------|-------|------|
+| `mg2` | `this.a` | idle |
+| `mg3` | `this.b` | strike/contact |
+| `mg4` | `this.c` | move/evade bundle A |
+| `mg5` | `this.e` | hurt |
+| `mg6` | `this.d` | move/evade bundle B |
+| `mg7` | `this.f` | down/defeat |
+| `mc2` | `this.F` | cast/channel |
+| `nr2` | `this.O` | attached effect/controller |
+
+#### State Map from `a(int state)`
+
+Evidence: [ni.java:158](/d:/Twelve/reference/redecoded/decompiled/ni.java:158).
+
+| State | Selected bundle | Role |
+|-------|-----------------|------|
+| `0` | `this.a` | idle / standing |
+| `1` | `this.b` | strike / contact hit |
+| `2` | `this.c` or `this.d` | advance toward target |
+| `3` | `this.e` | hurt reaction |
+| `4` | `this.f` | down / defeat |
+| `5` | `this.c` or `this.d` | retreat / return home |
+| `6` | `this.F` | cast / channel |
+| `7` | `this.c` or `this.d` | evade / miss / guard motion |
+| `8` | `this.e` | alternate hurt alias |
+
+`state 8` maps to the same bundle as `state 3`.
+
+#### Vietnamese Battle Feedback Text
+
+Evidence:
+
+- [ni.java:119](/d:/Twelve/reference/redecoded/decompiled/ni.java:119)
+- [ni.java:131](/d:/Twelve/reference/redecoded/decompiled/ni.java:131)
+
+| Text | Meaning |
+|------|---------|
+| `"Xí Hụt"` | miss |
+| `"Đỡ đòn"` | guard / block |
+
+This text is client-visible and should be preserved if the remake wants Java-like
+battle feedback.
+
+#### Main State Transitions in `ni.i()`
+
+Evidence: [ni.java:233](/d:/Twelve/reference/redecoded/decompiled/ni.java:233).
+
+| Current state | Transition behavior |
+|---------------|---------------------|
+| `1` strike | near end of animation triggers target reaction, then switches to `5` return |
+| `2` advance | moves to target position, then switches to `1` strike |
+| `5` return | moves back to original position, then switches to `0` idle |
+| `3` hurt | animation done, then switches to `0` idle |
+| `6` cast | cast animation done, then switches to `0` idle |
+| `7` evade/miss | moves out/back, then switches to `0` idle |
+
+Monster implication:
+
+- battle monster should not be animated by just toggling idle/hurt
+- normal attack should be modeled as:
+  - advance
+  - strike
+  - apply target reaction around strike frame
+  - retreat
+  - idle
+
+Port comment:
+
+```csharp
+// Reconstructed from Java client ni.java.
+// Battle actors use stateful motion bundles: idle(0), strike(1), advance(2),
+// hurt(3), down(4), retreat(5), cast(6), evade/guard(7), hurtAlias(8).
+```
+
+### Battle Monster Layer Boundary — Final Confirmed Flow
+
+After reading the battle classes, the full monster flow is now:
+
+```text
+Map packet ky.f()
+  -> jo[] lightweight encounter records
+  -> om expands each jo.f into local ki actors
+  -> kj locally roams/contact-updates ki
+  -> ha preview reads jo.b / jo.c / jo.d / jo.e
+  -> ks sends jo.a + initiative/context flag
+  -> server returns lh fighter payload
+  -> lg wraps lh as mutable runtime fighter
+  -> mb + df + equipment compose battle actor body
+  -> ni animates battle actor states
+  -> nq turn result carries nl[] actor deltas
+  -> lg current HP/MP/Power are updated from nl
+```
+
+Strictly separate meanings:
+
+| Layer | Java object | Contains | Must not contain |
+|-------|-------------|----------|------------------|
+| map spawn | `jo` | key, name, visual type, display level, IQ, count, tint | HP, MP, skills, damage |
+| map actor | `ki` | local sprite, rect, facing, movement state | battle stats |
+| preview | `ha` | display fields from `jo` | true battle payload |
+| battle payload | `lh` | stats, resources, skills, equipment, appearance | map placement |
+| skill entry | `lv` | skill id, level, mana cost | map spawn count |
+| runtime wrapper | `lg` | mutable HP/MP/Power/status timers | catalog template mutation |
+| actor delta | `nl` | damage and resulting resources | skill definitions |
+| turn result | `nq` | board/turn/delta packet model | permanent monster catalog |
+| appearance | `df`/`mb` | body metadata + palette remap | gameplay roster authority |
+| animation | `ni` | visual state machine | damage formula authority |
+
+### What Has Now Been Exhausted from Java Client
+
+After this deeper pass, the client-side monster surface is effectively exhausted
+for both map and battle.
+
+Covered map layer:
+
+- `jo` spawn data
+- `ki` live actor / 6-frame map sheet
+- `kj` roaming/contact logic
+- `om` spawn/remove/engage/handoff
+- `ha` encounter preview
+- `ky.f()` monster packet decode
+- `kq` / `oa` / `com.mg.sq.a` callback bridge
+- `ks` battle request by monster key
+
+Covered battle layer:
+
+- `lh` fighter payload and confirmed combat stat names
+- `lv` skill entries
+- `lg` live runtime wrapper and status timers
+- `nl` actor deltas
+- `nq` turn result model
+- `df` appearance layer descriptor
+- `mb` body-part compositor and palette-aware cache
+- `ni` battle actor state machine
+- `mx` battle actor/HUD integration already referenced by packet/runtime flow
+
+The remaining unknowns are no longer "where is monster logic in the Java
+client?". They are server-authority gaps:
+
+- exact original Java server monster roster per map
+- exact original Java server damage formulas
+- exact monster AI target choice
+- exact drop/reward tables
+- exact semantic names for some generic fighter flags
+
+These cannot be recovered from the client alone without original server source
+or packet captures.
+
+## Server Monster Formula Reconstruction
+
+Phần này là **server-authority reconstruction spec** cho monster trong remake.
+
+Nguồn căn cứ:
+
+- Java client đã xác nhận boundary và payload:
+  - map encounter = `jo`
+  - battle fighter = `lh` / `lv`
+  - turn delta = `nq` / `nl`
+- Không có Java server cũ, nên các công thức dưới đây là **remake server-owned logic**
+  được thiết kế để:
+  - bám đúng boundary Java client
+  - dùng lại stat/element framework đã phục dựng cho player
+  - cân bằng PvE/PvP
+  - không để client quyết định kết quả battle
+- Element / stat calculator tham chiếu:
+  - [docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md](/d:/Twelve/docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md)
+
+### Reconstruction Authority Level
+
+| Mảng | Nguồn truth |
+|------|-------------|
+| `jo` map spawn shape | Java client evidence |
+| `lh/lv` battle payload shape | Java client evidence |
+| HP/MP/Power fields | Java client evidence |
+| stat names STR/MAG/AGI/VIT | Java client evidence từ `lh.toString()` |
+| monster stat scaling | remake server-owned reconstruction |
+| monster skill AI | remake server-owned reconstruction + user gameplay direction |
+| monster damage formula | remake server-owned, dùng player stat/element framework |
+| monster board/resource rule | remake server-owned, nhưng phải áp chung player/monster |
+
+Important rule:
+
+```text
+Client chỉ render/playback.
+Server mới phải quyết định:
+- monster stat
+- monster skill chọn
+- target chọn
+- board action / gem result
+- resource gain
+- final damage
+- actor deltas
+```
+
+### Monster Uses the Same 4 Core Stats as Player
+
+Monster dùng chung stat framework với player:
+
+| Vietnamese | Server name | Java `lh` field |
+|------------|-------------|-----------------|
+| Cường Lực | Strength | `lh.h` |
+| Nội Lực | Magic | `lh.i` |
+| Thân Pháp | Agility | `lh.j` |
+| Thể Lực | Vitality | `lh.k` |
+
+Port comment:
+
+```csharp
+// Monster server stat reconstruction.
+// Java client confirms lh.h/i/j/k are STR/MAG/AGI/VIT-like fighter stats.
+// Because Java server is missing, monster stat values are generated by the
+// remake server from level + element + role + threat tier, then sent as lh-like
+// battle payload fields.
+```
+
+### Monster Element / Main Build Mapping
+
+Monster hệ nào thì dùng cùng calculator hướng đó.
+
+| Monster element | Build archetype | Java/player calculator mirror | Gameplay role |
+|-----------------|-----------------|-------------------------------|---------------|
+| Hỏa / Cường Lực | Strength-like | `jq.java` | HP cao, damage vật lý ổn định |
+| Lôi / Thân Pháp | Agility-like | `js.java` | hit/crit/dodge, tốc độ/áp lực |
+| Thủy / Nội Lực | Magic-like | `jr.java` | MP/skill mạnh, burst/effect |
+| Neutral | neutral override | server-owned | early map / filler / non-counter monster |
+
+Rule:
+
+- Monster không có "điểm tiềm năng tự cộng" như player.
+- Monster battle template chứa stat đã sinh sẵn.
+- Stat sinh từ:
+  - `level`
+  - `element`
+  - `combatRole`
+  - `threatTier`
+  - optional species/profile override
+
+### Monster Level Scaling
+
+Monster level không bám động theo level player một cách trực tiếp.
+Monster level thuộc map/zone roster.
+
+Recommended model:
+
+```csharp
+public sealed record MonsterLevelProfile(
+    int ZoneBaseLevel,
+    int MinLevel,
+    int MaxLevel,
+    int LevelVariance,
+    MonsterThreatTier ThreatTier
+);
+```
+
+Rules:
+
+| Monster type | Level rule |
+|--------------|------------|
+| Normal | quanh level map/zone |
+| Elite | zone level + 2..5 |
+| Boss | zone level + 5..12 hoặc fixed authored |
+| Event/Rare | explicit authored override |
+| Early training | có thể thấp hơn player để dễ tiếp cận |
+
+Không nên auto-scale toàn bộ monster theo player vì:
+
+- Java map spawn là server-driven roster, không phải client-generated scaling.
+- Map train cần bản sắc level/difficulty riêng.
+- Player mạnh hơn vẫn phải có cảm giác quay lại map cũ dễ hơn.
+- Boss/elite mới cần authored override.
+
+### Threat Tier
+
+Threat tier là hệ số khó, không phải element.
+
+```csharp
+public enum MonsterThreatTier
+{
+    Normal = 0,
+    Tough = 1,
+    Elite = 2,
+    Boss = 3
+}
+```
+
+Recommended multipliers:
+
+| Tier | HP | Damage | Defense | Hit/Dodge/Crit | MP |
+|------|----|--------|---------|----------------|----|
+| Normal | 100% | 100% | 100% | 100% | 100% |
+| Tough | 125% | 110% | 110% | 105% | 110% |
+| Elite | 160% | 125% | 125% | 110% | 125% |
+| Boss | 240% | 145% | 150% | 115% | 150% |
+
+Integer application:
+
+```text
+FinalValue = floor(BaseValue * TierPercent / 100)
+```
+
+Boss nên được cân bằng thêm bằng skill/AI/board behavior, không chỉ nhân số stat
+quá lớn.
+
+### Monster Combat Roles
+
+Server monster battle catalog nên có role để sinh stat khác nhau.
+
+```csharp
+public enum MonsterCombatRole
+{
+    Balanced,
+    Bruiser,
+    Assassin,
+    Caster,
+    Tank
+}
+```
+
+#### Role Stat Weight
+
+Base stat budget lấy từ level, sau đó phân phối theo role.
+
+Recommended base budget:
+
+```text
+BaseStat = 10
+StatBudget = level * 5
+```
+
+Role allocation percent:
+
+| Role | STR | MAG | AGI | VIT | Meaning |
+|------|-----|-----|-----|-----|---------|
+| Balanced | 25% | 25% | 25% | 25% | trung bình |
+| Bruiser | 40% | 10% | 20% | 30% | sát thương vật lý + trâu |
+| Assassin | 20% | 10% | 45% | 25% | hit/crit/dodge |
+| Caster | 10% | 45% | 20% | 25% | MP/skill |
+| Tank | 20% | 10% | 15% | 55% | HP/def cao |
+
+Formula:
+
+```text
+Strength = 10 + floor(StatBudget * Role.StrPercent / 100)
+Magic    = 10 + floor(StatBudget * Role.MagPercent / 100)
+Agility  = 10 + floor(StatBudget * Role.AgiPercent / 100)
+Vitality = 10 + floor(StatBudget * Role.VitPercent / 100)
+```
+
+Then apply element nudge.
+
+### Element Stat Nudge
+
+Element nudges keep each element recognizable even across role differences.
+
+| Element | STR | MAG | AGI | VIT |
+|---------|-----|-----|-----|-----|
+| Hỏa / Strength-like | +12% | -5% | 0% | +8% |
+| Lôi / Agility-like | 0% | -5% | +15% | 0% |
+| Thủy / Magic-like | -5% | +15% | 0% | -5% |
+| Neutral | 0% | 0% | 0% | 0% |
+
+Formula:
+
+```text
+StatAfterElement = max(1, floor(StatBeforeElement * (100 + ElementNudgePercent) / 100))
+```
+
+Design notes:
+
+- Hỏa có HP/tank feel tốt hơn.
+- Lôi có accuracy/crit/dodge feel tốt hơn.
+- Thủy có MP/skill uptime tốt hơn.
+- Neutral dùng cho early/filler nếu không muốn ép khắc hệ.
+
+### Derived Battle Stats for Monster
+
+After generating STR/MAG/AGI/VIT, use the same derived status framework already
+documented for player.
+
+Java-faithful calculators:
+
+```text
+Hỏa / Cường Lực — jq:
+MaxHP     = Vitality * 6
+MinDamage = Strength
+MaxDamage = Strength * 120 / 100
+Defense   = Agility / 2
+Dodge     = Agility * 2
+Hit       = Agility * 3
+Crit      = min(5 + Agility / 8, 30)
+
+Lôi / Thân Pháp — js:
+MaxHP     = Vitality * 4
+MinDamage = (Agility * 80 + Strength * 16) / 100
+MaxDamage = Agility + Strength / 5
+Defense   = Agility / 2
+Dodge     = Agility * 15 / 10
+Hit       = Agility * 3
+Crit      = min(5 + Agility / 8, 30)
+
+Thủy / Nội Lực — jr:
+MaxHP     = Vitality * 5
+MinDamage = Magic * 130 / 100
+MaxDamage = Magic * 150 / 100
+Defense   = Agility / 2
+Dodge     = Agility * 3
+Hit       = Agility * 2
+Crit      = min(5 + Agility / 8, 30)
+```
+
+Monster MP:
+
+```text
+MaxMP = 40 + level * 6 + Magic * 8
+```
+
+Monster Power:
+
+```text
+MaxPower = 100
+CurrentPowerAtBattleStart = 0
+```
+
+Recommended battle start resources:
+
+```text
+CurrentHP = MaxHP
+CurrentMP = floor(MaxMP * InitialMpPercent / 100)
+CurrentPower = 0
+```
+
+By default:
+
+| IQ bucket | Initial MP |
+|-----------|------------|
+| Siêu gà | 20% |
+| Bờm | 35% |
+| Ma lanh | 50% |
+| Tốc chiến | 75% |
+| Tuyệt đỉnh | 65% |
+
+Reason:
+
+- Tốc chiến should be able to pressure early.
+- Tuyệt đỉnh is smarter but not always full-spam from turn 1.
+- MP still has to be earned/managed through board rules.
+
+### Monster Damage Formula
+
+Client Java only receives final deltas; formula is server-owned in remake.
+
+Use the same final order recommended by player balance:
+
+```text
+RawDamage
+-> Defense reduction
+-> Skill multiplier
+-> Critical multiplier
+-> Element multiplier
+-> PvE/PvP mode multiplier
+-> Clamp min damage
+```
+
+Recommended integer formula:
+
+```text
+AttackRoll = RandomInt(MinDamage, MaxDamage)
+
+AfterDefense = max(1, AttackRoll - floor(TargetDefense * DefensePiercePercent / 100))
+
+AfterSkill = floor(AfterDefense * SkillPercent / 100)
+
+AfterCrit =
+  IsCritical
+    ? floor(AfterSkill * CriticalDamagePercent / 100)
+    : AfterSkill
+
+AfterElement = floor(AfterCrit * ElementPercent / 100)
+
+FinalDamage = max(1, floor(AfterElement * ModePercent / 100))
+```
+
+Defaults:
+
+```text
+DefensePiercePercent = 100
+BasicAttackSkillPercent = 100
+CriticalDamagePercent = 200 for monster/player critical hits per user confirmation
+PvE ModePercent = 100
+PvP ModePercent = 90 if PvP damage needs dampening
+```
+
+Critical:
+
+```text
+IsCritical = RandomPercent() < CriticalRate
+CriticalDamage = x2
+```
+
+User-confirmed rule:
+
+- Crit = `x2`.
+
+### Element Interaction
+
+Use the player balance document's 3-way circle.
+
+```text
+Cường Lực / Hỏa khắc Thân Pháp / Lôi
+Thân Pháp / Lôi khắc Nội Lực / Thủy
+Nội Lực / Thủy khắc Cường Lực / Hỏa
+```
+
+Damage percent:
+
+```text
+Advantage = 112
+Neutral = 100
+Disadvantage = 92
+```
+
+Function:
+
+```csharp
+public static int ResolveElementDamagePercent(Element attacker, Element defender)
+{
+    if (attacker == Element.Neutral || defender == Element.Neutral)
+    {
+        return 100;
+    }
+
+    if ((attacker == Element.Strength && defender == Element.Agility) ||
+        (attacker == Element.Agility && defender == Element.Magic) ||
+        (attacker == Element.Magic && defender == Element.Strength))
+    {
+        return 112;
+    }
+
+    if ((defender == Element.Strength && attacker == Element.Agility) ||
+        (defender == Element.Agility && attacker == Element.Magic) ||
+        (defender == Element.Magic && attacker == Element.Strength))
+    {
+        return 92;
+    }
+
+    return 100;
+}
+```
+
+Apply to both directions:
+
+- player -> monster
+- monster -> player
+- PvE and PvP
+
+### Board Rule Is Shared by Player and Monster
+
+User-confirmed rule:
+
+```text
+Cả monster và player đều phải tuân thủ quy tắc bàn cờ.
+```
+
+Meaning:
+
+- Monster does not get free MP/Power out of nowhere.
+- Monster skill cast must check real current MP.
+- If monster lacks MP, it should rely on:
+  - basic attack
+  - board item / gem action
+  - resource gain from board
+- Player and monster must use the same server-side board resolution pipeline.
+
+Important server boundary:
+
+```text
+BattleTurnEngine owns board action truth.
+Monster AI chooses intended action.
+Board/match resolver decides actual resource/damage effects.
+Packet assembler only serializes result.
+```
+
+### Monster Skill Model
+
+User-corrected rule:
+
+```text
+"Skill 1" của monster chính là skill đầu tiên của hệ như character.
+```
+
+So:
+
+- Skill 1 is **not** a free basic attack.
+- Skill 1 is the first elemental/class skill in the monster's skill list.
+- Skill 1 has MP cost from `lv.e`.
+- Monster must have enough MP to use it.
+
+Recommended contract:
+
+```csharp
+public sealed record MonsterSkillTemplate(
+    int SkillId,
+    int SkillLevel,
+    int ManaCost,
+    int SkillPercent,
+    MonsterSkillKind Kind,
+    int Weight = 100
+);
+```
+
+Basic attack is separate from skill list:
+
+```csharp
+public sealed record MonsterBasicAttackTemplate(
+    int SkillPercent = 100,
+    int ManaCost = 0
+);
+```
+
+Rules:
+
+1. If selected skill has enough MP:
+   - cast skill
+   - subtract MP
+   - resolve board/target/damage through server battle engine
+2. If not enough MP:
+   - do not cast that skill
+   - choose lower MP skill if IQ allows
+   - otherwise use board action/basic attack
+3. Monster should not skip turn just because MP is low unless a specific status
+   effect prevents action.
+
+### Multi-Skill Selection
+
+User direction:
+
+```text
+Skill tiếp theo thì nên random nhưng ưu tiên skill tốn ít MP.
+```
+
+Recommended selection algorithm:
+
+```text
+AvailableSkills = skills where ManaCost <= CurrentMP
+
+if AvailableSkills empty:
+    return BasicAttackOrBoardResourceAction
+
+Sort/weight skills by:
+- lower ManaCost gets higher baseline weight
+- IQ unlocks higher-cost or situational skills
+- role can bias skill kind
+- threat tier can increase chance to use stronger skill
+```
+
+Low MP priority weight:
+
+```text
+MpWeight = max(10, 100 - ManaCost)
+```
+
+If two skills are usable, lower MP skill naturally appears more often.
+
+Optional adjusted weight:
+
+```text
+SkillWeight =
+  BaseWeight
++ LowMpPreference
++ IqSkillBonus
++ RoleKindBonus
+- OverkillWastePenalty
+```
+
+Where:
+
+```text
+LowMpPreference = max(0, 80 - ManaCost)
+```
+
+Design:
+
+- Monster does not always use strongest skill.
+- Monster remains sustainable.
+- High IQ can still pick stronger skill when it matters.
+
+### IQ Buckets and AI Behavior
+
+Java client-visible IQ labels from `ha.java` remain unchanged.
+
+| IQ condition | Label | Server AI behavior |
+|--------------|-------|--------------------|
+| `< 3` | `Siêu gà` | poor AI; mostly basic/board, random target, low skill use |
+| `< 7` | `Bờm` | basic AI; can use skill if MP enough, still random-heavy |
+| `< 10` | `Ma lanh` | smart AI; prefers useful skill, target low HP/weakness |
+| `== 11` | `Tốc chiến` | aggressive opener; uses skill whenever MP allows, fast pressure |
+| otherwise | `Tuyệt đỉnh` | best AI; optimized skill/target/resource decisions |
+
+Recommended numeric AI profile:
+
+| Label | Skill attempt | Target quality | Skill quality | MP conservation |
+|-------|---------------|----------------|---------------|-----------------|
+| Siêu gà | 25% | random | lowest/simple | none |
+| Bờm | 45% | mostly random | low MP skill | low |
+| Ma lanh | 65% | low HP / element advantage | weighted best | medium |
+| Tốc chiến | 90% | fastest kill pressure | first usable/offensive | low; spam if MP |
+| Tuyệt đỉnh | 80% | best expected result | best expected value | high |
+
+Interpretation:
+
+- `Skill attempt` is checked only when at least one skill is usable.
+- If no skill is usable, monster must use board/basic/resource action.
+- `Tốc chiến` is allowed to spam skill if MP exists.
+- `Tuyệt đỉnh` is smarter than Tốc chiến, but not necessarily more reckless;
+  it may conserve MP if a cheap action can kill or if no good target exists.
+
+### Monster AI Action Selection Pseudo-Code
+
+```csharp
+MonsterAction DecideMonsterAction(MonsterBattleState self, BattleState battle)
+{
+    var profile = ResolveIqProfile(self.IqValue);
+
+    var boardOpportunity = AnalyzeBoard(battle.Board, self);
+    var usableSkills = self.Skills
+        .Where(skill => skill.ManaCost <= self.CurrentMp)
+        .ToArray();
+
+    if (usableSkills.Length == 0)
+    {
+        return DecideNoMpAction(self, battle, boardOpportunity, profile);
+    }
+
+    if (!RollPercent(profile.SkillAttemptPercent))
+    {
+        return DecideBoardOrBasicAction(self, battle, boardOpportunity, profile);
+    }
+
+    var target = SelectTarget(self, battle, profile);
+    var skill = SelectSkill(self, target, usableSkills, profile);
+
+    return MonsterAction.CastSkill(skill.SkillId, target.CombatantId);
+}
+```
+
+No MP behavior:
+
+```csharp
+MonsterAction DecideNoMpAction(...)
+{
+    if (boardOpportunity.CanGainMana && profile.CanRecognizeManaOpportunity)
+    {
+        return MonsterAction.MatchBoard(boardOpportunity.BestManaMove);
+    }
+
+    if (boardOpportunity.CanGainPowerOrHeal && profile.CanUseResourceOpportunity)
+    {
+        return MonsterAction.MatchBoard(boardOpportunity.BestResourceMove);
+    }
+
+    return MonsterAction.BasicAttack(SelectTarget(...));
+}
+```
+
+Important:
+
+- Monster with no MP does **not** magically cast.
+- Monster should try to recover MP from board if smart enough.
+- Low IQ may miss obvious MP board opportunities.
+
+### Target Selection by IQ
+
+Target logic must be server-owned.
+
+| IQ label | Target behavior |
+|----------|-----------------|
+| Siêu gà | random valid target |
+| Bờm | random 70%, lowest HP 30% |
+| Ma lanh | lowest HP, element advantage, avoid overkill waste |
+| Tốc chiến | lowest effective HP / fastest kill |
+| Tuyệt đỉnh | best expected value: kill > advantage > threat > low HP |
+
+For current 1v1 PvE, target selection is trivial.
+But keeping this model matters for future party/PvP/multi-monster battle.
+
+### Skill Selection by IQ
+
+| IQ label | Skill selection |
+|----------|-----------------|
+| Siêu gà | first usable or cheapest |
+| Bờm | weighted random, cheap skills favored |
+| Ma lanh | weighted random among useful skills |
+| Tốc chiến | offensive skill whenever MP allows; cheap skill spam allowed |
+| Tuyệt đỉnh | expected value: kill skill, advantage skill, conserve if wasteful |
+
+Recommended weighting for skill list:
+
+```text
+Weight(skill) =
+  skill.BaseWeight
++ max(0, 80 - skill.ManaCost)        // cheaper skill preference
++ IqOffenseBonus
++ RoleKindBonus
++ KillOpportunityBonus
++ ElementAdvantageBonus
+- WastePenalty
+```
+
+Example constants:
+
+```text
+KillOpportunityBonus = 100
+ElementAdvantageBonus = 30
+WastePenalty = 40 if skill damage greatly exceeds remaining HP and cheaper skill can kill
+```
+
+### Board-Aware MP Rule
+
+Because player and monster share the board, MP is not just a cooldown.
+
+Server must consider:
+
+```text
+CanCastSkill = CurrentMP >= SkillManaCost
+```
+
+If false:
+
+```text
+try board MP gain -> try basic attack -> end with legal fallback
+```
+
+Monster cannot ignore MP check.
+
+### Recommended C# Contracts
+
+```csharp
+public enum MonsterElement
+{
+    Neutral = 0,
+    Strength = 1,
+    Agility = 2,
+    Magic = 4
+}
+
+public enum MonsterCombatRole
+{
+    Balanced,
+    Bruiser,
+    Assassin,
+    Caster,
+    Tank
+}
+
+public enum MonsterThreatTier
+{
+    Normal,
+    Tough,
+    Elite,
+    Boss
+}
+
+public sealed record MonsterStatProfile(
+    int Level,
+    MonsterElement Element,
+    MonsterCombatRole Role,
+    MonsterThreatTier ThreatTier,
+    int IqValue
+);
+
+public sealed record GeneratedMonsterStats(
+    int Strength,
+    int Magic,
+    int Agility,
+    int Vitality,
+    int MaxHp,
+    int MaxMp,
+    int MaxPower,
+    int MinDamage,
+    int MaxDamage,
+    int Defense,
+    int HitRate,
+    int DodgeRate,
+    int CriticalRate,
+    int CriticalDamage
+);
+```
+
+### Monster Stat Generation Pseudo-Code
+
+```csharp
+GeneratedMonsterStats GenerateMonsterStats(MonsterStatProfile profile)
+{
+    var budget = profile.Level * 5;
+    var role = ResolveRoleWeights(profile.Role);
+
+    var strength = 10 + budget * role.StrengthPercent / 100;
+    var magic = 10 + budget * role.MagicPercent / 100;
+    var agility = 10 + budget * role.AgilityPercent / 100;
+    var vitality = 10 + budget * role.VitalityPercent / 100;
+
+    (strength, magic, agility, vitality) =
+        ApplyElementNudge(profile.Element, strength, magic, agility, vitality);
+
+    var derived = CalculateJavaFaithfulDerivedStats(
+        profile.Element,
+        strength,
+        magic,
+        agility,
+        vitality);
+
+    derived = ApplyThreatTier(profile.ThreatTier, derived);
+
+    return derived with
+    {
+        CriticalDamage = 200,
+        MaxPower = 100
+    };
+}
+```
+
+Note:
+
+- `CriticalDamage = 200` follows user confirmation: crit is x2.
+- If code already uses `lh.C` as percent-style crit damage, store `200`.
+- If UI expects crit rate in `lh.C`, keep naming consistent with current code;
+  Java docs currently map `lh.C` to critical damage/critical display depending
+  context, so server contract should name fields explicitly.
+
+### End-to-End Monster Turn Flow
+
+```text
+1. Battle session has monster state:
+   HP/MP/Power/stats/skills/IQ/element/role
+
+2. Monster AI reads:
+   - current MP
+   - usable skills
+   - board opportunities
+   - target state
+
+3. AI chooses intended action:
+   - cast skill if MP enough and IQ decides
+   - match board/resource if useful or no MP
+   - basic attack fallback
+
+4. BattleTurnEngine validates:
+   - action legal
+   - skill exists
+   - MP sufficient
+   - board move valid
+
+5. BattleTurnEngine resolves:
+   - board clear / resource gain
+   - damage/heal/status
+   - HP/MP/Power updates
+
+6. BattlePacketAssembler emits:
+   - Java-like/current RN packet
+   - actor deltas equivalent to nq/nl
+```
+
+### Non-Negotiable Server Rules
+
+1. Monster `Skill 1` is the first elemental/class skill, not basic attack.
+2. Skill cast must check MP.
+3. Monster without MP must use legal board/basic fallback.
+4. Player and monster both obey board resource rules.
+5. IQ affects skill frequency, target quality, skill choice, and board/resource awareness.
+6. Tốc chiến can spam skill when MP allows.
+7. Tuyệt đỉnh should optimize, not blindly spam.
+8. Damage/element/resource result must be calculated on server.
+9. Client only renders preview/animation/deltas.
+10. Do not infer stat/damage from `/offline/<id>.png`.
+
 ## Regeneration
 
 The folder is fully reproducible by running:
