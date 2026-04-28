@@ -1,337 +1,234 @@
-# Map System Reconstruction
+# MAP_SYSTEM_RECONSTRUCTION.md
 
-Tài liệu khôi phục và chuẩn hóa hệ thống map.
+## Mục tiêu
 
-Mục tiêu hiện tại không còn chỉ là phục dựng `world map / zone-select` từ Java cũ, mà là chốt một kiến trúc map dùng lại được cho nhiều scene:
+Khôi phục hệ thống map/world map/runtime map của Twelve từ Java client cũ sang React Native + .NET 9.
 
-- `world map`: màn chọn khu / chọn địa danh
-- `side-scrolling map`: map chạy ngang có quái, nhiều tầng, platform, dốc
-- `navigation layer`: dữ liệu va chạm tách khỏi art để có thể tái sử dụng
+Nguyên tắc:
 
-## Phạm Vi
+- Java old client là behavior/spec khi có dữ liệu.
+- Không tự ý đổi asset key, tọa độ, cursor, softkey hoặc unlock rule nếu chưa có bằng chứng từ Java/data.
+- Logic gameplay quan trọng phải ghi nguồn suy luận trong code/tài liệu.
+- World map hiện là catalog legacy; runtime playable đầu tiên là Hoa Lư side-scroll.
 
-Quy ước ổn định:
+---
 
-- `Java old client = behavior/spec` khi có mâu thuẫn
-- `art` và `navigation` là 2 lớp khác nhau
-- không hard-code `groundY` cho cả map
-- mọi map mới nên được author bằng `surface data`, không viết lại controller
+## 1. Legacy world map theo Java
 
-## Legacy World Map
+### 1.1 Source Java chính
 
-Phần này là map chọn khu từ Java cũ.
+Các file Java decompile làm nguồn suy luận chính:
 
-### Source Code Reference
+- `oh.java`: màn hình world map/country selection, background `/m/m`, cursor, chọn map, softkey `Vào Thành`.
+- `fz.java`: danh sách map/country entries, tọa độ icon/label, trạng thái khóa/mở.
+- `fg.java`: renderer icon world map, marker, lock, selected state.
+- `hi.java`: image/asset loader/cache.
+- `pc.java`: metadata/country catalog provider được world map dùng.
+- `og.java`: input/canvas/game loop liên quan màn hình map.
+- `ks.java`: command/softkey model.
 
-| File | Class | Vai trò |
-|------|-------|---------|
-| [oh.java](/e:/Twelve/reference/redecoded/decompiled/oh.java) | `oh` | World map scene controller, load `/m/m` và `/m/lock` |
-| [fz.java](/e:/Twelve/reference/redecoded/decompiled/fz.java) | `fz` | Render marker con, load `/m/arena`, `/m/room`, `/m/lock` |
-| [fg.java](/e:/Twelve/reference/redecoded/decompiled/fg.java) | `fg` | Overlay phụ, load `/m/lock2` |
-| [hi.java](/e:/Twelve/reference/redecoded/decompiled/hi.java) | `hi` | Splash / marker `/m/fsw` |
-| [pc.java](/e:/Twelve/reference/redecoded/decompiled/pc.java) | `pc` | UI cursor `/m/hand`, `/m/arrow`, `/roomicon` |
+### 1.2 Asset contract
 
-### Asset Contract
+Asset logical key cần giữ theo Java client:
 
-| Asset | Vai trò |
-|-------|---------|
-| `/m/m` | Main overworld sheet |
-| `/m/arena` | Marker arena |
-| `/m/room` | Marker room |
-| `/m/fsw` | Marker fsw / forest |
-| `/m/lock` | Overlay khu khóa |
-| `/m/lock2` | Overlay khóa cấp khác |
-| `/m/hand` | Cursor focus |
-| `/m/arrow` | Gợi ý khu tiếp theo |
-| `/roomicon` | Icon room dùng chung |
+- `/m/m`
+- `/m/arena`
+- `/m/room`
+- `/m/fsw`
+- `/m/lock`
+- `/m/lock2`
+- `/m/hand`
+- `/m/arrow`
+- `/roomicon`
 
-### Working Folder
+Rule:
 
-- [client/assets/map](/e:/Twelve/client/assets/map)
+- Có thể map key legacy sang asset React Native nội bộ, nhưng logical contract không đổi.
+- World map dùng hệ tọa độ base `480x480`.
+- Nếu asset/Skia không khả dụng, fallback renderer vẫn phải hiển thị bằng React Native primitive, không phụ thuộc Skia.
 
-### Catalog / Server Truth
+### 1.3 World map UI rules
 
-World map selection không còn để client tự hard-code gameplay truth. Server expose catalog qua `GET /map/world-catalog`, lấy từ `RuntimeMapCatalog.AllWorldMaps`.
+- Background world map là `/m/m`, scale theo layout `480x480`.
+- Input touch/pan dùng `PanResponder`.
+- Pointer phải convert về hệ tọa độ `480x480` trước khi hit-test entry.
+- Cursor:
+  - `/m/arrow`: selected/hover entry thường.
+  - `/m/hand`: entry có runtime target có thể vào.
+- Softkey trái theo Java: `Vào Thành`.
+- `Vào Thành` chỉ active khi selected entry mở và có runtime target hợp lệ.
 
-Nguồn Java đã bám:
+---
 
-- `og.java`: danh sách tên và thứ tự 17 địa danh (`Hoa Lư`, `Kỷ Bố`, `Bình Kiều`, ...).
-- `oh.java`: tọa độ label `j[]`, tọa độ khóa `k[]`, hitbox chọn map `i[][]`.
-- `og.f()` / `ks.a().b("M99", go.x)`: flow chọn thành dùng index `go.x`, tương ứng hub packet `M99 + index`.
+## 2. Server catalog
 
-Quy tắc hiện tại:
+### 2.1 Endpoint
 
-- Client React Native chỉ fetch/render catalog server.
-- Fallback trong `client/src/data/MapData.ts` mirror đúng catalog server để dev/offline không trắng màn.
-- `Hoa Lư` là entry mở duy nhất và trỏ vào side-scroll runtime thật (`RuntimeMapId = "Hoa Lu"`, room `1`, sceneKind `sideScroll`).
-- Các map còn lại giữ `sceneKind = "legacy"` và `isLocked = true` cho tới khi có runtime/flow phục dựng tương ứng.
-- Tọa độ Java gốc lấy từ `oh.java`, nhưng asset `/m/m` đã extract trong React Native là 480x480; client scale theo kích thước asset thực tế để lock/label/hitbox không bị lệch sau khi catalog chuyển sang server.
-- World map dùng pan/drag chủ động bằng `PanResponder`, không auto focus vào Hoa Lư. Khi con trỏ không nằm trong hitbox map nào thì hiển thị cursor vàng `/m/arrow`; khi đang trỏ vào địa danh thì đổi sang bàn tay `/m/hand`.
-- Softkey bám `oh.java`: khi trỏ đúng địa danh mở khóa thì softkey trái là `Vào Thành`; không dùng center label `Vào`; softkey phải trong remake dùng `Đăng Xuất`.
-- Luồng vào thành bám `og.f()`/`ks.a().b("M99", go.x)`: chọn địa danh dùng `index` của catalog. Trong remake, entry `sceneKind = "sideScroll"` mở runtime side-scroll thật; entry `sceneKind = "legacy"` đi qua `MainScreen`/packet map cũ khi sau này được mở khóa.
-- `RoomLabel` của world-map entry hiện dùng chính tên địa danh, không dùng `"Khu 1"` cho HUD khi vào map.
-- Fallback renderer cho legacy map (`client/src/engine/MapRenderer.tsx`) không được phụ thuộc Skia/CanvasKit trên web; nếu chưa phục dựng runtime side-scroll cho map đó thì render tạm bằng React Native `View` để không trắng màn vì lỗi `CanvasKit is not defined` / `WebGLRenderer`.
-- Client phải normalize catalog thiếu field từ server cũ/dev server đang chạy: nếu entry có `index = 0` hoặc `id = "hoalu"` thì bắt buộc suy ra `sceneKind = "sideScroll"`, `runtimeMapId = "Hoa Lu"`, `defaultRoomId = 1`; nếu không sẽ rơi về `MainScreen` legacy và nhìn như màn đen sau khi bấm Hoa Lư.
-- Global loading không được track polling nền của map/PVP. Các API như `/pvp/challenges/inbox`, `/pvp/opponents`, `/battle/session-snapshot`, `/battle/session-sync` phải chạy im lặng để không che màn chơi bằng modal `Vui lòng chờ...` mỗi tick.
-- Chưa cần thêm DB cho world-map catalog ở giai đoạn này: dữ liệu là static Java truth (`og/oh`) nên giữ trong code server để tránh sai lệch. DB chỉ nên dùng sau này cho player unlock/progression hoặc cấu hình runtime động.
+Endpoint catalog hiện tại:
 
-## Side-Scrolling Map
-
-Đây là hướng triển khai mới cho Hoa Lư và các map chạy ngang sau này.
-
-### Kiến Trúc
-
-Map được chia thành 3 lớp:
-
-- `art layer`: background, đất, đá, cây, nhà, props
-- `navigation layer`: các đoạn có thể đứng / chạy / nhảy / rơi
-- `entity layer`: player, quái, NPC bám theo `surface`
-
-Điểm quan trọng:
-
-- controller không biết hình đá cụ thể
-- controller chỉ biết `surface`
-- map khác chỉ cần thay data, không thay engine
-
-### Reusable Engine
-
-Các file nền tảng:
-
-- [character.types.ts](/e:/Twelve/client/src/engine/character/character.types.ts)
-- [surface.ts](/e:/Twelve/client/src/engine/character/surface.ts)
-- [CharacterController.tsx](/e:/Twelve/client/src/engine/character/CharacterController.tsx)
-- [HoaLuMapScreen.tsx](/e:/Twelve/client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx)
-
-### Navigation Contract
-
-Kiểu dữ liệu chuẩn:
-
-```ts
-type GroundSurface = {
-  id: string;
-  x1: number;
-  x2: number;
-  y?: number;
-  y1?: number;
-  y2?: number;
-  ceilingOffset?: number;
-  kind?: 'ground' | 'platform';
-  oneWay?: boolean;
-}
+```http
+GET /map/world-catalog
 ```
 
-Ý nghĩa:
+Catalog trả về:
 
-- `y`: mặt phẳng ngang
-- `y1`, `y2`: đoạn dốc, nội suy tuyến tính từ `x1 -> x2`
-- `oneWay`: sàn mỏng, nhảy từ dưới lên xuyên qua được, rơi từ trên xuống thì đáp
-- `ceilingOffset`: độ dày khối rắn tính từ mặt đứng xuống mặt dưới để chặn đầu khi nhảy
+- danh sách world map/country entries;
+- tọa độ legacy;
+- lock/open state;
+- optional runtime target.
 
-### Runtime Rules
+### 2.2 `RuntimeMapCatalog.AllWorldMaps`
 
-#### 1. Đứng trên mặt nào
+`RuntimeMapCatalog.AllWorldMaps` là source server hiện tại cho world map catalog.
 
-- lấy `footX = charLeft + charWidth / 2`
-- tìm mọi `surface` chứa `footX`
-- chọn `surface` có độ cao gần `currentFootY` nhất
+Rule hiện chốt:
 
-#### 2. Chạy ngang
+- Hoa Lư là entry mở duy nhất trỏ vào side-scroll runtime thật:
+  - `runtimeMapId = "Hoa Lu"`
+  - `defaultRoomId = 1`
+  - `sceneKind = "sideScroll"`
+- Các map còn lại tạm là `legacy` hoặc locked.
+- Không mở thêm map nếu chưa có runtime data và unlock/progression rule từ Java/data.
 
-- `groundY = yAt(footX)`
-- map phẳng và map dốc dùng chung một thuật toán
+---
 
-#### 3. Rơi / đáp
+## 3. Runtime side-scroll architecture
 
-- khi đang rơi, kiểm tra đoạn `fromFootY -> toFootY`
-- nếu có `surface` cắt qua đoạn rơi thì đáp xuống đó
-- `oneWay` chỉ đỡ khi đang rơi từ trên xuống
+Runtime map playable được tách 3 lớp:
 
-#### 4. Va đầu
+1. **Art layer**
+   - Background, midground, foreground, tile/decoration.
+   - Chỉ chịu trách nhiệm render.
+2. **Navigation layer**
+   - Ground, one-way platform, slope, wall, ceiling, portal.
+   - Quyết định collision và movement.
+3. **Entity layer**
+   - Player, NPC, monster, portal marker, trigger/interactable object.
+   - Không hard-code entity vào art layer.
 
-- surface không phải `oneWay` có thể có mặt dưới
-- nếu đầu nhân vật chạm `ceilingY`, pha bay lên dừng và chuyển sang rơi
+Rule authoring:
 
-### Helper Functions
+- Map/room mới cùng topology nên thêm bằng scene config/data/art.
+- Nếu cần sửa engine, phải ghi rõ nguồn suy luận Java hoặc tài liệu liên quan.
 
-Các hàm dùng chung nằm ở [surface.ts](/e:/Twelve/client/src/engine/character/surface.ts):
+### 3.1 `GroundSurface` contract
 
-- `surfaceContainsX`
-- `getSurfaceStartY`
-- `getSurfaceEndY`
-- `getSurfaceYAtX`
-- `getSurfaceYAtFootX`
-- `getSurfaceCeilingYAtX`
-- `getSurfaceCeilingYAtFootX`
+`GroundSurface` đại diện cho bề mặt đứng/chạy.
 
-### Character Controller Rules
+Thuộc tính cốt lõi:
 
-`CharacterController` hiện đã hỗ trợ:
-
-- nhiều mặt phẳng
-- platform rời nhau
-- dốc lên / dốc xuống
-- `oneWay platform`
-- va đầu vào khối rắn
-- nhảy và đáp sang tảng đá khác nếu quỹ đạo rơi cắt đúng `surface`
-
-Tham chiếu:
-
-- chọn mặt đứng theo `footX`: [CharacterController.tsx](/e:/Twelve/client/src/engine/character/CharacterController.tsx:194)
-- support `oneWay`: [CharacterController.tsx](/e:/Twelve/client/src/engine/character/CharacterController.tsx:216)
-- tìm mặt đáp khi rơi: [CharacterController.tsx](/e:/Twelve/client/src/engine/character/CharacterController.tsx:226)
-- chặn đầu khi nhảy: [CharacterController.tsx](/e:/Twelve/client/src/engine/character/CharacterController.tsx:245)
-
-## Hoa Lư
-
-Hoa Lư là map side-scrolling đầu tiên đang dùng contract mới.
-
-Các file:
-
-- [HoaLuMapScreen.tsx](/e:/Twelve/client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx)
-- [hoaLu.navigation.ts](/e:/Twelve/client/src/screens/map/hoa-lu/hoaLu.navigation.ts)
-
-Nguyên tắc authoring:
-
-- chỉ đánh dấu phần cỏ / mép đá mà chân có thể đứng
-- không lấy full sprite đá làm hitbox
-- nếu mặt cong, cắt thành nhiều `surface` ngắn
-- nếu là dốc, ưu tiên `y1/y2`
-
-Ví dụ:
-
-```ts
-[
-  { id: 'ground', x1: 0, x2: 900, y: 720, kind: 'ground' },
-  { id: 'slope_a', x1: 900, x2: 1080, y1: 720, y2: 660, kind: 'ground' },
-  { id: 'rock_1', x1: 1120, x2: 1250, y: 610, kind: 'platform', oneWay: true },
-  { id: 'rock_2', x1: 1320, x2: 1450, y: 540, kind: 'ground', ceilingOffset: 40 },
-]
-```
-
-## Cách Dùng Cho Map Mới
-
-Khi thêm map khác, không copy logic Hoa Lư. Chỉ cần:
-
-1. thêm background / art riêng của map
-2. tạo file `navigation.ts` chứa danh sách `GroundSurface`
-3. đặt vị trí spawn player, quái, NPC theo `surface`
-4. dùng lại `CharacterController`
-
-Điều này áp dụng cho:
-
-- map đá khác nhau
-- địa hình khác nhau
-- nhiều tầng
-- platform rời nhau
-- dốc
-- map có trần cứng hoặc sàn mỏng
-
-## Chưa Làm
-
-Các phần chưa chốt hẳn:
-
-- format dữ liệu map dùng chung ở cấp project, ví dụ `client/src/maps/<map-id>/navigation.ts`
-- công cụ author surface trực quan
-- `jump links` cho AI / auto path giữa các platform
-- ceiling authoring chi tiết cho những khối có underside phức tạp
-- unlock rule thật cho các địa danh world-map ngoài Hoa Lư khi có thêm dữ liệu Java/client hoặc thiết kế server mới
-
-## Current Scene Config Direction
-
-Repo hiện đã bắt đầu chốt một `map scene config` layer cho side-scrolling maps.
-
-### Current Client Files
-
-- [MapSceneConfig.types.ts](/e:/Twelve/client/src/screens/map/core/MapSceneConfig.types.ts)
-- [MapSceneConfig.registry.ts](/e:/Twelve/client/src/screens/map/core/MapSceneConfig.registry.ts)
-- [hoaLu.scene.ts](/e:/Twelve/client/src/screens/map/hoa-lu/hoaLu.scene.ts)
-- [HoaLuMapScreen.tsx](/e:/Twelve/client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx)
-
-### Direction
-
-The screen should be reusable. A map-specific file should provide data only:
-
-- native map size
-- background / ground assets
-- ground strip metrics
-- player spawn defaults
-- `primaryGroundSurfaceId`
-- `buildSurfaces(mapScale)`
-
-That means a future map should not require copying Hoa Lư logic. It should only
-need:
-
-1. a `*.scene.ts` config file
-2. a `navigation.ts` surface file
-3. map art assets
-4. server roster rows for that `mapId + roomId`
-
-### Planned Persistence Direction
-
-Client scene config should stay file-based because it is presentation/layout
-authority.
-
-Server roster / monster truth should later move to DB.
-
-So the split is:
-
-- `client scene config` = presentation + navigation authoring
-- `server monster catalog / roster` = gameplay authority
-
-## Kết Luận
-
-Map system nên xem như 2 bài toán riêng:
-
-- `world map` cũ: phục dựng asset + marker + select flow
-- `side-scrolling map` mới: dùng `surface navigation` làm nền tảng
-
-Phần quan trọng nhất đã chốt:
-
-- engine hiện tại là dùng chung
-- không phụ thuộc riêng Hoa Lư
-- map mới chỉ cần thay `surface data` và art
-
-## Nhật ký chỉnh sửa
-
-### 2026-04-25
-
-- Sửa `server/Twelve.Core/Maps/RuntimeMapCatalog.cs`: thêm `WorldMapEntry` và catalog 17 địa danh theo Java `og.java`/`oh.java`, gồm index, tên, lock flag, label/lock/hitbox.
-- Sửa `server/Twelve.Server/Program.cs`: thêm API `GET /map/world-catalog` để BE là nguồn truth của danh sách chọn map.
-- Sửa `client/src/data/MapData.ts`: thêm type catalog API, fallback mirror server và mapper sang `MapInfo`.
-- Sửa `client/src/screens/map/selection/MapSelectionScreen.tsx`: fetch catalog từ BE, render hitbox/label/lock theo tọa độ Java scale từ nền 512x512, chỉ cho vào map nếu unlocked.
-- Sửa `client/src/screens/map/selection/MapSelectionScreen.styles.ts`: chuyển marker/label sang absolute positioning để bám tọa độ Java.
-- Sửa `client/App.tsx`: truyền `API_BASE_URL` vào màn chọn map.
-- Kiểm tra: `dotnet build Twelve.sln` và `npx tsc -p client/tsconfig.json --noEmit` đều thành công.
-
-### 2026-04-25 — Fix pan/cursor/HUD world-map
-
-- Sửa `client/src/screens/map/selection/MapSelectionScreen.tsx`: bỏ nested `ScrollView`, dùng `PanResponder` để kéo world-map theo cả 2 trục; bỏ default focus Hoa Lư; chọn map theo hitbox dưới vị trí con trỏ.
-- Sửa cursor world-map: ngoài hitbox dùng `/m/arrow`, trong hitbox dùng `/m/hand`.
-- Sửa scale world-map theo asset extract 480x480 để lock/label/hitbox không lệch.
-- Sửa `client/src/screens/map/selection/assets.ts`: thêm asset `/m/arrow`.
-- Sửa `client/src/screens/map/selection/MapSelectionScreen.styles.ts`: thêm viewport/cursor style cho pan runtime; giữ world-map render vuông để scale tọa độ Java không lệch theo trục.
-- Sửa `server/Twelve.Core/Maps/RuntimeMapCatalog.cs` và `client/src/data/MapData.ts`: `RoomLabel` đổi từ `"Khu 1"` sang tên địa danh.
-- Sửa `client/App.tsx`: fallback room label là tên map, không còn fallback `"Khu 1"`.
-- Sửa softkey world-map theo `oh.java`: bỏ chữ giữa `Vào`, trái là `Vào Thành` khi đang chọn thành mở khóa, phải là `Đăng Xuất`.
-- Kiểm tra: `npx tsc -p client/tsconfig.json --noEmit` và `dotnet build Twelve.sln` đều thành công.
-
-### 2026-04-25 — Fix CanvasKit crash khi vào legacy map fallback
-
-- Đọc lại `oh.java`/`og.java`:
-  - `oh.c(int,int)` set con trỏ, hit test theo `i[]`, nếu chọn lại cùng địa danh thì gọi `og.a(this.s)`.
-  - `og.f()` gửi `ks.a().b("M99", go.x)`, tức flow vào thành dùng index `go.x` từ world-map catalog.
-- Sửa `client/src/engine/MapRenderer.tsx`: bỏ `@shopify/react-native-skia` Canvas/Rect/Group/Circle ở renderer fallback cũ, thay bằng React Native `View`/`Text` tuyệt đối.
-- Lý do: khi chọn/đi vào một entry `legacy` hoặc khôi phục lastScreen `main`, web runtime có thể crash `CanvasKit is not defined` / `WebGLRenderer`, làm màn đen trước khi map runtime mới được phục dựng.
-- Renderer này chỉ là fallback cho `MainScreen`; Hoa Lư side-scroll runtime thật không đổi.
-
-### 2026-04-25 — Fix Hoa Lư bị rơi về màn đen do catalog thiếu sceneKind
-
-- Nguyên nhân: API server `GET /map/world-catalog` hiện trả `RuntimeMapCatalog.AllWorldMaps` với record `WorldMapEntry` chưa có `sceneKind`, `defaultRoomId`, `roomLabel` trong contract server. Client mapper trước đó tin tuyệt đối payload nên `map.sceneKind` là `undefined`; `App.tsx` rơi vào nhánh `main` legacy thay vì `hoaLuMap`, gây màn đen sau khi chọn Hoa Lư.
-- Sửa `client/src/data/MapData.ts`: normalize catalog theo Java truth `og.f()/M99 + go.x`; entry `index = 0` hoặc `id = "hoalu"` luôn được suy ra là side-scroll Hoa Lư (`runtimeMapId = "Hoa Lu"`, room `1`), các entry còn lại là `legacy` cho tới khi có runtime.
-- Kiểm tra: `npx tsc -p client/tsconfig.json --noEmit` thành công.
-
-### 2026-04-25 — Fix LoadingDialog nháy do API polling nền
-
-- Nguyên nhân: `client/App.tsx` đang monkey-patch global `fetch` và tăng `apiLoadingCount` cho mọi request tới `API_BASE_URL`. Khi vào Hoa Lư, `HoaLuMapScreen` poll `/pvp/challenges/inbox` mỗi 1200ms để nhận PVP challenge nên modal `Vui lòng chờ...` bật/tắt liên tục.
-- Sửa `client/App.tsx`: global loading bỏ qua các endpoint polling nền `/pvp/challenges/inbox`, `/pvp/opponents`, `/battle/session-snapshot`, `/battle/session-sync`; đồng thời hỗ trợ header `X-Twelve-Silent-Loading: true` cho request nền sau này.
-- Kiểm tra: `npx tsc -p client/tsconfig.json --noEmit` thành công.
+- `id`
+- `x1`, `y1`, `x2`, `y2`
+- `kind`
+  - `solid`
+  - `oneWay`
+  - `slope`
+
+Collision rule:
+
+- Player chỉ đứng trên surface hợp lệ khi chân đi từ trên xuống hoặc đang snap vào mặt đất.
+- Surface có thể là ngang hoặc slope.
+- Không dùng pixel collision nếu chưa có bằng chứng Java yêu cầu.
+
+### 3.2 Runtime movement rules
+
+- Đứng trên mặt đất khi chân chạm `GroundSurface`.
+- Chạy trái/phải theo input.
+- Nếu không còn surface dưới chân thì chuyển sang falling.
+- Khi falling và giao với surface hợp lệ thì đáp xuống.
+- Nếu đi lên chạm ceiling thì va đầu và vận tốc Y bị chặn theo navigation rule.
+- Không xuyên wall theo navigation layer.
+- Camera follow player trong bounds scene.
+
+### 3.3 `CharacterController` status
+
+Status runtime phản ánh movement/collision thực tế:
+
+- `idle`
+- `running`
+- `falling`
+- `jumping`
+- trạng thái va chạm/head-hit nếu engine cần expose cho animation/debug.
+
+Không dùng status chỉ để đổi sprite nếu physics chưa tương ứng.
+
+---
+
+## 4. Hoa Lư runtime map
+
+### 4.1 Files chính
+
+- `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`
+- `client/src/screens/map/hoa-lu/HoaLuScene.ts`
+- `client/src/screens/map/hoa-lu/HoaLuTileMap.tsx`
+- `client/src/screens/map/core/*`
+- `client/src/engine/character/*`
+- `client/src/engine/MapRenderer.tsx`
+- `server/Twelve.Core/Maps/RuntimeMapCatalog.cs`
+
+### 4.2 Authoring rule
+
+Hoa Lư là runtime side-scroll đầu tiên.
+
+Khi thêm map/room cùng loại:
+
+- Tạo scene config/data tương tự Hoa Lư.
+- Khai báo art/navigation/entities bằng data.
+- Không hard-code NPC/monster/portal vào renderer.
+- Logic quan trọng mới phải ghi nguồn suy luận từ Java/client/data.
+
+### 4.3 Scene config direction
+
+Scene config nên tiến tới mô hình:
+
+- `sceneId`
+- `runtimeMapId`
+- `roomId`
+- `kind`
+- `bounds`
+- `spawnPoints`
+- `artLayers`
+- `navigation`
+  - `groundSurfaces`
+  - `walls`
+  - `ceilings`
+  - `portals`
+- `entities`
+  - `npcs`
+  - `monsters`
+  - `interactiveObjects`
+
+---
+
+## 5. Chưa làm cho map bên ngoài/world runtime
+
+Các phần cần làm để map bên ngoài playable:
+
+- DB/server roster:
+  - runtime maps;
+  - rooms;
+  - default spawn;
+  - unlock/progression;
+  - NPC/monster/portal theo room.
+- Portal/room transition:
+  - trigger vùng portal;
+  - chuyển room/map;
+  - spawn point đích;
+  - loading/animation nếu có bằng chứng Java.
+- NPC:
+  - roster data-driven;
+  - vị trí;
+  - sprite/asset;
+  - interaction/dialog/shop/quest theo tài liệu liên quan.
+- Monster:
+  - spawn point;
+  - idle/patrol/chase rule;
+  - encounter/battle trigger;
+  - respawn rule.
+- Runtime/server sync:
+  - player position persistence;
+  - map entry/exit;
+  - room state.
+- Unlock/progression:
+  - hiện chỉ Hoa Lư mở;
+  - chưa có rule để mở map khác ngoài Hoa Lư.

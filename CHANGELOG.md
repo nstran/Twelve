@@ -2,6 +2,9 @@
 
 ## 2026-04-28
 
+### [MAP] Spec map/world runtime
+- Rút gọn `MAP_SYSTEM_RECONSTRUCTION.md`, chốt spec cốt lõi world map/runtime map và phần còn thiếu cho map bên ngoài.
+
 ### [BATTLE] Gameplay bàn cờ v1
 - Xác nhận damage kiếm trắng/đỏ đã scale theo `MinDamage/MaxDamage`; số `15` là kết quả khi `AttackRoll ≈ 15`, không phải hardcode.
 - Áp khắc hệ local cho board sword theo vòng server `100/112/92`.
