@@ -2,6 +2,38 @@
 
 ## 2026-04-28
 
+### [BATTLE] Hiện số lượt còn lại sau khi tiêu thụ extra turn
+
+**Vấn đề:** Khi đang có nhiều lượt banked, sau một lần ăn/resolve làm giảm lượt, UI chưa hiện lại `"Còn X lượt"` với số lượt còn lại mới.
+
+**Giải pháp:**
+- Sau khi consume `extraTurnsRef.current`, nếu lượt còn lại vẫn `> 0` thì gọi lại `flashExtraTurnsBadge(remaining)`.
+- Nếu giảm về `0` thì không hiện badge để tránh báo dư trước khi chuyển lượt.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md` để khóa rule gameplay memory: lượt từ `>=2` giảm vẫn phải nói còn bao nhiêu lượt, trừ khi hết lượt.
+
+**Files đã sửa:**
+- `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- `CHANGELOG.md`
+
+**Build:** `npx --prefix client tsc -p client/tsconfig.json --noEmit`
+
+### [BATTLE] Chỉnh hoạt ảnh đánh thường 4 nhịp trước khi quay về
+
+**Vấn đề:** Hoạt ảnh sword attack đang lao sang đánh quá ngắn/rút về sớm, chưa đúng gameplay memory là cả nhân vật và quái đều đánh 4 lần rồi mới quay về.
+
+**Giải pháp:**
+- Thêm cấu hình chung `NORMAL_ATTACK_REPEAT_COUNT = 4`.
+- Player sau khi tới điểm tiếp xúc lặp frame attack đủ 4 nhịp trước khi bật pose chạy về.
+- Monster sau khi tới điểm tiếp xúc lặp pose `prepare_attack → attack` đủ 4 nhịp trước khi quay về.
+- Damage gameplay vẫn chỉ apply 1 lần ở impact đầu tiên; 4 nhịp chỉ là visual playback, không nhân sát thương.
+
+**Files đã sửa:**
+- `client/src/screens/battle/hooks/useBattleSwordAttacks.ts`
+- `CHANGELOG.md`
+
+**Build:** `npx --prefix client tsc -p client/tsconfig.json --noEmit`
+
 ### [BATTLE] Đổi màu text badge lượt còn lại sang trắng
 
 **Vấn đề:** Badge "Còn 2/3 lượt" đang dùng màu tối khi số lượt lớn hơn 1, khó đọc trên nền battle.

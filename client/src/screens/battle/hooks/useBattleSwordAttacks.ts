@@ -12,13 +12,13 @@ const JAVA_ATTACK_FRAME_2_TICKS = 6;
 const JAVA_ATTACK_IMPACT_TICKS = 11;
 const JAVA_ATTACK_FRAME_4_TICKS = 16;
 const MONSTER_ANIM_TICK_MS = 240;
-const MONSTER_NORMAL_ATTACK_REPEAT_COUNT = 3;
-const MONSTER_NORMAL_ATTACK_SWING_MS = 110;
-const MONSTER_NORMAL_ATTACK_RECOVER_MS = 70;
+const NORMAL_ATTACK_REPEAT_COUNT = 3;
+const NORMAL_ATTACK_SWING_MS = 110;
+const NORMAL_ATTACK_RECOVER_MS = 70;
 const MONSTER_DEFEAT_HIT_HOLD_MS = 140;
 const MONSTER_DEFEAT_SINK_MS = 280;
 const MONSTER_DEFEAT_DROP_PX = 10;
-const MONSTER_DEFEAT_SCALE = 0.9;
+const MONSTER_DEFEAT_SCALE = 1;
 
 interface QueuedAttack {
   onImpact: () => void;
@@ -125,7 +125,10 @@ const getSwordAttackTiming = (distancePx: number): SwordAttackTiming => {
   const frame2Ms = contactMs + ticksToMs(JAVA_ATTACK_FRAME_2_TICKS);
   const impactMs = contactMs + ticksToMs(JAVA_ATTACK_IMPACT_TICKS);
   const frame4Ms = contactMs + ticksToMs(JAVA_ATTACK_FRAME_4_TICKS);
-  const returnStartMs = contactMs + holdMs;
+  const attackLoopMs =
+    NORMAL_ATTACK_REPEAT_COUNT * NORMAL_ATTACK_SWING_MS
+    + Math.max(0, NORMAL_ATTACK_REPEAT_COUNT - 1) * NORMAL_ATTACK_RECOVER_MS;
+  const returnStartMs = Math.max(contactMs + holdMs, contactMs + attackLoopMs);
   const returnMs = approachMs;
 
   return {
@@ -335,22 +338,50 @@ export const useBattleSwordAttacks = ({
       setPlayerActionFrameIndex(0);
     }, swordAttackTiming.contactMs);
 
-    const hitTimer = setTimeout(() => {
-      if (!mountedRef.current) return;
-      setPlayerActionFrameIndex(1);
-    }, swordAttackTiming.frame2Ms);
+    const impactCalledRef = { current: false };
+    const attackPoseTimers: ReturnType<typeof setTimeout>[] = [];
 
-    const impactTimer = setTimeout(() => {
-      if (!mountedRef.current) return;
-      setPlayerActionFrameIndex(2);
-      triggerMonsterHitPose();
-      nextAttack.onImpact();
-    }, swordAttackTiming.impactMs);
+    for (let repeatIndex = 0; repeatIndex < NORMAL_ATTACK_REPEAT_COUNT; repeatIndex++) {
+      const cycleStartMs = swordAttackTiming.contactMs
+        + repeatIndex * (NORMAL_ATTACK_SWING_MS + NORMAL_ATTACK_RECOVER_MS);
 
-    const recoverTimer = setTimeout(() => {
-      if (!mountedRef.current) return;
-      setPlayerActionFrameIndex(3);
-    }, swordAttackTiming.frame4Ms);
+      const frame1Timer = setTimeout(() => {
+        if (!mountedRef.current) return;
+        setPlayerAction('attack');
+        setPlayerActionFrameIndex(1);
+      }, cycleStartMs + Math.min(45, NORMAL_ATTACK_SWING_MS));
+
+      const impactTimer = setTimeout(() => {
+        if (!mountedRef.current) return;
+        setPlayerAction('attack');
+        setPlayerActionFrameIndex(2);
+        triggerMonsterHitPose();
+
+        // Visual repeats 4 hits before retreat, but gameplay damage must be applied once.
+        if (!impactCalledRef.current) {
+          impactCalledRef.current = true;
+          nextAttack.onImpact();
+        }
+      }, cycleStartMs + Math.min(75, NORMAL_ATTACK_SWING_MS));
+
+      const recoverTimer = setTimeout(() => {
+        if (!mountedRef.current) return;
+        setPlayerAction('attack');
+        setPlayerActionFrameIndex(3);
+      }, cycleStartMs + NORMAL_ATTACK_SWING_MS);
+
+      attackPoseTimers.push(frame1Timer, impactTimer, recoverTimer);
+
+      if (repeatIndex < NORMAL_ATTACK_REPEAT_COUNT - 1) {
+        const nextPrepTimer = setTimeout(() => {
+          if (!mountedRef.current) return;
+          setPlayerAction('attack');
+          setPlayerActionFrameIndex(0);
+        }, cycleStartMs + NORMAL_ATTACK_SWING_MS + NORMAL_ATTACK_RECOVER_MS);
+
+        attackPoseTimers.push(nextPrepTimer);
+      }
+    }
 
     const returnTimer = setTimeout(() => {
       if (!mountedRef.current) return;
@@ -379,9 +410,7 @@ export const useBattleSwordAttacks = ({
 
     playerAttackTimersRef.current = [
       contactTimer,
-      hitTimer,
-      impactTimer,
-      recoverTimer,
+      ...attackPoseTimers,
       returnTimer,
       completeTimer,
     ];
@@ -402,9 +431,6 @@ export const useBattleSwordAttacks = ({
     setPlayerRetreatPose,
     swordAttackTiming.approachMs,
     swordAttackTiming.contactMs,
-    swordAttackTiming.frame2Ms,
-    swordAttackTiming.frame4Ms,
-    swordAttackTiming.impactMs,
     swordAttackTiming.returnMs,
     swordAttackTiming.returnStartMs,
     swordAttackTiming.totalMs,
@@ -441,8 +467,8 @@ export const useBattleSwordAttacks = ({
     setMonHit(false);
     setMonsterPoseKey('prepare_attack');
     const attackLoopDurationMs =
-      MONSTER_NORMAL_ATTACK_REPEAT_COUNT * MONSTER_NORMAL_ATTACK_SWING_MS
-      + Math.max(0, MONSTER_NORMAL_ATTACK_REPEAT_COUNT - 1) * MONSTER_NORMAL_ATTACK_RECOVER_MS;
+      NORMAL_ATTACK_REPEAT_COUNT * NORMAL_ATTACK_SWING_MS
+      + Math.max(0, NORMAL_ATTACK_REPEAT_COUNT - 1) * NORMAL_ATTACK_RECOVER_MS;
     const returnStartMs = swordAttackTiming.contactMs + attackLoopDurationMs;
 
     const runTimer = setTimeout(() => {
@@ -457,16 +483,16 @@ export const useBattleSwordAttacks = ({
     }, swordAttackTiming.contactMs);
 
     const repeatPoseTimers: ReturnType<typeof setTimeout>[] = [];
-    for (let repeatIndex = 1; repeatIndex < MONSTER_NORMAL_ATTACK_REPEAT_COUNT; repeatIndex++) {
+    for (let repeatIndex = 1; repeatIndex < NORMAL_ATTACK_REPEAT_COUNT; repeatIndex++) {
       const recoverTimer = setTimeout(() => {
         if (!mountedRef.current) return;
         setMonsterPoseKey('prepare_attack');
-      }, swordAttackTiming.contactMs + repeatIndex * MONSTER_NORMAL_ATTACK_SWING_MS + (repeatIndex - 1) * MONSTER_NORMAL_ATTACK_RECOVER_MS);
+      }, swordAttackTiming.contactMs + repeatIndex * NORMAL_ATTACK_SWING_MS + (repeatIndex - 1) * NORMAL_ATTACK_RECOVER_MS);
 
       const nextSwingTimer = setTimeout(() => {
         if (!mountedRef.current) return;
         setMonsterPoseKey('attack');
-      }, swordAttackTiming.contactMs + repeatIndex * (MONSTER_NORMAL_ATTACK_SWING_MS + MONSTER_NORMAL_ATTACK_RECOVER_MS));
+      }, swordAttackTiming.contactMs + repeatIndex * (NORMAL_ATTACK_SWING_MS + NORMAL_ATTACK_RECOVER_MS));
 
       repeatPoseTimers.push(recoverTimer, nextSwingTimer);
     }

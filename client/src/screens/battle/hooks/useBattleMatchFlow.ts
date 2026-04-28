@@ -217,6 +217,9 @@ export const useBattleMatchFlow = ({
           const remaining = extraTurnsRef.current - 1;
           extraTurnsRef.current = remaining;
           setExtraTurns(remaining);
+          if (remaining > 0) {
+            flashExtraTurnsBadge(remaining);
+          }
           setTurnCycle(v => v + 1);
           phaseRef.current = 'idle';
           setPhase('idle');

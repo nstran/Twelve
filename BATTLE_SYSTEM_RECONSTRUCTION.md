@@ -1218,6 +1218,7 @@ Kết luận implementation:
 - local/remake có thể tính `extraTurns = count(matchGroups where uniqueCellCount >= 4 hoặc merged group đủ điều kiện)`; merged L/T/cross phải tính `hLen + vLen - 1`, không chỉ kiểm tra riêng từng line thẳng.
 - vẫn phải ghi rõ đây là rule phục dựng từ gameplay memory, không phải formula đọc trực tiếp từ client Java
 - không gắn rule này với natural special spawn; match `>= 4` cộng lượt nhưng item vẫn biến mất theo memory mới nhất
+- khi đang có `extraTurns >= 2`, sau mỗi lần ăn/resolve xong và bị tiêu thụ 1 lượt, UI vẫn phải hiện lại `"Còn X lượt"` với số lượt còn lại mới; riêng khi giảm về `0` thì không cần hiện thông báo còn lượt.
 
 ### 5. Validate swap đúng kiểu Java
 
@@ -2321,6 +2322,20 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
   - `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`: resource là tầng remake có cap, không phải công thức Java status.
   - Phản hồi test gameplay level 1: MP/HP/nộ tăng quá nhanh so với Java cũ.
 
+### 2026-04-28 — Khóa hoạt ảnh đánh thường 4 nhịp trước khi quay về
+
+- File code đã sửa:
+  - `client/src/screens/battle/hooks/useBattleSwordAttacks.ts`
+- Nội dung:
+  - Chỉnh hoạt ảnh sword attack của cả nhân vật và quái: sau khi lao tới điểm tiếp xúc sẽ phát đủ `4` nhịp đánh rồi mới chạy animation quay về.
+  - Nhân vật lặp frame attack `0 → 1 → 2 → 3` theo chu kỳ ngắn; quái lặp pose `prepare_attack → attack` đủ `4` lần.
+  - Damage gameplay vẫn chỉ apply `1` lần tại impact đầu tiên của resolve sword attack; `4` nhịp là visual playback theo gameplay memory, không nhân sát thương lên 4 lần.
+  - Kéo `returnStartMs` theo duration loop đánh để tránh actor quay về sớm khi chuỗi đánh chưa kết thúc.
+- Nguồn suy luận:
+  - Gameplay memory ngày `2026-04-28`: "Cả mons và char đều sang đánh 4 lần mới quay về".
+- Kiểm tra:
+  - `npx --prefix client tsc -p client/tsconfig.json --noEmit`
+
 ### 2026-04-28 — Áp khắc hệ cho damage kiếm board local
 
 - File code đã sửa:
@@ -2440,3 +2455,15 @@ Nếu làm ngược lại, bản battle sẽ nhìn giống Java nhưng logic s�
   - Cập nhật 2026-04-28: bỏ khóa `BonusTurnState.granted` một lần cho toàn bộ swap/cascade. Cascade sau drop/refill vẫn thuộc turn hiện tại; nếu cascade đó tạo thêm group `>= 4` thật thì tiếp tục cộng lượt theo `resolved.bonusTurnCount`.
 - Nguồn suy luận:
   - `BATTLE_SYSTEM_RECONSTRUCTION.md §Nhóm + lượt`: mỗi group match có tổng số ô `>= 4` thì `+1 lượt`, nếu một nước/cascade tạo nhiều group đủ điều kiện thì cộng theo số group.
+
+### 2026-04-28 — Hiện số lượt còn lại sau khi tiêu thụ extra turn
+
+- File code đã sửa:
+  - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
+- Nội dung:
+  - Khi `extraTurnsRef.current > 0` và resolve step kết thúc không còn match, flow tiêu thụ 1 lượt banked như trước.
+  - Nếu số lượt còn lại sau khi trừ vẫn `> 0`, gọi `flashExtraTurnsBadge(remaining)` để UI tiếp tục nói `"Còn X lượt"`.
+  - Nếu lượt còn lại giảm về `0`, không hiện badge nữa để tránh báo dư khi chuẩn bị chuyển lượt ở lần resolve tiếp theo.
+- Nguồn suy luận:
+  - Gameplay memory user 2026-04-28: khi có lượt `>= 2`, ăn bị giảm lượt vẫn phải nói còn bao nhiêu lượt, trừ khi hết lượt thì không cần nói.
+  - Java client renderer `mt` có text `"Còn " + n3 + " lượt"`; bản port local phải cập nhật lại badge theo biến lượt còn lại sau khi tiêu thụ.
