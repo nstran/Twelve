@@ -9,5 +9,6 @@ namespace Twelve.Core.Interfaces
         IReadOnlyList<MapMonsterSpawnGroup> GetActiveSpawnGroups(string mapId, int roomId);
         MapMonsterEncounter? FindEncounter(string mapId, int roomId, string monsterKey);
         MapMonsterEncounter? DeactivateEncounter(string mapId, int roomId, string monsterKey);
+        MapMonsterEncounter? DeactivateEncounterUntil(string mapId, int roomId, string monsterKey, System.DateTime inactiveUntilUtc);
     }
 }

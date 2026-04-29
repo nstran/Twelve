@@ -1,11 +1,82 @@
 ﻿# CHANGELOG
 
+## 2026-04-30
+
+### [MAP] Sửa snap X khi air-control trên không
+
+- `JavaCompatibleCharacterController` giữ đúng state Java `j=5/6` khi player đang nhảy/rơi nhưng bấm/trỏ trái-phải.
+- `startMove`, tap-to-move và move-to-monster trong lúc airborne chỉ cập nhật hướng `k=4/8`, cộng X tức thời và commit visual position; không ép về `Running`.
+- Mục tiêu: sửa lỗi nhân vật nhảy lên rồi điều hướng ngang nhưng X bị kéo/snap về vị trí đứng ban đầu.
+- Nguồn suy luận: `km.java` state `5/6` xử lý vertical rồi gọi helper air-control; Java cộng dồn `t.a` từng tick, không có interpolation về điểm nhảy cũ.
+- Cập nhật `MAP_SYSTEM_RECONSTRUCTION.md`.
+- Kiểm tra: `node client/node_modules/typescript/bin/tsc -p client/tsconfig.json --noEmit` — passed.
+
+### [MAP] Sửa trigger monster khi nhảy qua
+
+- `HoaLuMapScreen` đổi encounter collision từ trigger theo trục X sang kiểm hitbox X + foot Y.
+- Lưu `charFootYRef` từ controller Java-compatible; nếu player nhảy cao hơn thân monster thì không kích battle dù X overlap.
+- Khi player ở gần mặt đất/chân còn chạm vùng thân monster, encounter vẫn kích bình thường.
+- Nguồn suy luận: Java map actor dùng runtime hitbox `kl.t`, không phải line trigger X-only.
+- Cập nhật `MAP_SYSTEM_RECONSTRUCTION.md`.
+- Kiểm tra: `client\node_modules\.bin\tsc.cmd --noEmit -p client\tsconfig.json` — passed.
+
 ## 2026-04-29
 
 ### [DB] Chuẩn hóa SQL theo module (`server/Database/`)
 - Gộp 15 file migration gốc thành thư mục: `Accounts/`, `Players/`, `Equipment/`, `WorldMap/`, `Monsters/`.
 - Mỗi module: `{module}_schema.sql` (final shape), `{module}_seed.sql` nếu có seed.
 - Thứ tự chạy và mô tả: `server/Database/README.md`.
+
+### [BATTLE] Đầu hàng resolve như thua trận
+- Menu `Đầu hàng` trong `BattleScreen` không gọi callback flee để thoát trực tiếp nữa.
+- Client khóa trận bằng `result = defeat`, chạy defeat/recovery sequence và để `/battle/result` nhận HP/MP/Power hiện tại.
+- Mục tiêu: server áp dụng penalty như thua trận, giữ HP đã mất thay vì hồi/reset sai trạng thái sau khi quay lại map.
+- Cập nhật `BATTLE_SYSTEM_RECONSTRUCTION.md` với rule reconstruction/remake cho flee/defeat.
+
+### [MAP] Sửa tốc độ chạy, air-control khi nhảy và monster respawn
+- `MapMovementCalculator` dùng trực tiếp speed Java `kl.i = min(9, 4 + level / 10)` thay vì scale xuống `1.0..2.8`.
+- `CharacterController` giữ điều hướng ngang khi đang nhảy theo Java `km.java` state `5/6`.
+- Khi thả trái/phải trên không, đồng bộ target nhảy về X hiện tại để tránh snap/rơi về vị trí đứng cũ.
+- Scale movement ngang theo display `scale` cho run/tap/air-control/fall target timing, đồng bộ với jump impulse đã scale để sửa cảm giác chạy chậm và nhảy ngang không qua được platform.
+- Battle monster lưu `MapId`/`RoomId` trong `BattleSessionState` để claim result biết đúng encounter runtime.
+- `IMapMonsterRosterService`/`DbMapMonsterRosterService` hỗ trợ deactivate encounter theo hạn; quái thường respawn sau 3 phút, boss-like sau 1 ngày.
+- Sau mọi kết quả battle monster, client kích hoạt recovery 3 giây: nhân vật nhấp nháy/vô địch, dừng input/movement và chặn monster overlap retrigger ngay khi quay lại map.
+- Recovery sau battle không ẩn monster field; quái vẫn hiển thị/patrol/animate, chỉ bị chặn collision retrigger trong 3 giây.
+- Cập nhật `MAP_SYSTEM_RECONSTRUCTION.md` với nguồn suy luận và nhật ký chỉnh sửa.
+- Rà lại Java movement để hướng tới mục tiêu giống 100%:
+  - `kl.java`: actor runtime, speed `i`, jump/fall cap `a`, hitbox `t`, state `j`, direction bitmask `k`.
+  - `km.java`: input flags, key mapping, state machine movement, jump/fall air-control.
+  - `kh.java`: collision flag helpers `a/b/c/d/l/m/n`, camera/bounds clamp.
+  - `kf.java`: collision tile matrix `d`, tile size `32x32`.
+- Bổ sung roadmap trong `MAP_SYSTEM_RECONSTRUCTION.md`: cần port nguyên state `j/k/s/t` và tile collision grid `kf.d` để đạt Java-perfect; bản hiện tại mới giống Java ở speed + air-control + no-snap X.
+- Tổng hợp thêm audit Java map & move chi tiết trong `MAP_SYSTEM_RECONSTRUCTION.md`:
+  - World map: `oh/fz/fg/pc/hi/og/ks`, asset contract `/m/m`, `/m/arena`, `/m/room`, `/m/lock`, `/m/lock2`, `/m/hand`, `/m/arrow`, `/roomicon`, softkey `Vào Thành`.
+  - Movement: `kl/km` chi tiết hitbox `t/u/I`, state `0..8`, direction bitmask `1/2/4/8/5/6/9/10`, jump/fall/landing/slope/climb/action behavior.
+- Port bước đầu Hoa Lư sang Java-compatible tile movement:
+  - Thêm `client/src/engine/character/javaMapMovement.ts` với constants/state kiểu Java `kl/km`, hitbox `t`, state `j`, direction `k`, velocity `s`, helper tile flag `kh.a/b/c/d/l/m/n`, wall/ground/jump/fall/landing tick theo grid `32x32`.
+  - Thêm `client/src/engine/character/JavaCompatibleCharacterController.tsx` để React Native dùng state machine mới và expose status runtime.
+  - `HoaLuScene.ts` sinh collision grid `32x32` từ navigation surface/wall/ceiling hiện có làm adapter tạm cho Hoa Lư.
+  - `HoaLuMapScreen.tsx` chuyển player sang controller Java-compatible; monster/render/recovery vẫn giữ logic hiện hành.
+  - Bổ sung truyền `playerLevel` trực tiếp vào controller để công thức Java `kl.i/kl.a` lấy đúng level thay vì suy ngược từ speed.
+  - Bổ sung truyền `collisionGrid` Hoa Lư vào `JavaCompatibleCharacterController`; controller ưu tiên tile probing `kf.d` cho ground support, landing, wall side-check và ceiling/head-hit trước khi fallback surface.
+  - Kiểm tra: `client\node_modules\.bin\tsc.cmd --project client\tsconfig.json --noEmit` — passed.
+- Sửa Java-compatible movement dùng fixed Java tick:
+  - Thêm `JAVA_MAP_TICK_MS = 40` và `JAVA_MAP_MAX_STEPS_PER_FRAME = 3` trong `javaMapMovement.ts`.
+  - `JavaCompatibleCharacterController.tsx` bỏ phụ thuộc `MOVE_TICK_MS = 16`/60fps của controller RN cũ; rAF chỉ còn làm scheduler, physics chạy fixed-step accumulator 40ms.
+  - Mỗi Java physics step dùng công thức tick từ `km.java`: chạy ngang `x += kl.i`, jump `y -= s; s--`, falling `y += s; s += 2` cap `kl.a`.
+  - Không export `CharacterController` cũ qua `client/src/engine/character/index.ts` để runtime map không vô tình dùng lại interpolation/timing cũ.
+  - Mục tiêu: sửa lỗi chạy/rơi nhanh hơn Java khoảng `40 / 16 = 2.5` lần do áp công thức Java px/tick vào loop 16ms.
+- Sửa air-control trong `JavaCompatibleCharacterController`:
+  - khi đang `jumping/falling`, lệnh trái/phải cập nhật input flags và direction bitmask Java `k=4/8` nhưng không ép state về `running`;
+  - tap-to-move/move-to-monster chỉ bật `running` khi player đang `idle/running/landing`, còn trên không giữ state `j=5/6` để helper air-control cộng X theo tick như `km.java`;
+  - kiểm tra lại `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` — passed.
+- Bổ sung plan chi tiết trong `MAP_SYSTEM_RECONSTRUCTION.md` cho hướng tự author collision map khi không có `kf.d` gốc:
+  - chốt source chính tương lai là authored Java-compatible collision grid `32x32`, không suy physics trực tiếp từ art/background;
+  - ghi rõ flag contract `0/8/16/32/65/66`, symbol text map `.`, `G`, `V`, `R`, `L`, `H`, `>`, `<`, `B`;
+  - đề xuất files `javaCollisionMap.ts`, `HoaLuCollisionMap.ts`, `CollisionDebugOverlay.tsx`;
+  - mô tả workflow vẽ Hoa Lư theo từng bước: ground, platform, wall, slope, climb, portal;
+  - yêu cầu debug overlay hiển thị grid, hitbox, sample points, state `j/k/s/t`;
+  - bổ sung milestone triển khai collision authoring foundation, debug overlay, topology Hoa Lư, slope/climb, portal/runtime room.
 
 ## 2026-04-28
 

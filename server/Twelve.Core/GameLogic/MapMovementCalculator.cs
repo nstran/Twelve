@@ -17,11 +17,10 @@ namespace Twelve.Core.GameLogic
     ///
     /// Công thức MapMoveSpeed (client px/frame unit, ~60fps reference):
     ///   Java basis : kl.i = 4 + level/10, range [4..9] (int div)
-    ///   Scale sang client: (kl.i - 4) * 0.30 + 1.0
-    ///     → level 0   = 1.0, level 10 = 1.3, level 50 = cap ≈ 2.5
-    ///   ThanPhap bonus: + thanPhap * 0.008
-    ///     → ThanPhap 10 = +0.08, ThanPhap 50 = +0.40
-    ///   Total cap: 2.8 (tương đương kl.i cap = 9 cộng ThanPhap bonus tối đa)
+    ///   Dùng trực tiếp kl.i làm px/frame trên runtime map remake.
+    ///   Lý do: km.java state 1/5/6 gọi b(kl.b[k] * i, kl.c[k] * i)
+    ///   và khi đang nhảy vẫn cộng ngang theo i nếu phím trái/phải đang giữ.
+    ///   Không scale xuống vì sẽ làm nhân vật chạy/chuyển hướng trên không quá chậm.
     ///
     /// Công thức MapJumpSpeed (initial upward speed, client px/frame unit):
     ///   Base = 6.4 (JUMP_INITIAL_SPEED từ CharacterController.tsx, Java-faithful)
@@ -39,13 +38,9 @@ namespace Twelve.Core.GameLogic
         private const float BaseJumpSpeed = 6.4f;   // JUMP_INITIAL_SPEED
         private const float MaxJumpSpeed  = 12.0f;
 
-        private const float BaseMoveSpeed = 1.0f;   // điểm khởi đầu level 0
-        private const float MaxMoveSpeed  = 2.8f;
+        private const float BaseMoveSpeed = 4.0f;   // Java kl.i tại level 0..9
+        private const float MaxMoveSpeed  = 9.0f;   // Java kl.i cap
 
-        // Hệ số scale từ Java J2ME unit (kl.i range 4→9) sang client px/frame
-        // (9 - 4) Java units → (2.5 - 1.0) client units → 0.30 per Java unit
-        private const float JavaSpeedUnitFactor = 0.30f;
-        private const float AgiSpeedFactor      = 0.008f; // bonus ThanPhap per điểm
 
         // ThanPhap bonus jump: +0.06 per điểm vượt 10
         private const float AgiJumpFactor  = 0.06f;
@@ -59,12 +54,13 @@ namespace Twelve.Core.GameLogic
         /// <param name="thanPhap">Thân Pháp (lh.j) sau khi cộng bonus equip</param>
         public static MapMovementStats Calculate(int level, int thanPhap)
         {
-            // MoveSpeed: Java kl.i = 4 + level/10 (int div, cap 9)
+            // MoveSpeed: Java kl.i = 4 + level/10 (int div, cap 9).
             // PHẢI giữ integer division giống Java, không nội suy mượt theo level.
+            // km.java dùng trực tiếp `i` cho chạy và điều hướng ngang khi nhảy:
+            //   state 1: b(kl.b[k] * i, kl.c[k] * i)
+            //   state 5/6: nếu trái/phải đang giữ thì k2.a += i * kl.b[4/8]
             var javaSpeed = System.Math.Min(9, 4 + level / 10);
-            var moveSpeed = System.MathF.Min(MaxMoveSpeed,
-                BaseMoveSpeed + (javaSpeed - 4) * JavaSpeedUnitFactor + thanPhap * AgiSpeedFactor);
-            moveSpeed = System.MathF.Max(BaseMoveSpeed, moveSpeed);
+            var moveSpeed = System.MathF.Max(BaseMoveSpeed, javaSpeed);
 
             // JumpSpeed: base 6.4 + ThanPhap bonus per điểm vượt baseline 10
             var agiBonus = System.MathF.Max(0f, thanPhap - AgiJumpBaseline) * AgiJumpFactor;
@@ -92,7 +88,7 @@ namespace Twelve.Core.GameLogic
     /// </summary>
     /// <param name="MoveSpeed">
     ///   Tốc độ di chuyển ngang (px/frame tại 60fps reference).
-    ///   Range: [1.0 .. 2.8]. Client dùng làm prop `speed` của CharacterController.
+    ///   Range: [4.0 .. 9.0]. Client dùng làm prop `speed` của CharacterController.
     /// </param>
     /// <param name="JumpSpeed">
     ///   Tốc độ bật nhảy ban đầu (px/frame, hướng lên âm).

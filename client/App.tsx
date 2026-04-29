@@ -284,10 +284,12 @@ export default function App() {
     }
     setBattleBootstrap(null);
     setScreen('hoaLuMap');
-    if (pendingResult?.result === 'defeat') {
-      setDefeatBlinkToken((current) => current + 1);
-    }
     if (pendingResult) {
+      // Sau mọi kết quả battle monster, kích hoạt recovery window trên map để
+      // tránh monster overlap retrigger ngay khi quay lại. Nguồn: phát triển
+      // từ lỗi runtime Hoa Lư; Java server không có đặc tả respawn/invincible
+      // sau battle trong phần map đã rà.
+      setDefeatBlinkToken((current) => current + 1);
       delayedBattleResultTimerRef.current = setTimeout(() => {
         delayedBattleResultTimerRef.current = null;
         applyBattleResult(pendingResult);
@@ -369,7 +371,7 @@ export default function App() {
             resolveMonsterBootstrap={resolveMonsterBootstrap}
             resolvePvpOpponents={resolvePvpOpponents}
             resolvePvpBootstrap={resolvePvpBootstrap}
-              resolvePvpChallengeApi={resolvePvpChallengeApi}
+            resolvePvpChallengeApi={resolvePvpChallengeApi}
             defeatBlinkToken={defeatBlinkToken}
             onAllocateStat={async (stat) => {
               const username = playerAppearance.username;

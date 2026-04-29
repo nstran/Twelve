@@ -4,6 +4,7 @@
  */
 
 import type { ReactNode } from 'react';
+import type { JavaMapCollisionGrid } from './javaMapMovement';
 
 // ── Animation States ──────────────────────────────────────────────────────
 export type CharacterAction = 'idle' | 'run' | 'attack';
@@ -92,12 +93,19 @@ export interface CharacterControllerRef {
 export interface CharacterControllerProps {
   /** Initial X position (pixel) */
   initialX: number;
+  /**
+   * Increment only when the parent intentionally respawns/teleports the actor.
+   * Prevents server echo packets from resetting local Java-style movement mid-jump.
+   */
+  positionRevision?: number;
   /** Initial facing direction */
   initialFacing?: FacingDirection;
   /** Ground Y position (pixel, bottom of character) */
   groundY: number;
   /** Input mode for the controller */
   controlMode?: CharacterControlMode;
+  /** Character level used by Java map formulas: kl.i / kl.a */
+  level?: number;
   /** Movement speed in pixels per frame */
   speed?: number;
   /** Initial upward jump speed in pixels per reference frame */
@@ -108,12 +116,24 @@ export interface CharacterControllerProps {
   monsters?: MonsterTarget[];
   /** Walkable surface segments for platforming maps */
   surfaces?: GroundSurface[];
+  /**
+   * Java-compatible 32x32 collision flag grid (`kf.d`).
+   * When provided, movement/collision uses Java tile probing first and only
+   * falls back to `surfaces` when the grid cannot resolve support.
+   */
+  collisionGrid?: JavaMapCollisionGrid;
   /** Distance threshold to trigger attack range (px) */
   attackRange?: number;
-  /** Called when character position changes */
-  onMove?: (x: number, facing: FacingDirection) => void;
-  /** Called when character reaches the requested movement target */
-  onMoveEnd?: (x: number, facing: FacingDirection) => void;
+  /**
+   * Called when character position changes.
+   * `footY` is Java runtime hitbox bottom (`kl.t.b + kl.t.d`) in map pixels.
+   */
+  onMove?: (x: number, facing: FacingDirection, footY?: number) => void;
+  /**
+   * Called when character reaches the requested movement target.
+   * `footY` is Java runtime hitbox bottom (`kl.t.b + kl.t.d`) in map pixels.
+   */
+  onMoveEnd?: (x: number, facing: FacingDirection, footY?: number) => void;
   /** Called when character attacks a monster */
   onAttackMonster?: (monsterId: string) => void;
   /** Called when attack animation finishes */

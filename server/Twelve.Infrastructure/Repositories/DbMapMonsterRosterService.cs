@@ -12,7 +12,7 @@ namespace Twelve.Infrastructure.Repositories
     {
         private readonly ConcurrentDictionary<string, IReadOnlyList<MapMonsterSpawnGroup>> _spawnGroups = new(StringComparer.OrdinalIgnoreCase);
         private readonly ConcurrentDictionary<string, IReadOnlyList<MapMonsterEncounter>> _baseRosters = new(StringComparer.OrdinalIgnoreCase);
-        private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _inactiveEncounterKeys = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, DateTime>> _inactiveEncounterKeys = new(StringComparer.OrdinalIgnoreCase);
 
         public DbMapMonsterRosterService(IDbConnectionFactory connectionFactory, IMonsterSpawnCatalog spawnCatalog)
         {
@@ -70,11 +70,19 @@ namespace Twelve.Infrastructure.Repositories
             if (!_inactiveEncounterKeys.TryGetValue(rosterKey, out var inactiveKeys) || inactiveKeys.Count == 0)
                 return baseRoster;
 
+            var nowUtc = DateTime.UtcNow;
             var activeRoster = new List<MapMonsterEncounter>(baseRoster.Count);
             foreach (var encounter in baseRoster)
             {
-                if (!inactiveKeys.ContainsKey(encounter.MonsterKey))
-                    activeRoster.Add(encounter);
+                if (inactiveKeys.TryGetValue(encounter.MonsterKey, out var inactiveUntilUtc))
+                {
+                    if (inactiveUntilUtc > nowUtc)
+                        continue;
+
+                    inactiveKeys.TryRemove(encounter.MonsterKey, out _);
+                }
+
+                activeRoster.Add(encounter);
             }
             return activeRoster;
         }
@@ -103,7 +111,10 @@ namespace Twelve.Infrastructure.Repositories
             return null;
         }
 
-        public MapMonsterEncounter? DeactivateEncounter(string mapId, int roomId, string monsterKey)
+        public MapMonsterEncounter? DeactivateEncounter(string mapId, int roomId, string monsterKey) =>
+            DeactivateEncounterUntil(mapId, roomId, monsterKey, DateTime.MaxValue);
+
+        public MapMonsterEncounter? DeactivateEncounterUntil(string mapId, int roomId, string monsterKey, DateTime inactiveUntilUtc)
         {
             var rosterKey = ToRosterKey(mapId, roomId);
             if (!_baseRosters.TryGetValue(rosterKey, out var baseRoster))
@@ -124,8 +135,8 @@ namespace Twelve.Infrastructure.Repositories
 
             var inactiveKeys = _inactiveEncounterKeys.GetOrAdd(
                 rosterKey,
-                _ => new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase));
-            inactiveKeys[encounter.MonsterKey] = 0;
+                _ => new ConcurrentDictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase));
+            inactiveKeys[encounter.MonsterKey] = inactiveUntilUtc;
             return encounter;
         }
 

@@ -106,7 +106,11 @@ namespace Twelve.Application.Monsters
                 Enemy: enemyState,
                 CreatedAtUtc: DateTime.UtcNow,
                 SpawnTemplateKey: encounter.SpawnTemplateKey,
-                BattleTemplateId: battleTemplate.Id));
+                BattleTemplateId: battleTemplate.Id,
+                // Source: MAP_SYSTEM_RECONSTRUCTION.md §3 Entity layer + §5 runtime/server sync.
+                // Battle result needs original runtime room to despawn/respawn the exact map encounter.
+                MapId: request.MapId,
+                RoomId: request.RoomId));
 
             return new MonsterBattleBootstrapResponse(
                 SessionId: sessionId,

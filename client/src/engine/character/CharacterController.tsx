@@ -90,6 +90,14 @@ interface JumpState {
   landingTimer: number;
   /** Initial upward speed magnitude (for pose calculation) */
   initialSpeedY: number;
+  /**
+   * True after live left/right air-control has taken over.
+   * Java source: reference/redecoded/cfr_fresh/km.java states 5/6 call
+   * private a(kl,k,kf,kh), applying horizontal delta only from current input.
+   * Once that happens the actor must not resume interpolation to an older
+   * scripted target, because that causes snap-back/drop-to-origin behavior.
+   */
+  airControlLocked: boolean;
 }
 
 interface JumpPoseState {
@@ -101,6 +109,7 @@ const DIRECTIONAL_JUMP_DISTANCE_RATIO = 1.25;
 
 export const CharacterController = forwardRef<CharacterControllerRef, CharacterControllerProps>(({
   initialX,
+  positionRevision = 0,
   initialFacing = 'right',
   groundY,
   controlMode = 'swipe',
@@ -375,8 +384,9 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
 
     const targetX = carryTargetX ?? posXRef.current;
     const distance = Math.abs(targetX - posXRef.current);
+    const scaledSpeed = speed * scale;
     const durationMs = distance > 0
-      ? Math.max(MOVE_TICK_MS, (distance / Math.max(speed, 0.01)) * MOVE_TICK_MS)
+      ? Math.max(MOVE_TICK_MS, (distance / Math.max(scaledSpeed, 0.01)) * MOVE_TICK_MS)
       : 1;
 
     jumpRef.current = {
@@ -390,10 +400,11 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
       durationMs,
       landingTimer: 0,
       initialSpeedY: 0,
+      airControlLocked: false,
     };
     actionRef.current = 'run';
     setAction('run');
-  }, [setAction, speed]);
+  }, [scale, setAction, speed]);
 
   const performAttack = useCallback((preferredTarget?: MonsterTarget | null, triggerMonster = true) => {
     moveDirection.current = null;
@@ -422,7 +433,14 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
       const dt = last === 0 ? MOVE_TICK_MS : Math.min(now - last, 64); // clamp to avoid giant steps after tab backgrounding
       lastFrameTimeRef.current = now;
 
-      const stepPx = speed * (dt / MOVE_TICK_MS);
+      // Java source: reference/redecoded/cfr_fresh/km.java + kl.java.
+      // km.java applies `i * kl.b[...]` every movement tick for both ground
+      // running and states 5/6 airborne steering. In this RN runtime the scene
+      // is rendered at `scale`, so horizontal movement must be scale-aware just
+      // like the vertical jump impulse below; otherwise running/air-control feel
+      // too slow and a left/right press during jump cannot carry the character
+      // to the next platform position before descent.
+      const scaledStepPx = speed * scale * (dt / MOVE_TICK_MS);
       const jumpState = jumpRef.current;
 
       if (jumpState) {
@@ -435,8 +453,26 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
         //   movement becomes direct until the player releases the button
         let nextX: number;
         if (moveDirection.current) {
-          const airDelta = moveDirection.current === 'right' ? stepPx : -stepPx;
+          const airDelta = moveDirection.current === 'right' ? scaledStepPx : -scaledStepPx;
           nextX = clampX(posXRef.current + airDelta);
+
+          // Java source: reference/redecoded/cfr_fresh/km.java
+          // states 5/6 call private a(kl,k,kf,kh), which keeps applying
+          // horizontal delta `i * kl.b[4/8]` while left/right is held.
+          // Important: after live air-control starts, never resume the older
+          // scripted jump interpolation. km.java has no "return to startX"
+          // branch; X remains the current actor rect unless input moves it.
+          jumpState.airControlLocked = true;
+          jumpState.startX = nextX;
+          jumpState.targetX = nextX;
+          jumpState.elapsedMs = 0;
+          jumpState.durationMs = 1;
+        } else if (jumpState.airControlLocked) {
+          nextX = posXRef.current;
+          jumpState.startX = nextX;
+          jumpState.targetX = nextX;
+          jumpState.elapsedMs = 0;
+          jumpState.durationMs = 1;
         } else {
           const tX = Math.min(1, jumpState.elapsedMs / jumpState.durationMs);
           nextX = clampX(jumpState.startX + (jumpState.targetX - jumpState.startX) * tX);
@@ -550,7 +586,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
         const targetX = moveTargetX.current;
         const deltaToTarget = targetX - posXRef.current;
 
-        if (Math.abs(deltaToTarget) <= stepPx) {
+        if (Math.abs(deltaToTarget) <= scaledStepPx) {
           updatePosition(targetX);
           finishMovement(targetX);
           return;
@@ -560,7 +596,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
         setFacingIfChanged(dir);
 
         const currentX = posXRef.current;
-        const nextX = clampX(currentX + (dir === 'right' ? stepPx : -stepPx));
+        const nextX = clampX(currentX + (dir === 'right' ? scaledStepPx : -scaledStepPx));
         const supportSurface = findSupportingSurface(nextX, currentGroundYRef.current);
         updatePosition(nextX);
 
@@ -583,7 +619,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
 
       // 3. Swipe (continuous direction until release).
       if (moveDirection.current) {
-        const delta = moveDirection.current === 'right' ? stepPx : -stepPx;
+        const delta = moveDirection.current === 'right' ? scaledStepPx : -scaledStepPx;
         const currentX = posXRef.current;
         const nextX = clampX(currentX + delta);
 
@@ -624,6 +660,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     findSupportingSurface,
     finishMovement,
     performAttack,
+    scale,
     speed,
     setGroundYIfChanged,
     setFacingIfChanged,
@@ -665,6 +702,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
       durationMs,
       landingTimer: 0,
       initialSpeedY: initialSpeed,
+      airControlLocked: false,
     };
     actionRef.current = 'run';
     setAction('run');
@@ -680,11 +718,14 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     setFacingIfChanged(dir);
 
     if (jumpRef.current) {
-      // Once the player steers in mid-air, cancel the scripted horizontal jump
-      // target so releasing the button doesn't snap back to the old arc.
+      // Java source: reference/redecoded/cfr_fresh/km.java.
+      // Mark live air-control takeover immediately. The next physics tick moves
+      // from current rect; no older scripted target is allowed to pull X back.
+      jumpRef.current.airControlLocked = true;
       jumpRef.current.startX = posXRef.current;
       jumpRef.current.targetX = posXRef.current;
-      jumpRef.current.elapsedMs = jumpRef.current.durationMs;
+      jumpRef.current.elapsedMs = 0;
+      jumpRef.current.durationMs = 1;
       startMovementLoop();
       return;
     }
@@ -720,7 +761,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     const targetLeft = clampX(rawTargetX - charSize.w / 2);
     const delta = targetLeft - posXRef.current;
 
-    if (Math.abs(delta) <= speed) {
+    if (Math.abs(delta) <= speed * scale) {
       updatePosition(targetLeft);
       finishMovement(targetLeft);
       return;
@@ -732,7 +773,7 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     actionRef.current = 'run';
     setAction('run');
     startMovementLoop();
-  }, [charSize.w, clampX, disabled, finishMovement, setAction, setFacingIfChanged, speed, startMovementLoop, updatePosition]);
+  }, [charSize.w, clampX, disabled, finishMovement, scale, setAction, setFacingIfChanged, speed, startMovementLoop, updatePosition]);
 
   const moveToMonster = useCallback((monster: MonsterTarget) => {
     const targetCenterX = monster.x + monster.width / 2;
@@ -751,6 +792,14 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     moveTargetX.current = null;
 
     if (jumpRef.current) {
+      // Preserve current airborne X on release. This mirrors km.java: releasing
+      // left/right only clears input flags, it does not re-activate a previously
+      // planned jump target.
+      jumpRef.current.airControlLocked = true;
+      jumpRef.current.startX = posXRef.current;
+      jumpRef.current.targetX = posXRef.current;
+      jumpRef.current.elapsedMs = 0;
+      jumpRef.current.durationMs = 1;
       return;
     }
 
@@ -889,18 +938,26 @@ export const CharacterController = forwardRef<CharacterControllerRef, CharacterC
     })
   ), [allowPointerInput, controlMode, disabled, handleTapToMove, performAttack, startMoving, stopMoving]);
 
-  // External initialX changes (e.g. scene reset) — snap instantly.
+  // External spawn/teleport changes — snap instantly only when parent bumps
+  // positionRevision. Java map actors are local/continuous between those
+  // revisions, so server echo packets must not reset initialX mid-jump.
   useEffect(() => {
-    posXRef.current = initialX;
-    lastEmittedXRef.current = initialX;
-    posAnim.setValue(initialX);
+    const clampedX = clampX(initialX);
+    posXRef.current = clampedX;
+    lastEmittedXRef.current = clampedX;
+    posAnim.setValue(clampedX);
     facingRef.current = initialFacing;
     setFacing(initialFacing);
     currentGroundYRef.current = groundY;
     groundOffsetAnim.setValue(0);
     clearJumpState();
-    syncGroundFromX(initialX);
-  }, [clearJumpState, groundOffsetAnim, groundY, initialFacing, initialX, posAnim, syncGroundFromX]);
+    syncGroundFromX(clampedX);
+    onMove?.(clampedX, initialFacing);
+    // Deliberately depend only on positionRevision: initialX may be updated by
+    // server echo/state persistence every onMove, but that must not respawn the
+    // live actor. Parent must bump positionRevision for real spawn/teleport.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [positionRevision]);
 
   useEffect(() => {
     if (jumpRef.current) return;

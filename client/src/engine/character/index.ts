@@ -1,12 +1,22 @@
 /**
  * Character module — reusable player character with sprite animation & controls.
  *
- * Usage:
- *   import { CharacterController, CharacterSprite, characterDisplaySize } from '../engine/character';
+ * Runtime map movement is exported through JavaCompatibleCharacterController.
+ * The older 60fps React Native movement controller is intentionally not
+ * exported so Hoa Lư/map runtime only uses the Java tick/state implementation.
  */
 
 export { CharacterSprite, characterDisplaySize } from './CharacterSprite';
-export { CharacterController } from './CharacterController';
+export { JavaCompatibleCharacterController } from './JavaCompatibleCharacterController';
+export {
+  JAVA_TILE_SIZE,
+  buildFlatGroundJavaGrid,
+  createJavaMapActorRuntime,
+  javaMoveVectorX,
+  javaMoveVectorY,
+  khFlag,
+  kfGetFlag,
+} from './javaMapMovement';
 export { useCharacterAnimation } from './useCharacterAnimation';
 export {
   surfaceContainsX,

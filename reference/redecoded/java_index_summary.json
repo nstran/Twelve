@@ -1,0 +1,3494 @@
+[
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\a.java",
+    "cls": "a",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\aa.java",
+    "cls": "aa",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ab.java",
+    "cls": "ab",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ac.java",
+    "cls": "ac",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ad.java",
+    "cls": "ad",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ae.java",
+    "cls": "ae",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\af.java",
+    "cls": "af",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ag.java",
+    "cls": "ag",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "keyPressed",
+      "keyReleased",
+      "pointer",
+      "Canvas",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ah.java",
+    "cls": "ah",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ai.java",
+    "cls": "ai",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\aj.java",
+    "cls": "aj",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "keyPressed",
+      "keyReleased",
+      "pointer",
+      "Canvas",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ak.java",
+    "cls": "ak",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\al.java",
+    "cls": "al",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\am.java",
+    "cls": "am",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\an.java",
+    "cls": "an",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ao.java",
+    "cls": "ao",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ap.java",
+    "cls": "ap",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\aq.java",
+    "cls": "aq",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ar.java",
+    "cls": "ar",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\as.java",
+    "cls": "as",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\at.java",
+    "cls": "at",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\au.java",
+    "cls": "au",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\av.java",
+    "cls": "av",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\aw.java",
+    "cls": "aw",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ax.java",
+    "cls": "ax",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ay.java",
+    "cls": "ay",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\az.java",
+    "cls": "az",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\b.java",
+    "cls": "b",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ba.java",
+    "cls": "ba",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bb.java",
+    "cls": "bb",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bc.java",
+    "cls": "bc",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bd.java",
+    "cls": "bd",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\be.java",
+    "cls": "be",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bf.java",
+    "cls": "bf",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bg.java",
+    "cls": "bg",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bh.java",
+    "cls": "bh",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bi.java",
+    "cls": "bi",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bj.java",
+    "cls": "bj",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bk.java",
+    "cls": "bk",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bl.java",
+    "cls": "bl",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bm.java",
+    "cls": "bm",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bn.java",
+    "cls": "bn",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bo.java",
+    "cls": "bo",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bp.java",
+    "cls": "bp",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bq.java",
+    "cls": "bq",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\br.java",
+    "cls": "br",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bs.java",
+    "cls": "bs",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bt.java",
+    "cls": "bt",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bu.java",
+    "cls": "bu",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bv.java",
+    "cls": "bv",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bw.java",
+    "cls": "bw",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bx.java",
+    "cls": "bx",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\by.java",
+    "cls": "by",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\bz.java",
+    "cls": "bz",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\c.java",
+    "cls": "c",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ca.java",
+    "cls": "ca",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cb.java",
+    "cls": "cb",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cc.java",
+    "cls": "cc",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cd.java",
+    "cls": "cd",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ce.java",
+    "cls": "ce",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "keyPressed",
+      "pointer",
+      "Canvas",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cf.java",
+    "cls": "cf",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cg.java",
+    "cls": "cg",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ch.java",
+    "cls": "ch",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ci.java",
+    "cls": "ci",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cj.java",
+    "cls": "cj",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ck.java",
+    "cls": "ck",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cl.java",
+    "cls": "cl",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cm.java",
+    "cls": "cm",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cn.java",
+    "cls": "cn",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\co.java",
+    "cls": "co",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\com\\mg\\smsgame\\MGMIDlet.java",
+    "cls": "MGMIDlet",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "quest"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\com\\mg\\sq\\a.java",
+    "cls": "a",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "battle"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\com\\mg\\sq\\b.java",
+    "cls": "b",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\com\\mg\\sq\\SQMIDlet.java",
+    "cls": "SQMIDlet",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cp.java",
+    "cls": "cp",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cq.java",
+    "cls": "cq",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cr.java",
+    "cls": "cr",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cs.java",
+    "cls": "cs",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ct.java",
+    "cls": "ct",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cu.java",
+    "cls": "cu",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cv.java",
+    "cls": "cv",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cw.java",
+    "cls": "cw",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cx.java",
+    "cls": "cx",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cy.java",
+    "cls": "cy",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\cz.java",
+    "cls": "cz",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\d.java",
+    "cls": "d",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\da.java",
+    "cls": "da",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\db.java",
+    "cls": "db",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dc.java",
+    "cls": "dc",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dd.java",
+    "cls": "dd",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\de.java",
+    "cls": "de",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics",
+      "skill"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\df.java",
+    "cls": "df",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dg.java",
+    "cls": "dg",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dh.java",
+    "cls": "dh",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\di.java",
+    "cls": "di",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dj.java",
+    "cls": "dj",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dk.java",
+    "cls": "dk",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dl.java",
+    "cls": "dl",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dm.java",
+    "cls": "dm",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dn.java",
+    "cls": "dn",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\do.java",
+    "cls": "do",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dp.java",
+    "cls": "dp",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dq.java",
+    "cls": "dq",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dr.java",
+    "cls": "dr",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ds.java",
+    "cls": "ds",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dt.java",
+    "cls": "dt",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\du.java",
+    "cls": "du",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "quest"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dv.java",
+    "cls": "dv",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dw.java",
+    "cls": "dw",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dx.java",
+    "cls": "dx",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dy.java",
+    "cls": "dy",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\dz.java",
+    "cls": "dz",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\e.java",
+    "cls": "e",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ea.java",
+    "cls": "ea",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\eb.java",
+    "cls": "eb",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ec.java",
+    "cls": "ec",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ed.java",
+    "cls": "ed",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ee.java",
+    "cls": "ee",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ef.java",
+    "cls": "ef",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\eg.java",
+    "cls": "eg",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\eh.java",
+    "cls": "eh",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ei.java",
+    "cls": "ei",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ej.java",
+    "cls": "ej",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ek.java",
+    "cls": "ek",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\el.java",
+    "cls": "el",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\em.java",
+    "cls": "em",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "quest"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\en.java",
+    "cls": "en",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\eo.java",
+    "cls": "eo",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ep.java",
+    "cls": "ep",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\eq.java",
+    "cls": "eq",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\er.java",
+    "cls": "er",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\es.java",
+    "cls": "es",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\et.java",
+    "cls": "et",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\eu.java",
+    "cls": "eu",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ev.java",
+    "cls": "ev",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ew.java",
+    "cls": "ew",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ex.java",
+    "cls": "ex",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ey.java",
+    "cls": "ey",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ez.java",
+    "cls": "ez",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\f.java",
+    "cls": "f",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fa.java",
+    "cls": "fa",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fb.java",
+    "cls": "fb",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fc.java",
+    "cls": "fc",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics",
+      "quest"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fd.java",
+    "cls": "fd",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fe.java",
+    "cls": "fe",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ff.java",
+    "cls": "ff",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fg.java",
+    "cls": "fg",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "/m/",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fh.java",
+    "cls": "fh",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fi.java",
+    "cls": "fi",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fj.java",
+    "cls": "fj",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fk.java",
+    "cls": "fk",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fl.java",
+    "cls": "fl",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fm.java",
+    "cls": "fm",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fn.java",
+    "cls": "fn",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fo.java",
+    "cls": "fo",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fp.java",
+    "cls": "fp",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fq.java",
+    "cls": "fq",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fr.java",
+    "cls": "fr",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fs.java",
+    "cls": "fs",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ft.java",
+    "cls": "ft",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fu.java",
+    "cls": "fu",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fv.java",
+    "cls": "fv",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fw.java",
+    "cls": "fw",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fx.java",
+    "cls": "fx",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fy.java",
+    "cls": "fy",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\fz.java",
+    "cls": "fz",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "/m/",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\g.java",
+    "cls": "g",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ga.java",
+    "cls": "ga",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gb.java",
+    "cls": "gb",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gc.java",
+    "cls": "gc",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gd.java",
+    "cls": "gd",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ge.java",
+    "cls": "ge",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gf.java",
+    "cls": "gf",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gg.java",
+    "cls": "gg",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gh.java",
+    "cls": "gh",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gi.java",
+    "cls": "gi",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gj.java",
+    "cls": "gj",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gk.java",
+    "cls": "gk",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gl.java",
+    "cls": "gl",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gm.java",
+    "cls": "gm",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gn.java",
+    "cls": "gn",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\go.java",
+    "cls": "go",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gp.java",
+    "cls": "gp",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gq.java",
+    "cls": "gq",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gr.java",
+    "cls": "gr",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gs.java",
+    "cls": "gs",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gt.java",
+    "cls": "gt",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gu.java",
+    "cls": "gu",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gv.java",
+    "cls": "gv",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gw.java",
+    "cls": "gw",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gx.java",
+    "cls": "gx",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gy.java",
+    "cls": "gy",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\gz.java",
+    "cls": "gz",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\h.java",
+    "cls": "h",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ha.java",
+    "cls": "ha",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hb.java",
+    "cls": "hb",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hc.java",
+    "cls": "hc",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hd.java",
+    "cls": "hd",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\he.java",
+    "cls": "he",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hf.java",
+    "cls": "hf",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hg.java",
+    "cls": "hg",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hh.java",
+    "cls": "hh",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hi.java",
+    "cls": "hi",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "/m/",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hj.java",
+    "cls": "hj",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hk.java",
+    "cls": "hk",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hl.java",
+    "cls": "hl",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hm.java",
+    "cls": "hm",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hn.java",
+    "cls": "hn",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ho.java",
+    "cls": "ho",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hp.java",
+    "cls": "hp",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hq.java",
+    "cls": "hq",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hr.java",
+    "cls": "hr",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hs.java",
+    "cls": "hs",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ht.java",
+    "cls": "ht",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hu.java",
+    "cls": "hu",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hv.java",
+    "cls": "hv",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hw.java",
+    "cls": "hw",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hx.java",
+    "cls": "hx",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hy.java",
+    "cls": "hy",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\hz.java",
+    "cls": "hz",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\i.java",
+    "cls": "i",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ia.java",
+    "cls": "ia",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ib.java",
+    "cls": "ib",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ic.java",
+    "cls": "ic",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\id.java",
+    "cls": "id",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ie.java",
+    "cls": "ie",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\if.java",
+    "cls": "if",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ig.java",
+    "cls": "ig",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ih.java",
+    "cls": "ih",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ii.java",
+    "cls": "ii",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ij.java",
+    "cls": "ij",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ik.java",
+    "cls": "ik",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\il.java",
+    "cls": "il",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\im.java",
+    "cls": "im",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\in.java",
+    "cls": "in",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\io.java",
+    "cls": "io",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ip.java",
+    "cls": "ip",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\iq.java",
+    "cls": "iq",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ir.java",
+    "cls": "ir",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\is.java",
+    "cls": "is",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\it.java",
+    "cls": "it",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\iu.java",
+    "cls": "iu",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\iv.java",
+    "cls": "iv",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\iw.java",
+    "cls": "iw",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ix.java",
+    "cls": "ix",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\iy.java",
+    "cls": "iy",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\iz.java",
+    "cls": "iz",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\j.java",
+    "cls": "j",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ja.java",
+    "cls": "ja",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jb.java",
+    "cls": "jb",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jc.java",
+    "cls": "jc",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jd.java",
+    "cls": "jd",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\je.java",
+    "cls": "je",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jf.java",
+    "cls": "jf",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jg.java",
+    "cls": "jg",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jh.java",
+    "cls": "jh",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ji.java",
+    "cls": "ji",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jj.java",
+    "cls": "jj",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jk.java",
+    "cls": "jk",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jl.java",
+    "cls": "jl",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jm.java",
+    "cls": "jm",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jn.java",
+    "cls": "jn",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jo.java",
+    "cls": "jo",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jp.java",
+    "cls": "jp",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jq.java",
+    "cls": "jq",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jr.java",
+    "cls": "jr",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\js.java",
+    "cls": "js",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jt.java",
+    "cls": "jt",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ju.java",
+    "cls": "ju",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jv.java",
+    "cls": "jv",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      " kl"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jw.java",
+    "cls": "jw",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "kh.",
+      " kf",
+      " kl"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jx.java",
+    "cls": "jx",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jy.java",
+    "cls": "jy",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\jz.java",
+    "cls": "jz",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\k.java",
+    "cls": "k",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ka.java",
+    "cls": "ka",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kb.java",
+    "cls": "kb",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kc.java",
+    "cls": "kc",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kd.java",
+    "cls": "kd",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      " kl",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ke.java",
+    "cls": "ke",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kf.java",
+    "cls": "kf",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      " kf",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kg.java",
+    "cls": "kg",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kh.java",
+    "cls": "kh",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "kh.",
+      " kl",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ki.java",
+    "cls": "ki",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kj.java",
+    "cls": "kj",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      " kl"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kk.java",
+    "cls": "kk",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kl.java",
+    "cls": "kl",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      " kl",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\km.java",
+    "cls": "km",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "kh.",
+      " kf",
+      " kl",
+      " km"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kn.java",
+    "cls": "kn",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ko.java",
+    "cls": "ko",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kp.java",
+    "cls": "kp",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kq.java",
+    "cls": "kq",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kr.java",
+    "cls": "kr",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ks.java",
+    "cls": "ks",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "quest"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kt.java",
+    "cls": "kt",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ku.java",
+    "cls": "ku",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kv.java",
+    "cls": "kv",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kw.java",
+    "cls": "kw",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kx.java",
+    "cls": "kx",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ky.java",
+    "cls": "ky",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "quest"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\kz.java",
+    "cls": "kz",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\l.java",
+    "cls": "l",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\la.java",
+    "cls": "la",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lb.java",
+    "cls": "lb",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lc.java",
+    "cls": "lc",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ld.java",
+    "cls": "ld",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\le.java",
+    "cls": "le",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lf.java",
+    "cls": "lf",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lg.java",
+    "cls": "lg",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lh.java",
+    "cls": "lh",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\li.java",
+    "cls": "li",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lj.java",
+    "cls": "lj",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lk.java",
+    "cls": "lk",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ll.java",
+    "cls": "ll",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lm.java",
+    "cls": "lm",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ln.java",
+    "cls": "ln",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lo.java",
+    "cls": "lo",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lp.java",
+    "cls": "lp",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lq.java",
+    "cls": "lq",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lr.java",
+    "cls": "lr",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ls.java",
+    "cls": "ls",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lt.java",
+    "cls": "lt",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lu.java",
+    "cls": "lu",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lv.java",
+    "cls": "lv",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lw.java",
+    "cls": "lw",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "skill",
+      "quest"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lx.java",
+    "cls": "lx",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "skill",
+      "quest"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ly.java",
+    "cls": "ly",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\lz.java",
+    "cls": "lz",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\m.java",
+    "cls": "m",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ma.java",
+    "cls": "ma",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mb.java",
+    "cls": "mb",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mc.java",
+    "cls": "mc",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\md.java",
+    "cls": "md",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\me.java",
+    "cls": "me",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mf.java",
+    "cls": "mf",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mg.java",
+    "cls": "mg",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mh.java",
+    "cls": "mh",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mi.java",
+    "cls": "mi",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mj.java",
+    "cls": "mj",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mk.java",
+    "cls": "mk",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ml.java",
+    "cls": "ml",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mm.java",
+    "cls": "mm",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mn.java",
+    "cls": "mn",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mo.java",
+    "cls": "mo",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mp.java",
+    "cls": "mp",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "skill"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mq.java",
+    "cls": "mq",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mr.java",
+    "cls": "mr",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ms.java",
+    "cls": "ms",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mt.java",
+    "cls": "mt",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mu.java",
+    "cls": "mu",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mv.java",
+    "cls": "mv",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mw.java",
+    "cls": "mw",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mx.java",
+    "cls": "mx",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\my.java",
+    "cls": "my",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\mz.java",
+    "cls": "mz",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\n.java",
+    "cls": "n",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\na.java",
+    "cls": "na",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nb.java",
+    "cls": "nb",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nc.java",
+    "cls": "nc",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nd.java",
+    "cls": "nd",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ne.java",
+    "cls": "ne",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nf.java",
+    "cls": "nf",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ng.java",
+    "cls": "ng",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nh.java",
+    "cls": "nh",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ni.java",
+    "cls": "ni",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nj.java",
+    "cls": "nj",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nk.java",
+    "cls": "nk",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nl.java",
+    "cls": "nl",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nm.java",
+    "cls": "nm",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nn.java",
+    "cls": "nn",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\no.java",
+    "cls": "no",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\np.java",
+    "cls": "np",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nq.java",
+    "cls": "nq",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nr.java",
+    "cls": "nr",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ns.java",
+    "cls": "ns",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nt.java",
+    "cls": "nt",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nu.java",
+    "cls": "nu",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nv.java",
+    "cls": "nv",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics",
+      "quest"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nw.java",
+    "cls": "nw",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nx.java",
+    "cls": "nx",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ny.java",
+    "cls": "ny",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\nz.java",
+    "cls": "nz",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\o.java",
+    "cls": "o",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\oa.java",
+    "cls": "oa",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics",
+      "quest"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ob.java",
+    "cls": "ob",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\oc.java",
+    "cls": "oc",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\od.java",
+    "cls": "od",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\oe.java",
+    "cls": "oe",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\of.java",
+    "cls": "of",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\og.java",
+    "cls": "og",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\oh.java",
+    "cls": "oh",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "/m/",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\oi.java",
+    "cls": "oi",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics",
+      "quest"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\oj.java",
+    "cls": "oj",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ok.java",
+    "cls": "ok",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ol.java",
+    "cls": "ol",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\om.java",
+    "cls": "om",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      " kf",
+      " kl",
+      " km",
+      "pointer",
+      "Graphics",
+      "monster"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\on.java",
+    "cls": "on",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\oo.java",
+    "cls": "oo",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\op.java",
+    "cls": "op",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\oq.java",
+    "cls": "oq",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "pointer",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\or.java",
+    "cls": "or",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\os.java",
+    "cls": "os",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ot.java",
+    "cls": "ot",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ou.java",
+    "cls": "ou",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ov.java",
+    "cls": "ov",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ow.java",
+    "cls": "ow",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\ox.java",
+    "cls": "ox",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\oy.java",
+    "cls": "oy",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\oz.java",
+    "cls": "oz",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\p.java",
+    "cls": "p",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\pa.java",
+    "cls": "pa",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "monster"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\pb.java",
+    "cls": "pb",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\pc.java",
+    "cls": "pc",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "/m/",
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\pd.java",
+    "cls": "pd",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\pe.java",
+    "cls": "pe",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\pf.java",
+    "cls": "pf",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\pg.java",
+    "cls": "pg",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\q.java",
+    "cls": "q",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\r.java",
+    "cls": "r",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\s.java",
+    "cls": "s",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\t.java",
+    "cls": "t",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\u.java",
+    "cls": "u",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\v.java",
+    "cls": "v",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\w.java",
+    "cls": "w",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\x.java",
+    "cls": "x",
+    "ext": "",
+    "lines": 1,
+    "hits": []
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\y.java",
+    "cls": "y",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  },
+  {
+    "p": "reference\\redecoded\\cfr_fresh\\z.java",
+    "cls": "z",
+    "ext": "",
+    "lines": 1,
+    "hits": [
+      "Graphics"
+    ]
+  }
+]

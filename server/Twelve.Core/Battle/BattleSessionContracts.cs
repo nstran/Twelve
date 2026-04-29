@@ -75,7 +75,9 @@ namespace Twelve.Core.Battle
         string? LinkedSessionId = null,
         bool IsPerspectiveReversed = false,
         int TurnSeq = 0,
-        BattlePvpActionEvent? LastPvpAction = null
+        BattlePvpActionEvent? LastPvpAction = null,
+        string? MapId = null,
+        int? RoomId = null
     );
 
     public enum BattlePvpActionKind

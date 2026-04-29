@@ -287,7 +287,14 @@ Khi đã pending victory hoặc `phase=over`:
 
 Mục tiêu: bàn cờ vẫn “ăn item” cho hết chain đang phát sinh, nhưng không có actor đánh thêm sau khi kết quả đã khóa.
 
-## 12. Client/server port status
+## 12. Đầu hàng / defeat resolution
+
+- Đầu hàng (`Đầu hàng`) là reconstruction/remake vì chưa có server Java cũ hoặc packet log đặc tả flee riêng.
+- Client không gọi nhánh flee cũ để thoát trận trực tiếp; thay vào đó khóa trận bằng `result = defeat`.
+- Defeat result đi qua cùng `resolveBattleResult({ result: 'defeat', playerCurrentHp, playerCurrentMp, playerCurrentPower })` như thua trận bình thường.
+- Mục tiêu: server áp dụng penalty EXP/thưởng như thua, giữ HP/MP/Power hiện tại sau khi đã mất trong trận, đồng thời UI chạy defeat/recovery sequence.
+
+## 13. Client/server port status
 
 Các file chính:
 - `client/src/screens/battle/core/BattleScreen.shared.ts`
@@ -295,6 +302,7 @@ Các file chính:
 - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`
 - `client/src/screens/battle/hooks/useBattleSwordAttacks.ts`
 - `client/src/screens/battle/BattleScreen.tsx`
+  - Đầu hàng đi qua result `defeat` để server resolve như thua trận, không bỏ qua penalty bằng callback flee cũ.
 - `server/Twelve.Application/Battle/ReconstructedBattleBoardService.cs`
 - `server/Twelve.Application/Battle/BattleTurnEngine.cs`
 
@@ -311,10 +319,20 @@ Các file chính:
 - Badge `"Còn X lượt"` cập nhật sau khi tiêu thụ extra turn.
 - Hoạt ảnh đánh thường 4 nhịp rồi mới quay về; damage chỉ apply 1 lần.
 
-## 13. Checklist còn lại
+## 14. Checklist còn lại
 
 - [ ] Đồng bộ hoàn toàn final damage order board với docs combat/server khi có authoritative endpoint.
 - [ ] Nếu có packet log/replay, đối chiếu lại `nq.D`, `nq.F`, refill/no-move reset.
 - [ ] Nếu chứng minh Java server bật natural special spawn ở mode nào đó, thêm feature flag riêng.
 - [ ] Chuẩn hóa accumulator fixed-point cho MP/Power/EXP/Gold nếu cần cảm giác dài hạn chính xác hơn.
 - [ ] Tách rõ API result để server chốt pending board reward khi thắng.
+
+---
+
+## Nhật ký chỉnh sửa
+
+### 2026-04-29
+
+- Sửa `client/src/screens/battle/BattleScreen.tsx`.
+- Logic: menu `Đầu hàng` không gọi callback flee để thoát trực tiếp nữa, mà set battle result thành `defeat` và chạy `startPlayerDefeatSequence()`. Nhánh `resolveBattleResult` hiện có sẽ gửi HP/MP/Power hiện tại lên server với kết quả thua để áp dụng penalty như defeat bình thường.
+- Nguồn suy luận: reconstruction/remake từ lỗi runtime hiện tại; chưa có server Java cũ/packet log đặc tả flee riêng nên dùng behavior an toàn là đồng nhất với defeat.

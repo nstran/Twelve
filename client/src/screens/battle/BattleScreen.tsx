@@ -688,6 +688,19 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     // Source: gameplay memory + BATTLE_SYSTEM_RECONSTRUCTION.md §EXP/Gold/Quan.
     boardGoldUnit10Ref.current += goldUnit10Delta;
   }, []);
+  const handleSurrender = useCallback(() => {
+    if (phase !== 'idle' || result !== null) {
+      return;
+    }
+
+    // Đầu hàng dùng chung nhánh defeat để server áp dụng penalty EXP/HP như thua trận.
+    // Nguồn: phát triển từ lỗi runtime Hoa Lư; Java server cũ chưa có đặc tả flee riêng,
+    // nên không được bỏ qua resolveBattleResult/onBattleResult như luồng onFlee cũ.
+    setPhase('over');
+    setResult('defeat');
+    startPlayerDefeatSequence();
+  }, [phase, result, startPlayerDefeatSequence]);
+
   const {
     battleMenuItems,
     handleLeftSoftkey,
@@ -702,7 +715,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
     skillPanelVisible,
   } = useBattleMenuControls({
     battleElement,
-    onFlee,
+    onFlee: handleSurrender,
     phase,
     result,
     setHintCell,

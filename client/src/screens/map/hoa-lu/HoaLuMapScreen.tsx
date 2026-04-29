@@ -9,7 +9,8 @@ import {
   WALK_FRAMES, monsterDisplaySize, monsterPlacementMetrics,
 } from '../../../engine/MonsterSprite';
 import {
-  CharacterController,
+  JavaCompatibleCharacterController,
+  buildFlatGroundJavaGrid,
   type CharacterControllerRef,
   type GroundSurface,
   type MonsterTarget,
@@ -106,6 +107,10 @@ interface MonsterVisual {
 
 const ENGAGE_TRIGGER_DELAY_MS = 120;
 const PLAYER_ALERT_MEMORY_MS = 220;
+// Recovery/invincible window sau khi rời battle: Java server không có đặc tả
+// map-side này trong phần đã rà, nên client Hoa Lư tự phát triển để tránh
+// monster overlap retrigger ngay tại vị trí vừa trở lại map.
+const BATTLE_RECOVERY_MS = 3000;
 // Mỗi bao nhiêu tick thì đổi frame (tick=50ms, FRAME_TICKS=4 → 80ms/frame ≈ 12fps anim)
 const FRAME_TICKS = 4;
 const MONSTER_TICK_MS = 50; // 20 logic ticks/sec
@@ -225,18 +230,30 @@ function reconcileMonsterRuntimes(
 function hasMonsterCollision(
   playerLeft: number,
   playerWidth: number,
+  playerFootY: number,
   monsterCenterX: number,
+  monsterGroundY: number,
   monsterWidth: number,
+  monsterHeight: number,
 ): boolean {
   const playerRight = playerLeft + playerWidth;
   const monsterLeft = monsterCenterX - monsterWidth / 2;
   const monsterRight = monsterLeft + monsterWidth;
   const horizontalInset = Math.max(6, Math.min(18, Math.floor(Math.min(playerWidth, monsterWidth) * 0.22)));
+  const horizontalOverlap = playerRight >= monsterLeft + horizontalInset &&
+    playerLeft <= monsterRight - horizontalInset;
 
-  return (
-    playerRight >= monsterLeft + horizontalInset &&
-    playerLeft <= monsterRight - horizontalInset
-  );
+  if (!horizontalOverlap) {
+    return false;
+  }
+
+  // Java map actors collide through runtime hitboxes (`kl.t`) rather than
+  // a pure X-line trigger. This vertical clearance lets a player jump over a
+  // monster without starting battle while still triggering when feet overlap
+  // the monster body near ground level.
+  const monsterTop = monsterGroundY - monsterHeight;
+  const verticalInset = Math.max(4, Math.min(14, Math.floor(monsterHeight * 0.18)));
+  return playerFootY >= monsterTop + verticalInset;
 }
 
 function buildInitialVisuals(runtimes: MonsterRuntime[]): MonsterVisual[] {
@@ -694,6 +711,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const defaultCharInitX = Math.round(mapWidth * sceneConfig.playerSpawnRatio);
   const [serverPlayerX, setServerPlayerX] = useState<number | null>(null);
   const [serverPlayerFacing, setServerPlayerFacing] = useState<'left' | 'right'>('right');
+  const [playerSpawnRevision, setPlayerSpawnRevision] = useState(0);
   const charInitX = Math.round(Math.max(mapMinX, Math.min(mapMaxX, serverPlayerX ?? defaultCharInitX)));
   const surfacesBase = useMemo(
     () => sceneConfig.buildSurfaces(mapScale),
@@ -716,6 +734,10 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       kind: 'ground' as const,
     };
   const groundTop = getSurfaceStartY(groundMainSurface);
+  const javaCollisionGrid = useMemo(
+    () => buildFlatGroundJavaGrid(mapWidth, mapHeight, groundTop),
+    [groundTop, mapHeight, mapWidth],
+  );
 
   const scrollRef = useRef<ScrollView>(null);
   const socketClientRef = useRef(SocketClient.getInstance());
@@ -727,7 +749,10 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const engagedMonsterIdRef = useRef<string | null>(null);
   const encounterRequestVersionRef = useRef(0);
   const charLeftRef = useRef(charInitX);
+  const charFootYRef = useRef(groundTop);
   const playerLastMovedAtRef = useRef(0);
+  const localPositionDirtyRef = useRef(false);
+  const acceptedServerPositionRef = useRef<number | null>(serverPlayerX);
   const lastMovePersistRef = useRef({ x: charInitX, at: 0 });
   const cameraXRef = useRef(0);
   // Camera scroll is coalesced to 1 scrollTo per vsync via rAF, so 60Hz
@@ -740,6 +765,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const [monsterRoster, setMonsterRoster] = useState<MapMonsterRosterEntry[]>([]);
   const [monsterRuntimeVersion, setMonsterRuntimeVersion] = useState(0);
   const [defeatRecoveryActive, setDefeatRecoveryActive] = useState(false);
+  const defeatRecoveryActiveRef = useRef(false);
 
   // ── Monster runtime (stable identity, mutated in place) ─────────────────
   const monsterRuntimesRef = useRef<MonsterRuntime[]>([]);
@@ -758,8 +784,27 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         return;
       }
 
-      const displayPlayerX = Math.round(playerX * mapScale);
-      setServerPlayerX(Math.max(mapMinX, Math.min(mapMaxX, displayPlayerX)));
+      const displayPlayerX = Math.max(mapMinX, Math.min(mapMaxX, Math.round(playerX * mapScale)));
+      const localX = charLeftRef.current;
+      const playerRecentlyMoved = getLoopNowMs() - playerLastMovedAtRef.current <= PLAYER_ALERT_MEMORY_MS;
+      const serverPositionChanged = acceptedServerPositionRef.current === null
+        || Math.abs(displayPlayerX - acceptedServerPositionRef.current) >= 1;
+
+      // Java client keeps the local map actor authoritative during immediate movement/jump
+      // and only accepts server position packets as spawn/teleport reconciliation.
+      // Source: reverse-engineered map actor behavior from reference/redecoded/decompiled/mh.java
+      // setfall path + current RN bug trace where playerMapState echo reset initialX mid-jump.
+      if (localPositionDirtyRef.current && playerRecentlyMoved && Math.abs(displayPlayerX - localX) > 1) {
+        setServerPlayerFacing(state?.direction === 0 ? 'left' : 'right');
+        return;
+      }
+
+      acceptedServerPositionRef.current = displayPlayerX;
+      localPositionDirtyRef.current = false;
+      if (serverPositionChanged) {
+        setPlayerSpawnRevision((revision) => revision + 1);
+      }
+      setServerPlayerX(displayPlayerX);
       setServerPlayerFacing(state?.direction === 0 ? 'left' : 'right');
     };
 
@@ -1091,9 +1136,18 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       return;
     }
 
+    defeatRecoveryActiveRef.current = true;
     setDefeatRecoveryActive(true);
     setMenuVisible(false);
     setActiveMoveDirection(null);
+    encounterRequestVersionRef.current += 1;
+    engagedMonsterIdRef.current = null;
+    battleTriggered.current = false;
+    setEncounterPreview(null);
+    for (const monster of monsterRuntimesRef.current) {
+      monster.engageQueued = false;
+      monster.worldState = 'patrol';
+    }
     characterControllerRef.current?.stopMove();
     defeatBlinkLoopRef.current?.stop();
     if (defeatBlinkTimerRef.current) {
@@ -1123,9 +1177,10 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       defeatBlinkLoopRef.current?.stop();
       defeatBlinkLoopRef.current = null;
       defeatBlinkAnim.setValue(1);
+      defeatRecoveryActiveRef.current = false;
       setDefeatRecoveryActive(false);
       defeatBlinkTimerRef.current = null;
-    }, 1500);
+    }, BATTLE_RECOVERY_MS);
 
     return () => {
       defeatBlinkLoopRef.current?.stop();
@@ -1135,6 +1190,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         defeatBlinkTimerRef.current = null;
       }
       defeatBlinkAnim.setValue(1);
+      defeatRecoveryActiveRef.current = false;
       setDefeatRecoveryActive(false);
     };
   }, [defeatBlinkAnim, defeatBlinkToken]);
@@ -1173,9 +1229,16 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       return;
     }
 
-    const nativeX = Math.round(x / mapScale);
+    const displayX = Math.max(mapMinX, Math.min(mapMaxX, Math.round(x)));
+    const nativeX = Math.round(displayX / mapScale);
     const nativeY = Math.round(groundTop / mapScale);
-    lastMovePersistRef.current = { x, at: now };
+    lastMovePersistRef.current = { x: displayX, at: now };
+    // Mark the outgoing local position as accepted before the socket echo arrives.
+    // Without this, the echoed playerMapState can look like a new spawn revision
+    // and remount/reset the Java-compatible controller while the actor is jumping.
+    // Source: Java map actor is locally authoritative during km.java state 5/6;
+    // server packets are spawn/teleport reconciliation, not per-frame physics authority.
+    acceptedServerPositionRef.current = displayX;
     socketClientRef.current.move(
       nativeX,
       nativeY,
@@ -1184,7 +1247,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       facing,
       0,
     );
-  }, [groundTop, mapId, mapScale, roomId]);
+  }, [groundTop, mapId, mapMaxX, mapMinX, mapScale, roomId]);
 
   // Cancel any pending scroll rAF on unmount to avoid leaks.
   useEffect(() => () => {
@@ -1214,7 +1277,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
     groundY: number;
     initialTurn: 'player' | 'monster';
   }) => {
-    if (battleTriggered.current || isEncounterActive) return;
+    if (defeatRecoveryActiveRef.current || battleTriggered.current || isEncounterActive) return;
 
     const { w: monsterW } = monsterDisplaySize(snap.type);
     const requestVersion = encounterRequestVersionRef.current + 1;
@@ -1339,10 +1402,10 @@ export const HoaLuMapScreen: React.FC<Props> = ({
 
         for (let i = 0; i < monsterRuntimes.length; i++) {
           const m = monsterRuntimes[i];
-          const canOwnEncounter = lockedMonsterId === null || lockedMonsterId === m.id;
+          const canOwnEncounter = !defeatRecoveryActiveRef.current && (lockedMonsterId === null || lockedMonsterId === m.id);
           const collidesWithPlayer = canOwnEncounter &&
             playerRecentlyMoved &&
-            hasMonsterCollision(playerLeft, playerSpriteSize.w, m.x, m.size.w);
+            hasMonsterCollision(playerLeft, playerSpriteSize.w, charFootYRef.current, m.x, m.groundY, m.size.w, m.size.h);
           const nextWorldState: MonsterRuntime['worldState'] = collidesWithPlayer ? 'engaging' : 'patrol';
 
           // 1. Move
@@ -1381,6 +1444,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
             };
             setTimeout(() => {
               if (
+                defeatRecoveryActiveRef.current ||
                 battleTriggered.current ||
                 !m.engageQueued ||
                 engagedMonsterIdRef.current !== m.id
@@ -1455,8 +1519,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
 
   useEffect(() => {
     charLeftRef.current = charInitX;
+    charFootYRef.current = groundTop;
     scrollToCharacter(charInitX);
-  }, [charInitX, scrollToCharacter]);
+  }, [charInitX, playerSpawnRevision, scrollToCharacter]);
 
   useEffect(() => {
     if (showTouchGamepad) return;
@@ -1624,9 +1689,10 @@ export const HoaLuMapScreen: React.FC<Props> = ({
 
           {/* Layer 3: Nhân vật */}
           {!isEncounterActive && (
-            <CharacterController
+            <JavaCompatibleCharacterController
               ref={characterControllerRef}
               initialX={charInitX}
+              positionRevision={playerSpawnRevision}
               initialFacing={serverPlayerFacing}
               groundY={groundTop}
               controlMode="tap-to-move"
@@ -1648,8 +1714,15 @@ export const HoaLuMapScreen: React.FC<Props> = ({
                   />
                 </Animated.View>
               )}
+              level={playerLevel}
               monsters={monsterTargets}
               surfaces={sceneSurfaces}
+              collisionGrid={undefined}
+              // Hoa Lư hiện có nhiều platform authored bằng GroundSurface.
+              // Không truyền flat-ground grid tạm vào Java controller vì grid này
+              // chỉ có mặt đất chính, làm jump/fall bỏ qua platform và snap về nền.
+              // Nguồn Java: km.java/kf.java dùng collision grid đầy đủ; khi chưa có
+              // kf.d thật thì Surface adapter đáng tin hơn flat grid một hàng.
               // Cho phép đi sát 2 đầu map nhưng vẫn bị clamp trong biên map,
               // nên ở điểm đầu/cuối sẽ không bị hụt support rồi rơi xuống.
               minX={mapMinX}
@@ -1659,17 +1732,23 @@ export const HoaLuMapScreen: React.FC<Props> = ({
               zIndex={LAYER_CHARACTER}
               allowPointerInput={allowMapPointerInput}
               disabled={menuVisible || defeatRecoveryActive || isCharacterDialogActive}
-              onMove={(x, facing) => {
+              onMove={(x, facing, footY) => {
                 playerLastMovedAtRef.current = getLoopNowMs();
+                localPositionDirtyRef.current = true;
                 charLeftRef.current = x;
+                charFootYRef.current = footY ?? groundTop;
                 scrollToCharacter(x);
                 persistPlayerWorldPosition(x, facing, false);
               }}
-              onMoveEnd={(x, facing) => {
+              onMoveEnd={(x, facing, footY) => {
+                localPositionDirtyRef.current = true;
+                charLeftRef.current = x;
+                charFootYRef.current = footY ?? groundTop;
+                scrollToCharacter(x);
                 persistPlayerWorldPosition(x, facing, true);
               }}
               onAttackMonster={(monsterId) => {
-                if (battleTriggered.current) return;
+                if (defeatRecoveryActive || battleTriggered.current) return;
 
                 const targetMonster = monsterRuntimes.find((m) => m.id === monsterId);
                 if (!targetMonster) return;

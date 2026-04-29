@@ -13,7 +13,11 @@ namespace Twelve.Application.Battle
     {
         private readonly IBattleSessionStore _battleSessionStore;
         private readonly IMonsterSpawnCatalog _monsterSpawnCatalog;
+        private static readonly TimeSpan NormalMonsterRespawnDelay = TimeSpan.FromMinutes(3);
+        private static readonly TimeSpan BossMonsterRespawnDelay = TimeSpan.FromDays(1);
+
         private readonly IMonsterBattleCatalog _monsterBattleCatalog;
+        private readonly IMapMonsterRosterService _mapMonsterRosterService;
         private readonly IPlayerRepository _playerRepository;
         private readonly IPlayerAggregateRepository _playerAggregateRepository;
         private readonly PlayerContentCatalog _contentCatalog;
@@ -22,6 +26,7 @@ namespace Twelve.Application.Battle
             IBattleSessionStore battleSessionStore,
             IMonsterSpawnCatalog monsterSpawnCatalog,
             IMonsterBattleCatalog monsterBattleCatalog,
+            IMapMonsterRosterService mapMonsterRosterService,
             IPlayerRepository playerRepository,
             IPlayerAggregateRepository playerAggregateRepository,
             PlayerContentCatalog contentCatalog)
@@ -29,6 +34,7 @@ namespace Twelve.Application.Battle
             _battleSessionStore = battleSessionStore;
             _monsterSpawnCatalog = monsterSpawnCatalog;
             _monsterBattleCatalog = monsterBattleCatalog;
+            _mapMonsterRosterService = mapMonsterRosterService;
             _playerRepository = playerRepository;
             _playerAggregateRepository = playerAggregateRepository;
             _contentCatalog = contentCatalog;
@@ -147,6 +153,8 @@ namespace Twelve.Application.Battle
                 clampedPower = player.Power;
             }
 
+            DeactivateEncounterAfterBattle(session);
+
             player.LastSeenAt = DateTime.UtcNow;
             _playerRepository.UpdateAsync(player).GetAwaiter().GetResult();
             _battleSessionStore.Save(session with { IsCompleted = true });
@@ -169,6 +177,46 @@ namespace Twelve.Application.Battle
                 ItemRewards: loot.Items.Select(reward => reward.View).ToArray(),
                 EquipmentRewards: loot.Equipment.Select(reward => reward.View).ToArray());
         }
+
+        private void DeactivateEncounterAfterBattle(BattleSessionState session)
+        {
+            if (session.Kind != BattleSessionKind.Monster ||
+                string.IsNullOrWhiteSpace(session.MapId) ||
+                !session.RoomId.HasValue ||
+                string.IsNullOrWhiteSpace(session.MonsterKey))
+            {
+                return;
+            }
+
+            var respawnDelay = ResolveRespawnDelay(session);
+            // Source: MAP_SYSTEM_RECONSTRUCTION.md §5 marks map entity runtime/server sync as missing.
+            // Java client has map monsters but no authoritative old server respawn table in recovered sources;
+            // remake policy: any completed monster encounter (victory/defeat/surrender) disappears for its
+            // respawn window, so returning/surrendering cannot leave the same overlap-trigger active.
+            _mapMonsterRosterService.DeactivateEncounterUntil(
+                session.MapId,
+                session.RoomId.Value,
+                session.MonsterKey,
+                DateTime.UtcNow.Add(respawnDelay));
+        }
+
+        private static TimeSpan ResolveRespawnDelay(BattleSessionState session)
+        {
+            // Source: Java/data not yet recovered with explicit boss flag. Until DB has IsBoss,
+            // classify boss-like encounters by legacy spawn/template/key naming convention only.
+            if (ContainsBossToken(session.MonsterKey) ||
+                ContainsBossToken(session.SpawnTemplateKey) ||
+                session.Enemy.Level >= 100)
+            {
+                return BossMonsterRespawnDelay;
+            }
+
+            return NormalMonsterRespawnDelay;
+        }
+
+        private static bool ContainsBossToken(string? value) =>
+            !string.IsNullOrWhiteSpace(value) &&
+            value.Contains("boss", StringComparison.OrdinalIgnoreCase);
 
         private (long Exp, long Gold) ResolveRewards(BattleSessionState session)
         {
