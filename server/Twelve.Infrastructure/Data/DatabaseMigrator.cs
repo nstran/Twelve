@@ -14,7 +14,7 @@ namespace Twelve.Infrastructure.Data
     /// Chạy toàn bộ schema SQL khi server khởi động.
     /// Bước 1: Tạo database nếu chưa tồn tại (kết nối qua "postgres" DB).
     /// Bước 2: Chạy toàn bộ file *.sql nhúng trong assembly (thư mục server/Database/).
-    /// Thứ tự chạy: sắp xếp theo tên file (01_, 02_, 03_, ...).
+    /// Thứ tự chạy: manifest name DB.01_ … DB.08_ (LogicalName trong Twelve.Infrastructure.csproj).
     /// An toàn chạy lại bất kỳ lúc nào — tất cả SQL đều dùng IF NOT EXISTS / ADD COLUMN IF NOT EXISTS.
     /// </summary>
     public class DatabaseMigrator
@@ -44,18 +44,18 @@ namespace Twelve.Infrastructure.Data
             var assembly     = typeof(DatabaseMigrator).Assembly;
             var allResources = assembly.GetManifestResourceNames();
 
-            _logger.LogInformation("[DB] Toàn bộ embedded resources ({Count}):", allResources.Length);
-            foreach (var r in allResources)
-                _logger.LogInformation("[DB]   • {Resource}", r);
+            _logger.LogDebug("[DB] Embedded resources: {Count}", allResources.Length);
 
             var sqlResources = allResources
-                .Where(n => n.EndsWith(".sql", StringComparison.OrdinalIgnoreCase))
-                .OrderBy(n => n)   // 01_ trước 02_ trước 03_ ...
+                .Where(n =>
+                    n.EndsWith(".sql", StringComparison.OrdinalIgnoreCase) &&
+                    n.StartsWith("DB.", StringComparison.Ordinal))
+                .OrderBy(n => n, StringComparer.Ordinal)
                 .ToList();
 
             if (sqlResources.Count == 0)
             {
-                _logger.LogWarning("[DB] ⚠ Không tìm thấy file .sql nào. Kiểm tra <EmbeddedResource> trong Twelve.Infrastructure.csproj và rebuild.");
+                _logger.LogWarning("[DB] ⚠ Không tìm thấy embedded SQL (tên resource DB.*.sql). Kiểm tra Twelve.Infrastructure.csproj và rebuild.");
                 return;
             }
 

@@ -96,7 +96,7 @@ namespace Twelve.Application.Handlers
                 Phone        = phone,
                 Gender       = genderB,
             };
-            int accountId = await _accountRepository.CreateAsync(account);
+            long accountId = await _accountRepository.CreateAsync(account);
             _logger.LogInformation("[Register] Account created, Id={Id}", accountId);
 
             // ── Phản hồi thành công ───────────────────────────────────────────

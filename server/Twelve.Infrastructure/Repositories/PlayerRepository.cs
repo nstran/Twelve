@@ -22,14 +22,14 @@ namespace Twelve.Infrastructure.Repositories
             return await connection.QueryFirstOrDefaultAsync<Player>(sql, new { Username = username });
         }
 
-        public async Task<Player?> GetByIdAsync(int id)
+        public async Task<Player?> GetByIdAsync(long id)
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = "SELECT * FROM Players WHERE Id = @Id";
             return await connection.QueryFirstOrDefaultAsync<Player>(sql, new { Id = id });
         }
 
-        public async Task<int> CreateAsync(Player player)
+        public async Task<long> CreateAsync(Player player)
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
@@ -58,7 +58,7 @@ namespace Twelve.Infrastructure.Repositories
                     @CreatedAt, @LastSeenAt
                 )
                 RETURNING Id";
-            return await connection.ExecuteScalarAsync<int>(sql, player);
+            return await connection.ExecuteScalarAsync<long>(sql, player);
         }
 
         public async Task UpdateAsync(Player player)

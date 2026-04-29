@@ -180,7 +180,7 @@ async Task RunInitDb(string[] subArgs)
         ? Path.Combine(currentDir, "server", "Database")
         : Path.Combine(currentDir, "..", "Database");
         
-    string defaultSql = Path.Combine(dbDir, "01_accounts.sql");
+    string defaultSql = Path.Combine(dbDir, "Accounts", "accounts_schema.sql");
     string sqlPath = subArgs.Length > 0 ? subArgs[0] : defaultSql;
 
     await RunInitDbInternal(Path.GetFullPath(sqlPath), connectionString);

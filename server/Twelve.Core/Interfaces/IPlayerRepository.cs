@@ -5,9 +5,9 @@ namespace Twelve.Core.Interfaces
 {
     public interface IPlayerRepository
     {
-        Task<Player?> GetByIdAsync(int id);
+        Task<Player?> GetByIdAsync(long id);
         Task<Player?> GetByUsernameAsync(string username);
-        Task<int> CreateAsync(Player player);
+        Task<long> CreateAsync(Player player);
         Task UpdateAsync(Player player);
     }
 }

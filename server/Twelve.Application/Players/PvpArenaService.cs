@@ -14,7 +14,8 @@ namespace Twelve.Application.Players
 {
     public sealed class PvpArenaService : IPvpArenaService
     {
-        private const string PvpBattleTemplateId = "pvp_player_shadow";
+        /// <summary>Not a row in MonsterBattles; avoids catalog lookup for PvP shadow enemies.</summary>
+        private const long PvpBattleTemplateSentinel = 0;
         private const string PvpSpawnTemplateKey = "pvp_challenge";
         private static readonly TimeSpan ChallengeTtl = TimeSpan.FromSeconds(20);
         private static readonly TimeSpan ArenaPresenceTtl = TimeSpan.FromMinutes(2);
@@ -393,7 +394,7 @@ namespace Twelve.Application.Players
                 Enemy: enemyState,
                 CreatedAtUtc: DateTime.UtcNow,
                 SpawnTemplateKey: PvpSpawnTemplateKey,
-                BattleTemplateId: PvpBattleTemplateId,
+                BattleTemplateId: PvpBattleTemplateSentinel,
                 Kind: BattleSessionKind.PvpShadow,
                 Stake: Math.Max(0, stake),
                 AllowSpectators: allowSpectators,
@@ -405,7 +406,7 @@ namespace Twelve.Application.Players
             var enemy = new MonsterBattleInstance(
                 CombatantId: enemyState.CombatantId,
                 MonsterKey: monsterKey,
-                BattleTemplateId: PvpBattleTemplateId,
+                BattleTemplateId: PvpBattleTemplateSentinel,
                 DisplayName: enemyState.DisplayName,
                 Element: (byte)Math.Max(0, enemyPlayer.Core.Element ?? 0),
                 Level: enemyState.Level,
@@ -438,7 +439,7 @@ namespace Twelve.Application.Players
                 SessionId: sessionId,
                 MonsterKey: monsterKey,
                 SpawnTemplateKey: PvpSpawnTemplateKey,
-                BattleTemplateId: PvpBattleTemplateId,
+                BattleTemplateId: PvpBattleTemplateSentinel,
                 VisualTypeByte: 0,
                 DisplayLevel: enemyPlayer.Core.Level,
                 IqValue: enemyState.IqValue,

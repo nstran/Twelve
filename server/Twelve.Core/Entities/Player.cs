@@ -4,7 +4,7 @@ namespace Twelve.Core.Entities
 {
     public class Player
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
         public string Username { get; set; } = string.Empty;
         public int Level { get; set; } = 1;
         public long Gold { get; set; } = 0;

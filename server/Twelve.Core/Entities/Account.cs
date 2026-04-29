@@ -4,7 +4,7 @@ namespace Twelve.Core.Entities
 {
     public class Account
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         // ── Xác thực ─────────────────────────────────────────────────────────
         public string Username     { get; set; } = string.Empty;

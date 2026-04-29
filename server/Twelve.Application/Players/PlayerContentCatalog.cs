@@ -181,7 +181,7 @@ namespace Twelve.Application.Players
                 .ToArray();
 
             var equipmentRewards = Array.Empty<BattleLootEquipmentReward>();
-            var dropRoll = StablePercent($"{session.SessionId}:{session.MonsterKey}:{battleTemplate.BattleTemplateId}");
+            var dropRoll = StablePercent($"{session.SessionId}:{session.MonsterKey}:{battleTemplate.Id}");
             if (battleTemplate.Level >= 8 && dropRoll < (battleTemplate.Level >= 9 ? 45 : 22))
             {
                 var template = (battleTemplate.Element & 0xFF) switch

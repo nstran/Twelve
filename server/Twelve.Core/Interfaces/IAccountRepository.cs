@@ -6,8 +6,8 @@ namespace Twelve.Core.Interfaces
     public interface IAccountRepository
     {
         Task<Account?> GetByUsernameAsync(string username);
-        Task<int> CreateAsync(Account account);
-        Task UpdateLastLoginAsync(int accountId);
+        Task<long> CreateAsync(Account account);
+        Task UpdateLastLoginAsync(long accountId);
     }
 
     public interface IPasswordHasher

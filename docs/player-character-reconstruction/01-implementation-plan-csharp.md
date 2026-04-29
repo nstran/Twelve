@@ -493,8 +493,7 @@ Client nhận qua `PlayerRuntimeSnapshot.mapMoveSpeed/mapJumpSpeed`, merge vào 
   - `server/Twelve.Infrastructure/Repositories/PlayerAggregateRepository.cs`
   - `server/Twelve.Application/Players/PlayerRuntimeService.cs`
 - Cập nhật migration:
-  - `server/Database/07_player_character_aggregate.sql`: không tạo mới `AppearanceJson`.
-  - `server/Database/13_remove_appearance_json.sql`: drop cột duplicate khỏi DB hiện có.
+  - `server/Database/Players/players_schema.sql` (hình cuối: không có `AppearanceJson`, không có Derived* snapshot).
 - Giữ nguyên `BonusCuongLuc/BonusThanPhap/BonusNoiLuc/BonusTheLuc` vì đây là field Java `lh.l/m/n/o` phục vụ stat bonus/equipment pipeline, không phải dữ liệu duplicate.
 
 ### Nhật ký chỉnh sửa 2026-04-25 — Battle damage dùng stat nhân vật thật

@@ -66,7 +66,7 @@ namespace Twelve.Core.Battle
         DateTime CreatedAtUtc,
         bool IsCompleted = false,
         string? SpawnTemplateKey = null,
-        string? BattleTemplateId = null,
+        long? BattleTemplateId = null,
         BattleSessionKind Kind = BattleSessionKind.Monster,
         long Stake = 0,
         bool AllowSpectators = false,

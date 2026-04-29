@@ -3750,6 +3750,17 @@ Use this instead of the older "next practical step" section.
 - `MonsterBattleBootstrapService`
 - socket roster / bootstrap flow by `monsterKey`
 - rule-driven monster stat progression + skill assignment
+- [x] DB migration `Database/Monsters/monsters_schema.sql` — 4 bảng tách biệt:
+  `Monsters`, `MonsterSpawns`, `MonsterBattles`, `MonsterRosters`
+- [x] DB seed `Database/Monsters/monsters_seed.sql` — 78 confirmed asset entries (species 1000-1007)
+- [x] Asset catalog ID convention: `MONSTER_{speciesCode}_SLOT_{slot}`
+- [x] `MonsterAssetCatalogEntry` + `MonsterBattleInstance` + `MapMonsterRosterEntry`
+  now carry `FramePaths` + `AssetCatalogId`
+- [x] `/map/monster-roster` endpoint returns `assetCatalogId` + `framePaths`
+- [x] `MonsterBattleBootstrapService` passes asset info into battle instance
+- [x] Client TypeScript types: `MonsterRosterEntry`, `MonsterBattleBootstrap`,
+  `MonsterBattleDelta`, `MonsterVisualFamily`, `resolveVisualFamily()`, `resolveIqLabel()`
+- [x] `MonsterCatalogSeed.cs` expanded to all 78 species entries with full frame paths
 
 ### [In Progress]
 
@@ -3762,7 +3773,30 @@ Use this instead of the older "next practical step" section.
 1. move more board/match/cascade truth into the server
 2. extend monster rule engine into:
    `species profile + zone scaling + rare override`
-3. prepare DB migration so the database stores authoring inputs while keeping
-   rule logic in code/service form
-4. later connect the same pattern to player progression once monster side is
+3. later connect the same pattern to player progression once monster side is
    considered stable
+
+## Nhật ký chỉnh sửa
+
+### 2026-04-28 — Monster module DB + asset seed + client types
+
+Files đã sửa/tạo:
+
+| File | Thay đổi |
+|------|----------|
+| `server/Database/Monsters/monsters_schema.sql` | Tạo mới — 4 bảng monster |
+| `server/Database/Monsters/monsters_seed.sql` | Tạo mới — 78 asset entries |
+| `server/Twelve.Core/Monsters/MonsterContracts.cs` | Thêm `FramePaths` vào asset/roster/instance |
+| `server/Twelve.Application/Monsters/MonsterCatalogSeed.cs` | Mở rộng 78 entries |
+| `server/Twelve.Application/Monsters/MonsterBattleBootstrapService.cs` | Truyền asset info |
+| `server/Twelve.Server/Program.cs` | Roster endpoint trả framePaths |
+| `client/src/types/monster.types.ts` | TypeScript contracts |
+| `CHANGELOG.md` | Entry ngày 2026-04-28 |
+
+Asset ID convention: `MONSTER_{speciesCode}_SLOT_{slot}` (ví dụ `MONSTER_1003_SLOT_5`).
+
+Nguyên tắc bảo toàn:
+- Asset / Spawn / Battle / Roster giữ tách biệt
+- `monsterKey` là runtime key, `assetCatalogId` là visual key
+- Không gộp thành 1 bảng monster
+- Client dùng `framePaths` từ server, không hardcode

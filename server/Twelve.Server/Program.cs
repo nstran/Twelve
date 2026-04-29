@@ -7,6 +7,7 @@ using Twelve.Core.Monsters;
 using Twelve.Core.Options;
 using Twelve.Core.Players;
 using Twelve.Application;
+using Twelve.Application.Monsters;
 using Twelve.Infrastructure;
 using Twelve.Infrastructure.Data;
 using dotenv.net;
@@ -228,16 +229,22 @@ app.MapGet("/map/monster-roster", (
     IMonsterAssetCatalog assetCatalog) =>
 {
     var encounters = rosterService.GetActiveRoster(mapId, roomId);
+    var spawnByKey = MonsterSpawnDisplayResolver.EnrichTemplatesForEncounters(
+        encounters,
+        spawnCatalog,
+        assetCatalog);
     var responseEntries = new List<MapMonsterRosterEntry>(encounters.Count);
 
     foreach (var encounter in encounters)
     {
-        var spawnTemplate = spawnCatalog.GetBySpawnTemplateKey(encounter.SpawnTemplateKey);
-        if (spawnTemplate is null)
+        if (!spawnByKey.TryGetValue(encounter.SpawnTemplateKey, out var spawnTemplate))
         {
             continue;
         }
 
+        var assetEntry = !string.IsNullOrWhiteSpace(spawnTemplate.AssetCatalogId)
+            ? assetCatalog.GetById(spawnTemplate.AssetCatalogId)
+            : null;
         var sharedSheetFamily = ResolveSharedSheetFamily(spawnTemplate, assetCatalog);
         responseEntries.Add(new MapMonsterRosterEntry(
             MonsterKey: encounter.MonsterKey,
@@ -254,7 +261,9 @@ app.MapGet("/map/monster-roster", (
             PatrolStartRatio: encounter.PatrolStartRatio,
             PatrolEndRatio: encounter.PatrolEndRatio,
             SpawnRatio: encounter.SpawnRatio,
-            MoveSpeed: encounter.MoveSpeed));
+            MoveSpeed: encounter.MoveSpeed,
+            AssetCatalogId: spawnTemplate.AssetCatalogId,
+            FramePaths: assetEntry?.FramePaths));
     }
 
     return Results.Ok(new MapMonsterRosterResponse(

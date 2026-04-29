@@ -1,35 +1,11 @@
 # Monster Asset Set
 
-This folder is organized around the 6-digit monster / actor IDs that live under
-`canonical_from_jar_png/offline/` and cannot be disambiguated by the legacy Java
-classes alone.
+All monster PNG files are stored **flat** in this directory, named by their
+6-digit Java numeric resource ID (e.g. `100001.png`).
 
-The key rule is:
-
-- separate `confirmed species families` (full 10-slot layout) from
-  `candidate unknown ranges` (partial / pattern-only)
-- group confirmed species by their 4-digit family code (`1000`..`1007`)
-- inside each species, split by `slot` 0..9 using the `100XYZ` schema
-- do NOT invent monster names or map locations — those are server-driven
-  and cannot be recovered from the offline jar
-
-Folder layout:
-
-- `01_confirmed_species_families`
-  - 8 species (`1000`..`1007`), each with `slot_0`..`slot_9`
-- `02_candidate_unknown_ranges`
-  - partial / non-standard 6-digit ranges grouped by prefix or end-pattern
-  - **Exclusions applied after cross-check**:
-    - IDs ending in `98` from `120xxx..140xxx` (32 files) → accessory
-      equipment (E5/E7/E8). Live in `equipment/07_accessory_e5_e7_e8/`.
-    - `130000`, `130100` (2 files) → also accessory equipment in the same
-      `130xxx` band. Live in `equipment/07_accessory_e5_e7_e8/`.
-    - `110000..110160` pattern-X0 (17 files) → numbered NPC sprites.
-      Live in `npc/04_numbered_npc_candidate_110xxx/`.
-
-Detailed technical reference:
-
-- [MONSTER_SYSTEM_RECONSTRUCTION.md](/d:/Twelve/MONSTER_SYSTEM_RECONSTRUCTION.md)
+This mirrors how Java's `om` class loads monster sprites via integer resource IDs.
+The server stores only the numeric code in `frame_paths`; the client constructs
+the full path: `assets/monster/{code}.png`.
 
 ## ID Schema
 
@@ -41,32 +17,20 @@ Every confirmed monster asset is a 6-digit PNG named `AAAABC.png` where:
 | `B`      | Slot index within the species (0..9) |
 | `C`      | Frame / variant index inside the slot |
 
-Example: `100351.png` → species `1003`, slot `5`, frame `1`.
+Example: `100351.png` -> species `1003`, slot `5`, frame `1`.
 
-This schema is inferred from the jar's `/offline/*.meta` neighbour convention
-(`XX099.meta` describes the `XX000..XX098` range) and confirmed by the per-slot
-frame bundling already visible in the offline folder.
+## Species Families
 
-## Why this structure is different from NPC
-
-Monsters differ from NPCs in two important ways:
-
-1. Monsters exist as distinct numeric IDs in `/offline/<id>.png`. NPCs do NOT
-   — the legacy client draws NPCs from 3 shared spritesheets + 1 named blacksmith.
-2. Monster identity is still server-driven (the map catalog decides which
-   species spawns where), but the sprite surface itself is per-ID. NPC sprite
-   surfaces are shared by `jo.c >> 1`.
-
-So the monster folder keeps a **numeric family grouping** just like
-`character_creation_organized/` and `skill_system_organized/`, while the NPC
-folder is keyed by **runtime role**.
-
-## Confidence levels
-
-- `confirmed_monster_family`
-  - 4-digit species code is in `{1000..1007}` with full 10-slot coverage
-- `candidate_unknown`
-  - 6-digit id does not fit the `100X` schema or is only partially populated
+| Code | Slots | Sheet Family |
+|------|-------|-------------|
+| 1000 | 0-9   | Monster     |
+| 1001 | 0-9   | Monster     |
+| 1002 | 0-9   | Ice         |
+| 1003 | 0-9   | Zap         |
+| 1004 | 0-9   | Monster     |
+| 1005 | 0-8   | Monster     |
+| 1006 | 0-9   | Monster     |
+| 1007 | 0-8   | Monster     |
 
 ## What we intentionally do NOT store here
 
@@ -75,28 +39,16 @@ folder is keyed by **runtime role**.
 - HP / attack stats
 - level / tier labels
 
-All of the above live on the server side. The offline jar does not carry
-that metadata, and guessing them here would just create rework once the
-server catalog is re-authored.
+All of the above live on the server side (see `MONSTER_SYSTEM_RECONSTRUCTION.md`).
 
 ## Index
 
-`index.csv` lists every copied PNG with:
+`index.csv` lists every PNG with:
 
 | Column     | Meaning |
 |------------|---------|
-| source     | path under `canonical_from_jar_png/offline/` |
-| target     | path under `client/assets/monster/` |
+| file       | flat path under `client/assets/monster/` |
+| source     | original path under `canonical_from_jar_png/offline/` |
+| target     | same as file |
 | confidence | `confirmed_monster_family` or `candidate_unknown` |
-| note       | schema / pattern rationale for the bucket |
-
-## Regeneration
-
-The folder is fully reproducible by running:
-
-```bash
-powershell -File tools/organize_monsters.ps1
-```
-
-The script reads from `canonical_from_jar_png/offline/` and rebuilds this
-folder + `index.csv` deterministically.
+| note       | schema / pattern rationale |

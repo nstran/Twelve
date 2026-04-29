@@ -50,44 +50,79 @@ const resolveSpawnRatio = (
   return clamp01(ratio);
 };
 
+const isServerDrivenPlacement = (record: MapMonsterSpawnRecord): boolean =>
+  typeof record.surfaceId === 'string' &&
+  record.surfaceId.length > 0 &&
+  typeof record.patrolStartRatio === 'number' &&
+  typeof record.patrolEndRatio === 'number' &&
+  typeof record.spawnRatio === 'number' &&
+  typeof record.moveSpeed === 'number';
+
 const buildRosterEntry = (
   request: MapMonsterRosterRequest,
   record: MapMonsterSpawnRecord,
 ): MapMonsterRosterEntry | null => {
-  const sceneConfig = resolveSideScrollMapSceneConfig(request.mapId, request.roomId);
-  if (!sceneConfig || !sceneConfig.monsterSpawnGroups || sceneConfig.monsterSpawnGroups.length === 0) {
-    return null;
+  let surfaceId: string;
+  let patrolStartRatio: number;
+  let patrolEndRatio: number;
+  let spawnRatio: number;
+  let moveSpeed: number;
+
+  if (isServerDrivenPlacement(record)) {
+    surfaceId = record.surfaceId as string;
+    patrolStartRatio = record.patrolStartRatio as number;
+    patrolEndRatio = record.patrolEndRatio as number;
+    spawnRatio = record.spawnRatio as number;
+    moveSpeed = record.moveSpeed as number;
+  } else {
+    const sceneConfig = resolveSideScrollMapSceneConfig(request.mapId, request.roomId);
+    if (!sceneConfig || !sceneConfig.monsterSpawnGroups || sceneConfig.monsterSpawnGroups.length === 0) {
+      return null;
+    }
+
+    const profile = sceneConfig.monsterSpawnGroups.find(
+      (candidate) => candidate.spawnGroupKey === record.spawnGroupKey,
+    );
+    if (!profile) {
+      return null;
+    }
+
+    surfaceId = profile.surfaceId;
+    patrolStartRatio = profile.patrolStartRatio;
+    patrolEndRatio = profile.patrolEndRatio;
+    moveSpeed = profile.moveSpeed;
+    const effectiveSpawnCount = Math.max(1, record.spawnCount);
+    spawnRatio = resolveSpawnRatio(
+      profile.spawnStartRatio,
+      profile.spawnEndRatio,
+      record.spawnInstanceIndex,
+      effectiveSpawnCount,
+    );
   }
 
-  const profile = sceneConfig.monsterSpawnGroups.find(
-    (candidate) => candidate.spawnGroupKey === record.spawnGroupKey,
-  );
-  if (!profile) {
-    return null;
-  }
+  const spawnTemplateKey =
+    typeof record.spawnTemplateKey === 'string' && record.spawnTemplateKey.length > 0
+      ? record.spawnTemplateKey
+      : `${record.spawnGroupKey}_runtime`;
 
-  const effectiveSpawnCount = Math.max(1, record.spawnCount);
   return {
     monsterKey: record.monsterKey,
     spawnGroupKey: record.spawnGroupKey,
     spawnInstanceIndex: record.spawnInstanceIndex,
-    spawnTemplateKey: `${record.spawnGroupKey}_runtime`,
+    spawnTemplateKey,
     displayName: record.displayName,
     visualTypeByte: record.visualTypeByte,
     displayLevel: record.displayLevel,
     iqValue: record.iqValue,
     nameColorMode: record.nameColorMode,
     sharedSheetFamily: resolveMonsterSharedSheetFamily(record.visualTypeByte),
-    surfaceId: profile.surfaceId,
-    patrolStartRatio: profile.patrolStartRatio,
-    patrolEndRatio: profile.patrolEndRatio,
-    spawnRatio: resolveSpawnRatio(
-      profile.spawnStartRatio,
-      profile.spawnEndRatio,
-      record.spawnInstanceIndex,
-      effectiveSpawnCount,
-    ),
-    moveSpeed: profile.moveSpeed,
+    surfaceId,
+    patrolStartRatio,
+    patrolEndRatio,
+    spawnRatio,
+    moveSpeed,
+    assetCatalogId: record.assetCatalogId,
+    framePaths: record.framePaths,
   };
 };
 

@@ -141,10 +141,8 @@ C# hiện tại cần đối chiếu:
 - `server/Twelve.Application/Handlers/MonsterEncounterHandler.cs`
 - `server/Twelve.Core/GameSession.cs`
 - `server/Twelve.Core/Tlv/CommandCodes.cs`
-- `server/Database/02_players.sql`
-- `server/Database/04_add_player_traits.sql`
-- `server/Database/05_add_gender_to_players.sql`
-- `server/Database/06_add_base_stats.sql`
+- `server/Database/README.md` (thứ tự chạy migration theo module)
+- `server/Database/Players/players_schema.sql` (gộp 02_players + 04/05/06/07/08, không còn Derived* / AppearanceJson)
 
 ## Mô Hình Tổng Quát
 

@@ -173,17 +173,17 @@ namespace Twelve.Application.Battle
         private (long Exp, long Gold) ResolveRewards(BattleSessionState session)
         {
             var battleTemplateId = session.BattleTemplateId;
-            if (string.IsNullOrWhiteSpace(battleTemplateId) && !string.IsNullOrWhiteSpace(session.SpawnTemplateKey))
+            if (!battleTemplateId.HasValue && !string.IsNullOrWhiteSpace(session.SpawnTemplateKey))
             {
                 battleTemplateId = _monsterSpawnCatalog.GetBySpawnTemplateKey(session.SpawnTemplateKey)?.BattleTemplateId;
             }
 
-            if (string.IsNullOrWhiteSpace(battleTemplateId))
+            if (!battleTemplateId.HasValue || battleTemplateId.Value <= 0)
             {
                 return (0, 0);
             }
 
-            var battleTemplate = _monsterBattleCatalog.GetByBattleTemplateId(battleTemplateId);
+            var battleTemplate = _monsterBattleCatalog.GetById(battleTemplateId.Value);
             if (battleTemplate is null)
             {
                 return (0, 0);
@@ -194,7 +194,7 @@ namespace Twelve.Application.Battle
                 Math.Max(0, battleTemplate.GoldReward));
         }
 
-        private static int? ResolvePlayerId(string combatantId)
+        private static long? ResolvePlayerId(string combatantId)
         {
             const string prefix = "player:";
             if (!combatantId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
@@ -202,7 +202,7 @@ namespace Twelve.Application.Battle
                 return null;
             }
 
-            return int.TryParse(combatantId[prefix.Length..], out var playerId)
+            return long.TryParse(combatantId[prefix.Length..], out var playerId)
                 ? playerId
                 : null;
         }
@@ -210,17 +210,17 @@ namespace Twelve.Application.Battle
         private PlayerContentCatalog.BattleLootReward ResolveLoot(BattleSessionState session)
         {
             var battleTemplateId = session.BattleTemplateId;
-            if (string.IsNullOrWhiteSpace(battleTemplateId) && !string.IsNullOrWhiteSpace(session.SpawnTemplateKey))
+            if (!battleTemplateId.HasValue && !string.IsNullOrWhiteSpace(session.SpawnTemplateKey))
             {
                 battleTemplateId = _monsterSpawnCatalog.GetBySpawnTemplateKey(session.SpawnTemplateKey)?.BattleTemplateId;
             }
 
-            if (string.IsNullOrWhiteSpace(battleTemplateId))
+            if (!battleTemplateId.HasValue || battleTemplateId.Value <= 0)
             {
                 return new PlayerContentCatalog.BattleLootReward([], []);
             }
 
-            var battleTemplate = _monsterBattleCatalog.GetByBattleTemplateId(battleTemplateId);
+            var battleTemplate = _monsterBattleCatalog.GetById(battleTemplateId.Value);
             return battleTemplate is null
                 ? new PlayerContentCatalog.BattleLootReward([], [])
                 : _contentCatalog.CreateBattleLoot(session, battleTemplate);

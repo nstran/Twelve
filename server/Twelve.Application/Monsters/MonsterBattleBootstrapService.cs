@@ -49,7 +49,7 @@ namespace Twelve.Application.Monsters
                 return null;
             }
 
-            var battleTemplate = _monsterBattleCatalog.GetByBattleTemplateId(spawnTemplate.BattleTemplateId);
+            var battleTemplate = _monsterBattleCatalog.GetById(spawnTemplate.BattleTemplateId);
             if (battleTemplate is null)
             {
                 return null;
@@ -62,8 +62,8 @@ namespace Twelve.Application.Monsters
             var enemy = new MonsterBattleInstance(
                 CombatantId: $"enemy:{request.MonsterKey}",
                 MonsterKey: request.MonsterKey,
-                BattleTemplateId: battleTemplate.BattleTemplateId,
-                DisplayName: spawnTemplate.DisplayName,
+                BattleTemplateId: battleTemplate.Id,
+                DisplayName: (!string.IsNullOrWhiteSpace(asset?.DisplayName) ? asset!.DisplayName : spawnTemplate.DisplayName),
                 Element: battleTemplate.Element,
                 Level: battleTemplate.Level,
                 CurrentHp: battleTemplate.MaxHp,
@@ -84,10 +84,11 @@ namespace Twelve.Application.Monsters
                 CriticalRate: battleTemplate.CriticalRate,
                 Skills: CreateSkillInstances(battleTemplate.Skills),
                 Appearance: battleTemplate.Appearance,
-                // Source: §5 of 08-level-stat-exp-and-element-balance.md; monsters use same formula as players.
                 HealGainPercent: ComputeStrengthResourceGainPercent(battleTemplate.Strength),
                 ManaGainPercent: ComputeMagicResourceGainPercent(battleTemplate.Magic),
-                PowerGainPercent: ComputeStrengthResourceGainPercent(battleTemplate.Strength));
+                PowerGainPercent: ComputeStrengthResourceGainPercent(battleTemplate.Strength),
+                AssetCatalogId: asset?.AssetCatalogId,
+                FramePaths: asset?.FramePaths);
 
             var sessionId = Guid.NewGuid().ToString("N");
             var initialBoard = _battleBoardService.CreateInitialBoard();
@@ -105,13 +106,13 @@ namespace Twelve.Application.Monsters
                 Enemy: enemyState,
                 CreatedAtUtc: DateTime.UtcNow,
                 SpawnTemplateKey: encounter.SpawnTemplateKey,
-                BattleTemplateId: battleTemplate.BattleTemplateId));
+                BattleTemplateId: battleTemplate.Id));
 
             return new MonsterBattleBootstrapResponse(
                 SessionId: sessionId,
                 MonsterKey: encounter.MonsterKey,
                 SpawnTemplateKey: encounter.SpawnTemplateKey,
-                BattleTemplateId: battleTemplate.BattleTemplateId,
+                BattleTemplateId: battleTemplate.Id,
                 VisualTypeByte: spawnTemplate.VisualTypeByte,
                 DisplayLevel: spawnTemplate.DisplayLevel,
                 IqValue: spawnTemplate.IqValue,

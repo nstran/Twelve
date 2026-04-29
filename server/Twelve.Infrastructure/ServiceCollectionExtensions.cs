@@ -17,6 +17,12 @@ namespace Twelve.Infrastructure
             services.AddSingleton<IPasswordHasher, PasswordHasher>();
             services.AddSingleton<ISessionTokenStore, JwtSessionTokenStore>();
 
+            // Monster catalogs — DB-backed, cached at startup
+            services.AddSingleton<IMonsterAssetCatalog, DbMonsterAssetCatalog>();
+            services.AddSingleton<IMonsterSpawnCatalog, DbMonsterSpawnCatalog>();
+            services.AddSingleton<IMonsterBattleCatalog, DbMonsterBattleCatalog>();
+            services.AddSingleton<IMapMonsterRosterService, DbMapMonsterRosterService>();
+
             // Migration tự động khi khởi động
             services.AddSingleton<DatabaseMigrator>();
 

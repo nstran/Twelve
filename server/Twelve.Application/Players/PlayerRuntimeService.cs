@@ -410,7 +410,7 @@ namespace Twelve.Application.Players
                 ? null
                 : _playerAggregateRepository.GetByUsernameAsync(username).GetAwaiter().GetResult();
 
-        private PlayerAggregate ReloadAggregate(int playerId) =>
+        private PlayerAggregate ReloadAggregate(long playerId) =>
             _playerAggregateRepository.GetByPlayerIdAsync(playerId).GetAwaiter().GetResult()
             ?? throw new System.InvalidOperationException("Failed to reload player aggregate.");
 

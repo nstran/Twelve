@@ -1,6 +1,48 @@
 ﻿# CHANGELOG
 
+## 2026-04-29
+
+### [DB] Chuẩn hóa SQL theo module (`server/Database/`)
+- Gộp 15 file migration gốc thành thư mục: `Accounts/`, `Players/`, `Equipment/`, `WorldMap/`, `Monsters/`.
+- Mỗi module: `{module}_schema.sql` (final shape), `{module}_seed.sql` nếu có seed.
+- Thứ tự chạy và mô tả: `server/Database/README.md`.
+
 ## 2026-04-28
+
+### [MONSTER] Hoàn thiện monster module — DB schema + asset seed + client types
+- Tạo migration `Database/Monsters/monsters_schema.sql` với 4 bảng tách biệt theo Java runtime split:
+  `Monsters`, `MonsterSpawns`, `MonsterBattles`, `MonsterRosters`.
+  Mỗi bảng có JSONB cho `frame_paths`, `skills`, `appearance`.
+- Tạo seed `Database/Monsters/monsters_seed.sql` — seed toàn bộ 78 confirmed asset entries
+  cho 8 species (1000-1007) từ `client/assets/monster/index.csv`.
+  Convention: `MONSTER_{speciesCode}_SLOT_{slot}`.
+- Cập nhật `MonsterAssetCatalogEntry` thêm `FramePaths`.
+- Cập nhật `MapMonsterRosterEntry` thêm `AssetCatalogId` + `FramePaths`.
+- Cập nhật `MonsterBattleInstance` thêm `AssetCatalogId` + `FramePaths`.
+- Cập nhật `MonsterCatalogSeed.cs` với toàn bộ 78 asset catalog entries.
+- Cập nhật `/map/monster-roster` endpoint trả `assetCatalogId` + `framePaths`.
+- Cập nhật `MonsterBattleBootstrapService` truyền asset info vào battle instance.
+- Tạo `client/src/types/monster.types.ts` với:
+  `MonsterRosterEntry`, `MonsterBattleBootstrap`, `MonsterBattleDelta`,
+  `MonsterVisualFamily`, `resolveVisualFamily()`, `resolveIqLabel()`.
+- Tài liệu `MONSTER_SYSTEM_RECONSTRUCTION.md` cập nhật backlog.
+
+**Nguyên tắc bảo toàn:**
+- Asset / Spawn / Battle / Roster tách biệt — không gộp.
+- `monsterKey` là identity gameplay/runtime, khác `asset_id`.
+- Map spawn data lightweight giống Java `jo`.
+- Battle truth từ battle template / bootstrap giống Java `lh/lv`.
+- Client không quyết định monster stats/skills/battle result.
+
+**Files chính:**
+- `server/Database/Monsters/monsters_schema.sql`
+- `server/Database/Monsters/monsters_seed.sql`
+- `server/Twelve.Core/Monsters/MonsterContracts.cs`
+- `server/Twelve.Application/Monsters/MonsterCatalogSeed.cs`
+- `server/Twelve.Application/Monsters/MonsterBattleBootstrapService.cs`
+- `server/Twelve.Server/Program.cs`
+- `client/src/types/monster.types.ts`
+- `MONSTER_SYSTEM_RECONSTRUCTION.md`
 
 ### [MAP] Spec map/world runtime
 - Rút gọn `MAP_SYSTEM_RECONSTRUCTION.md`, chốt spec cốt lõi world map/runtime map và phần còn thiếu cho map bên ngoài.

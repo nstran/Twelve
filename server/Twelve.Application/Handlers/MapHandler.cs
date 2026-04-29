@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Linq;
 using Twelve.Application.Monsters;
 using Twelve.Core;
 using Twelve.Core.Interfaces;
@@ -21,15 +20,18 @@ namespace Twelve.Application.Handlers
         private readonly IPlayerAggregateRepository _playerAggregateRepository;
         private readonly IMapMonsterRosterService _mapMonsterRosterService;
         private readonly IMonsterSpawnCatalog _monsterSpawnCatalog;
+        private readonly IMonsterAssetCatalog _monsterAssetCatalog;
 
         public MapHandler(
             IPlayerAggregateRepository playerAggregateRepository,
             IMapMonsterRosterService mapMonsterRosterService,
-            IMonsterSpawnCatalog monsterSpawnCatalog)
+            IMonsterSpawnCatalog monsterSpawnCatalog,
+            IMonsterAssetCatalog monsterAssetCatalog)
         {
             _playerAggregateRepository = playerAggregateRepository;
             _mapMonsterRosterService = mapMonsterRosterService;
             _monsterSpawnCatalog = monsterSpawnCatalog;
+            _monsterAssetCatalog = monsterAssetCatalog;
         }
 
         public async Task HandleAsync(GameSession session, PacketRequest request)
@@ -103,9 +105,10 @@ namespace Twelve.Application.Handlers
         private byte[] BuildMonsterRosterPayload(string mapId, int roomId, byte mode)
         {
             var activeRoster = _mapMonsterRosterService.GetActiveRoster(mapId, roomId);
-            var spawnTemplates = _monsterSpawnCatalog
-                .GetAll()
-                .ToDictionary(template => template.SpawnTemplateKey, template => template, System.StringComparer.OrdinalIgnoreCase);
+            var spawnTemplates = MonsterSpawnDisplayResolver.EnrichTemplatesForEncounters(
+                activeRoster,
+                _monsterSpawnCatalog,
+                _monsterAssetCatalog);
 
             return MonsterRuntimePacketFactory.BuildRuntimePacket(
                 mapId,

@@ -7,16 +7,16 @@ namespace Twelve.Core.Interfaces
     public interface IPlayerAggregateRepository
     {
         Task<PlayerAggregate?> GetByUsernameAsync(string username);
-        Task<PlayerAggregate?> GetByPlayerIdAsync(int playerId);
+        Task<PlayerAggregate?> GetByPlayerIdAsync(long playerId);
         Task<IReadOnlyList<PlayerAggregate>> ListAsync(int limit = 50);
         Task InitializeForCharacterAsync(Player player);
         Task SaveCollectionsAsync(
-            int playerId,
+            long playerId,
             IReadOnlyList<PlayerEquipmentEntry> equipment,
             IReadOnlyList<PlayerItemStack> inventory,
             IReadOnlyList<PlayerSkillEntry> skills);
         Task UpsertWorldStateAsync(
-            int playerId,
+            long playerId,
             string mapId,
             int roomId,
             int x,

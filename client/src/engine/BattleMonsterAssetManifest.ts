@@ -29,8 +29,8 @@ export type BattleMonsterAssetSpec = {
 };
 
 export const BATTLE_MONSTER_ASSET_MANIFEST: Record<string, BattleMonsterAssetSpec> = {
-  monster_species_1000_slot_0: {
-    assetCatalogId: 'monster_species_1000_slot_0',
+  MONSTER_1000_SLOT_0: {
+    assetCatalogId: 'MONSTER_1000_SLOT_0',
     fallbackType: 'fire',
     frameWidth: 78,
     frameHeight: 47,
@@ -39,10 +39,10 @@ export const BATTLE_MONSTER_ASSET_MANIFEST: Record<string, BattleMonsterAssetSpe
     visualFootSink: 1,
     baseFacingRight: false,
     chunks: [
-      { source: require('../../assets/monster/01_confirmed_species_families/species_1000/slot_0/100001.png'), frameCount: 2 },
-      { source: require('../../assets/monster/01_confirmed_species_families/species_1000/slot_0/100003.png'), frameCount: 1 },
-      { source: require('../../assets/monster/01_confirmed_species_families/species_1000/slot_0/100004.png'), frameCount: 1 },
-      { source: require('../../assets/monster/01_confirmed_species_families/species_1000/slot_0/100005.png'), frameCount: 3 },
+      { source: require('../../assets/monster/100001.png'), frameCount: 2 },
+      { source: require('../../assets/monster/100003.png'), frameCount: 1 },
+      { source: require('../../assets/monster/100004.png'), frameCount: 1 },
+      { source: require('../../assets/monster/100005.png'), frameCount: 3 },
     ],
     legacyFrameMap: {
       0: { chunkIndex: 3, frameOffset: 0 },
@@ -62,8 +62,8 @@ export const BATTLE_MONSTER_ASSET_MANIFEST: Record<string, BattleMonsterAssetSpe
       hit: { chunkIndex: 1, frameOffset: 0 },
     },
   },
-  monster_species_1002_slot_0: {
-    assetCatalogId: 'monster_species_1002_slot_0',
+  MONSTER_1002_SLOT_0: {
+    assetCatalogId: 'MONSTER_1002_SLOT_0',
     fallbackType: 'ice',
     frameWidth: 78,
     frameHeight: 47,
@@ -72,10 +72,10 @@ export const BATTLE_MONSTER_ASSET_MANIFEST: Record<string, BattleMonsterAssetSpe
     visualFootSink: 1,
     baseFacingRight: false,
     chunks: [
-      { source: require('../../assets/monster/01_confirmed_species_families/species_1002/slot_0/100201.png'), frameCount: 2 },
-      { source: require('../../assets/monster/01_confirmed_species_families/species_1002/slot_0/100203.png'), frameCount: 1 },
-      { source: require('../../assets/monster/01_confirmed_species_families/species_1002/slot_0/100204.png'), frameCount: 1 },
-      { source: require('../../assets/monster/01_confirmed_species_families/species_1002/slot_0/100205.png'), frameCount: 3 },
+      { source: require('../../assets/monster/100201.png'), frameCount: 2 },
+      { source: require('../../assets/monster/100203.png'), frameCount: 1 },
+      { source: require('../../assets/monster/100204.png'), frameCount: 1 },
+      { source: require('../../assets/monster/100205.png'), frameCount: 3 },
     ],
     legacyFrameMap: {
       0: { chunkIndex: 3, frameOffset: 0 },
@@ -95,8 +95,8 @@ export const BATTLE_MONSTER_ASSET_MANIFEST: Record<string, BattleMonsterAssetSpe
       hit: { chunkIndex: 1, frameOffset: 0 },
     },
   },
-  monster_species_1003_slot_0: {
-    assetCatalogId: 'monster_species_1003_slot_0',
+  MONSTER_1003_SLOT_0: {
+    assetCatalogId: 'MONSTER_1003_SLOT_0',
     fallbackType: 'zap',
     frameWidth: 42,
     frameHeight: 48,
@@ -105,9 +105,9 @@ export const BATTLE_MONSTER_ASSET_MANIFEST: Record<string, BattleMonsterAssetSpe
     visualFootSink: 0,
     baseFacingRight: false,
     chunks: [
-      { source: require('../../assets/monster/01_confirmed_species_families/species_1003/slot_0/100303.png'), frameCount: 1 },
-      { source: require('../../assets/monster/01_confirmed_species_families/species_1003/slot_0/100305.png'), frameCount: 2 },
-      { source: require('../../assets/monster/01_confirmed_species_families/species_1003/slot_0/100306.png'), frameCount: 4 },
+      { source: require('../../assets/monster/100303.png'), frameCount: 1 },
+      { source: require('../../assets/monster/100305.png'), frameCount: 2 },
+      { source: require('../../assets/monster/100306.png'), frameCount: 4 },
     ],
     legacyFrameMap: {
       0: { chunkIndex: 1, frameOffset: 0 },

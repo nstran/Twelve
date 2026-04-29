@@ -4,10 +4,34 @@
     <ProjectReference Include="..\Twelve.Core\Twelve.Core.csproj" />
   </ItemGroup>
 
+  <!--
+    Nhúng toàn bộ schema + seed theo đúng thứ tự Database/README.md.
+    LogicalName prefix DB.xx_ để DatabaseMigrator sort ổn định (không dùng sort theo tên file gốc).
+  -->
   <ItemGroup>
-    <!-- Nhúng toàn bộ file .sql trong thư mục Database vào assembly -->
-    <EmbeddedResource Include="..\Database\*.sql">
-      <LogicalName>%(Filename)%(Extension)</LogicalName>
+    <EmbeddedResource Include="..\Database\Accounts\accounts_schema.sql">
+      <LogicalName>DB.01_accounts_schema.sql</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Database\Equipment\equipment_schema.sql">
+      <LogicalName>DB.02_equipment_schema.sql</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Database\Players\players_schema.sql">
+      <LogicalName>DB.03_players_schema.sql</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Database\Equipment\equipment_seed.sql">
+      <LogicalName>DB.04_equipment_seed.sql</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Database\WorldMap\worldmap_schema.sql">
+      <LogicalName>DB.05_worldmap_schema.sql</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Database\WorldMap\worldmap_seed.sql">
+      <LogicalName>DB.06_worldmap_seed.sql</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Database\Monsters\monsters_schema.sql">
+      <LogicalName>DB.07_monsters_schema.sql</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Database\Monsters\monsters_seed.sql">
+      <LogicalName>DB.08_monsters_seed.sql</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

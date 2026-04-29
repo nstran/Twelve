@@ -33,7 +33,7 @@ namespace Twelve.Infrastructure.Repositories
             return await GetByPlayerInternalAsync(player);
         }
 
-        public async Task<PlayerAggregate?> GetByPlayerIdAsync(int playerId)
+        public async Task<PlayerAggregate?> GetByPlayerIdAsync(long playerId)
         {
             var player = await _playerRepository.GetByIdAsync(playerId);
             if (player is null)
@@ -68,10 +68,11 @@ namespace Twelve.Infrastructure.Repositories
             using var connection = _connectionFactory.CreateConnection();
 
             var equipment = await connection.QueryAsync<PlayerEquipmentEntry>(
-                @"SELECT EquipKey, TemplateKey, Slot, ResourceId, Level, IsEquipped, RawJson::text AS RawJson
-                  FROM PlayerEquipment
-                  WHERE PlayerId = @PlayerId
-                  ORDER BY IsEquipped DESC, Slot, EquipKey",
+                @"SELECT pe.EquipKey, c.TemplateKey, pe.Slot, pe.ResourceId, pe.Level, pe.IsEquipped, pe.RawJson::text AS RawJson
+                  FROM PlayerEquipment pe
+                  INNER JOIN EquipmentCatalog c ON c.Id = pe.EquipmentCatalogId
+                  WHERE pe.PlayerId = @PlayerId
+                  ORDER BY pe.IsEquipped DESC, pe.Slot, pe.EquipKey",
                 new { PlayerId = player.Id });
 
             var inventory = await connection.QueryAsync<PlayerItemStack>(
@@ -177,7 +178,7 @@ namespace Twelve.Infrastructure.Repositories
         }
 
         public async Task SaveCollectionsAsync(
-            int playerId,
+            long playerId,
             IReadOnlyList<PlayerEquipmentEntry> equipment,
             IReadOnlyList<PlayerItemStack> inventory,
             IReadOnlyList<PlayerSkillEntry> skills)
@@ -193,19 +194,29 @@ namespace Twelve.Infrastructure.Repositories
                 new { PlayerId = playerId },
                 transaction);
 
+            var catalogIdByKey = new Dictionary<string, long>(System.StringComparer.Ordinal);
+            const string resolveSql = @"SELECT Id FROM EquipmentCatalog WHERE TemplateKey = @TemplateKey";
+
             const string insertEquipmentSql = @"
-                INSERT INTO PlayerEquipment (PlayerId, EquipKey, TemplateKey, Slot, ResourceId, Level, IsEquipped, RawJson)
-                VALUES (@PlayerId, @EquipKey, @TemplateKey, @Slot, @ResourceId, @Level, @IsEquipped, CAST(@RawJson AS jsonb))";
+                INSERT INTO PlayerEquipment (PlayerId, EquipKey, EquipmentCatalogId, Slot, ResourceId, Level, IsEquipped, RawJson)
+                VALUES (@PlayerId, @EquipKey, @EquipmentCatalogId, @Slot, @ResourceId, @Level, @IsEquipped, CAST(@RawJson AS jsonb))";
 
             foreach (var entry in equipment)
             {
+                var templateKey = entry.TemplateKey ?? string.Empty;
+                if (!catalogIdByKey.TryGetValue(templateKey, out var catalogId))
+                {
+                    catalogId = await connection.QuerySingleAsync<long>(resolveSql, new { TemplateKey = templateKey }, transaction);
+                    catalogIdByKey[templateKey] = catalogId;
+                }
+
                 await connection.ExecuteAsync(
                     insertEquipmentSql,
                     new
                     {
                         PlayerId = playerId,
                         entry.EquipKey,
-                        entry.TemplateKey,
+                        EquipmentCatalogId = catalogId,
                         entry.Slot,
                         entry.ResourceId,
                         entry.Level,
@@ -255,7 +266,7 @@ namespace Twelve.Infrastructure.Repositories
         }
 
         public async Task UpsertWorldStateAsync(
-            int playerId,
+            long playerId,
             string mapId,
             int roomId,
             int x,

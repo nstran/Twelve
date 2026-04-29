@@ -23,10 +23,7 @@ namespace Twelve.Application
             services.AddSingleton<IBattleSkillPacketFactory, BattleSkillPacketFactory>();
             services.AddSingleton<IBattleSkillCastPacketService, BattleSkillCastPacketService>();
             services.AddSingleton<IBattleEnemyTurnPacketService, BattleEnemyTurnPacketService>();
-            services.AddSingleton<IMonsterAssetCatalog, InMemoryMonsterAssetCatalog>();
-            services.AddSingleton<IMonsterSpawnCatalog, InMemoryMonsterSpawnCatalog>();
-            services.AddSingleton<IMonsterBattleCatalog, InMemoryMonsterBattleCatalog>();
-            services.AddSingleton<IMapMonsterRosterService, InMemoryMapMonsterRosterService>();
+            // Monster catalogs now registered in Infrastructure layer (DB-backed)
             services.AddSingleton<IMonsterBattleBootstrapService, MonsterBattleBootstrapService>();
             services.AddSingleton<PlayerCharacterPacketFactory>();
             services.AddSingleton<PlayerContentCatalog>();

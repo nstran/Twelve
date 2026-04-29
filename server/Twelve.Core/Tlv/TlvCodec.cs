@@ -1,3 +1,4 @@
+using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
@@ -97,6 +98,13 @@ namespace Twelve.Core.Tlv
         public static byte[] MakeTag(int tagId, byte value)
         {
             return MakeTag(tagId, new byte[] { value });
+        }
+
+        public static byte[] MakeTag(int tagId, float value)
+        {
+            Span<byte> data = stackalloc byte[sizeof(float)];
+            BinaryPrimitives.WriteSingleBigEndian(data, value);
+            return MakeTag(tagId, data.ToArray());
         }
 
         public static byte[] BuildPacket(CommandCode command, byte[] payload, int subCount = 0)

@@ -44,6 +44,15 @@ export interface MapMonsterSpawnRecord {
   iqValue: number;
   spawnCount: number;
   nameColorMode: number;
+  assetCatalogId?: string;
+  framePaths?: string[];
+  /** From server TLV when roster is DB-driven (per map/room). */
+  spawnTemplateKey?: string;
+  surfaceId?: string;
+  patrolStartRatio?: number;
+  patrolEndRatio?: number;
+  spawnRatio?: number;
+  moveSpeed?: number;
 }
 
 export interface MapMonsterRosterPacket {
@@ -652,6 +661,11 @@ export class SocketClient extends EventEmitter {
     return { mapId, roomId, mode, monsters };
   }
 
+  private readFloat32BE(val: Uint8Array): number | undefined {
+    if (val.byteLength < 4) return undefined;
+    return new DataView(val.buffer, val.byteOffset, 4).getFloat32(0, false);
+  }
+
   private parseMapMonsterSpawnRecord(payload: Uint8Array): MapMonsterSpawnRecord {
     let pos = 0;
     let monsterKey = '';
@@ -663,6 +677,13 @@ export class SocketClient extends EventEmitter {
     let iqValue = 0;
     let spawnCount = 0;
     let nameColorMode = 0;
+    let assetCatalogId: string | undefined;
+    let spawnTemplateKey: string | undefined;
+    let surfaceId: string | undefined;
+    let patrolStartRatio: number | undefined;
+    let patrolEndRatio: number | undefined;
+    let spawnRatio: number | undefined;
+    let moveSpeed: number | undefined;
 
     while (pos <= payload.length - 5) {
       const id = payload[pos];
@@ -697,6 +718,27 @@ export class SocketClient extends EventEmitter {
         case 107:
           nameColorMode = val[0] ?? 0;
           break;
+        case 110:
+          assetCatalogId = new TextDecoder().decode(val);
+          break;
+        case 116:
+          spawnTemplateKey = new TextDecoder().decode(val);
+          break;
+        case 111:
+          surfaceId = new TextDecoder().decode(val);
+          break;
+        case 112:
+          patrolStartRatio = this.readFloat32BE(val);
+          break;
+        case 113:
+          patrolEndRatio = this.readFloat32BE(val);
+          break;
+        case 114:
+          spawnRatio = this.readFloat32BE(val);
+          break;
+        case 115:
+          moveSpeed = this.readFloat32BE(val);
+          break;
       }
 
       pos += 5 + len;
@@ -712,6 +754,13 @@ export class SocketClient extends EventEmitter {
       iqValue,
       spawnCount,
       nameColorMode,
+      assetCatalogId,
+      spawnTemplateKey,
+      surfaceId,
+      patrolStartRatio,
+      patrolEndRatio,
+      spawnRatio,
+      moveSpeed,
     };
   }
 

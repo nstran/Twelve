@@ -21,6 +21,8 @@ export interface MapMonsterRosterEntry {
   patrolEndRatio: number;
   spawnRatio: number;
   moveSpeed: number;
+  assetCatalogId?: string;
+  framePaths?: string[];
 }
 
 export interface MapMonsterRosterResponse {

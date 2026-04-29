@@ -13,9 +13,11 @@ namespace Twelve.Core.Monsters
 
     public sealed record MonsterAssetCatalogEntry(
         string AssetCatalogId,
+        string DisplayName,
         MonsterSharedSheetFamily SharedSheetFamily,
         int? SpeciesCode = null,
-        int? Slot = null
+        int? Slot = null,
+        IReadOnlyList<string>? FramePaths = null
     );
 
     public sealed record MonsterSpawnTemplate(
@@ -26,7 +28,7 @@ namespace Twelve.Core.Monsters
         int IqValue,
         int SpawnCount,
         byte NameColorMode,
-        string BattleTemplateId,
+        long BattleTemplateId,
         string? AssetCatalogId = null
     );
 
@@ -78,7 +80,9 @@ namespace Twelve.Core.Monsters
         float PatrolStartRatio,
         float PatrolEndRatio,
         float SpawnRatio,
-        float MoveSpeed
+        float MoveSpeed,
+        string? AssetCatalogId = null,
+        IReadOnlyList<string>? FramePaths = null
     );
 
     public sealed record MapMonsterRosterResponse(
@@ -107,7 +111,7 @@ namespace Twelve.Core.Monsters
     );
 
     public sealed record MonsterBattleTemplate(
-        string BattleTemplateId,
+        long Id,
         byte Element,
         int Level,
         int MaxHp,
@@ -134,7 +138,7 @@ namespace Twelve.Core.Monsters
     public sealed record MonsterBattleInstance(
         string CombatantId,
         string MonsterKey,
-        string BattleTemplateId,
+        long BattleTemplateId,
         string DisplayName,
         byte Element,
         int Level,
@@ -159,7 +163,9 @@ namespace Twelve.Core.Monsters
         // Server-owned resource gain coefficients — §5 of 08-level-stat-exp-and-element-balance.md
         int HealGainPercent = 100,
         int ManaGainPercent = 100,
-        int PowerGainPercent = 100
+        int PowerGainPercent = 100,
+        string? AssetCatalogId = null,
+        IReadOnlyList<string>? FramePaths = null
     );
 
     public sealed record BattleCombatantSnapshot(
@@ -249,7 +255,7 @@ namespace Twelve.Core.Monsters
         string SessionId,
         string MonsterKey,
         string SpawnTemplateKey,
-        string BattleTemplateId,
+        long BattleTemplateId,
         byte VisualTypeByte,
         int DisplayLevel,
         int IqValue,

@@ -23,7 +23,7 @@ namespace Twelve.Infrastructure.Repositories
             return await connection.QueryFirstOrDefaultAsync<Account>(sql, new { Username = username });
         }
 
-        public async Task<int> CreateAsync(Account account)
+        public async Task<long> CreateAsync(Account account)
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = @"
@@ -32,10 +32,10 @@ namespace Twelve.Infrastructure.Repositories
                 VALUES
                     (@Username, @PasswordHash, @Salt, @FullName, @DateOfBirth, @Phone, @Gender, @CreatedAt)
                 RETURNING Id";
-            return await connection.ExecuteScalarAsync<int>(sql, account);
+            return await connection.ExecuteScalarAsync<long>(sql, account);
         }
 
-        public async Task UpdateLastLoginAsync(int accountId)
+        public async Task UpdateLastLoginAsync(long accountId)
         {
             using var connection = _connectionFactory.CreateConnection();
             const string sql = "UPDATE Accounts SET LastLoginAt = @Now WHERE Id = @Id";

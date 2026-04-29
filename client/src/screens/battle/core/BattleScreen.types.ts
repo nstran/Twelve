@@ -415,7 +415,7 @@ export interface BattleCombatantSnapshotDto {
 export interface MonsterBattleInstanceDto {
   combatantId: string;
   monsterKey: string;
-  battleTemplateId: string;
+  battleTemplateId: number;
   displayName: string;
   element: number;
   level: number;
@@ -440,6 +440,8 @@ export interface MonsterBattleInstanceDto {
   powerGainPercent: number;
   skills: MonsterBattleSkillInstanceDto[];
   appearance: MonsterBattleAppearanceDto;
+  assetCatalogId?: string;
+  framePaths?: string[];
 }
 
 export interface MonsterBattleBootstrapRequest {
@@ -467,7 +469,7 @@ export interface MonsterBattleBootstrapResponse {
   sessionId: string;
   monsterKey: string;
   spawnTemplateKey: string;
-  battleTemplateId: string;
+  battleTemplateId: number;
   battleKind?: BattleKind | string;
   visualTypeByte: number;
   displayLevel: number;

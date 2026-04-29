@@ -20,6 +20,13 @@ namespace Twelve.Application.Monsters
         private const int TagNameColorMode = 107;
         private const int TagSpawnGroupKey = 108;
         private const int TagSpawnInstanceIndex = 109;
+        private const int TagAssetCatalogId = 110;
+        private const int TagSurfaceId = 111;
+        private const int TagPatrolStartRatio = 112;
+        private const int TagPatrolEndRatio = 113;
+        private const int TagSpawnRatio = 114;
+        private const int TagMoveSpeed = 115;
+        private const int TagSpawnTemplateKey = 116;
 
         public static byte[] BuildRuntimePacket(
             string mapId,
@@ -53,6 +60,12 @@ namespace Twelve.Application.Monsters
             tags.AddRange(TlvCodec.MakeTag(TagMonsterKey, encounter.MonsterKey));
             tags.AddRange(TlvCodec.MakeTag(TagSpawnGroupKey, encounter.SpawnGroupKey));
             tags.AddRange(TlvCodec.MakeTag(TagSpawnInstanceIndex, encounter.SpawnInstanceIndex));
+            tags.AddRange(TlvCodec.MakeTag(TagSpawnTemplateKey, encounter.SpawnTemplateKey));
+            tags.AddRange(TlvCodec.MakeTag(TagSurfaceId, encounter.SurfaceId));
+            tags.AddRange(TlvCodec.MakeTag(TagPatrolStartRatio, encounter.PatrolStartRatio));
+            tags.AddRange(TlvCodec.MakeTag(TagPatrolEndRatio, encounter.PatrolEndRatio));
+            tags.AddRange(TlvCodec.MakeTag(TagSpawnRatio, encounter.SpawnRatio));
+            tags.AddRange(TlvCodec.MakeTag(TagMoveSpeed, encounter.MoveSpeed));
 
             if (spawnTemplate is not null)
             {
@@ -62,6 +75,11 @@ namespace Twelve.Application.Monsters
                 tags.AddRange(TlvCodec.MakeTag(TagIqValue, spawnTemplate.IqValue));
                 tags.AddRange(TlvCodec.MakeTag(TagSpawnCount, spawnTemplate.SpawnCount));
                 tags.AddRange(TlvCodec.MakeTag(TagNameColorMode, spawnTemplate.NameColorMode));
+
+                if (!string.IsNullOrWhiteSpace(spawnTemplate.AssetCatalogId))
+                {
+                    tags.AddRange(TlvCodec.MakeTag(TagAssetCatalogId, spawnTemplate.AssetCatalogId));
+                }
             }
 
             return tags.ToArray();
