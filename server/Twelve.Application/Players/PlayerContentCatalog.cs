@@ -26,20 +26,33 @@ namespace Twelve.Application.Players
             _skillsByElement = CreateSkillDefinitions();
         }
 
+        /// <summary>
+        /// Grants a fixed starter kit only when all required rows exist in <c>EquipmentCatalog</c>.
+        /// If the catalog is empty or incomplete, returns an empty list so create-character still succeeds.
+        /// </summary>
         public IReadOnlyList<PlayerEquipmentEntry> CreateStarterEquipment(Player player)
         {
-            var templateKey = (player.Element ?? 0) switch
+            var catalog = GetEquipmentDefinitions();
+            var primaryKey = (player.Element ?? 0) switch
             {
                 1 => "starter_zap_blade",
                 2 => "starter_water_blade",
                 _ => "starter_fire_blade"
             };
 
+            if (!catalog.TryGetValue(primaryKey, out var primary)
+                || !catalog.TryGetValue("fire_guard_vest", out var vest)
+                || !catalog.TryGetValue("zap_hunter_helm", out var helm))
+            {
+                return Array.Empty<PlayerEquipmentEntry>();
+            }
+
+            var seed = $"starter-{player.Username}";
             return new[]
             {
-                CreateStarterEquipmentEntry(GetRequiredEquipmentDefinition(templateKey), $"starter-{player.Username}", isEquipped: true),
-                CreateStarterEquipmentEntry(GetRequiredEquipmentDefinition("fire_guard_vest"), $"starter-{player.Username}", isEquipped: false),
-                CreateStarterEquipmentEntry(GetRequiredEquipmentDefinition("zap_hunter_helm"), $"starter-{player.Username}", isEquipped: false)
+                CreateStarterEquipmentEntry(primary, seed, isEquipped: true),
+                CreateStarterEquipmentEntry(vest, seed, isEquipped: false),
+                CreateStarterEquipmentEntry(helm, seed, isEquipped: false)
             };
         }
 

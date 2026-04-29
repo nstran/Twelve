@@ -102,6 +102,9 @@ ON CONFLICT (AssetCatalogId) DO UPDATE SET
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- MonsterBattles — combat templates (server truth for battle bootstrap)
+-- Hoa Lu room 1: progression along map (near → far on ground_main).
+--   StableKey 1 = đầu map (SpawnCol 3), StableKey 2 = giữa (4), StableKey 3 = cuối (5).
+--   Cấp độ 1 / 5 / 10 trong khoảng tân thủ ~1–10; map khác seed riêng sau.
 -- ═══════════════════════════════════════════════════════════════════════════
 
 INSERT INTO MonsterBattles (
@@ -110,21 +113,21 @@ INSERT INTO MonsterBattles (
     MinDamage, MaxDamage, Defense, HitRate, DodgeRate, CriticalRate,
     Skills, Appearance, AiProfileId, ExpReward, GoldReward, QuanReward
 ) VALUES
-    (1, 0, 7, 108, 29, 100,
-     13, 7, 5, 9, 18, 24, 4, 80, 3, 7,
+    (1, 0, 1, 44, 10, 100,
+     5, 4, 3, 5, 5, 10, 2, 72, 4, 5,
      '[]'::jsonb,
      '{"assetCatalogId":"MONSTER_1000_SLOT_0"}'::jsonb,
-     'beast', 33, 9, 0),
-    (2, 2, 8, 140, 64, 100,
-     7, 8, 15, 12, 24, 30, 6, 81, 5, 8,
-     '[{"skillId":4000,"level":2,"manaCost":7}]'::jsonb,
+     'beast', 6, 3, 0),
+    (2, 2, 5, 78, 32, 100,
+     5, 7, 10, 8, 12, 18, 5, 78, 5, 7,
+     '[{"skillId":4000,"level":1,"manaCost":6}]'::jsonb,
      '{"assetCatalogId":"MONSTER_1002_SLOT_0"}'::jsonb,
-     'move_first', 48, 14, 0),
-    (3, 1, 9, 128, 51, 100,
-     12, 17, 6, 10, 20, 29, 10, 98, 8, 15,
-     '[{"skillId":2000,"level":4,"manaCost":11}]'::jsonb,
+     'move_first', 24, 8, 0),
+    (3, 1, 10, 108, 48, 100,
+     10, 13, 8, 11, 17, 26, 9, 90, 8, 12,
+     '[{"skillId":2000,"level":3,"manaCost":10}]'::jsonb,
      '{"assetCatalogId":"MONSTER_1003_SLOT_0"}'::jsonb,
-     'tactician', 70, 19, 0)
+     'tactician', 52, 14, 0)
 ON CONFLICT (StableKey) DO UPDATE SET
     Element = EXCLUDED.Element, Level = EXCLUDED.Level,
     MaxHp = EXCLUDED.MaxHp, MaxMp = EXCLUDED.MaxMp, MaxPower = EXCLUDED.MaxPower,
@@ -156,11 +159,11 @@ SELECT
     b.Id,
     m.Id
 FROM (VALUES
-    ('hoa_lu_fire_basic'::text, N'Quái lửa'::text, 0::smallint, 7, 2, 2, 1,
+    ('hoa_lu_fire_basic'::text, N'Quái lửa'::text, 0::smallint, 1, 2, 2, 1,
      1::int, 'MONSTER_1000_SLOT_0'::text),
-    ('hoa_lu_ice_basic', N'Quái băng', 4::smallint, 8, 8, 2, 1,
+    ('hoa_lu_ice_basic', N'Quái băng', 4::smallint, 5, 5, 2, 1,
      2, 'MONSTER_1002_SLOT_0'),
-    ('hoa_lu_zap_basic', N'Quái sét', 2::smallint, 9, 11, 1, 1,
+    ('hoa_lu_zap_basic', N'Quái sét', 2::smallint, 10, 9, 1, 1,
      3, 'MONSTER_1003_SLOT_0')
 ) AS v(SpawnTemplateKey, DisplayName, VisualTypeByte, DisplayLevel,
       IqValue, SpawnCount, NameColorMode, battle_stable_key, asset_key)
@@ -177,7 +180,9 @@ ON CONFLICT (SpawnTemplateKey) DO UPDATE SET
     MonsterId = EXCLUDED.MonsterId;
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- MonsterRosters — Hoa Lu room 1 (placement matches RuntimeMapCatalog surfaces)
+-- MonsterRosters — Hoa Lu room 1
+-- SpawnCellCol / patrol ratios: cột nhỏ + ratio thấp = gần đầu map (quái yếu);
+-- cột lớn + ratio cao = xa hơn (quái mạnh). Khớp StableKey 1→2→3 ở MonsterBattles.
 -- ═══════════════════════════════════════════════════════════════════════════
 
 INSERT INTO MonsterRosters (
