@@ -11,6 +11,7 @@ export { JavaCompatibleCharacterController } from './JavaCompatibleCharacterCont
 export {
   JAVA_TILE_SIZE,
   buildFlatGroundJavaGrid,
+  buildSurfaceJavaGrid,
   createJavaMapActorRuntime,
   javaMoveVectorX,
   javaMoveVectorY,

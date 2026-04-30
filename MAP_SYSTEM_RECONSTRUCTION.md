@@ -1343,3 +1343,190 @@ Các phần cần làm để map bên ngoài playable:
 - Nguồn suy luận:
   - `reference/redecoded/cfr_fresh/kl.java`: base jump/fall strength `a` và state `j/s/t`;
   - `reference/redecoded/cfr_fresh/km.java`: jump/fall tick vẫn xử lý theo state `5/6`; phần multiplier là policy remake tạm do thiếu collision grid Java gốc cho Hoa Lư.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (runtime monster collision box Java-inspired)
+
+- Sửa `client/src/engine/MonsterSprite.tsx`:
+  - `monsterCollisionSize(type)` dùng ratio theo loại quái (`fire=0.52`, `ice=0.54`, `zap=0.56`) thay vì ratio cố định;
+  - collision height dựa trên visible body height sau khi trừ bottom alpha inset, rồi nhân policy `0.86`;
+  - ghi chú rõ đây là Java-inspired/reconstructed policy vì chưa recover exact monster hitbox gốc.
+- Sửa `client/src/engine/character/character.types.ts`:
+  - mở rộng `MonsterTarget` với `collisionWidth?`, `collisionHeight?`, `groundY?` để controller có thể đọc runtime collision box tách khỏi visual sprite.
+- Sửa `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`:
+  - khi build/mutate `monsterTargets`, truyền thêm collision width/height và ground line của monster runtime;
+  - `hasMonsterCollision(...)` dùng AABB anchored bottom-center theo collision size, không dùng full visual sprite rectangle;
+  - player collision dùng runtime-like body width gần Java `kl.t.c` thay vì full sprite width;
+  - vertical trigger giới hạn trong vùng thân monster quanh ground line, giúp nhảy qua/đứng trên cao không bị kéo battle sai.
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - bỏ `MONSTER_TOUCH_HITBOX_RATIO` cố định;
+  - thêm `getMonsterRuntimeBox(...)` để tạo runtime AABB từ `MonsterTarget.collisionWidth/collisionHeight/groundY`;
+  - tap monster dùng runtime box có pad 4px mỗi cạnh;
+  - attack range dùng center từ hitbox Java runtime của player (`runtime.t.a + runtime.t.c / 2`) và monster runtime box; thêm vertical gate nhẹ theo ground line khi có `groundY`.
+- Kết luận phục dựng:
+  - battle trigger ngoài map Hoa Lư đã tách monster runtime collision box khỏi visual sprite;
+  - policy hiện bám nguyên tắc Java actor runtime hitbox (`kl.t`) và AABB anchored bottom-center;
+  - chưa thể gọi là 100% Java-perfect vì thiếu exact monster hitbox/map actor data gốc; đây là Java-inspired/reconstructed policy tốt nhất từ client/code hiện có.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (tuning visual smoothing Java-compatible)
+
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - đổi `VISUAL_SMOOTHING_MS` sang dùng trực tiếp `JAVA_MAP_TICK_MS` để lớp render bám cùng nhịp fixed-step Java thay vì thời lượng rời rạc;
+  - chỉ gọi `updateJumpPoseFromJavaState()` và `commitVisualPosition()` khi accumulator thật sự chạy ít nhất một Java step (`steps > 0`), tránh retarget/cancel `Animated.timing` ở mọi rAF khi runtime `kl.t` chưa đổi;
+  - hard commit `posAnim`/`posYAnim` bằng `stopAnimation()` + `setValue()` khi `forceEmit` cho spawn/stop/landing endpoints; chuyển động liên tục vẫn tween tuyến tính theo Java tick;
+  - giảm `LANDING_HOLD_MS` từ `150ms` xuống `90ms` để trạng thái landing không giữ pose quá lâu sau khi chân đã chạm surface/grid, giúp chuyển về run/idle mượt hơn;
+  - thêm easing tuyến tính `Easing.linear` cho `posAnim` và `posYAnim`; đây là visual interpolation-only, không đổi công thức physics Java (`km.java` vẫn fixed-step qua `JAVA_MAP_TICK_MS`);
+  - dọn dependency `scale` thừa khỏi `commitVisualPosition` để tránh recreate callback không cần thiết.
+- Rà `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`:
+  - camera scroll đã được coalesce bằng `requestAnimationFrame`, mỗi vsync tối đa một `scrollTo({ animated: false })`;
+  - sync socket vị trí player đã throttle theo `750ms` và `24px`, có `force` khi `onMoveEnd`, nên không gửi network theo từng frame/tick.
+- Nguồn suy luận:
+  - `reference/redecoded/cfr_fresh/km.java`: physics actor chạy theo tick/state Java, không theo easing;
+  - phần smoothing chỉ là Java-inspired/reconstructed policy ở lớp React Native render để nội suy giữa các bước `kl.t`, không làm thay đổi runtime collision/hitbox.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (discrete visual commit theo Java actor loop)
+
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - thêm policy `USE_DISCRETE_JAVA_VISUAL_COMMIT = true` để commit visual position trực tiếp sau mỗi Java fixed-step thay vì restart `Animated.timing` 40ms liên tục;
+  - giữ physics/collision theo runtime `kl.t` và `JAVA_MAP_TICK_MS`, chỉ thay đổi lớp render để sprite không bị trễ/rubber-band so với runtime hitbox;
+  - vẫn giữ hard commit bằng `stopAnimation()` cho spawn/stop/landing endpoints.
+- Nguồn suy luận:
+  - Java J2ME actor loop update runtime rồi draw ngay trong tick/canvas, không có native animation tween giữa hai lần draw;
+  - đây là Java-inspired/reconstructed render policy để tránh cảm giác chạy “dung lạ” do visual animation chậm hơn runtime, không thay đổi công thức movement/collision Java.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (Hoa Lư dùng surface-based Java collision grid)
+
+- Sửa `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`:
+  - bỏ import/sử dụng `buildFlatGroundJavaGrid(...)` cho Hoa Lư;
+  - tạo `javaCollisionGrid` bằng `buildSurfaceJavaGrid(mapWidth, mapHeight, sceneSurfaces)` để grid phản ánh toàn bộ `GroundSurface` đã author cho ground/platform;
+  - truyền `collisionGrid={javaCollisionGrid}` trực tiếp vào `JavaCompatibleCharacterController`, không còn để `undefined` khiến controller fallback sang surface adapter runtime;
+  - comment tại điểm truyền grid ghi rõ policy Java-inspired/reconstructed: Java `km.java/kf.java` dùng collision grid đầy đủ; flat one-row grid gây snap/fall ở platform giữa map, còn `undefined` làm movement không Java-consistent.
+- Khoanh vùng lỗi:
+  - nguyên nhân rung/snap/trigger lệch ở vùng giữa map là controller đang chạy với runtime actor hitbox Java (`kl.t`) nhưng collision support lại không dùng tile grid đầy đủ;
+  - flat grid chỉ mô tả nền chính nên sai với Hoa Lư có nhiều platform;
+  - fallback `surfaces` giúp tránh snap về nền chính nhưng không phải hướng bám Java lâu dài.
+- Kết luận phục dựng:
+  - Hoa Lư hiện dùng surface-based Java collision grid làm adapter tốt hơn, bám mô hình `kf.d` tile matrix của Java hơn fallback;
+  - chưa 100% Java-perfect vì grid vẫn được dựng lại từ `GroundSurface`, chưa recover exact `kf.d` gốc cho room Hoa Lư.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (ổn định monster runtime/trigger Hoa Lư)
+
+- Rà và hoàn thiện `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`:
+  - đồng bộ `monsterTargets` theo runtime monster hiện tại, bao gồm `collisionWidth`, `collisionHeight`, `groundY` để controller luôn dùng collision box tách khỏi visual sprite;
+  - khi cập nhật target hiện có, refresh cả visual size lẫn runtime collision box/ground line, tránh tap/attack range còn giữ kích thước cũ sau khi monster đổi state/spawn;
+  - encounter auto vẫn dùng `hasMonsterCollision(...)` với AABB Java-inspired anchored bottom-center: monster lấy center X + collision size, player dùng runtime-like body width gần Java `kl.t.c`, không dùng full sprite padding;
+  - vertical trigger giới hạn theo vùng body quanh ground line (`bodyTop..bodyBottom`) để giảm kéo battle sai khi player nhảy qua hoặc đứng lệch tầng.
+- Rà `client/src/engine/MonsterSprite.tsx` và `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - `monsterCollisionSize(type)` dùng ratio theo loại quái và visible body height sau khi trừ alpha/bottom inset;
+  - controller dùng `getMonsterRuntimeBox(...)` cho tap/move-to/attack range, pad touch 4px và vertical gate nhẹ theo `groundY` khi có dữ liệu.
+- Kết luận phục dựng:
+  - battle trigger ngoài map Hoa Lư hiện đã tách runtime collision box khỏi visual sprite theo nguyên tắc Java actor runtime hitbox;
+  - policy vẫn là **Java-inspired/reconstructed policy**, chưa Java-perfect vì chưa recover exact monster hitbox/map actor data gốc từ Java server/client.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (debug movement jitter Hoa Lư)
+
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - thêm debug flag tạm `DEBUG_JAVA_MOVEMENT_JITTER = true` để log chẩn đoán runtime movement khi người chơi test chạy trong Hoa Lư;
+  - log `[JavaMoveDebug][tick]` mỗi khoảng `250ms`, gồm `dt`, số Java fixed-step đã chạy, accumulator, state `j`, direction, target X, runtime rect `kl.t`, visual left X, footY, currentGroundY, yOffset, visualYOffset, groundOffset và trạng thái collision grid;
+  - log `[JavaMoveDebug][ground-snap]` khi groundY thay đổi để phân biệt jitter Y do surface/grid snapping với jitter X do render/tick;
+  - log `[JavaMoveDebug][position-revision-reset]` khi `positionRevision` reset runtime để phát hiện parent/server echo hoặc map reset vị trí làm nhân vật bị kéo/snap.
+- Sửa `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`:
+  - thêm overlay tạm `JavaMoveDebug overlay` hiển thị trực tiếp trên màn hình vì web/Expo console có thể không hiện log app khi test;
+  - overlay cập nhật theo `onMove`, `onMoveEnd`, gamepad/key start/stop và hiển thị event, X, footY, facing, hướng input, cameraX, số monster runtime;
+  - overlay chỉ đọc trạng thái runtime/ref hiện có, không thay đổi công thức physics/collision Java-compatible.
+- Mục tiêu debug:
+  - không thay đổi công thức physics/collision Java-compatible hiện có;
+  - giúp phân loại chính xác nguyên nhân rung/giật: fixed tick/render commit, ground snapping, parent position reset, hoặc input/camera state trên màn hình test.
+- Nguồn suy luận:
+  - Java-inspired/reconstructed debugging policy dựa trên actor runtime `kl.t`, state `j/k/s` và fixed-step `km.java`; log/overlay chỉ phục vụ đo runtime parity, không phải logic gameplay cuối cùng.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (ổn định visual commit sau debug jitter Hoa Lư)
+
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - bật lại `USE_DISCRETE_JAVA_VISUAL_COMMIT = true` để visual sprite commit trực tiếp theo runtime actor sau mỗi Java fixed-step, tránh tạo/cancel `Animated.timing` liên tục mỗi tick gây cảm giác rung/rubber-band trên thiết bị;
+  - giữ `DEBUG_JAVA_MOVEMENT_JITTER = false`, không còn console spam trong runtime di chuyển thường;
+  - không đổi công thức physics/collision Java-compatible: runtime vẫn dùng `kl.t`, fixed-step `JAVA_MAP_TICK_MS`, tile/surface collision adapter hiện có.
+- Rà `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`:
+  - debug overlay `MAP_DEBUG_OVERLAY_ENABLED` đang tắt, nên không còn cập nhật state overlay theo `onMove` gây re-render map khi test movement thường.
+- Nguồn suy luận:
+  - Java J2ME actor loop update runtime rồi draw ngay trong tick/canvas; policy này là **Java-inspired/reconstructed render policy**, chỉ ổn định lớp render React Native, không thay đổi gameplay/collision.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (visual interpolation-only theo Java fixed-step)
+
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - thay discrete-only visual commit bằng `USE_INTERPOLATED_JAVA_VISUAL_COMMIT = true`;
+  - thêm `VisualInterpolationFrame`, `visualLeftXRef` và `visualInterpolationRef` để nội suy vị trí sprite giữa vị trí visual hiện tại và vị trí runtime mới nhất sau Java fixed-step;
+  - `commitVisualPosition(false, now)` chỉ tạo frame nội suy cho lớp render, không restart `Animated.timing`/native animation mỗi tick;
+  - `renderInterpolatedVisualPosition(now)` chạy theo `requestAnimationFrame` để cập nhật `posAnim`/`posYAnim` mượt hơn giữa các tick 40ms;
+  - `forceEmit` cho spawn/stop/landing/reset vẫn hard commit và xóa interpolation để endpoint không bị trễ;
+  - debug jitter vẫn tắt (`DEBUG_JAVA_MOVEMENT_JITTER = false`), không bật overlay/log trong runtime thường.
+- Kết luận phục dựng:
+  - physics/collision vẫn là source of truth theo runtime `kl.t`, `JAVA_MAP_TICK_MS` và collision grid/surface adapter hiện có;
+  - interpolation chỉ là lớp render visual-only, không feed back vào movement, attack range, monster collision hoặc trigger;
+  - đây là **Java-inspired/reconstructed render policy** để đạt cảm giác trơn hơn trên React Native/mobile trong khi vẫn giữ công thức movement/collision Java-compatible.
+
+
+## Nhật ký chỉnh sửa - 2026-04-30 (rollback visual interpolation gây jitter Hoa Lư)
+
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - tắt `USE_INTERPOLATED_JAVA_VISUAL_COMMIT` sau khi test thực tế báo sprite lại rung/giật;
+  - quay về commit visual trực tiếp theo runtime actor sau mỗi Java fixed-step, giữ `renderInterpolatedVisualPosition(...)` không hoạt động vì không còn tạo `VisualInterpolationFrame`;
+  - không bật debug/log runtime thường (`DEBUG_JAVA_MOVEMENT_JITTER = false`) để tránh ảnh hưởng FPS/re-render khi người chơi test.
+- Kết luận phục dựng:
+  - hướng interpolation-only chưa ổn định trên RN/Expo hiện tại, có khả năng lệch nhịp với camera/ground offset hoặc `Animated.Value.setValue` mỗi rAF;
+  - policy đang dùng lại discrete visual commit vì gần Java J2ME hơn: update actor runtime rồi draw ngay, không tween giữa tick;
+  - physics/collision/monster trigger không đổi, vẫn dựa vào runtime `kl.t`, `JAVA_MAP_TICK_MS` và collision grid/surface adapter.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (căn visual chân nhân vật Hoa Lư)
+
+- Sửa `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`:
+  - bổ sung comment policy `Java-inspired/reconstructed visual anchoring policy` tại `spriteFootSink`;
+  - tăng visual-only foot sink thêm `Math.round(2 * sceneConfig.playerScale)` trên nền sink đã suy từ create-character compositor;
+  - mục tiêu là kéo riêng lớp render xuống sâu hơn vào mép cỏ/ground strip để chân nhìn chạm nền Hoa Lư tốt hơn.
+- Phạm vi ảnh hưởng:
+  - không đổi `groundTop`, `charFootYRef`, runtime `kl.t`, collision grid, monster trigger hoặc battle collision;
+  - thay đổi chỉ tác động `playerSpriteSize.groundOffset` truyền vào `JavaCompatibleCharacterController` để render sprite, còn physics/collision vẫn giữ Java-compatible runtime body.
+- Kết luận phục dựng:
+  - đây là Java-inspired/reconstructed visual policy vì exact Java client render anchor/monster-server hitbox không recover đủ;
+  - dùng để khớp cảm giác thị giác Hoa Lư mà không làm lệch logic collision/trigger đã phục dựng.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (airborne Y visual interpolation Hoa Lư)
+
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - thêm flag `USE_AIRBORNE_Y_VISUAL_INTERPOLATION = true` để chỉ nội suy visual offset Y khi runtime actor đang ở state `JumpRising` hoặc `Falling`;
+  - giữ `USE_INTERPOLATED_JAVA_VISUAL_COMMIT = false`, nên X/ground running vẫn commit trực tiếp theo Java fixed-step như actor loop J2ME;
+  - khi airborne, `commitVisualPosition(false, now)` tạo `VisualInterpolationFrame` cho `posYAnim` giữa hai tick `JAVA_MAP_TICK_MS`, còn collision/attack/monster trigger vẫn đọc runtime `kl.t`;
+  - không nội suy X trong policy mới để tránh tái phát jitter/snap camera từng gặp ở rollback trước, chỉ làm mượt cảm giác nhảy/rơi theo trục Y.
+- Phạm vi ảnh hưởng:
+  - không đổi physics Java-compatible, không đổi jump impulse, collision grid, monster runtime box hoặc battle trigger Hoa Lư;
+  - thay đổi chỉ nằm ở lớp render visual-only của React Native.
+- Kết luận phục dựng:
+  - đây là **Java-inspired/reconstructed render policy** nhằm giảm rung/choppy visual khi nhảy/rơi trên RN/web refresh rate, trong khi vẫn giữ runtime Java fixed-step làm source of truth;
+  - chưa Java-perfect vì exact timing/render pipeline J2ME và monster/server hitbox gốc chưa recover đầy đủ.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (sửa mất sprite khi air-control nhảy Hoa Lư)
+
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - giữ `USE_INTERPOLATED_JAVA_VISUAL_COMMIT = false` và sửa logic airborne interpolation để **không nội suy X** khi nhảy/rơi;
+  - khi đang airborne, `fromX/toX` đều bám visual/runtime X hiện tại, tránh frame nội suy kéo sprite về X cũ làm nhân vật mất ảnh rồi xuất hiện ở vị trí đáp;
+  - giảm `DEFAULT_JUMP_IMPULSE_MULTIPLIER` từ `1.35` xuống `1.15` để hạ độ “bật” quá gắt;
+  - thêm `AIRBORNE_VERTICAL_DELTA_RATIO = 0.82` để damp riêng delta Y screen-space của state `JumpRising`/`Falling`, làm nhảy/rơi chậm hơn trong scene Hoa Lư hiện tại.
+- Phạm vi ảnh hưởng:
+  - thay đổi vẫn nằm trong Java-inspired/reconstructed policy vì chưa recover exact legacy render scale/timing của Hoa Lư;
+  - state machine, attack/monster trigger, runtime hitbox `kl.t`, collision grid/surface adapter vẫn là source of truth.
+- Lý do:
+  - phản hồi test thực tế cho thấy Y interpolation giúp mượt hơn nhưng khi kết hợp sang trái/phải, frame nội suy vẫn giữ X cũ nên sprite bị lệch/mất ảnh tạm thời;
+  - fix này khóa X visual theo runtime mỗi tick, chỉ giữ smoothing Y và giảm tốc độ vertical để cảm giác rơi/nhảy bớt nhanh.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (air-control X interpolation an toàn Hoa Lư)
+
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - thêm `USE_AIRBORNE_X_VISUAL_INTERPOLATION = true` để chỉ blend X visual khi actor đang airborne (`JumpRising`/`Falling`);
+  - `startMove(...)`, `moveToX(...)` và `moveToMonster(...)` khi airborne chỉ cập nhật hướng/bitmask Java `k=4/8`, không gọi horizontal step tức thời trong input frame;
+  - horizontal runtime X vẫn được cộng trong fixed tick Java qua `applyHorizontalStep(...)`, còn render X blend từ `visualLeftXRef` tới runtime X mới nhất;
+  - `USE_INTERPOLATED_JAVA_VISUAL_COMMIT` vẫn `false`, nên ground running và endpoint spawn/stop/landing/reset không quay lại interpolation toàn cục từng gây jitter.
+- Phạm vi ảnh hưởng:
+  - không đổi state machine Java-compatible, runtime hitbox `kl.t`, collision grid/surface adapter, monster runtime box hoặc battle trigger;
+  - thay đổi chỉ là lớp render visual-only cho air-control khi nhảy/rơi, nhằm giảm cảm giác giật từng nấc mà không feed back vào gameplay.
+- Kết luận phục dựng:
+  - đây là **Java-inspired/reconstructed render policy** từ nguyên tắc Java actor runtime: physics/collision đọc runtime `kl.t`, render có thể làm mượt có kiểm soát giữa fixed tick;
+  - chưa Java-perfect vì chưa recover exact J2ME render cadence/monster hitbox gốc, nhưng giữ nguồn sự thật ở runtime Java-compatible.

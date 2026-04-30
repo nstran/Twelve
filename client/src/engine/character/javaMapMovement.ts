@@ -141,6 +141,14 @@ export const javaTileTopY = (grid: JavaMapCollisionGrid, row: number): number =>
   row * grid.tileSize
 );
 
+export const javaTileBottomY = (grid: JavaMapCollisionGrid, row: number): number => (
+  (row + 1) * grid.tileSize
+);
+
+const javaPositiveModulo = (value: number, modulo: number): number => (
+  ((value % modulo) + modulo) % modulo
+);
+
 export const javaGetFlagAtPixel = (
   grid: JavaMapCollisionGrid,
   x: number,
@@ -155,20 +163,75 @@ const javaProbeYsForSide = (rect: JavaMapActorRect): number[] => [
   rect.b + rect.d - 2,
 ];
 
+const javaSlopeSurfaceYAtPixel = (
+  grid: JavaMapCollisionGrid,
+  flag: number,
+  row: number,
+  x: number,
+): number | null => {
+  if (!khFlag.d(flag) && !khFlag.l(flag)) return null;
+  const offsetX = javaPositiveModulo(Math.floor(x), grid.tileSize);
+  const tileTop = javaTileTopY(grid, row);
+  // Java-inspired/reconstructed policy from kh.d/kh.l slope bit pairs:
+  // bit 0x40 marks diagonal terrain; bit 2 is rising-left->right and bit 1 is
+  // falling-left->right. The exact Java server map data is unavailable, so the
+  // interpolation follows the 32px client tile convention from km/kf probing.
+  return khFlag.d(flag)
+    ? tileTop + grid.tileSize - 1 - offsetX
+    : tileTop + offsetX;
+};
+
+export const javaFindGroundYAtPixel = (
+  grid: JavaMapCollisionGrid,
+  x: number,
+  y: number,
+  maxSnapDown = grid.tileSize,
+): number | null => {
+  const startRow = Math.max(0, javaTileRowAtY(grid, y - 1));
+  const endRow = Math.min(grid.rows - 1, javaTileRowAtY(grid, y + maxSnapDown));
+  const col = javaTileColAtX(grid, x);
+
+  for (let row = startRow; row <= endRow; row++) {
+    const flag = kfGetFlag(grid, row, col);
+    const slopeY = javaSlopeSurfaceYAtPixel(grid, flag, row, x);
+    if (slopeY !== null && y <= slopeY + maxSnapDown && y >= slopeY - 3) {
+      return slopeY;
+    }
+    if (khFlag.c(flag) && y <= javaTileTopY(grid, row) + maxSnapDown) {
+      return javaTileTopY(grid, row);
+    }
+  }
+
+  return null;
+};
+
+export const javaFindGroundYForRect = (
+  grid: JavaMapCollisionGrid,
+  rect: JavaMapActorRect,
+  maxSnapDown = grid.tileSize,
+): number | null => {
+  const footY = rect.b + rect.d;
+  const probeXs = [rect.a, rect.a + rect.c / 2, rect.a + rect.c - 1];
+  let best: number | null = null;
+
+  for (const x of probeXs) {
+    const candidate = javaFindGroundYAtPixel(grid, x, footY, maxSnapDown);
+    if (candidate === null) continue;
+    if (best === null || candidate < best) {
+      best = candidate;
+    }
+  }
+
+  return best;
+};
+
 export const javaHasGroundSupport = (
   grid: JavaMapCollisionGrid,
   rect: JavaMapActorRect,
 ): boolean => {
-  const footY = rect.b + rect.d;
-  const leftX = rect.a;
-  const midX = rect.a + rect.c / 2;
-  const rightX = rect.a + rect.c - 1;
-
-  return (
-    khFlag.c(javaGetFlagAtPixel(grid, leftX, footY)) ||
-    khFlag.c(javaGetFlagAtPixel(grid, midX, footY)) ||
-    khFlag.c(javaGetFlagAtPixel(grid, rightX, footY))
-  );
+  const groundY = javaFindGroundYForRect(grid, rect, 3);
+  if (groundY === null) return false;
+  return Math.abs((rect.b + rect.d) - groundY) <= 3;
 };
 
 export const javaFindLandingTileTop = (
@@ -180,18 +243,23 @@ export const javaFindLandingTileTop = (
   const startY = Math.min(previousFootY, projectedFootY);
   const endY = Math.max(previousFootY, projectedFootY);
   const probeXs = [rect.a, rect.a + rect.c / 2, rect.a + rect.c - 1];
+  let best: number | null = null;
 
   for (let y = startY; y <= endY; y += Math.max(1, grid.tileSize / 8)) {
     for (const x of probeXs) {
       const row = javaTileRowAtY(grid, y);
       const flag = kfGetFlag(grid, row, javaTileColAtX(grid, x));
-      if (khFlag.c(flag)) {
-        return javaTileTopY(grid, row);
+      const slopeY = javaSlopeSurfaceYAtPixel(grid, flag, row, x);
+      const candidate = slopeY ?? (khFlag.c(flag) ? javaTileTopY(grid, row) : null);
+      if (candidate !== null && previousFootY <= candidate && projectedFootY >= candidate) {
+        if (best === null || candidate < best) {
+          best = candidate;
+        }
       }
     }
   }
 
-  return null;
+  return best;
 };
 
 export const javaCanMoveHorizontally = (
@@ -204,9 +272,22 @@ export const javaCanMoveHorizontally = (
   const probeRect = { ...rect, a: nextX };
   const passable = direction === 'right' ? khFlag.m : khFlag.n;
 
-  return javaProbeYsForSide(probeRect).every((y) => (
-    passable(javaGetFlagAtPixel(grid, probeX, y))
-  ));
+  return javaProbeYsForSide(probeRect).every((y) => {
+    const flag = javaGetFlagAtPixel(grid, probeX, y);
+    return passable(flag) || khFlag.d(flag) || khFlag.l(flag) || khFlag.b(flag);
+  });
+};
+
+export const javaCanClimbAtRect = (
+  grid: JavaMapCollisionGrid,
+  rect: JavaMapActorRect,
+): boolean => {
+  const centerX = rect.a + rect.c / 2;
+  return (
+    khFlag.b(javaGetFlagAtPixel(grid, centerX, rect.b + 2)) ||
+    khFlag.b(javaGetFlagAtPixel(grid, centerX, rect.b + rect.d / 2)) ||
+    khFlag.b(javaGetFlagAtPixel(grid, centerX, rect.b + rect.d - 2))
+  );
 };
 
 export const javaFindCeilingBottom = (
@@ -264,6 +345,50 @@ export const buildFlatGroundJavaGrid = (
   const flags = Array.from({ length: rows }, (_, row) => (
     Array.from({ length: cols }, () => (row >= groundRow ? 0x10 : 0))
   ));
+
+  return {
+    tileSize: JAVA_TILE_SIZE,
+    rows,
+    cols,
+    flags,
+  };
+};
+
+export const buildSurfaceJavaGrid = (
+  widthPx: number,
+  heightPx: number,
+  surfaces: ReadonlyArray<GroundSurface>,
+): JavaMapCollisionGrid => {
+  const cols = Math.ceil(widthPx / JAVA_TILE_SIZE);
+  const rows = Math.ceil(heightPx / JAVA_TILE_SIZE);
+  const flags = Array.from({ length: rows }, () => (
+    Array.from({ length: cols }, () => 0)
+  ));
+
+  for (const surface of surfaces) {
+    const startCol = Math.max(0, Math.floor(surface.x1 / JAVA_TILE_SIZE));
+    const endCol = Math.min(cols - 1, Math.floor((surface.x2 - 1) / JAVA_TILE_SIZE));
+    const yStart = getSurfaceYAtFootX(surface, surface.x1, 1);
+    const yEnd = getSurfaceYAtFootX(surface, surface.x2, 1);
+    const isSlope = Math.abs(yStart - yEnd) >= 1;
+
+    for (let col = startCol; col <= endCol; col++) {
+      const x = col * JAVA_TILE_SIZE + JAVA_TILE_SIZE / 2;
+      const y = getSurfaceYAtFootX(surface, x, 1);
+      const row = Math.max(0, Math.min(rows - 1, Math.floor(y / JAVA_TILE_SIZE)));
+      const walkFlag = isSlope
+        ? (yEnd < yStart ? 0x40 | 2 : 0x40 | 1)
+        : 0x10;
+
+      flags[row][col] |= walkFlag;
+
+      if (surface.kind === 'ground' || !surface.oneWay) {
+        for (let solidRow = row + 1; solidRow < rows; solidRow++) {
+          flags[solidRow][col] |= 0x10;
+        }
+      }
+    }
+  }
 
   return {
     tileSize: JAVA_TILE_SIZE,

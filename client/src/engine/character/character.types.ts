@@ -25,6 +25,15 @@ export interface MonsterTarget {
   y: number;
   width: number;
   height: number;
+  /**
+   * Java-inspired/reconstructed runtime collision box. Visual sprite sheets can
+   * contain alpha padding; when present these dimensions represent the actor
+   * body used for touch/proximity checks instead of the full visual rectangle.
+   */
+  collisionWidth?: number;
+  collisionHeight?: number;
+  /** Runtime ground line used to bottom-anchor the reconstructed monster box. */
+  groundY?: number;
 }
 
 export interface GroundSurface {

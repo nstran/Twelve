@@ -10,7 +10,7 @@ import {
 } from '../../../engine/MonsterSprite';
 import {
   JavaCompatibleCharacterController,
-  buildFlatGroundJavaGrid,
+  buildSurfaceJavaGrid,
   type CharacterControllerRef,
   type GroundSurface,
   type MonsterTarget,
@@ -115,6 +115,8 @@ const BATTLE_RECOVERY_MS = 3000;
 // Mỗi bao nhiêu tick thì đổi frame (tick=50ms, FRAME_TICKS=4 → 80ms/frame ≈ 12fps anim)
 const FRAME_TICKS = 4;
 const MONSTER_TICK_MS = 50; // 20 logic ticks/sec
+const MAP_DEBUG_OVERLAY_ENABLED = false;
+const MAP_DEBUG_OVERLAY_MIN_MS = 120;
 
 const getLoopNowMs = (): number => (
   typeof performance !== 'undefined' && typeof performance.now === 'function'
@@ -217,6 +219,9 @@ function reconcileMonsterRuntimes(
       existing.y = runtime.topY;
       existing.width = runtime.size.w;
       existing.height = runtime.size.h;
+      existing.collisionWidth = runtime.collisionSize.w;
+      existing.collisionHeight = runtime.collisionSize.h;
+      existing.groundY = runtime.groundY;
       return existing;
     }
 
@@ -226,6 +231,9 @@ function reconcileMonsterRuntimes(
       y: runtime.topY,
       width: runtime.size.w,
       height: runtime.size.h,
+      collisionWidth: runtime.collisionSize.w,
+      collisionHeight: runtime.collisionSize.h,
+      groundY: runtime.groundY,
     };
   });
 
@@ -241,25 +249,28 @@ function hasMonsterCollision(
   monsterWidth: number,
   monsterHeight: number,
 ): boolean {
-  const playerHitboxInset = Math.max(4, Math.round(playerWidth * 0.32));
-  const playerRight = playerLeft + playerWidth - playerHitboxInset;
-  const playerHitboxLeft = playerLeft + playerHitboxInset;
+  // Java-inspired/reconstructed policy: player map actor collision uses the
+  // compact runtime body (`kl.t.c`, recovered around 17px in Java scale), not
+  // the full rendered sprite width.
+  const playerRuntimeWidth = Math.max(17, Math.round(playerWidth * 0.36));
+  const playerCenterX = playerLeft + playerWidth / 2;
+  const playerHitboxLeft = playerCenterX - playerRuntimeWidth / 2;
+  const playerHitboxRight = playerCenterX + playerRuntimeWidth / 2;
   const monsterLeft = monsterCenterX - monsterWidth / 2;
-  const monsterRight = monsterLeft + monsterWidth;
-  const horizontalOverlap = playerRight >= monsterLeft &&
+  const monsterRight = monsterCenterX + monsterWidth / 2;
+  const horizontalOverlap = playerHitboxRight >= monsterLeft &&
     playerHitboxLeft <= monsterRight;
 
   if (!horizontalOverlap) {
     return false;
   }
 
-  // Java map actors collide through runtime hitboxes (`kl.t`) rather than
-  // a pure X-line trigger. This vertical clearance lets a player jump over a
-  // monster without starting battle while still triggering when feet overlap
-  // the monster body near ground level.
+  // Monster exact Java hitboxes are not recovered yet; anchor the reconstructed
+  // AABB to ground/body so jump-over does not trigger battle from alpha padding.
   const monsterTop = monsterGroundY - monsterHeight;
-  const verticalInset = Math.max(4, Math.min(14, Math.floor(monsterHeight * 0.18)));
-  return playerFootY >= monsterTop + verticalInset;
+  const bodyTop = monsterTop + Math.max(3, Math.round(monsterHeight * 0.12));
+  const bodyBottom = monsterGroundY + Math.max(2, Math.round(monsterHeight * 0.08));
+  return playerFootY >= bodyTop && playerFootY <= bodyBottom;
 }
 
 function buildInitialVisuals(runtimes: MonsterRuntime[]): MonsterVisual[] {
@@ -370,6 +381,18 @@ interface Props {
   onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
+}
+
+interface MapDebugOverlayState {
+  seq: number;
+  event: string;
+  x: number;
+  footY: number;
+  facing: 'left' | 'right';
+  activeMoveDirection: 'left' | 'right' | null;
+  monsters: number;
+  cameraX: number;
+  at: number;
 }
 
 interface EncounterPreviewState {
@@ -709,11 +732,19 @@ export const HoaLuMapScreen: React.FC<Props> = ({
     - SOFTKEY_BAR_HEIGHT
     - (sceneConfig.groundRows * sceneConfig.groundTileHeight)
     + sceneConfig.groundSink;
+  /**
+   * Java-inspired/reconstructed visual anchoring policy:
+   * physics/collision footY stays on `groundTop`, but the recovered RN
+   * create-character compositor exposes a few transparent/body pixels below
+   * the visible shoes. Sink only the rendered sprite a little deeper into the
+   * grass so the feet visually touch the Hoa Lư ground strip; do not change
+   * runtime `kl.t` collision or monster trigger footY.
+   */
   const spriteFootSink = Math.round(
     sceneConfig.playerFootSinkSourcePx
     * sceneConfig.playerScale
     / sceneConfig.createCharacterDefaultScale,
-  );
+  ) + Math.round(2 * sceneConfig.playerScale);
   const defaultCharInitX = Math.round(mapWidth * sceneConfig.playerSpawnRatio);
   const [serverPlayerX, setServerPlayerX] = useState<number | null>(null);
   const [serverPlayerFacing, setServerPlayerFacing] = useState<'left' | 'right'>('right');
@@ -741,8 +772,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
     };
   const groundTop = getSurfaceStartY(groundMainSurface);
   const javaCollisionGrid = useMemo(
-    () => buildFlatGroundJavaGrid(mapWidth, mapHeight, groundTop),
-    [groundTop, mapHeight, mapWidth],
+    () => buildSurfaceJavaGrid(mapWidth, mapHeight, sceneSurfaces),
+    [mapHeight, mapWidth, sceneSurfaces],
   );
 
   const scrollRef = useRef<ScrollView>(null);
@@ -767,6 +798,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const pendingScrollXRef = useRef<number | null>(null);
   const scrollRafRef = useRef<number | null>(null);
   const [encounterPreview, setEncounterPreview] = useState<EncounterPreviewState | null>(null);
+  const [mapDebugOverlay, setMapDebugOverlay] = useState<MapDebugOverlayState | null>(null);
+  const mapDebugSeqRef = useRef(0);
+  const mapDebugLastUpdateAtRef = useRef(0);
   const [activeMoveDirection, setActiveMoveDirection] = useState<'left' | 'right' | null>(null);
   const [monsterRoster, setMonsterRoster] = useState<MapMonsterRosterEntry[]>([]);
   const [monsterRuntimeVersion, setMonsterRuntimeVersion] = useState(0);
@@ -793,24 +827,35 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       const displayPlayerX = Math.max(mapMinX, Math.min(mapMaxX, Math.round(playerX * mapScale)));
       const localX = charLeftRef.current;
       const playerRecentlyMoved = getLoopNowMs() - playerLastMovedAtRef.current <= PLAYER_ALERT_MEMORY_MS;
-      const serverPositionChanged = acceptedServerPositionRef.current === null
-        || Math.abs(displayPlayerX - acceptedServerPositionRef.current) >= 1;
+      const acceptedX = acceptedServerPositionRef.current;
+      const serverDeltaFromAccepted = acceptedX === null
+        ? Infinity
+        : Math.abs(displayPlayerX - acceptedX);
+      const serverDeltaFromLocal = Math.abs(displayPlayerX - localX);
+      const isInitialSpawnPacket = acceptedX === null;
+      const isTeleportReconcile = serverDeltaFromAccepted >= 24 && serverDeltaFromLocal >= 24;
 
       // Java client keeps the local map actor authoritative during immediate movement/jump
       // and only accepts server position packets as spawn/teleport reconciliation.
       // Source: reverse-engineered map actor behavior from reference/redecoded/decompiled/mh.java
       // setfall path + current RN bug trace where playerMapState echo reset initialX mid-jump.
-      if (localPositionDirtyRef.current && playerRecentlyMoved && Math.abs(displayPlayerX - localX) > 1) {
+      //
+      // Java-inspired/reconstructed anti-jitter policy:
+      // playerMapState is a coarse server echo, not per-frame movement authority.
+      // Treat sub-tile/rounding echoes as accepted bookkeeping only; do not bump
+      // `positionRevision`, because that remount-snaps the runtime actor/camera.
+      if (localPositionDirtyRef.current && playerRecentlyMoved && serverDeltaFromLocal > 1) {
+        acceptedServerPositionRef.current = displayPlayerX;
         setServerPlayerFacing(state?.direction === 0 ? 'left' : 'right');
         return;
       }
 
       acceptedServerPositionRef.current = displayPlayerX;
       localPositionDirtyRef.current = false;
-      if (serverPositionChanged) {
+      if (isInitialSpawnPacket || isTeleportReconcile) {
         setPlayerSpawnRevision((revision) => revision + 1);
+        setServerPlayerX(displayPlayerX);
       }
-      setServerPlayerX(displayPlayerX);
       setServerPlayerFacing(state?.direction === 0 ? 'left' : 'right');
     };
 
@@ -1497,6 +1542,11 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           const target = monsterTargetsRef.current[i];
           target.x = leftX;
           target.y = m.topY;
+          target.width = m.size.w;
+          target.height = m.size.h;
+          target.collisionWidth = m.collisionSize.w;
+          target.collisionHeight = m.collisionSize.h;
+          target.groundY = m.groundY;
         }
       }
 
@@ -1524,10 +1574,16 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   }, [isEncounterActive, monsterRuntimeVersion, playerSpriteSize.w, startEncounter]);
 
   useEffect(() => {
+    // Java-inspired/reconstructed policy from mh/km map actor ownership:
+    // only hard-reset local refs/camera when `positionRevision` says this is a
+    // spawn/teleport reconciliation. Server echo updates can change `charInitX`
+    // by a few pixels due to native/display rounding; tying this effect to
+    // `charInitX` made the camera/player snap while walking, perceived as jitter.
     charLeftRef.current = charInitX;
     charFootYRef.current = groundTop;
     scrollToCharacter(charInitX);
-  }, [charInitX, playerSpawnRevision, scrollToCharacter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerSpawnRevision]);
 
   useEffect(() => {
     if (showTouchGamepad) return;
@@ -1535,16 +1591,47 @@ export const HoaLuMapScreen: React.FC<Props> = ({
     setActiveMoveDirection(null);
   }, [showTouchGamepad]);
 
+  const updateMapDebugOverlay = useCallback((
+    event: string,
+    x: number = charLeftRef.current,
+    facing: 'left' | 'right' = serverPlayerFacing,
+    footY: number = charFootYRef.current,
+    force = false,
+  ) => {
+    if (!MAP_DEBUG_OVERLAY_ENABLED) return;
+
+    const now = getLoopNowMs();
+    if (!force && now - mapDebugLastUpdateAtRef.current < MAP_DEBUG_OVERLAY_MIN_MS) {
+      return;
+    }
+
+    mapDebugLastUpdateAtRef.current = now;
+    mapDebugSeqRef.current += 1;
+    setMapDebugOverlay({
+      seq: mapDebugSeqRef.current,
+      event,
+      x: Math.round(x),
+      footY: Math.round(footY),
+      facing,
+      activeMoveDirection,
+      monsters: monsterRuntimesRef.current.length,
+      cameraX: Math.round(cameraXRef.current),
+      at: Math.round(now),
+    });
+  }, [activeMoveDirection, serverPlayerFacing]);
+
   const handleGamepadMoveStart = useCallback((direction: 'left' | 'right') => {
     playerLastMovedAtRef.current = getLoopNowMs();
     setActiveMoveDirection(direction);
+    updateMapDebugOverlay(`move-start:${direction}`, charLeftRef.current, direction, charFootYRef.current, true);
     characterControllerRef.current?.startMove(direction);
-  }, []);
+  }, [updateMapDebugOverlay]);
 
   const handleGamepadMoveStop = useCallback(() => {
     setActiveMoveDirection(null);
+    updateMapDebugOverlay('move-stop', charLeftRef.current, serverPlayerFacing, charFootYRef.current, true);
     characterControllerRef.current?.stopMove();
-  }, []);
+  }, [serverPlayerFacing, updateMapDebugOverlay]);
 
   const handleGamepadJump = useCallback(() => {
     const jumpDirection = activeMoveDirection ?? 'up';
@@ -1722,12 +1809,12 @@ export const HoaLuMapScreen: React.FC<Props> = ({
               level={playerLevel}
               monsters={monsterTargets}
               surfaces={sceneSurfaces}
-              collisionGrid={undefined}
-              // Hoa Lư hiện có nhiều platform authored bằng GroundSurface.
-              // Không truyền flat-ground grid tạm vào Java controller vì grid này
-              // chỉ có mặt đất chính, làm jump/fall bỏ qua platform và snap về nền.
-              // Nguồn Java: km.java/kf.java dùng collision grid đầy đủ; khi chưa có
-              // kf.d thật thì Surface adapter đáng tin hơn flat grid một hàng.
+              collisionGrid={javaCollisionGrid}
+              // Java-inspired/reconstructed policy from km.java/kf.java:
+              // Hoa Lư must feed the controller with a tile collision grid built
+              // from every authored GroundSurface. A flat one-row ground grid made
+              // the compact runtime rect snap/fall around mid-map platforms, while
+              // `undefined` forced a non-Java surface fallback.
               // Cho phép đi sát 2 đầu map nhưng vẫn bị clamp trong biên map,
               // nên ở điểm đầu/cuối sẽ không bị hụt support rồi rơi xuống.
               minX={mapMinX}
@@ -1742,6 +1829,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
                 localPositionDirtyRef.current = true;
                 charLeftRef.current = x;
                 charFootYRef.current = footY ?? groundTop;
+                updateMapDebugOverlay('onMove', x, facing, footY ?? groundTop);
                 scrollToCharacter(x);
                 persistPlayerWorldPosition(x, facing, false);
               }}
@@ -1749,6 +1837,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
                 localPositionDirtyRef.current = true;
                 charLeftRef.current = x;
                 charFootYRef.current = footY ?? groundTop;
+                updateMapDebugOverlay('onMoveEnd', x, facing, footY ?? groundTop, true);
                 scrollToCharacter(x);
                 persistPlayerWorldPosition(x, facing, true);
               }}
@@ -1791,6 +1880,18 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         onUpPress={handleGamepadJump}
         onDownPress={handleGamepadDown}
       />
+
+      {MAP_DEBUG_OVERLAY_ENABLED && mapDebugOverlay && (
+        <View pointerEvents="none" style={styles.mapDebugOverlay}>
+          <Text style={styles.mapDebugTitle}>JavaMoveDebug overlay #{mapDebugOverlay.seq}</Text>
+          <Text style={styles.mapDebugText}>
+            {`event=${mapDebugOverlay.event} x=${mapDebugOverlay.x} footY=${mapDebugOverlay.footY} facing=${mapDebugOverlay.facing}`}
+          </Text>
+          <Text style={styles.mapDebugText}>
+            {`dir=${mapDebugOverlay.activeMoveDirection ?? '-'} cameraX=${mapDebugOverlay.cameraX} monsters=${mapDebugOverlay.monsters} t=${mapDebugOverlay.at}`}
+          </Text>
+        </View>
+      )}
 
       <MapCharacterDialogs
         activeDialog={activeCharacterDialog}
@@ -1954,6 +2055,30 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
 
   scroll: { flex: 1 },
+  mapDebugOverlay: {
+    position: 'absolute',
+    left: 8,
+    top: 124,
+    zIndex: 250,
+    maxWidth: Math.min(SCREEN_W - 16, 460),
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#f7e26b',
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+  },
+  mapDebugTitle: {
+    color: '#f7e26b',
+    fontSize: 11,
+    fontWeight: '900',
+    lineHeight: 14,
+  },
+  mapDebugText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 13,
+  },
   bg: { position: 'absolute', top: 0, left: 0, zIndex: LAYER_BG },
   pvpOverlay: {
     position: 'absolute',

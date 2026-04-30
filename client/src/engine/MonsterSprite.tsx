@@ -144,12 +144,19 @@ export function monsterCollisionSize(type: MonsterType) {
   const display = monsterDisplaySize(type);
   const s = SPECS[type];
   const maxBottomInset = Math.max(...s.frameBottomInsets);
+  const visibleHeight = display.h - Math.round(maxBottomInset * DISPLAY_SCALE);
+  const bodyWidthRatioByType: Record<MonsterType, number> = {
+    fire: 0.52,
+    ice: 0.54,
+    zap: 0.56,
+  };
 
-  // Java map collision dùng hitbox runtime actor (`k`) chứ không dùng full
-  // sprite rectangle. Monster sheet có nhiều alpha padding theo frame, nên
-  // battle trigger phải thu vào phần thân nhìn thấy để tránh kéo battle từ xa.
+  // Java-inspired/reconstructed policy: Java map collision dùng runtime actor
+  // hitbox (`k`) chứ không dùng full sprite rectangle. Exact monster hitbox gốc
+  // chưa recover, nên thu width theo từng monster family và height theo phần
+  // visible body sau khi bỏ alpha/bottom padding của sheet.
   return {
-    w: Math.max(18, Math.round(display.w * 0.58)),
-    h: Math.max(18, display.h - Math.round(maxBottomInset * DISPLAY_SCALE)),
+    w: Math.max(18, Math.round(display.w * bodyWidthRatioByType[type])),
+    h: Math.max(18, Math.round(visibleHeight * 0.86)),
   };
 }

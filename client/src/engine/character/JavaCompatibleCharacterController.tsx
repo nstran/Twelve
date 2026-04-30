@@ -24,6 +24,7 @@ import {
   SWIPE_THRESHOLD,
 } from './character.constants';
 import { useCharacterAnimation } from './useCharacterAnimation';
+import type { JavaMapActorRuntime } from './javaMapMovement';
 import {
   createJavaMapActorRuntime,
   findSurfaceSupport,
@@ -31,20 +32,63 @@ import {
   JAVA_MAP_TICK_MS,
   JavaMapActorState,
   JavaMoveBit,
+  javaCanClimbAtRect,
   javaCanMoveHorizontally,
   javaFindCeilingBottom,
+  javaFindGroundYForRect,
   javaFindLandingTileTop,
   javaHasGroundSupport,
   javaMoveVectorX,
+  javaMoveVectorY,
 } from './javaMapMovement';
 import { getSurfaceYAtFootX } from './surface';
 
 const ON_MOVE_THROTTLE_PX = 1;
-const VISUAL_SMOOTHING_MS = 38;
+/**
+ * Java client advances map actors on fixed ticks (km.java), but old J2ME draws
+ * the actor immediately after each fixed update. The previous RN port tweened
+ * every 40ms tick with Animated.timing; on mobile this can visually "float" or
+ * rubber-band because a new native animation is started before the previous
+ * tick visually settles. Keep physics Java-tick based, but render a lightweight
+ * visual-only interpolation between the previous and latest fixed-step actor
+ * positions. Collision, range checks and map logic still read the Java runtime
+ * rect `kl.t`; interpolation never feeds back into gameplay state.
+ *
+ * Source: Java-inspired/reconstructed policy from decompiled km/mh actor loop.
+ */
+const USE_INTERPOLATED_JAVA_VISUAL_COMMIT = false;
+/**
+ * Java-inspired/reconstructed visual policy for vertical motion:
+ * keep ground running committed directly after each Java fixed-step (closer to
+ * J2ME draw-after-update), but blend jump/fall Y offset between 40ms physics
+ * ticks. Collision and encounter logic still read runtime `kl.t`; this only
+ * smooths the rendered sprite during airborne states where Java's per-tick
+ * vertical deltas are visually chunky on RN/web refresh rates.
+ */
+const USE_AIRBORNE_Y_VISUAL_INTERPOLATION = true;
+/**
+ * Java-inspired/reconstructed visual policy for air-control:
+ * when the actor is in Java airborne states (`j=5/6`), horizontal runtime X
+ * still advances only on fixed 40ms ticks, but the rendered sprite may blend
+ * from the previous visual X to the latest runtime X. This keeps jump + left/right
+ * from looking like a staircase on 60fps RN/web while collision/monster triggers
+ * continue to read the authoritative compact `kl.t` runtime rect.
+ */
+const USE_AIRBORNE_X_VISUAL_INTERPOLATION = true;
+/**
+ * Temporary movement diagnostics for Hoa Lư jitter investigation.
+ * Keep this lightweight and throttled so the player can move while Metro logs
+ * expose whether jitter comes from runtime X, ground snapping, render offset,
+ * parent position reset, or frame/tick cadence.
+ *
+ * Source: Java-inspired/reconstructed debugging policy for map runtime parity.
+ */
+const DEBUG_JAVA_MOVEMENT_JITTER = false;
+const DEBUG_JAVA_MOVEMENT_LOG_MS = 1000;
 const DOUBLE_TAP_MS = 260;
 const DOUBLE_TAP_DIST = 26;
 const JUMP_TRIGGER_RATIO = 0.42;
-const LANDING_HOLD_MS = 150;
+const LANDING_HOLD_MS = 90;
 /**
  * Remake tuning for Hoa Lư tap/swipe runtime:
  * Java `kl.a` is still the base value (`min(16, 11 + level / 10)`), but the
@@ -52,8 +96,96 @@ const LANDING_HOLD_MS = 150;
  * than the recovered 32x32 Java collision grid. Use this multiplier only for
  * the initial upward impulse until exact legacy map tile data is recovered.
  */
-const DEFAULT_JUMP_IMPULSE_MULTIPLIER = 1.35;
-const MONSTER_TOUCH_HITBOX_RATIO = 0.58;
+const DEFAULT_JUMP_IMPULSE_MULTIPLIER = 1.15;
+/**
+ * Java-inspired/reconstructed vertical pacing for the authored RN Hoa Lư scene.
+ * Java still owns the state machine (`j=5/6`), velocity counter `s`, gravity
+ * increment and landing checks; only the screen-space Y delta is damped because
+ * the recovered RN map/sprite scale makes raw Java px/tick jump/fall read too
+ * fast without the exact legacy map render scale.
+ */
+const AIRBORNE_VERTICAL_DELTA_RATIO = 0.82;
+const TOUCH_PAD = 4;
+const ACTOR_TOUCH_PAD_X = 5;
+const ACTOR_TOUCH_PAD_Y = 4;
+const JAVA_ACTOR_RUNTIME_WIDTH = 17;
+
+interface VisualInterpolationFrame {
+  fromX: number;
+  toX: number;
+  fromYOffset: number;
+  toYOffset: number;
+  startedAt: number;
+  durationMs: number;
+}
+
+/**
+ * Java-inspired/reconstructed policy for map-space player body math.
+ * Java uses compact runtime rect `kl.t` (17x32) for movement/collision and a
+ * wider `kl.u` (26x32) auxiliary rect. Do not use rendered sprite width for
+ * target centering/range decisions because the sprite contains visual padding.
+ */
+const getActorRuntimeCenterX = (runtime: JavaMapActorRuntime): number => (
+  runtime.t.a + runtime.t.c / 2
+);
+
+const getActorRuntimeFootY = (runtime: JavaMapActorRuntime): number => (
+  runtime.t.b + runtime.t.d
+);
+
+const getActorVisualLeft = (runtime: JavaMapActorRuntime, visualWidth: number): number => (
+  getActorRuntimeCenterX(runtime) - visualWidth / 2
+);
+
+interface ActorRuntimeTouchBox {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+/**
+ * Java-inspired/reconstructed policy from `kl.t`/`kl.u`:
+ * direct self taps should target the compact actor runtime body, not the full
+ * rendered sprite. Use the wider auxiliary rect `u` when available because Java
+ * keeps it as the interaction/body envelope around the 17px movement rect.
+ */
+const getActorRuntimeTouchBox = (runtime: JavaMapActorRuntime): ActorRuntimeTouchBox => {
+  const runtimeCenterX = getActorRuntimeCenterX(runtime);
+  const width = Math.max(runtime.t.c, runtime.u.c);
+  const left = runtimeCenterX - width / 2;
+
+  return {
+    left: left - ACTOR_TOUCH_PAD_X,
+    right: left + width + ACTOR_TOUCH_PAD_X,
+    top: runtime.t.b - ACTOR_TOUCH_PAD_Y,
+    bottom: getActorRuntimeFootY(runtime) + ACTOR_TOUCH_PAD_Y,
+  };
+};
+
+interface MonsterRuntimeBox {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  centerX: number;
+}
+
+const getMonsterRuntimeBox = (monster: MonsterTarget): MonsterRuntimeBox => {
+  const width = monster.collisionWidth ?? Math.max(18, Math.round(monster.width * 0.52));
+  const height = monster.collisionHeight ?? Math.max(18, Math.round(monster.height * 0.68));
+  const visualCenterX = monster.x + monster.width / 2;
+  const bottom = monster.groundY ?? (monster.y + monster.height);
+  const left = visualCenterX - width / 2;
+  const top = bottom - height;
+  return {
+    left,
+    right: left + width,
+    top,
+    bottom,
+    centerX: visualCenterX,
+  };
+};
 
 interface JumpPoseState {
   slot: CharacterPoseFamilySlot;
@@ -118,14 +250,17 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
   ), [groundY, maxX, minX, surfaces]);
 
   const javaLevel = level ?? inferLevelFromSpeed(speed);
+  const initialRuntimeX = initialX + charSize.w / 2 - JAVA_ACTOR_RUNTIME_WIDTH / 2;
   const initialRuntimeY = groundY - 32;
-  const runtimeRef = useRef(createJavaMapActorRuntime(initialX, initialRuntimeY, javaLevel));
+  const runtimeRef = useRef(createJavaMapActorRuntime(initialRuntimeX, initialRuntimeY, javaLevel));
   const posAnim = useRef(new Animated.Value(initialX)).current;
   const groundOffsetAnim = useRef(new Animated.Value(0)).current;
   const posYAnim = useRef(new Animated.Value(0)).current;
   const lastEmittedXRef = useRef(initialX);
   const currentGroundYRef = useRef(groundY);
+  const visualLeftXRef = useRef(initialX);
   const visualYOffsetRef = useRef(0);
+  const visualInterpolationRef = useRef<VisualInterpolationFrame | null>(null);
 
   const monstersRef = useRef(monsters);
   const surfacesRef = useRef(resolvedSurfaces);
@@ -137,6 +272,9 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
   const rafIdRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef(0);
   const javaTickAccumulatorRef = useRef(0);
+  const debugLastMoveLogAtRef = useRef(0);
+  const debugLastGroundLogAtRef = useRef(0);
+  const debugTickFrameRef = useRef(0);
   const isTap = useRef(true);
 
   const [facing, setFacing] = useState<FacingDirection>(initialFacing);
@@ -207,36 +345,122 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
     onMove?.(x, facingRef.current, footY);
   }, [onMove]);
 
-  const commitVisualPosition = useCallback((forceEmit = false) => {
+  const renderInterpolatedVisualPosition = useCallback((now: number): void => {
+    const frame = visualInterpolationRef.current;
+    if (!frame) return;
+
+    const alpha = Math.min(1, Math.max(0, (now - frame.startedAt) / frame.durationMs));
+    const nextX = frame.fromX + (frame.toX - frame.fromX) * alpha;
+    const nextYOffset = frame.fromYOffset + (frame.toYOffset - frame.fromYOffset) * alpha;
+
+    visualLeftXRef.current = nextX;
+    visualYOffsetRef.current = nextYOffset;
+    posAnim.setValue(nextX);
+    posYAnim.setValue(nextYOffset);
+
+    if (alpha >= 1) {
+      visualInterpolationRef.current = null;
+    }
+  }, [posAnim, posYAnim]);
+
+  const commitVisualPosition = useCallback((forceEmit = false, frameNow?: number) => {
     const runtime = runtimeRef.current;
     const leftX = clampX(runtime.t.a);
     if (leftX !== runtime.t.a) {
       runtime.t.a = leftX;
       runtime.u.a = leftX;
     }
-    const footY = runtime.t.b + runtime.t.d;
+    const footY = getActorRuntimeFootY(runtime);
+    const visualLeftX = getActorVisualLeft(runtime, charSize.w);
     const yOffset = footY - currentGroundYRef.current;
-    Animated.timing(posAnim, {
-      toValue: leftX,
-      duration: VISUAL_SMOOTHING_MS,
-      useNativeDriver: true,
-    }).start();
 
-    if (Math.abs(yOffset - visualYOffsetRef.current) >= 0.1) {
+    if (forceEmit) {
+      // Hard commit only for spawn/stop/landing endpoints. During continuous
+      // movement, renderInterpolatedVisualPosition() blends frames on rAF while
+      // Java runtime/collision remains fixed-step and authoritative.
+      visualInterpolationRef.current = null;
+      posAnim.stopAnimation();
+      posAnim.setValue(visualLeftX);
+      posYAnim.stopAnimation();
+      posYAnim.setValue(yOffset);
+      visualLeftXRef.current = visualLeftX;
       visualYOffsetRef.current = yOffset;
-      Animated.timing(posYAnim, {
-        toValue: yOffset,
-        duration: VISUAL_SMOOTHING_MS,
-        useNativeDriver: true,
-      }).start();
+    } else if (
+      USE_INTERPOLATED_JAVA_VISUAL_COMMIT ||
+      (
+        USE_AIRBORNE_Y_VISUAL_INTERPOLATION &&
+        (
+          runtime.j === JavaMapActorState.JumpRising ||
+          runtime.j === JavaMapActorState.Falling
+        )
+      )
+    ) {
+      const now = frameNow ?? Date.now();
+      const isAirborne = runtime.j === JavaMapActorState.JumpRising ||
+        runtime.j === JavaMapActorState.Falling;
+      const shouldInterpolateX = USE_INTERPOLATED_JAVA_VISUAL_COMMIT ||
+        (USE_AIRBORNE_X_VISUAL_INTERPOLATION && isAirborne);
+      const fromX = shouldInterpolateX ? visualLeftXRef.current : visualLeftX;
+      const fromYOffset = visualYOffsetRef.current;
+      const toX = visualLeftX;
+      const dx = Math.abs(toX - fromX);
+      const dy = Math.abs(yOffset - fromYOffset);
+
+      if (dx < 0.1 && dy < 0.1) {
+        visualInterpolationRef.current = null;
+        posAnim.setValue(visualLeftX);
+        posYAnim.setValue(yOffset);
+        visualLeftXRef.current = visualLeftX;
+        visualYOffsetRef.current = yOffset;
+      } else {
+        if (!shouldInterpolateX) {
+          posAnim.setValue(visualLeftX);
+          visualLeftXRef.current = visualLeftX;
+        }
+
+        visualInterpolationRef.current = {
+          fromX,
+          toX,
+          fromYOffset,
+          toYOffset: yOffset,
+          startedAt: now,
+          durationMs: JAVA_MAP_TICK_MS,
+        };
+        renderInterpolatedVisualPosition(now);
+      }
+    } else {
+      visualInterpolationRef.current = null;
+      posAnim.setValue(visualLeftX);
+      posYAnim.setValue(yOffset);
+      visualLeftXRef.current = visualLeftX;
+      visualYOffsetRef.current = yOffset;
     }
-    emitMove(leftX, footY, forceEmit);
-  }, [clampX, emitMove, posAnim, posYAnim]);
+    emitMove(visualLeftX, footY, forceEmit);
+  }, [charSize.w, clampX, emitMove, posAnim, posYAnim, renderInterpolatedVisualPosition]);
 
   const setGroundYIfChanged = useCallback((nextGroundY: number) => {
-    if (Math.abs(nextGroundY - currentGroundYRef.current) < 0.1) return;
+    const previousGroundY = currentGroundYRef.current;
+    if (Math.abs(nextGroundY - previousGroundY) < 0.1) return;
     currentGroundYRef.current = nextGroundY;
     groundOffsetAnim.setValue(nextGroundY - groundY);
+
+    if (DEBUG_JAVA_MOVEMENT_JITTER) {
+      const now = Date.now();
+      if (now - debugLastGroundLogAtRef.current >= DEBUG_JAVA_MOVEMENT_LOG_MS) {
+        debugLastGroundLogAtRef.current = now;
+        const runtime = runtimeRef.current;
+        console.log('[JavaMoveDebug][ground-snap]', {
+          prevGroundY: Number(previousGroundY.toFixed(2)),
+          nextGroundY: Number(nextGroundY.toFixed(2)),
+          delta: Number((nextGroundY - previousGroundY).toFixed(2)),
+          runtimeX: Number(runtime.t.a.toFixed(2)),
+          runtimeY: Number(runtime.t.b.toFixed(2)),
+          footY: Number(getActorRuntimeFootY(runtime).toFixed(2)),
+          state: runtime.j,
+          hasGrid: Boolean(collisionGridRef.current),
+        });
+      }
+    }
   }, [groundOffsetAnim, groundY]);
 
   const finishMovement = useCallback((emitEnd = true) => {
@@ -255,18 +479,26 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
       setActionIfChanged('idle');
     }
     commitVisualPosition(true);
-    if (emitEnd) onMoveEnd?.(runtime.t.a, facingRef.current, runtime.t.b + runtime.t.d);
-  }, [clearMovementLoop, commitVisualPosition, onMoveEnd, posYAnim, setActionIfChanged]);
+    if (emitEnd) onMoveEnd?.(getActorVisualLeft(runtime, charSize.w), facingRef.current, getActorRuntimeFootY(runtime));
+  }, [charSize.w, clearMovementLoop, commitVisualPosition, onMoveEnd, posYAnim, setActionIfChanged]);
 
   const findMonsterInRange = useCallback((monsterId?: string): MonsterTarget | null => {
-    const cx = runtimeRef.current.t.a + charSize.w / 2;
+    const runtime = runtimeRef.current;
+    const cx = getActorRuntimeCenterX(runtime);
+    const actorFootY = getActorRuntimeFootY(runtime);
     let nearest: MonsterTarget | null = null;
     let nearestDist = Infinity;
 
     for (const monster of monstersRef.current) {
       if (monsterId && monster.id !== monsterId) continue;
-      const mx = monster.x + monster.width / 2;
-      const dist = Math.abs(cx - mx);
+
+      const box = getMonsterRuntimeBox(monster);
+      if (monster.groundY !== undefined) {
+        const verticalRange = Math.max(32, box.bottom - box.top);
+        if (Math.abs(actorFootY - box.bottom) > verticalRange) continue;
+      }
+
+      const dist = Math.abs(cx - box.centerX);
       if (dist < attackRange && dist < nearestDist) {
         nearest = monster;
         nearestDist = dist;
@@ -274,15 +506,17 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
     }
 
     return nearest;
-  }, [attackRange, charSize.w]);
+  }, [attackRange]);
 
   const findMonsterAtPoint = useCallback((x: number, y: number): MonsterTarget | null => {
     for (const monster of monstersRef.current) {
-      const hitboxWidth = monster.width * MONSTER_TOUCH_HITBOX_RATIO;
-      const hitboxHeight = monster.height * MONSTER_TOUCH_HITBOX_RATIO;
-      const hitboxX = monster.x + (monster.width - hitboxWidth) / 2;
-      const hitboxY = monster.y + (monster.height - hitboxHeight) / 2;
-      if (x >= hitboxX && x <= hitboxX + hitboxWidth && y >= hitboxY && y <= hitboxY + hitboxHeight) {
+      const box = getMonsterRuntimeBox(monster);
+      if (
+        x >= box.left - TOUCH_PAD &&
+        x <= box.right + TOUCH_PAD &&
+        y >= box.top - TOUCH_PAD &&
+        y <= box.bottom + TOUCH_PAD
+      ) {
         return monster;
       }
     }
@@ -302,12 +536,12 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
 
     const target = triggerMonster ? (preferredTarget ?? findMonsterInRange()) : preferredTarget;
     if (target) {
-      const cx = runtime.t.a + charSize.w / 2;
-      const mx = target.x + target.width / 2;
+      const cx = getActorRuntimeCenterX(runtime);
+      const mx = getMonsterRuntimeBox(target).centerX;
       setFacingIfChanged(mx > cx ? 'right' : 'left');
       onAttackMonster?.(target.id);
     }
-  }, [charSize.w, clearMovementLoop, findMonsterInRange, onAttackMonster, setActionIfChanged, setFacingIfChanged]);
+  }, [clearMovementLoop, findMonsterInRange, onAttackMonster, setActionIfChanged, setFacingIfChanged]);
 
   const applyGroundSupportOrFall = useCallback((): boolean => {
     const runtime = runtimeRef.current;
@@ -320,12 +554,11 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
         return false;
       }
 
-      const footY = runtime.t.b + runtime.t.d;
-      const landingTop = javaFindLandingTileTop(grid, runtime.t, footY, footY);
-      if (landingTop !== null) {
-        runtime.t.b = landingTop - runtime.t.d;
+      const groundAtRect = javaFindGroundYForRect(grid, runtime.t, 3);
+      if (groundAtRect !== null) {
+        runtime.t.b = groundAtRect - runtime.t.d;
         runtime.u.b = runtime.t.b;
-        setGroundYIfChanged(landingTop);
+        setGroundYIfChanged(groundAtRect);
       }
       return true;
     }
@@ -362,10 +595,26 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
 
     runtime.t.a = nextX;
     runtime.u.a = nextX;
-  }, [clampX, scale, setFacingIfChanged]);
+
+    if (grid && runtime.j === JavaMapActorState.Running) {
+      // Java-inspired/reconstructed slope follow from km/kf/kh:
+      // after horizontal movement, snap compact runtime rect `kl.t` to the
+      // current tile surface, including diagonal kh.d/kh.l tiles.
+      const groundAtRect = javaFindGroundYForRect(grid, runtime.t, 8);
+      if (groundAtRect !== null) {
+        runtime.t.b = groundAtRect - runtime.t.d;
+        runtime.u.b = runtime.t.b;
+        setGroundYIfChanged(groundAtRect);
+      }
+    }
+  }, [clampX, setFacingIfChanged, setGroundYIfChanged]);
 
   const updateJumpPoseFromJavaState = useCallback(() => {
     const runtime = runtimeRef.current;
+    if (runtime.j === JavaMapActorState.Climb || runtime.j === JavaMapActorState.ClimbEnter || runtime.j === JavaMapActorState.DropTransition) {
+      setJumpPoseState({ slot: 7, frame: 0 });
+      return;
+    }
     if (runtime.j === JavaMapActorState.JumpRising) {
       setJumpPoseState({ slot: 4, frame: 0 });
       return;
@@ -399,12 +648,25 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
 
         const queuedMonster = monstersRef.current.find((m) => m.id === queuedMonsterId);
         if (queuedMonster) {
-          moveTargetX.current = clampX(queuedMonster.x + queuedMonster.width / 2 - charSize.w / 2);
+          moveTargetX.current = clampX(getMonsterRuntimeBox(queuedMonster).centerX - runtime.t.c / 2);
         }
       }
 
-      if (runtime.j === JavaMapActorState.JumpRising) {
-        const nextY = runtime.t.b - runtime.s;
+      if (runtime.j === JavaMapActorState.Climb || runtime.j === JavaMapActorState.ClimbEnter || runtime.j === JavaMapActorState.DropTransition) {
+        const grid = collisionGridRef.current;
+        if (!grid || !javaCanClimbAtRect(grid, runtime.t)) {
+          runtime.j = JavaMapActorState.Falling;
+          runtime.s = 0;
+        } else {
+          const dy = javaMoveVectorY(runtime.k) * runtime.i;
+          runtime.t.b += dy;
+          runtime.u.b = runtime.t.b;
+          setGroundYIfChanged(getActorRuntimeFootY(runtime));
+          setActionIfChanged('run');
+        }
+      } else if (runtime.j === JavaMapActorState.JumpRising) {
+        const riseDelta = Math.max(1, Math.round(runtime.s * AIRBORNE_VERTICAL_DELTA_RATIO));
+        const nextY = runtime.t.b - riseDelta;
         const grid = collisionGridRef.current;
         const ceilingBottom = grid ? javaFindCeilingBottom(grid, runtime.t, nextY) : null;
         if (ceilingBottom !== null) {
@@ -426,7 +688,8 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
         }
       } else if (runtime.j === JavaMapActorState.Falling) {
         const previousFootY = runtime.t.b + runtime.t.d;
-        runtime.t.b += runtime.s;
+        const fallDelta = Math.max(1, Math.round(runtime.s * AIRBORNE_VERTICAL_DELTA_RATIO));
+        runtime.t.b += fallDelta;
         runtime.u.b = runtime.t.b;
         runtime.s = Math.min(runtime.a, runtime.s + 2);
 
@@ -515,9 +778,47 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
 
       if (!keepRunning) return;
 
-      updateJumpPoseFromJavaState();
-      commitVisualPosition();
+      if (steps > 0) {
+        updateJumpPoseFromJavaState();
+        commitVisualPosition(false, now);
 
+        if (DEBUG_JAVA_MOVEMENT_JITTER) {
+          const logNow = Date.now();
+          if (logNow - debugLastMoveLogAtRef.current >= DEBUG_JAVA_MOVEMENT_LOG_MS) {
+            debugLastMoveLogAtRef.current = logNow;
+            debugTickFrameRef.current += 1;
+
+            const runtime = runtimeRef.current;
+            const footY = getActorRuntimeFootY(runtime);
+            const visualLeftX = getActorVisualLeft(runtime, charSize.w);
+            const yOffset = footY - currentGroundYRef.current;
+
+            console.log('[JavaMoveDebug][tick]', {
+              frame: debugTickFrameRef.current,
+              dt: Number(dt.toFixed(2)),
+              steps,
+              accumulator: Number(javaTickAccumulatorRef.current.toFixed(2)),
+              state: runtime.j,
+              moveDir: moveDirection.current,
+              targetX: moveTargetX.current === null ? null : Number(moveTargetX.current.toFixed(2)),
+              runtimeX: Number(runtime.t.a.toFixed(2)),
+              runtimeY: Number(runtime.t.b.toFixed(2)),
+              runtimeW: runtime.t.c,
+              runtimeH: runtime.t.d,
+              visualLeftX: Number(visualLeftX.toFixed(2)),
+              footY: Number(footY.toFixed(2)),
+              currentGroundY: Number(currentGroundYRef.current.toFixed(2)),
+              yOffset: Number(yOffset.toFixed(2)),
+              visualYOffset: Number(visualYOffsetRef.current.toFixed(2)),
+              groundOffset: Number((currentGroundYRef.current - groundY).toFixed(2)),
+              facing: facingRef.current,
+              hasGrid: Boolean(collisionGridRef.current),
+            });
+          }
+        }
+      }
+
+      renderInterpolatedVisualPosition(now);
       rafIdRef.current = requestAnimationFrame(tick);
     };
 
@@ -527,15 +828,14 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
   }, [
     applyGroundSupportOrFall,
     applyHorizontalStep,
-    charSize.w,
     clampX,
     commitVisualPosition,
     controlMode,
+    renderInterpolatedVisualPosition,
     disabled,
     findMonsterInRange,
     finishMovement,
     performAttack,
-    scale,
     setActionIfChanged,
     setGroundYIfChanged,
     updateJumpPoseFromJavaState,
@@ -554,18 +854,12 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
     runtime.k = dir === 'left' ? JavaMoveBit.Left : JavaMoveBit.Right;
 
     // Java km.java state 5/6 vẫn đọc phím trái/phải mỗi tick khi đang ở trên không.
-    // Nếu người chơi bấm hướng sau khi đã nhảy, cập nhật k ngay để tick hiện tại
-    // không bị giữ k=0 khiến nhân vật đứng yên tại X cũ cho tới lần input khác.
-    if (isAirborne) {
-      applyHorizontalStep(dir);
-      commitVisualPosition();
-    }
-
+    // Chỉ cập nhật direction bitmask ở đây; horizontal step vẫn chạy trong fixed
+    // Java tick để tránh double-step/snap X ngay tại frame input, còn render X
+    // được blend bởi USE_AIRBORNE_X_VISUAL_INTERPOLATION.
     setActionIfChanged('run');
     startMovementLoop();
   }, [
-    applyHorizontalStep,
-    commitVisualPosition,
     disabled,
     setActionIfChanged,
     setFacingIfChanged,
@@ -605,9 +899,9 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
 
   const moveToX = useCallback((rawTargetX: number) => {
     if (disabled || actionRef.current === 'attack') return;
-    const targetLeft = clampX(rawTargetX - charSize.w / 2);
     const runtime = runtimeRef.current;
-    const currentCenterX = runtime.t.a + charSize.w / 2;
+    const targetLeft = clampX(rawTargetX - runtime.t.c / 2);
+    const currentCenterX = getActorRuntimeCenterX(runtime);
     const dir: FacingDirection = rawTargetX >= currentCenterX ? 'right' : 'left';
     const isAirborne = runtime.j === JavaMapActorState.Falling || runtime.j === JavaMapActorState.JumpRising;
 
@@ -617,11 +911,10 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
 
     if (isAirborne) {
       // Tap-to-move trong lúc nhảy phải biến thành air-control hướng X,
-      // không được đổi j=Running vì sẽ cắt state 5/6 của Java và làm đứng/giật.
+      // không được đổi j=Running vì sẽ cắt state 5/6 của Java. Không step X
+      // ngay trong input frame; để fixed Java tick xử lý và visual X blend mượt.
       moveDirection.current = dir;
       runtime.k = dir === 'left' ? JavaMoveBit.Left : JavaMoveBit.Right;
-      applyHorizontalStep(dir);
-      commitVisualPosition();
     } else {
       moveDirection.current = null;
       runtime.j = JavaMapActorState.Running;
@@ -630,10 +923,7 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
     setActionIfChanged('run');
     startMovementLoop();
   }, [
-    applyHorizontalStep,
-    charSize.w,
     clampX,
-    commitVisualPosition,
     disabled,
     setActionIfChanged,
     setFacingIfChanged,
@@ -641,20 +931,21 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
   ]);
 
   const moveToMonster = useCallback((monster: MonsterTarget) => {
-    const targetCenterX = monster.x + monster.width / 2;
+    const targetCenterX = getMonsterRuntimeBox(monster).centerX;
     const runtime = runtimeRef.current;
-    const dir: FacingDirection = targetCenterX >= runtime.t.a + charSize.w / 2 ? 'right' : 'left';
+    const dir: FacingDirection = targetCenterX >= getActorRuntimeCenterX(runtime) ? 'right' : 'left';
     const isAirborne = runtime.j === JavaMapActorState.Falling || runtime.j === JavaMapActorState.JumpRising;
 
     pendingAttackMonsterId.current = monster.id;
-    moveTargetX.current = clampX(targetCenterX - charSize.w / 2);
+    moveTargetX.current = clampX(targetCenterX - runtime.t.c / 2);
     setFacingIfChanged(dir);
 
     if (isAirborne) {
+      // Move-to-monster while airborne follows the same Java-inspired air-control
+      // rule as manual/tap movement: set direction now, step only on fixed tick,
+      // and let visual X interpolation smooth the rendered sprite.
       moveDirection.current = dir;
       runtime.k = dir === 'left' ? JavaMoveBit.Left : JavaMoveBit.Right;
-      applyHorizontalStep(dir);
-      commitVisualPosition();
     } else {
       moveDirection.current = null;
       runtime.j = JavaMapActorState.Running;
@@ -663,25 +954,21 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
     setActionIfChanged('run');
     startMovementLoop();
   }, [
-    applyHorizontalStep,
-    charSize.w,
     clampX,
-    commitVisualPosition,
     setActionIfChanged,
     setFacingIfChanged,
     startMovementLoop,
   ]);
 
   const isPointOnCharacter = useCallback((x: number, y: number) => {
-    const top = currentGroundYRef.current - charSize.h + charGroundOffset + visualYOffsetRef.current;
-    const left = runtimeRef.current.t.a;
-    return x >= left && x <= left + charSize.w && y >= top && y <= top + charSize.h;
-  }, [charGroundOffset, charSize.h, charSize.w]);
+    const box = getActorRuntimeTouchBox(runtimeRef.current);
+    return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+  }, []);
 
   const shouldJumpToPoint = useCallback((x: number, y: number) => {
-    const top = currentGroundYRef.current - charSize.h + charGroundOffset + visualYOffsetRef.current;
-    return y < top + charSize.h * JUMP_TRIGGER_RATIO && !isPointOnCharacter(x, y);
-  }, [charGroundOffset, charSize.h, isPointOnCharacter]);
+    const box = getActorRuntimeTouchBox(runtimeRef.current);
+    return y < box.top + (box.bottom - box.top) * JUMP_TRIGGER_RATIO && !isPointOnCharacter(x, y);
+  }, [isPointOnCharacter]);
 
   const handleTapToMove = useCallback((x: number, y: number) => {
     if (disabled) return;
@@ -713,7 +1000,7 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
     }
 
     if (shouldJumpToPoint(x, y)) {
-      const centerX = runtimeRef.current.t.a + charSize.w / 2;
+      const centerX = getActorRuntimeCenterX(runtimeRef.current);
       if (x < centerX - charSize.w * 0.25) {
         startJump('left');
       } else if (x > centerX + charSize.w * 0.25) {
@@ -781,7 +1068,7 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
   ), [allowPointerInput, controlMode, disabled, handleTapToMove, performAttack, startMoving, stopMoving]);
 
   useEffect(() => {
-    const clampedX = clampX(initialX);
+    const clampedX = clampX(initialX + charSize.w / 2 - runtimeRef.current.t.c / 2);
     const runtime = runtimeRef.current;
     runtime.t.a = clampedX;
     runtime.u.a = clampedX;
@@ -793,14 +1080,28 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
     runtime.facing = initialFacing;
     currentGroundYRef.current = groundY;
     visualYOffsetRef.current = 0;
-    lastEmittedXRef.current = clampedX;
-    posAnim.setValue(clampedX);
+    visualInterpolationRef.current = null;
+    const visualLeftX = getActorVisualLeft(runtime, charSize.w);
+    visualLeftXRef.current = visualLeftX;
+    lastEmittedXRef.current = visualLeftX;
+    posAnim.setValue(visualLeftX);
     posYAnim.setValue(0);
     groundOffsetAnim.setValue(0);
     setFacing(initialFacing);
     facingRef.current = initialFacing;
     setJumpPoseState(null);
-    onMove?.(clampedX, initialFacing, groundY);
+    onMove?.(visualLeftX, initialFacing, groundY);
+
+    if (DEBUG_JAVA_MOVEMENT_JITTER) {
+      console.log('[JavaMoveDebug][position-revision-reset]', {
+        positionRevision,
+        initialX: Number(initialX.toFixed(2)),
+        clampedRuntimeX: Number(clampedX.toFixed(2)),
+        visualLeftX: Number(visualLeftX.toFixed(2)),
+        groundY: Number(groundY.toFixed(2)),
+        facing: initialFacing,
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [positionRevision]);
 
