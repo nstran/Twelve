@@ -39,8 +39,6 @@ export interface PlayerRuntimeSnapshot {
   crit: number;
   /** Tốc độ di chuyển ngang ngoài map (px/frame ~60fps). Nguồn: MapMovementCalculator server. */
   mapMoveSpeed: number;
-  /** Tốc độ bật nhảy ban đầu ngoài map (px/frame). Nguồn: MapMovementCalculator server. */
-  mapJumpSpeed: number;
   inventory: CharacterInventoryItem[];
   equipment: CharacterEquipmentItem[];
   skills: CharacterSkillNode[];
@@ -211,7 +209,6 @@ export const mergePlayerRuntimeAppearance = (
     },
     mapMovement: {
       moveSpeed: runtime.mapMoveSpeed,
-      jumpSpeed: runtime.mapJumpSpeed,
     },
     inventory: runtime.inventory,
     equipment: runtime.equipment,

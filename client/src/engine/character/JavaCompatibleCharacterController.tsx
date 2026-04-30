@@ -45,6 +45,15 @@ const DOUBLE_TAP_MS = 260;
 const DOUBLE_TAP_DIST = 26;
 const JUMP_TRIGGER_RATIO = 0.42;
 const LANDING_HOLD_MS = 150;
+/**
+ * Remake tuning for Hoa Lư tap/swipe runtime:
+ * Java `kl.a` is still the base value (`min(16, 11 + level / 10)`), but the
+ * React Native playable scene is authored with taller visual gaps/platforms
+ * than the recovered 32x32 Java collision grid. Use this multiplier only for
+ * the initial upward impulse until exact legacy map tile data is recovered.
+ */
+const DEFAULT_JUMP_IMPULSE_MULTIPLIER = 1.35;
+const MONSTER_TOUCH_HITBOX_RATIO = 0.58;
 
 interface JumpPoseState {
   slot: CharacterPoseFamilySlot;
@@ -269,7 +278,11 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
 
   const findMonsterAtPoint = useCallback((x: number, y: number): MonsterTarget | null => {
     for (const monster of monstersRef.current) {
-      if (x >= monster.x && x <= monster.x + monster.width && y >= monster.y && y <= monster.y + monster.height) {
+      const hitboxWidth = monster.width * MONSTER_TOUCH_HITBOX_RATIO;
+      const hitboxHeight = monster.height * MONSTER_TOUCH_HITBOX_RATIO;
+      const hitboxX = monster.x + (monster.width - hitboxWidth) / 2;
+      const hitboxY = monster.y + (monster.height - hitboxHeight) / 2;
+      if (x >= hitboxX && x <= hitboxX + hitboxWidth && y >= hitboxY && y <= hitboxY + hitboxHeight) {
         return monster;
       }
     }
@@ -579,7 +592,7 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
     }
 
     runtime.j = JavaMapActorState.JumpRising;
-    runtime.s = runtime.a;
+    runtime.s = Math.max(runtime.a, Math.round(runtime.a * DEFAULT_JUMP_IMPULSE_MULTIPLIER));
     runtime.k = direction === 'left'
       ? JavaMoveBit.Left
       : direction === 'right'

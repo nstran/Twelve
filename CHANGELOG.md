@@ -2,6 +2,14 @@
 
 ## 2026-04-30
 
+### [MAP] Tăng nhảy, thu nhỏ tap hitbox monster, xóa controller cũ
+
+- `JavaCompatibleCharacterController` tăng initial jump impulse bằng multiplier tạm `1.35` trên nền công thức Java `kl.a = min(16, 11 + level / 10)`.
+- Giữ nguyên state/tick Java-compatible: jump `j=5`, falling `j=6`, vertical step vẫn theo `km.java`.
+- Thu nhỏ vùng tap monster còn 58% vùng giữa sprite để tránh chạm viền/khoảng trống vẫn bị chọn monster.
+- Xóa `client/src/engine/character/CharacterController.tsx`; runtime map chỉ còn dùng controller Java-compatible qua export hiện tại.
+- Cập nhật `MAP_SYSTEM_RECONSTRUCTION.md`.
+
 ### [MAP] Sửa snap X khi air-control trên không
 
 - `JavaCompatibleCharacterController` giữ đúng state Java `j=5/6` khi player đang nhảy/rơi nhưng bấm/trỏ trái-phải.

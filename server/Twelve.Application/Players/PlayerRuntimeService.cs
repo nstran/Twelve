@@ -419,10 +419,7 @@ namespace Twelve.Application.Players
             var player = aggregate.Core;
             var derived = PlayerStatPipeline.Calculate(
                 player, _contentCatalog.GetEquippedModifiers(aggregate.Equipment));
-            var mapMovement = MapMovementCalculator.Calculate(
-                player.Level,
-                player.ThanPhap,
-                player.BonusThanPhap);
+            var mapMovement = MapMovementCalculator.Calculate(player.Level);
 
             return new PlayerRuntimeSnapshot(
                 Username: player.Username,
@@ -457,7 +454,6 @@ namespace Twelve.Application.Players
                 Hit: derived.Hit,
                 Crit: derived.Crit,
                 MapMoveSpeed: mapMovement.MoveSpeed,
-                MapJumpSpeed: mapMovement.JumpSpeed,
                 Inventory: aggregate.Inventory.Select(_contentCatalog.ToInventoryView).ToArray(),
                 Equipment: aggregate.Equipment.Select(_contentCatalog.ToEquipmentView).ToArray(),
                 Skills: _contentCatalog.BuildSkillViews(player, aggregate.Skills));

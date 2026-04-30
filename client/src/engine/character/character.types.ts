@@ -106,10 +106,8 @@ export interface CharacterControllerProps {
   controlMode?: CharacterControlMode;
   /** Character level used by Java map formulas: kl.i / kl.a */
   level?: number;
-  /** Movement speed in pixels per frame */
+  /** Movement speed in pixels per frame; used only as fallback to infer Java level when `level` is absent. */
   speed?: number;
-  /** Initial upward jump speed in pixels per reference frame */
-  jumpSpeed?: number;
   /** Display scale */
   scale?: number;
   /** List of monsters to detect proximity & attack */

@@ -71,7 +71,7 @@ export interface CharacterAppearance {
   skillPoints?: number;
   combat?: { attack: number; def: number; acc: number; dodge: number; hp: number; crit: string };
   /** Movement stats ngoài map, server tính từ Java kl.b(lh) baseline + Thân Pháp. */
-  mapMovement?: { moveSpeed: number; jumpSpeed: number };
+  mapMovement?: { moveSpeed: number };
   inventory?: CharacterInventoryItem[];
   equipment?: CharacterEquipmentItem[];
   skills?: CharacterSkillNode[];

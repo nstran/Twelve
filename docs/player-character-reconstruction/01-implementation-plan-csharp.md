@@ -432,34 +432,32 @@ Nguồn trực tiếp từ Java client:
 
 ### Rule đã chốt cho server remake
 
-Vì map train hiện tại là map mới, không có map gốc để mirror platform/collision tuyệt đối, movement dùng 2 tầng:
+Movement ngoài map hiện chốt theo tầng Java-faithful:
 
-1. **Tầng Java-faithful bắt buộc**:
-   - Level tăng tốc theo `kl.i = min(9, 4 + level / 10)`.
-   - Phải giữ integer division: level `1..9` chưa tăng bậc, `10..19` tăng 1 bậc, ...
-2. **Tầng thiết kế remake có ghi nguồn suy luận**:
-   - `ThanPhap` ảnh hưởng tốc độ ngang và lực nhảy vì nghĩa nghiệp vụ là thân pháp/agility.
-   - Hệ số cố tình nhỏ và có cap để không phá map/collision.
+- Level tăng tốc theo `kl.i = min(9, 4 + level / 10)`.
+- Phải giữ integer division: level `1..9` chưa tăng bậc, `10..19` tăng 1 bậc, ...
+- Dùng trực tiếp `kl.i` làm px/frame reference giống runtime map Java; không scale xuống và không cộng Thân Pháp vì `kl/km` đã rà chưa có bằng chứng Java cho stat này ảnh hưởng movement ngoài map.
+- `kl.a = min(16, 11 + level / 10)` chỉ giữ làm tham chiếu attack timer/animation, không phải jumpSpeed API.
 
 Công thức đang implement trong `server/Twelve.Core/GameLogic/MapMovementCalculator.cs`:
 
 ```csharp
 javaSpeed = Math.Min(9, 4 + level / 10);
-moveSpeed = min(2.8, 1.0 + (javaSpeed - 4) * 0.30 + thanPhap * 0.008);
+moveSpeed = javaSpeed;
 
-jumpSpeed = min(12.0, 6.4 + max(0, thanPhap - 10) * 0.06);
-attackTimer = min(16, 11 + level / 10);
+attackTimer = Math.Min(16, 11 + level / 10);
 ```
 
-Client nhận qua `PlayerRuntimeSnapshot.mapMoveSpeed/mapJumpSpeed`, merge vào `CharacterAppearance.mapMovement`, rồi `HoaLuMapScreen` truyền xuống `CharacterController`:
+Client nhận qua `PlayerRuntimeSnapshot.mapMoveSpeed`, merge vào `CharacterAppearance.mapMovement`, rồi `HoaLuMapScreen` truyền xuống `CharacterController`:
 
 - `speed={appearance.mapMovement?.moveSpeed ?? sceneConfig.playerSpeed}`
-- `jumpSpeed={appearance.mapMovement?.jumpSpeed}`
+
+Jump/fall hiện thuộc Java-compatible controller/state machine (`kl.a`, `km.java` state `5/6`) và không còn expose `mapJumpSpeed` theo Thân Pháp vì Java `kl/km` đã rà chỉ chứng minh movement ngoài map phụ thuộc level.
 
 ### Nhật ký chỉnh sửa 2026-04-25
 
 - Thêm `server/Twelve.Core/GameLogic/MapMovementCalculator.cs` để tập trung hóa công thức movement ngoài map, có comment nguồn `kl.java — kl.b(lh)`.
-- Cập nhật `server/Twelve.Core/Players/PlayerRuntimeContracts.cs` thêm `MapMoveSpeed`, `MapJumpSpeed`.
+- Cập nhật `server/Twelve.Core/Players/PlayerRuntimeContracts.cs` thêm `MapMoveSpeed` (không còn `MapJumpSpeed`; chưa có bằng chứng Java cho Thân Pháp ảnh hưởng jump runtime map).
 - Cập nhật `server/Twelve.Application/Players/PlayerRuntimeService.cs` để build snapshot từ `MapMovementCalculator`.
 - Cập nhật client:
   - `client/src/screens/character/status/CharacterStatus.api.ts`
@@ -472,7 +470,7 @@ Client nhận qua `PlayerRuntimeSnapshot.mapMoveSpeed/mapJumpSpeed`, merge vào 
   - Client Java không chứa công thức server cũ chính xác cho lượng ăn đào/nộ/MP, nên remake ghi rõ đây là rule suy luận có kiểm soát.
   - `client/src/screens/battle/core/BattleScreen.shared.ts`: thêm `scalePowerGainByStrength()` để Cường Lực tăng tốc độ nhận nộ/Power, tương tự rule đào/HP hiện có; Nội Lực vẫn tăng MP qua `scaleManaGainByMagic()`.
   - `client/src/screens/battle/hooks/useBattleMatchFlow.ts`: áp dụng scale Power theo Cường Lực khi match gem/resource trong trận.
-- Thân Pháp tiếp tục đi qua pipeline derived stat Java đã phục dựng: chính xác, né tránh, chí mạng; ngoài map còn ảnh hưởng move/jump theo rule remake có cap.
+- Thân Pháp tiếp tục đi qua pipeline derived stat Java đã phục dựng: chính xác, né tránh, chí mạng; không còn ảnh hưởng move/jump ngoài map vì `kl/km` đã rà chỉ chứng minh movement runtime phụ thuộc level.
 - Chốt lại hiển thị `Tấn Công` trên status theo ảnh Java cũ:
   - Java status là một số đơn, không phải range.
   - `lh.x`/`runtime.minDamage` là số hiển thị ở ô `Tấn Công`.

@@ -1315,3 +1315,17 @@ Các phần cần làm để map bên ngoài playable:
   - trigger map cần bám va chạm hitbox hai chiều thay vì line trigger theo X, để hành vi nhảy qua monster không bị kéo vào battle sai.
 - Kiểm tra:
   - `client\node_modules\.bin\tsc.cmd --noEmit -p client\tsconfig.json` — passed.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (tuning jump, monster tap hitbox, cleanup controller cũ)
+
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - tăng impulse nhảy bằng `DEFAULT_JUMP_IMPULSE_MULTIPLIER = 1.35` trên nền công thức Java `kl.a = min(16, 11 + level / 10)`;
+  - ghi chú rõ đây là remake tuning tạm cho Hoa Lư vì scene React Native hiện được author bằng platform/surface có khoảng cách thị giác cao hơn grid Java `32x32` đã recover; khi có `kf.d` gốc cần quay về đúng impulse Java;
+  - giữ nguyên state machine Java-compatible: jump vẫn là `j=5`, falling `j=6`, mỗi tick vẫn `y -= s; s--` và `y += s; s += 2`;
+  - thu nhỏ vùng tap monster bằng `MONSTER_TOUCH_HITBOX_RATIO = 0.58`, hit-test ở vùng giữa sprite thay vì toàn bộ box hiển thị để tránh bấm vào khoảng trống/viền sprite vẫn bị kéo vào monster.
+- Xóa `client/src/engine/character/CharacterController.tsx`:
+  - controller RN/interpolation cũ không còn được export từ `client/src/engine/character/index.ts`;
+  - Hoa Lư runtime hiện dùng `JavaCompatibleCharacterController`, tránh nhầm lẫn hoặc import lại movement 60fps cũ không bám `km.java`.
+- Nguồn suy luận:
+  - `reference/redecoded/cfr_fresh/kl.java`: base jump/fall strength `a` và state `j/s/t`;
+  - `reference/redecoded/cfr_fresh/km.java`: jump/fall tick vẫn xử lý theo state `5/6`; phần multiplier là policy remake tạm do thiếu collision grid Java gốc cho Hoa Lư.
