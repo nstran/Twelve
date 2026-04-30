@@ -139,3 +139,17 @@ export function monsterFrameMetrics(type: MonsterType, frameIndex: number) {
     visualFootSink: Math.round(s.visualFootSink * DISPLAY_SCALE),
   };
 }
+
+export function monsterCollisionSize(type: MonsterType) {
+  const display = monsterDisplaySize(type);
+  const s = SPECS[type];
+  const maxBottomInset = Math.max(...s.frameBottomInsets);
+
+  // Java map collision dùng hitbox runtime actor (`k`) chứ không dùng full
+  // sprite rectangle. Monster sheet có nhiều alpha padding theo frame, nên
+  // battle trigger phải thu vào phần thân nhìn thấy để tránh kéo battle từ xa.
+  return {
+    w: Math.max(18, Math.round(display.w * 0.58)),
+    h: Math.max(18, display.h - Math.round(maxBottomInset * DISPLAY_SCALE)),
+  };
+}

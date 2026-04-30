@@ -2,6 +2,13 @@
 
 ## 2026-04-30
 
+### [MAP] Thu nhỏ collision block monster ngoài map
+
+- Thêm `monsterCollisionSize(type)` để tách collision/encounter hitbox khỏi kích thước sprite hiển thị.
+- `HoaLuMapScreen` dùng collision size thu nhỏ cho monster và inset thân player khi xét auto encounter, tránh bị kéo battle khi chưa chạm hình quái.
+- Nguồn suy luận: Java map actor dùng runtime hitbox `kl.t`, không dùng full sprite rectangle; phần monster collision là adapter remake tạm vì asset RN có alpha padding.
+- Cập nhật `MAP_SYSTEM_RECONSTRUCTION.md`.
+
 ### [MAP] Tăng nhảy, thu nhỏ tap hitbox monster, xóa controller cũ
 
 - `JavaCompatibleCharacterController` tăng initial jump impulse bằng multiplier tạm `1.35` trên nền công thức Java `kl.a = min(16, 11 + level / 10)`.

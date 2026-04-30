@@ -1316,6 +1316,20 @@ Các phần cần làm để map bên ngoài playable:
 - Kiểm tra:
   - `client\node_modules\.bin\tsc.cmd --noEmit -p client\tsconfig.json` — passed.
 
+## Nhật ký chỉnh sửa - 2026-04-30 (thu nhỏ collision block monster ngoài map)
+
+- Sửa `client/src/engine/MonsterSprite.tsx`:
+  - thêm `monsterCollisionSize(type)` để tách kích thước collision/encounter khỏi kích thước sprite hiển thị;
+  - collision width lấy 58% display width, collision height trừ phần bottom alpha inset lớn nhất của sheet;
+  - mục tiêu là bám vùng thân nhìn thấy của monster thay vì full sprite rectangle có nhiều khoảng alpha/padding.
+- Sửa `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`:
+  - `MonsterRuntime` lưu `collisionSize` riêng;
+  - `hasMonsterCollision(...)` dùng collision size thu nhỏ cho monster và thu player hitbox theo vùng thân giữa sprite;
+  - encounter tự động chỉ kích khi hitbox thân player và hitbox thân monster overlap, giảm lỗi “chưa đụng hình quái đã bị kéo battle”.
+- Nguồn suy luận:
+  - `reference/redecoded/cfr_fresh/kl.java`: actor map dùng runtime hitbox `k t` thay vì full sprite rectangle;
+  - Java không chứng minh monster map dùng nguyên kích thước sprite hiển thị, nên thu collision vào thân nhìn thấy là adapter remake tạm cho asset RN có alpha padding.
+
 ## Nhật ký chỉnh sửa - 2026-04-30 (tuning jump, monster tap hitbox, cleanup controller cũ)
 
 - Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:

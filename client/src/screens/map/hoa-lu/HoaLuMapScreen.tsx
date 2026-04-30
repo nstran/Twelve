@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import {
   MonsterSprite, MonsterType,
-  WALK_FRAMES, monsterDisplaySize, monsterPlacementMetrics,
+  WALK_FRAMES, monsterCollisionSize, monsterDisplaySize, monsterPlacementMetrics,
 } from '../../../engine/MonsterSprite';
 import {
   JavaCompatibleCharacterController,
@@ -93,6 +93,7 @@ interface MonsterRuntime {
   frameIndex: number;
   xAnim: Animated.Value;  // drives translateX on native side
   size: ReturnType<typeof monsterDisplaySize>;
+  collisionSize: ReturnType<typeof monsterCollisionSize>;
   topY: number;
 }
 
@@ -133,6 +134,7 @@ function createMonsterRuntime(entry: MapMonsterRosterEntry, surfaces: GroundSurf
   const startX = minX + Math.max(0, maxX - minX) * Math.max(0, Math.min(1, entry.spawnRatio));
   const type = resolveMonsterTypeFromVisuals(entry.visualTypeByte, entry.sharedSheetFamily);
   const size = monsterDisplaySize(type);
+  const collisionSize = monsterCollisionSize(type);
   const placement = monsterPlacementMetrics(type);
   const leftX = startX - size.w / 2;
   const surfaceGroundY = getSurfaceStartY(surface);
@@ -155,6 +157,7 @@ function createMonsterRuntime(entry: MapMonsterRosterEntry, surfaces: GroundSurf
     frameIndex: WALK_FRAMES[0],
     xAnim: new Animated.Value(leftX),
     size,
+    collisionSize,
     topY: surfaceGroundY - size.h + placement.groundOffset,
   };
 }
@@ -184,6 +187,7 @@ function reconcileMonsterRuntimes(
     const maxX = surface.x1 + Math.max(0, Math.min(1, entry.patrolEndRatio)) * span;
     const type = resolveMonsterTypeFromVisuals(entry.visualTypeByte, entry.sharedSheetFamily);
     const size = monsterDisplaySize(type);
+    const collisionSize = monsterCollisionSize(type);
     const placement = monsterPlacementMetrics(type);
     const surfaceGroundY = getSurfaceStartY(surface);
     const clampedX = Math.max(minX, Math.min(maxX, existing.x));
@@ -198,6 +202,7 @@ function reconcileMonsterRuntimes(
     existing.maxX = maxX;
     existing.x = clampedX;
     existing.size = size;
+    existing.collisionSize = collisionSize;
     existing.topY = nextTopY;
     existing.xAnim.setValue(nextLeftX);
 
@@ -236,12 +241,13 @@ function hasMonsterCollision(
   monsterWidth: number,
   monsterHeight: number,
 ): boolean {
-  const playerRight = playerLeft + playerWidth;
+  const playerHitboxInset = Math.max(4, Math.round(playerWidth * 0.32));
+  const playerRight = playerLeft + playerWidth - playerHitboxInset;
+  const playerHitboxLeft = playerLeft + playerHitboxInset;
   const monsterLeft = monsterCenterX - monsterWidth / 2;
   const monsterRight = monsterLeft + monsterWidth;
-  const horizontalInset = Math.max(6, Math.min(18, Math.floor(Math.min(playerWidth, monsterWidth) * 0.22)));
-  const horizontalOverlap = playerRight >= monsterLeft + horizontalInset &&
-    playerLeft <= monsterRight - horizontalInset;
+  const horizontalOverlap = playerRight >= monsterLeft &&
+    playerHitboxLeft <= monsterRight;
 
   if (!horizontalOverlap) {
     return false;
@@ -1405,7 +1411,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           const canOwnEncounter = !defeatRecoveryActiveRef.current && (lockedMonsterId === null || lockedMonsterId === m.id);
           const collidesWithPlayer = canOwnEncounter &&
             playerRecentlyMoved &&
-            hasMonsterCollision(playerLeft, playerSpriteSize.w, charFootYRef.current, m.x, m.groundY, m.size.w, m.size.h);
+            hasMonsterCollision(playerLeft, playerSpriteSize.w, charFootYRef.current, m.x, m.groundY, m.collisionSize.w, m.collisionSize.h);
           const nextWorldState: MonsterRuntime['worldState'] = collidesWithPlayer ? 'engaging' : 'patrol';
 
           // 1. Move
