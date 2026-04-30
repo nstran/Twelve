@@ -36,7 +36,8 @@
 - DLL Lock: Nếu gặp lỗi build do file .exe/.dll bị lock, tự động gợi ý lệnh `taskkill /F /IM <ProcessName>.exe` trong terminal.
 
 ## 6. QUY TRÌNH KẾT THÚC TASK
-- Sau khi sửa code xong, BẮT BUỘC phải chạy lệnh build tương ứng (ví dụ: `dotnet build` cho Backend hoặc `npx tsc` cho React Native).
+- Sau khi sửa code xong, BẮT BUỘC phải chạy lệnh build tương ứng (ví dụ: `dotnet build` cho Backend hoặc TypeScript check cho React Native).
+- React Native client: KHÔNG dùng `cd client && npx tsc --noEmit` vì môi trường hiện tại có thể gọi nhầm placeholder package `tsc`. Hãy chạy local compiler từ root bằng `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit`.
 - Nếu build thất bại, phải phân tích lỗi và sửa lỗi cho đến khi build thành công mới được báo cáo hoàn thành nhiệm vụ.
 
 ## 7. Note

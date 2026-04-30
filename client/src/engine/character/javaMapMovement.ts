@@ -13,6 +13,14 @@ export const JAVA_TILE_SIZE = 32;
  */
 export const JAVA_MAP_TICK_MS = 40;
 export const JAVA_MAP_MAX_STEPS_PER_FRAME = 3;
+/**
+ * Java-inspired/reconstructed reachability tuning for RN-authored maps.
+ * The recovered Java formula `kl.a = min(16, 11 + level / 10)` is low on the
+ * current Hoa Lư authored topology because exact Java map collision/platform data
+ * is not recovered yet. Keep the tick/state formula intact, but boost the initial
+ * jump impulse/cap uniformly so higher authored destinations remain reachable.
+ */
+export const RECONSTRUCTED_JUMP_HEIGHT_MULTIPLIER = 1.25;
 
 export const enum JavaMapActorState {
   Idle = 0,
@@ -71,7 +79,8 @@ export const createJavaMapActorRuntime = (
   level: number,
 ): JavaMapActorRuntime => {
   const runSpeed = Math.min(9, 4 + Math.trunc(level / 10));
-  const jumpGravityCap = Math.min(16, 11 + Math.trunc(level / 10));
+  const javaJumpGravityCap = Math.min(16, 11 + Math.trunc(level / 10));
+  const jumpGravityCap = Math.round(javaJumpGravityCap * RECONSTRUCTED_JUMP_HEIGHT_MULTIPLIER);
 
   return {
     t: { a: x, b: y, c: 17, d: 32 },

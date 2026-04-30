@@ -31,6 +31,7 @@ import {
   JAVA_MAP_MAX_STEPS_PER_FRAME,
   JAVA_MAP_TICK_MS,
   JavaMapActorState,
+  RECONSTRUCTED_JUMP_HEIGHT_MULTIPLIER,
   JavaMoveBit,
   javaCanClimbAtRect,
   javaCanMoveHorizontally,
@@ -90,21 +91,13 @@ const DOUBLE_TAP_DIST = 26;
 const JUMP_TRIGGER_RATIO = 0.42;
 const LANDING_HOLD_MS = 90;
 /**
- * Remake tuning for Hoa Lư tap/swipe runtime:
- * Java `kl.a` is still the base value (`min(16, 11 + level / 10)`), but the
- * React Native playable scene is authored with taller visual gaps/platforms
- * than the recovered 32x32 Java collision grid. Use this multiplier only for
- * the initial upward impulse until exact legacy map tile data is recovered.
+ * Java source: reference/redecoded/cfr_fresh/kl.java + km.java.
+ * Keep jump/fall runtime vertical step order Java-compatible for map reachability:
+ * rising applies `y -= s; s--`, and falling applies `y += s; s += 2` capped by
+ * `a`. Hoa Lư currently applies `RECONSTRUCTED_JUMP_HEIGHT_MULTIPLIER` to the
+ * recovered Java cap because exact legacy platform topology is not recovered yet
+ * and authored high destinations need more jump reach.
  */
-const DEFAULT_JUMP_IMPULSE_MULTIPLIER = 1.15;
-/**
- * Java-inspired/reconstructed vertical pacing for the authored RN Hoa Lư scene.
- * Java still owns the state machine (`j=5/6`), velocity counter `s`, gravity
- * increment and landing checks; only the screen-space Y delta is damped because
- * the recovered RN map/sprite scale makes raw Java px/tick jump/fall read too
- * fast without the exact legacy map render scale.
- */
-const AIRBORNE_VERTICAL_DELTA_RATIO = 0.82;
 const TOUCH_PAD = 4;
 const ACTOR_TOUCH_PAD_X = 5;
 const ACTOR_TOUCH_PAD_Y = 4;
@@ -310,7 +303,7 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
   useEffect(() => {
     const runtime = runtimeRef.current;
     runtime.i = Math.min(9, 4 + Math.trunc(javaLevel / 10));
-    runtime.a = Math.min(16, 11 + Math.trunc(javaLevel / 10));
+    runtime.a = Math.round(Math.min(16, 11 + Math.trunc(javaLevel / 10)) * RECONSTRUCTED_JUMP_HEIGHT_MULTIPLIER);
   }, [javaLevel]);
 
   const clampX = useCallback((x: number) => (
@@ -665,8 +658,7 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
           setActionIfChanged('run');
         }
       } else if (runtime.j === JavaMapActorState.JumpRising) {
-        const riseDelta = Math.max(1, Math.round(runtime.s * AIRBORNE_VERTICAL_DELTA_RATIO));
-        const nextY = runtime.t.b - riseDelta;
+        const nextY = runtime.t.b - runtime.s;
         const grid = collisionGridRef.current;
         const ceilingBottom = grid ? javaFindCeilingBottom(grid, runtime.t, nextY) : null;
         if (ceilingBottom !== null) {
@@ -688,8 +680,7 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
         }
       } else if (runtime.j === JavaMapActorState.Falling) {
         const previousFootY = runtime.t.b + runtime.t.d;
-        const fallDelta = Math.max(1, Math.round(runtime.s * AIRBORNE_VERTICAL_DELTA_RATIO));
-        runtime.t.b += fallDelta;
+        runtime.t.b += runtime.s;
         runtime.u.b = runtime.t.b;
         runtime.s = Math.min(runtime.a, runtime.s + 2);
 
@@ -886,7 +877,7 @@ export const JavaCompatibleCharacterController = forwardRef<CharacterControllerR
     }
 
     runtime.j = JavaMapActorState.JumpRising;
-    runtime.s = Math.max(runtime.a, Math.round(runtime.a * DEFAULT_JUMP_IMPULSE_MULTIPLIER));
+    runtime.s = runtime.a;
     runtime.k = direction === 'left'
       ? JavaMoveBit.Left
       : direction === 'right'

@@ -2,6 +2,20 @@
 
 ## 2026-04-30
 
+### [MAP] Tăng reachability jump Hoa Lư theo policy reconstructed
+
+- `javaMapMovement` thêm `RECONSTRUCTED_JUMP_HEIGHT_MULTIPLIER = 1.25` để tăng initial jump/cap trên nền công thức Java `kl.a = min(16, 11 + level / 10)`.
+- `createJavaMapActorRuntime(...)` và `JavaCompatibleCharacterController` đồng bộ cùng multiplier khi khởi tạo runtime và khi level đổi, tránh quay về cap Java thấp giữa phiên.
+- Giữ nguyên state/tick Java-compatible: rising `t.b -= s; s--`, falling `t.b += s; s = min(a, s + 2)`; chỉ tuning reachability cho topology Hoa Lư hiện chưa recover exact `kf.d`/platform data gốc.
+- Ghi chú rõ đây là Java-inspired/reconstructed policy và cập nhật `.clinerules`, `MAP_SYSTEM_RECONSTRUCTION.md`.
+
+### [MAP] Khôi phục jump/fall runtime Java thật
+
+- `JavaCompatibleCharacterController` bỏ tuning `DEFAULT_JUMP_IMPULSE_MULTIPLIER = 1.15` và `AIRBORNE_VERTICAL_DELTA_RATIO = 0.82` khỏi physics runtime.
+- Jump rising/falling trở lại đúng công thức Java `km.java`: `t.b -= s; s--` và `t.b += s; s = min(a, s + 2)`.
+- Smoothness tuning nếu có chỉ được visual-only; runtime `kl.t.b`, velocity `s/a`, collision grid/surface adapter và monster trigger vẫn là source of truth.
+- Cập nhật `MAP_SYSTEM_RECONSTRUCTION.md`.
+
 ### [MAP] Air-control X interpolation an toàn Hoa Lư
 
 - `JavaCompatibleCharacterController` thêm `USE_AIRBORNE_X_VISUAL_INTERPOLATION = true` để chỉ làm mượt X visual khi actor đang `JumpRising`/`Falling`, không bật lại interpolation toàn cục từng gây jitter.

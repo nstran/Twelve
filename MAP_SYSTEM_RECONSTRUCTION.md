@@ -228,7 +228,7 @@ Collision rule:
 - Đứng trên mặt đất khi chân chạm `GroundSurface`.
 - Chạy trái/phải theo input.
 - Tốc độ chạy runtime lấy từ server `MapMovementCalculator`: bám Java `kl.java` với `kl.i = min(9, 4 + level / 10)` (integer division), dùng trực tiếp làm px/frame reference thay vì scale xuống.
-- Client phải nhân movement ngang theo display `scale` giống vertical jump impulse vì Java dùng cùng hệ sprite/map tick; nếu chỉ scale Y mà không scale X thì nhân vật chạy chậm và nhảy ngang không qua được platform.
+- Runtime jump/fall vertical phải bám Java `km.java`: jump rising dùng `t.b -= s; s--`, falling dùng `t.b += s; s += 2` với cap `s <= a`; không damp runtime Y bằng ratio/multiplier vì sẽ làm platform cao khó/không thể nhảy tới so với client cũ.
 - Khi đang nhảy, nếu người chơi giữ trái/phải thì vẫn cộng chuyển động ngang mỗi frame theo hướng input. Nguồn Java: `km.java` state `5/6` gọi movement với `i * kl.b[4/8]`; không được snap/interpolate về vị trí nhảy ban đầu khi thả phím.
 - Nếu không còn surface dưới chân thì chuyển sang falling.
 - Khi falling và giao với surface hợp lệ thì đáp xuống.
@@ -1530,3 +1530,44 @@ Các phần cần làm để map bên ngoài playable:
 - Kết luận phục dựng:
   - đây là **Java-inspired/reconstructed render policy** từ nguyên tắc Java actor runtime: physics/collision đọc runtime `kl.t`, render có thể làm mượt có kiểm soát giữa fixed tick;
   - chưa Java-perfect vì chưa recover exact J2ME render cadence/monster hitbox gốc, nhưng giữ nguồn sự thật ở runtime Java-compatible.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (khôi phục jump/fall runtime Java thật)
+
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - bỏ tuning `DEFAULT_JUMP_IMPULSE_MULTIPLIER = 1.15` để initial jump velocity trở lại đúng `runtime.a`;
+  - bỏ damp `AIRBORNE_VERTICAL_DELTA_RATIO = 0.82` khỏi runtime Y;
+  - jump rising dùng lại đúng công thức `km.java`: `t.b -= s`, sau đó `s--`, khi `s <= 0` chuyển falling;
+  - falling dùng lại đúng công thức `km.java`: `t.b += s`, sau đó `s = min(a, s + 2)`;
+  - cập nhật comment trong code ghi rõ mọi smoothness tuning phải là visual-only, không được damp `kl.t.b`.
+- Lý do:
+  - bản tuning trước làm nhảy thấp/chậm hơn Java, có nguy cơ khiến platform cao ở các map sau khó hoặc không thể nhảy lên;
+  - client cũ dùng runtime actor hitbox `kl.t` và velocity `s/a` làm source of truth cho reachability, nên runtime vertical step phải giữ Java thật.
+- Phạm vi ảnh hưởng:
+  - chỉ đổi physics jump/fall runtime trong client React Native;
+  - không đổi monster runtime box, battle trigger, attack range, collision grid/surface adapter hoặc server API.
+- Nguồn suy luận:
+  - `reference/redecoded/cfr_fresh/kl.java`: `a = min(16, 11 + level / 10)`, state `j`, velocity `s`, hitbox `t`;
+  - `reference/redecoded/cfr_fresh/km.java`: state `5` jump rising `t.b -= s; s--`, state `6` falling `t.b += s; s += 2`.
+
+## Nhật ký chỉnh sửa - 2026-04-30 (tăng reachability jump Hoa Lư theo policy reconstructed)
+
+- Sửa `client/src/engine/character/javaMapMovement.ts`:
+  - thêm `RECONSTRUCTED_JUMP_HEIGHT_MULTIPLIER = 1.25`;
+  - `createJavaMapActorRuntime(...)` vẫn lấy base Java `kl.a = min(16, 11 + level / 10)` nhưng nhân multiplier khi set `runtime.a`/`runtime.s`;
+  - comment ghi rõ đây là **Java-inspired/reconstructed reachability tuning** cho topology Hoa Lư hiện tại vì chưa recover exact Java collision/platform data gốc.
+- Sửa `client/src/engine/character/JavaCompatibleCharacterController.tsx`:
+  - import multiplier chung từ `javaMapMovement.ts`;
+  - khi `javaLevel` đổi, đồng bộ lại `runtime.a = round(baseJavaA * RECONSTRUCTED_JUMP_HEIGHT_MULTIPLIER)` để không bị quay về cap Java thấp sau level update;
+  - giữ nguyên thứ tự tick Java-compatible: rising `t.b -= s; s--`, falling `t.b += s; s += 2`; chỉ tăng cap/initial `s` theo policy reconstructed, không đổi collision grid, monster runtime box hoặc battle trigger.
+- Sửa `.clinerules`:
+  - ghi rõ React Native client trong môi trường hiện tại phải chạy TypeScript local compiler từ root bằng `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit`, tránh `npx tsc` gọi nhầm placeholder package.
+- Lý do:
+  - task test thực tế yêu cầu tăng độ cao nhảy để vượt các destination/platform authored hiện tại của Hoa Lư;
+  - đây không phải Java-perfect vì thiếu exact `kf.d`/platform topology gốc, nhưng vẫn giữ state machine và runtime hitbox Java-compatible làm source of truth.
+- Kiểm tra:
+  - `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` — passed.
+- Ghi chú còn thiếu để quay lại sau:
+  - cần recover hoặc tự author `kf.d`/collision tile matrix gốc cho Hoa Lư thay vì surface-based adapter;
+  - cần recover exact monster map actor hitbox/encounter box từ Java/client data nếu có, hiện monster collision vẫn là Java-inspired/reconstructed policy;
+  - cần test lại reachability jump trên toàn bộ platform/destination Hoa Lư sau khi có collision grid chuẩn;
+  - khi có data Java đầy đủ, cân nhắc đưa `RECONSTRUCTED_JUMP_HEIGHT_MULTIPLIER` về `1.0` hoặc map-specific config thay vì global runtime constant.
