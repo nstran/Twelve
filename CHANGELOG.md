@@ -18,7 +18,80 @@
 - Rà bổ sung `of.java`: panel giao dịch add/remove/reclaim equipment bằng `dc`, icon convention cũ, key `ll.c`, log cập nhật/lấy lại và danh sách kiểm tra giao dịch; mapping sender trade `ks.k/l/m/n` giữ riêng khỏi equip/upgrade/combine.
 - Cập nhật coverage estimate trong tài liệu: khoảng `99.5%` phần equipment client-side core đã gom; phần còn lại chủ yếu là combat usage của stat đặc biệt, asset/meta đối chiếu bằng server dump, UI thương mại phụ ngoài core và byte-perfect serializer test với client thật.
 - Dọn phần thừa không phải bằng chứng Java source: bỏ bảng `.agent/skills/` và đánh dấu `110xxx-140xxx` là mixed/needs re-audit thay vì exclude cứng.
+
+### [EQUIPMENT] Bổ sung quyết định server-side từ gameplay memory
+
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` thêm section server-side reconstruction do không có Java server gốc; nguồn là gameplay memory/user-provided evidence ngày `2026-05-03` kết hợp Java client equipment parser/UI đã audit.
+- Chốt vòng đời equipment:
+  - Quái rơi trang bị ra đất dạng hộp.
+  - Khi nhặt mở dialog `Nhặt/Bỏ qua` kiểu `hg.java`.
+  - Shop/nhiệm vụ/event có thể cấp trang bị.
+  - Drop phân cấp theo level/map/quái.
+  - Equipment instance roll chỉ số random trong range từ template.
+- Chốt validation mặc đồ ở server:
+  - Sai giới tính không mặc được.
+  - Chưa đủ level không mặc được.
+  - Không có giới hạn class/phái/hệ ngoài level + gender theo evidence hiện tại.
+  - Giao dịch phải tháo đồ trước, không trade trực tiếp đồ đang mặc.
+- Chốt durability/repair:
+  - Thắng trận trừ `1` độ bền trên đồ đang mặc.
+  - Thua trận trừ `3` độ bền.
+  - Độ bền về `0` chỉ broken, không mất đồ.
+  - Broken equipment không cộng stat/effect.
+  - Durability/current durability và max durability được lưu DB riêng theo từng equipment instance, không chỉ là default/template chung.
+  - Mỗi món đồ có thể có `MaxDurability` riêng; nếu template/server generation không chỉ định thì fallback default ban đầu là `30`.
+  - Upgrade/enhancement cũng tăng độ bền tối đa của chính equipment instance đó; công thức tăng cụ thể sẽ cấu hình theo tier upgrade khi implement.
+  - Equipment durability `p == 0` vẫn mặc được và vẫn nằm ở slot trang bị, nhưng toàn bộ stat/effect không còn tác dụng cho status/combat.
+  - Repair chỉ dùng item búa sửa đồ: mỗi lần dùng `1` búa, hồi đầy durability về `MaxDurability`, không mất Quan/KEN.
+  - Có đồ không thể sửa nên cần field `IsRepairable`.
+- Chốt economy/trade:
+  - Shop equipment dùng đơn vị remake `Quan` thay cho KEN gốc.
+  - Equipment không bán lại NPC.
+  - Có market/rao bán và thuế, công thức pending.
+- Ghi rõ pending:
+  - Combine pending.
+  - Original Java server item IDs/names cho đá nâng cấp, đá may mắn và đồ bảo hộ vẫn chưa biết; hiện dùng taxonomy remake trong tài liệu.
+  - Tradeable visual, template dump, item sample, asset band `12xxxx-14xxxx`, premium/event set sẽ chờ dữ liệu/ảnh người dùng cung cấp thêm.
 - Cập nhật `.clinerules` thêm rule cấm báo Task Completed khi chưa thật sự sửa file/cập nhật tài liệu/kiểm tra kết quả.
+
+### [EQUIPMENT] Chốt upgrade hard-mode và công thức cường hóa
+
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` section `13.5` với policy nâng cấp remake đã được user duyệt:
+  - Max enhancement `+15`.
+  - Success roll dùng basis point `1..10000`.
+  - Tỉ lệ hard-mode: `+1 90%`, `+2 80%`, `+3 70%`, `+4 60%`, `+5 45%`, `+6 35%`, `+7 25%`, `+8 18%`, `+9 12%`, `+10 5%`, `+11 4%`, `+12 3%`, `+13 2%`, `+14 1.5%`, `+15 1%`.
+  - Cap sau luck/event: `+1..+4 95%`, `+5..+9 50%`, `+10..+12 10%`, `+13..+15 5%`.
+  - Fail policy: tier thấp mất phí/nguyên liệu, tier giữa tụt cấp, tier cao có thể vỡ/mất trang bị nếu không có bảo hộ.
+  - Destroy chance khi đã fail từ `+10..+15`: `10%`, `15%`, `20%`, `28%`, `35%`, `45%`.
+  - Protection items: bùa chống tụt, bùa chống vỡ, bảo hộ hoàn hảo.
+  - Luck items: `+1%`, `+2%`, `+3%`, `+5%` trước khi clamp bởi cap.
+- Ghi rõ trạng thái nguyên liệu:
+  - Java client chỉ chứng minh upgrade payload có equipment keys, item IDs, item quantities và fee.
+  - Chưa có server gốc/template dump nên **chưa biết ID/tên nguyên liệu original**.
+  - Tạm dùng taxonomy remake: `UpgradeStoneBasic`, `UpgradeStoneIntermediate`, `UpgradeStoneAdvanced`, `UpgradeStoneRefined`, `UpgradeStoneDivine`.
+  - Khi có item dump/screenshot thật thì alias hoặc thay thế taxonomy này bằng ID gốc.
+- Chốt công thức phí remake: `feeQuan = baseByRank * targetLevel^2`.
+- Chốt công thức tăng stat: `enhancedFlatStat = baseFlatStat + floor(baseFlatStat * bonusPercent[level] / 100)`.
+- Policy an toàn ban đầu: chỉ tăng flat stats; percent/special stats giữ nguyên tới khi phục dựng combat/stat đầy đủ hơn.
+
+### [EQUIPMENT] Chốt policy pre-code cho repair, upgrade, trade, shop và combine
+
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` sau vòng xác nhận gameplay cuối trước khi code:
+  - Búa sửa đồ chỉ có 1 loại, icon `client/assets/equipment/09_ui_icons/30099.png`, mỗi lần repair dùng `1` búa và hồi đầy durability.
+  - Equipment mới rơi/mua/được cấp luôn full durability; `CurrentDurability/MaxDurability` lưu riêng theo từng instance.
+  - Một số item Luyện Ngục không sửa được nên model cần `IsRepairable` và optional `RepairBlockReason`.
+  - Thêm `IsUpgradeable`; đồ broken vẫn có thể upgrade nếu field này cho phép, nhưng đồ đang mặc phải tháo ra túi trước khi upgrade.
+  - Upgrade thành công giữ nguyên current durability, chỉ tăng max durability nếu config tier có; upgrade fail không trừ durability.
+  - Phase đầu upgrade chỉ consume material/optional item, chưa consume Quan fee; fee formula giữ dạng reserved/off-by-config.
+  - Upgrade destroy xóa hẳn equipment instance và báo mất đồ; bùa chống vỡ giữ đồ nhưng vẫn có thể tụt cấp; bảo hộ hoàn hảo giữ nguyên cấp và không vỡ khi fail.
+  - Shop equipment vẫn roll random stat trong template/shop offer range.
+  - Equipment default tradeable `t=1`; trade vẫn yêu cầu tháo đồ trước.
+  - Gender mapping giữ đúng Java `0=Nam`, `1=Nữ`, `2=Cả hai`.
+  - Slot cánh/event khi thiếu data chỉ lưu DB + inventory icon, chưa cộng stat/chưa render.
+  - DB/server design tách `EquipmentTemplates` và `PlayerEquipment`; inventory default capacity `50`.
+  - Server key dùng sortable unique string/ULID-style hoặc tương đương.
+  - Drop pool ngoài equipment có thể gồm HP/MP item, trứng và material; trứng có thể mở/đập ra equipment theo config.
+  - Combine không làm placeholder; sẽ implement bằng `CombineRecipes` server config/table với input filters, material, output template/pool, success rate và failure policy.
 
 ## 2026-04-30
 

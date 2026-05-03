@@ -1095,9 +1095,509 @@ Những band dưới đây **không được coi là equipment chắc chắn** n
 
 ---
 
-## 13. Coverage Estimate / Remaining Audit
+## 13. Server-side Reconstruction Decisions from Gameplay Memory
 
-### 13.1 Mức độ đã rà soát
+Phần này ghi các quyết định phục dựng server-side do **không có Java server gốc**. Mức bằng chứng là gameplay memory/user-provided evidence ngày `2026-05-03` + Java client behavior đã audit ở các section trên. Khi triển khai code, phải comment rõ các rule này là `Source: gameplay memory 2026-05-03 + Java client equipment parser/UI`.
+
+### 13.1 Equipment acquisition / drop lifecycle
+
+Nguồn trang bị trong game gốc:
+- Quái rơi trang bị ra đất dưới dạng **hộp rơi** trên map.
+- Shop bán một số trang bị.
+- Nhiệm vụ và event có thể thưởng trang bị.
+- Upgrade/combine không phải nguồn equipment template mới ở thời điểm hiện tại; phần nâng cấp/kết hợp đang `pending`.
+
+Drop behavior:
+- Khi quái rơi equipment, client hiển thị dialog kiểu `hg.java` với nút:
+  - `"Nhặt"`
+  - `"Bỏ qua"`
+- Hình người dùng cung cấp xác nhận hộp rơi trên đất và dialog item drop:
+  - Ví dụ: `Kim Đao (Luyện Ngục)`, yêu cầu cấp `1`, độ bền `60/60`, `+9 thân pháp`, `+11 sức tấn công`.
+- Drop theo level/map/quái: **có phân cấp**; quái level/map cao hơn rơi equipment tier/resId/rank/stat range cao hơn.
+- Stats của equipment rơi: **random trong range nhất định**, không phải mọi instance cùng template đều cố định hoàn toàn.
+
+Reconstruction rule:
+```text
+EquipmentTemplate = base data: slot, resId, rank, required level, gender, max durability, allowed stat ranges.
+EquipmentInstance = generated item: unique key, rolled stats, current durability, enhancement, repairable flag, tradeable flag.
+```
+
+### 13.2 Equip validation policy
+
+Server phải authoritative validate khi mặc/tháo:
+- Sai giới tính: **không mặc được**. Client có thể tô nền hơi đỏ/warning, nhưng server vẫn phải reject.
+- Chưa đủ level: **không mặc được**.
+- Không có giới hạn class/phái/hệ ngoài level + gender theo gameplay memory hiện tại.
+- One item per slot theo `ll.e` như `cz.java`.
+- Khi giao dịch giữa người chơi, đồ phải **tháo ra khỏi người trước**, không trade trực tiếp đồ đang mặc.
+
+Slot notes:
+- `e=4` trong client table từng ghi mount/shield/ngựa: gameplay memory xác nhận **chưa phát triển item này**. Giữ slot trong model/protocol nhưng không implement gameplay effect cho tới khi có dữ liệu.
+- `e=9..12`: gameplay memory xác nhận hiện chỉ cần note cho **cánh**. Chưa implement full event/cosmetic behavior nếu chưa có item data/screenshot.
+- `hh.java` main equipped UI chỉ có `dc[] F = new dc[6]`, nên slot đặc biệt/cánh không được nhét bừa vào 6 ô chính nếu chưa xác định UI gốc.
+
+### 13.3 Server stat policy for equipment
+
+Tên stat equipment bám các dòng chỉ số nhân vật/status đã document trong:
+- `docs/player-character-reconstruction/08-level-stat-exp-and-element-balance.md`
+- `com/mg/sq/a.java`
+- `da.java`
+
+Confirmed equipment stat behavior:
+- Equipment cộng vào các chỉ số status/derived stat riêng theo Java client aggregation.
+- Equipment broken (`p == 0`) mặc vào **không có tác dụng gì cả**.
+- Client `da.java` đã xác nhận status panel bỏ qua stat của equipment có durability `p == 0`.
+- Server combat cũng phải bỏ qua toàn bộ stat/effect của equipment broken.
+
+Gameplay memory bổ sung:
+- Battle dùng **công thức riêng**, không đồng nhất hoàn toàn với status panel.
+- Các stat đặc biệt percent như `DamageAbsorb`, `Pierce`, `Block`, `Revive`, `HpPercent` hiện không xuất hiện/không xác nhận trên item thật theo memory hiện tại; không tự seed các option này cho equipment thường.
+- Chỉ seed các dòng stat đã thấy/được xác nhận như stat gốc, attack, defense, HP, dodge, crit nếu có template/range.
+
+### 13.4 Durability / broken / repair
+
+Durability server rule từ gameplay memory:
+```text
+OnBattleWin:  each equipped repairable/durable equipment loses 1 durability.
+OnBattleLose: each equipped repairable/durable equipment loses 3 durability.
+Min durability = 0.
+If durability reaches 0: item is broken, not destroyed.
+Broken equipment remains in inventory/equipped state but gives no stat/effect.
+```
+
+Repair:
+- Broken/damaged equipment sửa được bằng **búa sửa chữa**.
+- **Chốt gameplay 2026-05-03:** chỉ có duy nhất 1 loại búa sửa đồ dùng cho mọi equipment.
+  - Asset/icon user xác nhận: `client/assets/equipment/09_ui_icons/30099.png`.
+- Mỗi lần repair consume **1 búa**, hồi đầy `CurrentDurability = MaxDurability`, không dùng KEN/Quan trực tiếp.
+- Equipment mới rơi/mua/được cấp luôn khởi tạo full durability: `CurrentDurability = MaxDurability`.
+- **Chốt gameplay 2026-05-03:** durability/max durability là dữ liệu lưu DB riêng cho từng equipment instance, không chỉ là default/template chung.
+- **Chốt gameplay 2026-05-03:** mỗi món đồ có thể có `MaxDurability` riêng; nếu template/server generation không chỉ định thì dùng default ban đầu `30`.
+- **Chốt gameplay 2026-05-03:** upgrade/enhancement cũng tăng độ bền tối đa của chính equipment instance đó; công thức tăng cụ thể sẽ được cấu hình theo tier upgrade khi implement.
+- **Chốt gameplay 2026-05-03:** upgrade thành công giữ nguyên `CurrentDurability`; upgrade thất bại không trừ durability.
+- **Chốt gameplay 2026-05-03:** equipment có durability `p == 0` vẫn mặc được và vẫn nằm ở slot trang bị, nhưng toàn bộ stat/effect của món đó không còn tác dụng cho status/combat.
+- Có các equipment **không thể sửa**, đặc biệt một số item trong map Luyện Ngục. Cần thêm field server-side rõ ràng:
+  - `IsRepairable` — có được dùng búa sửa hay không.
+  - `RepairBlockReason` optional để trace item đặc biệt.
+- Đề xuất model:
+```text
+CurrentDurability        // stored per equipment instance in DB
+MaxDurability            // stored per equipment instance in DB
+IsRepairable
+RepairBlockReason
+IsUpgradeable
+RepairItemId / HammerItemId = 30099
+DefaultMaxDurability = 30 // fallback only when generated item/template has no explicit max durability
+DurabilityBonusByEnhancementLevel
+```
+
+Mapping với Java client:
+- `ll.p` = current durability.
+- `ll.q` = max durability.
+- `ll.k > 0` làm `ll.c()` trả true trong client, nhưng server remake dùng `IsRepairable` làm source of truth; khi serialize về client có thể map `IsRepairable=false` thành `ll.k=-1`.
+- `hl.java`/`ks.java` repair sender dùng `hammerItemId + equipKey`.
+
+### 13.5 Upgrade / enhancement
+
+Gameplay memory / user decision:
+- Enhancement tối đa: `+15`.
+- Từ `+5` trở lên tỉ lệ phải thấp rõ rệt.
+- Từ `+10` trở lên phải hard, success rate nằm khoảng `5% → 1%`.
+- Upgrade fail có thể:
+  - Mất phí/nguyên liệu.
+  - Tụt cấp.
+  - Vỡ/mất trang bị.
+- Có vật phẩm bảo hộ.
+- User duyệt hướng hard-mode ngày `2026-05-03`.
+
+Source note:
+```text
+Java client confirms only upgrade UI/payload/result flow:
+- id.java: upgrade panel
+- ky.java: cmd 96/97 result parser
+- ks.java: upgrade sender payload
+- ho.java: related forge/combine panel variant
+
+No Java server formula is available.
+The policy below is REMAKE BALANCING POLICY from gameplay memory + user approval, not original Java server source.
+```
+
+#### 13.5.1 Upgrade target and roll unit
+
+```text
+currentLevel = ll.j
+targetLevel = currentLevel + 1
+MaxEnhancementLevel = 15
+```
+
+Use basis points to avoid floating point drift:
+
+```text
+10000 bp = 100%
+1000 bp  = 10%
+100 bp   = 1%
+150 bp   = 1.5%
+
+finalSuccessRateBp = baseSuccessRateBp[targetLevel]
+                   + luckBonusBp
+                   + eventBonusBp
+
+finalSuccessRateBp = min(finalSuccessRateBp, successCapBp[targetLevel])
+
+roll = randomInt(1, 10000)
+success if roll <= finalSuccessRateBp
+```
+
+#### 13.5.2 Hard-mode success rate table
+
+| Target | Base rate | Base bp |
+|---:|---:|---:|
+| `+1` | `90%` | `9000` |
+| `+2` | `80%` | `8000` |
+| `+3` | `70%` | `7000` |
+| `+4` | `60%` | `6000` |
+| `+5` | `45%` | `4500` |
+| `+6` | `35%` | `3500` |
+| `+7` | `25%` | `2500` |
+| `+8` | `18%` | `1800` |
+| `+9` | `12%` | `1200` |
+| `+10` | `5%` | `500` |
+| `+11` | `4%` | `400` |
+| `+12` | `3%` | `300` |
+| `+13` | `2%` | `200` |
+| `+14` | `1.5%` | `150` |
+| `+15` | `1%` | `100` |
+
+Success cap after luck/event bonus:
+
+| Target range | Cap |
+|---|---:|
+| `+1..+4` | `95%` |
+| `+5..+9` | `50%` |
+| `+10..+12` | `10%` |
+| `+13..+15` | `5%` |
+
+Example:
+
+```text
+Upgrade +14 -> +15
+base = 1% = 100 bp
+large luck stone = +3% = 300 bp
+raw = 400 bp = 4%
+cap for +13..+15 = 5%
+final = 4%
+roll 1..10000; success if roll <= 400
+```
+
+#### 13.5.3 Upgrade failure policy
+
+**Chốt gameplay 2026-05-03:** phase code đầu tiên chỉ consume material/optional items; chưa consume Quan/fee upgrade. Fee formula ở section `13.5.7` là reserved policy để bật sau bằng config.
+
+| Target | Failure outcome |
+|---:|---|
+| `+1..+3` | Fail keeps current enhancement; only materials lost. |
+| `+4` | Mostly keep current enhancement; small chance downgrade `-1`. |
+| `+5..+6` | Downgrade `-1`. |
+| `+7..+9` | Downgrade `-1` or `-2`. |
+| `+10..+12` | Downgrade `-2` or `-3`; can destroy equipment if no protection. |
+| `+13..+15` | Downgrade `-3` to `-5`; high destroy chance if no protection. |
+
+Destroy chance is rolled only after failure and only for target `+10..+15`:
+
+| Target | Destroy chance inside failed attempt |
+|---:|---:|
+| `+10` | `10%` |
+| `+11` | `15%` |
+| `+12` | `20%` |
+| `+13` | `28%` |
+| `+14` | `35%` |
+| `+15` | `45%` |
+
+Special hard-mode note:
+- For `+15`, a severe failure may downgrade to `+10` or lower if the server wants to preserve `+15` rarity.
+- Exact severe-failure distribution can be tuned later, but must remain server-authoritative and logged.
+
+#### 13.5.4 Protection items
+
+Proposed protection items:
+
+| Protection | Use range | Effect |
+|---|---|---|
+| `DowngradeProtection` / Bùa chống tụt | Best for `+4..+9` | Prevents downgrade on failure. Consumed when it prevents downgrade. |
+| `DestroyProtection` / Bùa chống vỡ | `+10..+15` | Prevents equipment destruction. Equipment may still downgrade at high tier. Consumed when it prevents destruction. |
+| `PerfectProtection` / Bảo hộ hoàn hảo | Rare/event/premium | On failure, prevents both destruction and downgrade for one attempt. Consumed on failed protected outcome. |
+
+Hard-mode balancing option:
+- From `+13` upward, `PerfectProtection` may reduce penalty instead of fully removing it if economy becomes too easy.
+- This must be a server config/policy, not client logic.
+
+#### 13.5.5 Luck items
+
+Luck items add basis points before cap:
+
+| Luck item | Bonus |
+|---|---:|
+| Small luck stone | `+1%` / `+100 bp` |
+| Medium luck stone | `+2%` / `+200 bp` |
+| Large luck stone | `+3%` / `+300 bp` |
+| Ultra luck stone | `+5%` / `+500 bp`, rare/event |
+
+Luck item does not protect from downgrade/destruction unless explicitly defined as a hybrid item.
+
+#### 13.5.6 Upgrade materials
+
+Exact original Java server material IDs are **not known yet**. Java client `id.java`/`ky.java`/`ks.java` proves the upgrade panel consumes item IDs/counts, but not the original material catalog. Therefore the following is a remake material taxonomy until item template evidence is recovered.
+
+Proposed material tiers:
+
+| Target | Material tier |
+|---:|---|
+| `+1..+3` | `UpgradeStoneBasic` / Đá cường hóa sơ cấp |
+| `+4..+6` | `UpgradeStoneIntermediate` / Đá cường hóa trung cấp |
+| `+7..+9` | `UpgradeStoneAdvanced` / Đá cường hóa cao cấp |
+| `+10..+12` | `UpgradeStoneRefined` / Đá cường hóa tinh luyện |
+| `+13..+15` | `UpgradeStoneDivine` / Đá cường hóa thần khí |
+
+Proposed quantity by target:
+
+| Target | Stone count |
+|---:|---:|
+| `+1` | `1` |
+| `+2` | `1` |
+| `+3` | `2` |
+| `+4` | `2` |
+| `+5` | `3` |
+| `+6` | `4` |
+| `+7` | `5` |
+| `+8` | `6` |
+| `+9` | `8` |
+| `+10` | `10` |
+| `+11` | `12` |
+| `+12` | `15` |
+| `+13` | `18` |
+| `+14` | `22` |
+| `+15` | `30` |
+
+Material reconstruction status:
+- Known from Java client: upgrade request can send equipment keys + item IDs + item quantities + fee.
+- Unknown: original item names/IDs for stones/protection/luck.
+- Implementation should create stable remake IDs but mark them as `Reconstructed`, then replace/alias them if original item dump is found.
+
+#### 13.5.7 Upgrade fee
+
+Remake uses `Quan` economy even though Java client strings may still mention KEN.
+
+Proposed fee:
+
+```text
+feeQuan = baseByRank * targetLevel * targetLevel
+```
+
+| Rank | baseByRank |
+|---:|---:|
+| `0` normal | `5` |
+| `1` good | `10` |
+| `2` rare | `20` |
+| `3` rare/high | `30` |
+| `4` legendary | `50` |
+| `7` event/legend | `70` |
+| `8` premium/legend | `100` |
+
+Example:
+
+```text
+Rank 4 upgrade to +10: 50 * 10 * 10 = 5000 Quan
+Rank 1 upgrade to +5: 10 * 5 * 5 = 250 Quan
+```
+
+#### 13.5.8 Enhancement stat formula
+
+Enhancement stat bonus is computed from the equipment's base rolled stat, not compounded from the previous enhanced value.
+
+```text
+enhancedFlatStat = baseFlatStat + floor(baseFlatStat * bonusPercent[enhancementLevel] / 100)
+```
+
+Bonus table:
+
+| Level | Total bonus |
+|---:|---:|
+| `+0` | `0%` |
+| `+1` | `3%` |
+| `+2` | `6%` |
+| `+3` | `10%` |
+| `+4` | `15%` |
+| `+5` | `21%` |
+| `+6` | `28%` |
+| `+7` | `36%` |
+| `+8` | `45%` |
+| `+9` | `55%` |
+| `+10` | `66%` |
+| `+11` | `78%` |
+| `+12` | `91%` |
+| `+13` | `105%` |
+| `+14` | `120%` |
+| `+15` | `140%` |
+
+Examples:
+
+```text
+Weapon base Attack +100:
++5  => 100 + floor(100 * 21 / 100) = 121
++10 => 100 + floor(100 * 66 / 100) = 166
++15 => 100 + floor(100 * 140 / 100) = 240
+
+Armor base Defense +80:
++10 => 80 + floor(80 * 66 / 100) = 132
++15 => 80 + floor(80 * 140 / 100) = 192
+```
+
+Initial safe stat policy:
+- Apply enhancement bonus only to flat stats.
+- Do **not** enhance percent/special stats in the first implementation:
+  - `lb.j` DamageAbsorb %
+  - `lb.k` ArmorPierce %
+  - `lb.l` Block %
+  - `lb.m` Revive %
+  - `lb.n` AttackPercent
+  - `lb.o` HpPercent
+- Reason: Java client confirms parsing/display for these fields, but combat/status formulas are not fully reconstructed for all of them. Enhancing percent stats too early can break balance.
+
+Flat stats eligible for enhancement:
+- `lb.a` Strength
+- `lb.b` Agility
+- `lb.c` Magic/Internal
+- `lb.d` Vitality
+- `lb.e` Attack
+- `lb.f` Defense
+- `lb.g` Critical if treated as flat integer
+- `lb.h` Dodge
+- `lb.i` HP bonus
+
+#### 13.5.9 Server-side upgrade flow
+
+```text
+1. Validate owner, equipment exists, not locked/trading, not equipped, target <= +15.
+2. Validate template/instance allows upgrade via server field IsUpgradeable.
+3. Validate required materials and optional luck/protection items.
+4. Phase-1 economy: consume materials/optional items at attempt start; do not consume Quan fee yet.
+5. Roll success using basis points.
+6. If success:
+   - set ll.j = targetLevel
+   - recalculate enhanced stats from base rolled stats
+   - increase MaxDurability if configured for target tier
+   - keep CurrentDurability unchanged
+   - return command 97 success message
+7. If fail:
+   - durability stays unchanged
+   - roll destroy if target >= +10
+   - apply protection if present
+   - otherwise downgrade/destroy according to failure table
+   - if destroyed: delete equipment instance from DB/inventory and notify player "mất đồ"
+   - if downgraded: recalculate stats from base rolled stats
+   - return command 97 failure message
+8. Audit-log every attempt with before/after level, materials, roll, outcome.
+```
+
+### 13.6 Combine
+
+**Chốt gameplay 2026-05-03:** combine không làm placeholder/tạm bợ; khi code equipment phải làm hoàn chỉnh bằng recipe/config server-side, dù Java server gốc chưa có.
+
+Client evidence:
+- `ho.java` và `id.java` xác nhận UI/payload/result flow.
+- `ho.java` có sender action `0/1`, material/result grids, final arrays và result text `"Kết hợp thành công"` / `"Kết hợp thất bại"`.
+- Java client không chứng minh công thức server gốc, nên công thức combine phải đánh dấu `Source: gameplay memory 2026-05-03 + reconstructed server policy`.
+
+Initial remake combine policy để implement:
+- Combine chạy qua `CombineRecipes` server config/table.
+- Recipe gồm:
+  - `RecipeId`
+  - `InputEquipmentSlot/Rank/LevelRange/EnhancementRange` optional filters
+  - `MaterialItemId + Quantity`
+  - `OutputTemplateId` hoặc `OutputPoolId`
+  - `SuccessRateBasisPoints`
+  - `FailurePolicy`
+- Server validate ownership, inventory, material và lock trạng thái; client chỉ gửi selection.
+- Equipment đang mặc không được dùng làm nguyên liệu combine, giống upgrade/trade.
+- Result có thể là:
+  - equipment mới roll stat trong output template/pool range;
+  - material/item thưởng;
+  - fail mất material và/hoặc mất input theo recipe config.
+- Mọi recipe/tỉ lệ phải nằm DB/config để review/tuning, không hardcode trong client.
+
+### 13.7 Shop / economy / trade
+
+Shop:
+- Trang bị shop bán bằng KEN trong game gốc, nhưng remake đã đổi đơn vị hiển thị/kinh tế sang **Quan**.
+- Khi port UI/document, dùng `Quan` cho đơn vị hiện tại, nhưng note Java client strings cũ có thể còn ghi `KEN`.
+- **Chốt gameplay 2026-05-03:** equipment mua từ shop vẫn roll random stat trong range nhất định của template/shop offer, không phải stat cố định tuyệt đối.
+
+Sell to NPC:
+- Equipment **không bán lại NPC** theo gameplay memory hiện tại.
+
+Trade:
+- **Chốt gameplay 2026-05-03:** tất cả equipment mặc định trade được, gồm đồ rơi/shop/event nếu template không override đặc biệt.
+- `ll.t` vẫn giữ để Java-compatible serialization/UI; default `t=1`.
+- Người chơi phải tháo equipment trước khi trade.
+- Có rao bán/market trang bị.
+- Market có thuế/fee, công thức pending.
+
+### 13.8 Asset/template evidence still pending
+
+Cần chờ người dùng cung cấp thêm:
+- Equipment template dump/list: name, resId, slot, level, stats range, rank, gender, max durability, repairable/tradeable.
+- Screenshot/video item mẫu.
+- Giải thích các asset band `12xxxx-14xxxx`.
+- Premium/event set `95xxx/96xxx`: gameplay memory xác nhận là item hiếm/event, sẽ phát triển event sau.
+- Một số item đặc biệt trong map Luyện Ngục không sửa được; cần template evidence để đánh dấu chính xác `IsRepairable=false`.
+
+Until then:
+- Không seed cứng toàn bộ asset band thành equipment.
+- Chỉ seed item có bằng chứng từ template/screenshot/memory.
+- Event/premium items phải để `Event/Premium pending`, không trộn vào shop/drop thường.
+
+### 13.9 Initial server implementation plan from current evidence
+
+Có thể implement an toàn trước:
+- Equipment template + equipment instance model tách chuẩn:
+  - `EquipmentTemplates` cho base data/range/config.
+  - `PlayerEquipment` cho unique instance key, owner, rolled stats, durability, enhancement, equipped slot/state.
+- Inventory capacity default `50`, sau này mở rộng bằng field capacity/server progression.
+- Drop generation từ monster/map tier với stat roll trong range; drop rate phải rất thấp.
+- Drop pool ngoài equipment có thể gồm HP/MP item, trứng (`egg`) và material khác; trứng có flow mở/đập để có thể ra equipment.
+- Pickup dialog/API flow.
+- Equip validation: ownership, level, gender mapping Java `0=Nam, 1=Nữ, 2=Cả hai`, one-per-slot, not trading equipped item.
+- Slot cánh/event giai đoạn đầu chỉ lưu DB + inventory icon; chưa cộng stat/chưa render lên nhân vật nếu thiếu asset/data.
+- Durability loss after battle win/loss.
+- Broken equipment disables all equipment stats.
+- Repair by single hammer item `30099`, 1 hammer per repair.
+- Shop buy with Quan; shop equipment rolls stats from configured range.
+- Trade requires unequipped equipment; default tradeable = true.
+- Upgrade hard-mode policy support:
+  - `MaxEnhancementLevel = 15`.
+  - Success roll in basis points.
+  - Hard rates from `+10..+15`: `5%, 4%, 3%, 2%, 1.5%, 1%`.
+  - Failure can downgrade or destroy equipment from high tiers.
+  - Protection/luck/material policy as reconstructed in section `13.5`.
+  - Phase-1 upgrade consumes material only; fee formula is reserved/off by config.
+  - Upgrade allowed only while equipment is in bag, not equipped.
+  - Broken equipment can still be upgraded if `IsUpgradeable=true`.
+  - Destroy outcome deletes equipment instance permanently.
+- Combine implemented via server-configured `CombineRecipes`, not placeholder.
+- Server key generation: use sortable unique string keys (ULID-style or equivalent) so keys are compact, unique and log/debug friendly without exposing player sequence assumptions.
+
+Chưa implement nếu chưa có thêm evidence:
+- Original Java server material IDs/names for upgrade stones, luck items, and protection items. Current section `13.5.6` is remake taxonomy.
+- Market tax formula.
+- Special stat combat effects beyond currently confirmed status aggregation.
+- Slot `e=4` effect.
+- Cánh/event slot behavior beyond storing/displaying when data arrives.
+
+---
+
+## 14. Coverage Estimate / Remaining Audit
+
+### 14.1 Mức độ đã rà soát
 
 Ước lượng hiện tại: **~99.5% phần equipment client-side core đã được gom vào tài liệu**.
 
@@ -1110,7 +1610,7 @@ Những band dưới đây **không được coi là equipment chắc chắn** n
 
 Phạm vi đã đủ để lên kế hoạch port core equipment gồm: model, stats, inventory, equip/unequip, icon/frame resolver, character compositor, detail/tooltip/cell UI, repair, shop preview/buy, upgrade/combine UI flow, client sender payloads và response callback shape chính cho `96/97/99/100/112`.
 
-### 13.2 Còn cần audit trước khi code server hoàn chỉnh
+### 14.2 Còn cần audit trước khi code server hoàn chỉnh
 
 Các mục dưới đây không chặn plan core equipment, nhưng cần đối chiếu thêm khi triển khai server/API chính thức để tránh đoán sai những phần nằm ngoài evidence equipment client-core:
 
@@ -1121,7 +1621,7 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
 
 ---
 
-## 14. Nhật ký chỉnh sửa
+## 15. Nhật ký chỉnh sửa
 
 ### 2026-05-03
 
@@ -1161,3 +1661,79 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
 - Gỡ phần thừa/không phải Java source evidence:
   - Removed old `.agent/skills/` reference table.
   - Reworded asset exclusions so `12xxxx-14xxxx` are marked mixed/need audit rather than blindly excluded.
+
+### 2026-05-03 — Server-side gameplay memory decisions
+
+- Bổ sung section server-side reconstruction do không có Java server gốc, nguồn từ gameplay memory/user-provided evidence ngày `2026-05-03`.
+- Chốt vòng đời equipment:
+  - Quái rơi hộp trên đất, mở dialog `Nhặt/Bỏ qua`.
+  - Shop/nhiệm vụ/event có thể cấp equipment.
+  - Drop phân cấp theo level/map/quái.
+  - Stats equipment instance random trong range từ template.
+- Chốt equip validation server-side:
+  - Sai giới tính không mặc được.
+  - Chưa đủ level không mặc được.
+  - Không giới hạn class/phái/hệ ngoài level + gender ở evidence hiện tại.
+  - Trade phải tháo đồ trước.
+  - Slot `e=4` chưa phát triển; slot `9..12` note cho cánh/event.
+- Chốt durability/repair:
+  - Thắng trận trừ `1` durability.
+  - Thua trận trừ `3` durability.
+  - Durability về `0` chỉ broken, không mất đồ.
+  - Broken equipment không có tác dụng stat/effect.
+  - Repair dùng duy nhất `1` búa mỗi lần.
+  - Có đồ không thể sửa, cần field `IsRepairable`.
+- Chốt economy/equipment shop:
+  - Shop bán bằng KEN gốc nhưng remake dùng đơn vị `Quan`.
+  - Equipment không bán lại NPC.
+  - Có market/rao bán và thuế, công thức pending.
+- Chốt pending:
+  - Combine pending.
+  - Tradeable visual, template dump, item sample, `12xxxx-14xxxx`, premium/event set sẽ chờ người dùng cung cấp thêm.
+
+### 2026-05-03 — Final pre-code gameplay decisions from user confirmation
+
+- Chốt 20 policy trước khi code:
+  - Búa sửa đồ chỉ có 1 loại, icon `client/assets/equipment/09_ui_icons/30099.png`.
+  - Một số item Luyện Ngục không sửa được; thêm field `IsRepairable`.
+  - Đồ mới rơi/mua luôn full durability.
+  - Upgrade thành công giữ nguyên current durability; chỉ tăng max durability nếu config có.
+  - Upgrade fail không trừ durability.
+  - Đồ broken vẫn nâng cấp được nếu `IsUpgradeable=true`; thêm field `IsUpgradeable`.
+  - Đồ đang mặc không được upgrade trực tiếp, phải tháo ra túi.
+  - Shop equipment roll stat random trong range.
+  - Server sinh key dạng sortable unique string/ULID-style hoặc tương đương.
+  - Tất cả equipment mặc định trade được.
+  - Gender mapping giữ đúng Java `0=Nam`, `1=Nữ`, `2=Cả hai`.
+  - Slot cánh/event khi thiếu data chỉ lưu DB + inventory icon, chưa cộng stat/chưa render.
+  - Upgrade destroy xóa hẳn equipment instance và báo mất đồ.
+  - Bùa chống vỡ giữ đồ nhưng vẫn có thể tụt cấp.
+  - Bảo hộ hoàn hảo fail thì giữ nguyên cấp và không vỡ.
+  - Phase đầu upgrade chỉ consume material, fee để sau.
+  - Server tạo trước template/stat range/drop thấp để user review; drop pool có thể gồm HP/MP/egg, đập trứng có thể ra equipment.
+  - DB tách chuẩn `EquipmentTemplates` và `PlayerEquipment`.
+  - Inventory default capacity `50`, sau này mở rộng.
+  - Combine phải làm hoàn chỉnh bằng recipe/config server-side, không placeholder.
+- Các quyết định này là `Source: user-provided gameplay confirmation 2026-05-03 + Java client equipment UI/protocol audit`.
+
+### 2026-05-03 — Upgrade hard-mode policy
+
+- User xác nhận upgrade:
+  - Max `+15`.
+  - Từ `+5` trở lên tỉ lệ phải thấp.
+  - Từ `+10` trở lên phải hard, khoảng `5% → 1%`.
+  - Fail có thể tụt cấp, vỡ/mất đồ.
+  - Có đồ bảo hộ.
+- Bổ sung upgrade policy remake vào section `13.5`:
+  - Success roll dùng basis point `1..10000`.
+  - Base success rates: `+1 90%`, `+2 80%`, `+3 70%`, `+4 60%`, `+5 45%`, `+6 35%`, `+7 25%`, `+8 18%`, `+9 12%`, `+10 5%`, `+11 4%`, `+12 3%`, `+13 2%`, `+14 1.5%`, `+15 1%`.
+  - Cap sau luck/event: `+1..+4 95%`, `+5..+9 50%`, `+10..+12 10%`, `+13..+15 5%`.
+  - Failure table: early fail mất phí/nguyên liệu, mid tier tụt cấp, high tier có destroy chance nếu không bảo hộ.
+  - Destroy chance inside failed attempt for `+10..+15`: `10%`, `15%`, `20%`, `28%`, `35%`, `45%`.
+  - Protection items: chống tụt, chống vỡ, bảo hộ hoàn hảo.
+  - Luck items: `+1%`, `+2%`, `+3%`, `+5%` before cap.
+  - Materials currently reconstructed as remake taxonomy because original Java server item IDs are unknown: basic/intermediate/advanced/refined/divine upgrade stones.
+  - Fee formula: `feeQuan = baseByRank * targetLevel^2`.
+  - Enhancement stat formula: `enhancedFlatStat = baseFlatStat + floor(baseFlatStat * bonusPercent[level] / 100)`.
+  - Initial safe policy only enhances flat stats; percent/special stats stay unchanged until combat formulas are fully reconstructed.
+  - Tradeable visual, template dump, item sample, `12xxxx-14xxxx`, premium/event set sẽ chờ người dùng cung cấp thêm.
