@@ -131,6 +131,7 @@ const getEquipmentBonusRows = (entry: CharacterEquipmentItem) => [
   entry.bonusThanPhap ? `Thân Pháp ${formatSigned(entry.bonusThanPhap)}` : null,
   entry.bonusTheLuc ? `Thể Lực ${formatSigned(entry.bonusTheLuc)}` : null,
   entry.bonusAttack ? `Tấn Công ${formatSigned(entry.bonusAttack)}` : null,
+  entry.bonusAttackPercent ? `Tấn Công ${formatSigned(entry.bonusAttackPercent, '%')}` : null,
   entry.bonusDefense ? `P.Thủ ${formatSigned(entry.bonusDefense)}` : null,
   entry.bonusDodge ? `Né Tránh ${formatSigned(entry.bonusDodge)}` : null,
   entry.bonusCrit ? `Chí Mạng ${formatSigned(entry.bonusCrit, '%')}` : null,
@@ -712,7 +713,7 @@ const InventoryDetailPanel: React.FC<{
     );
     const bonusRows = getEquipmentBonusRows(entry);
     const previewRows = getCombatPreviewRows(currentCombat, previewCombat);
-    const isBroken = entry.maxDurability > 0 && entry.durability < entry.maxDurability / 4;
+    const isBroken = entry.isBroken;
 
     return (
       <View style={[styles.inventoryDetailPanel, { backgroundColor: '#ffffff', zIndex: 10000 }]}>
@@ -735,8 +736,13 @@ const InventoryDetailPanel: React.FC<{
             Yêu cầu cấp: {entry.requiredLevel}
           </Text>
           <Text style={[styles.inventoryDetailText, isBroken && { color: '#ef4444', fontWeight: 'bold' }]}>
-            Độ bền: {entry.durability}/{entry.maxDurability} {isBroken ? '(Đã hư hỏng nặng)' : ''}
+            Độ bền: {entry.durability}/{entry.maxDurability} {isBroken ? '(Đã hỏng - không cộng chỉ số)' : ''}
           </Text>
+          {entry.isEquipped ? (
+            <Text style={[styles.inventoryDetailText, !entry.contributesStats && { color: '#ef4444' }]}>
+              Hiệu lực: {entry.contributesStats ? 'Đang cộng chỉ số' : 'Không cộng chỉ số/effect'}
+            </Text>
+          ) : null}
           <View style={styles.inventoryBonusGrid}>
             {(previewRows.length > 0
               ? previewRows.map(([label, delta]) => `${label} ${formatSigned(delta)}`)
@@ -837,6 +843,7 @@ const InventoryShell: React.FC<{
   const previewAppearance = {
     ...appearance,
     combat: statPreview.combat ?? appearance.combat,
+    equipmentStats: statPreview.equipmentStats ?? appearance.equipmentStats,
     hp: statPreview.hp ?? appearance.hp,
     equipment: previewEquipment,
   };

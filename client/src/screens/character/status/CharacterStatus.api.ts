@@ -31,6 +31,16 @@ export interface PlayerRuntimeSnapshot {
   bonusThanPhap: number;
   bonusNoiLuc: number;
   bonusTheLuc: number;
+  equipCuongLuc: number;
+  equipThanPhap: number;
+  equipNoiLuc: number;
+  equipTheLuc: number;
+  equipFlatAttack: number;
+  equipAttackPercent: number;
+  equipCrit: number;
+  equipDefense: number;
+  equipDodge: number;
+  equipMaxHp: number;
   minDamage: number;
   maxDamage: number;
   defense: number;
@@ -203,6 +213,18 @@ export const mergePlayerRuntimeAppearance = (
     points: runtime.freePoints,
     freePoints: runtime.freePoints,
     skillPoints: runtime.skillPoints,
+    equipmentStats: {
+      cuongLuc: runtime.equipCuongLuc,
+      thanPhap: runtime.equipThanPhap,
+      noiLuc: runtime.equipNoiLuc,
+      theLuc: runtime.equipTheLuc,
+      flatAttack: runtime.equipFlatAttack,
+      attackPercent: runtime.equipAttackPercent,
+      crit: runtime.equipCrit,
+      defense: runtime.equipDefense,
+      dodge: runtime.equipDodge,
+      maxHp: runtime.equipMaxHp,
+    },
     combat: {
       // Java status UI (`da.java`) shows a single "Tấn Công" value.
       // Source bridge has min/max (`lh.x/lh.y`), but the old character panel displays

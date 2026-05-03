@@ -4,6 +4,30 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-03
 
+### [EQUIPMENT] ItemCatalog primary key naming cleanup
+
+- Chuẩn hóa primary key của `server/Database/Equipment/equipment_schema.sql`:
+  - `ItemCatalog.ItemId INT PRIMARY KEY` đổi thành `ItemCatalog.Id INT PRIMARY KEY`.
+  - `Id` vẫn giữ nguyên raw gameplay item id dùng trong server logic, chỉ sửa tên cột DB để thống nhất convention PK là `Id`.
+- Cập nhật `server/Database/Equipment/equipment_seed.sql`:
+  - `INSERT INTO ItemCatalog (Id, ...)`.
+  - `ON CONFLICT (Id) DO UPDATE`.
+- Boundary:
+  - Không đổi raw item ids (`5001..5007`, `30094..30099`).
+  - Không đổi `PlayerInventory.ItemId` vì đây là field stack inventory/link raw item id, không phải primary key bảng `ItemCatalog`.
+  - Không đổi gameplay behavior.
+
+### [EQUIPMENT] Client equipment breakdown contract + repair UI status
+
+- Cập nhật client contract/UI để nhận và hiển thị breakdown equipment do server tính:
+  - `client/src/screens/character/shared/characterAppearance.ts`: thêm `equipmentStats`, `bonusAttackPercent`, `isBroken`, `contributesStats`.
+  - `client/src/screens/character/status/CharacterStatus.api.ts`: map các field `Equip*` từ `PlayerRuntimeSnapshot`, map `BonusAttackPercent`, derive trạng thái broken/contribution từ durability view.
+  - `client/src/screens/map/core/MapCharacterDialogs.tsx`: hiển thị `Tấn Công +x%`, trạng thái đồ hỏng/không cộng chỉ số và chỉ bật `Sửa chữa` khi có búa `30099`.
+- Boundary:
+  - Đây là client wiring cho server authority đã có; không đổi combat formula, không bật special stats pending, không đổi DB schema.
+  - Repair hammer `30099` là remake policy/user confirmation `2026-05-03`, không ghi thành Java server evidence.
+  - TypeScript check pass bằng `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit`.
+
 ### [EQUIPMENT] Equipment stat aggregation helpers + snapshot equip breakdown + BonusAttackPercent
 
 - Cập nhật `server/Twelve.Core/Players/PlayerRuntimeContracts.cs`:
@@ -78,14 +102,14 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 - Thêm DB item catalog tối thiểu theo yêu cầu tạo database cho items.
 - Cập nhật `server/Database/Equipment/equipment_schema.sql`:
   - thêm bảng `ItemCatalog`;
-  - giữ các trường cần thiết: `ItemId`, `DisplayName`, `Description`, stack/use/heal/mana/restore/icon kind, `Kind`, `EvidenceStatus`, nullable `ResourceId/IconId`, `IsEnabled`, `UpdatedAt`;
+  - giữ các trường cần thiết: `Id`, `DisplayName`, `Description`, stack/use/heal/mana/restore/icon kind, `Kind`, `EvidenceStatus`, nullable `ResourceId/IconId`, `IsEnabled`, `UpdatedAt`;
   - thêm index theo `Kind` và `ResourceId`.
 - Cập nhật `server/Database/Equipment/equipment_seed.sql`:
   - thay placeholder bằng seed tối thiểu cho item hiện đang dùng trong runtime/catalog shell: `5001..5007`, `30095..30099`;
   - tên/icon kind bám asset thật trong `client/assets/items/` (`hp`, `mp`, `huyet_thach`, `kim_thach`, `dragon_claw`, `feather`, `x2_exp`, các egg icon và `repair_hammer`) thay vì đặt tên giả;
-  - dùng `ON CONFLICT (ItemId) DO UPDATE` để migrator chạy lại an toàn.
+  - dùng `ON CONFLICT (Id) DO UPDATE` để migrator chạy lại an toàn.
 - Boundary:
-  - `ItemId` là raw gameplay id, không dùng trực tiếp làm asset id;
+  - `Id` là raw gameplay item id, không dùng trực tiếp làm asset id;
   - `Kind`/`EvidenceStatus` giữ raw enum values theo `PlayerItemKind` và `PlayerItemEvidenceStatus`;
   - `ResourceId/IconId` để `NULL` khi Java asset/resource evidence chưa chắc chắn;
   - các id seed tạm ngoài `30095/30099` chưa được ghi là Java server evidence, chỉ là catalog shell theo asset/runtime hiện có.

@@ -2560,3 +2560,33 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - Không thêm fallback slot/stat/template ngoài evidence/policy đã chốt.
 - Verification:
   - `dotnet build Twelve.sln` pass: `0 Warning(s), 0 Error(s)`.
+
+### 2026-05-03 — Client equipment breakdown contract + repair UI status
+
+- Code đã sửa:
+  - `client/src/screens/character/shared/characterAppearance.ts`
+    - đồng bộ TypeScript contract với runtime snapshot equipment breakdown server-side.
+    - `CharacterEquipmentItem` expose `bonusAttackPercent`, `isBroken`, `contributesStats` để UI không tự suy từ field mơ hồ.
+    - `CharacterAppearance` expose `equipmentStats` gồm các tổng `Equip*` đã được server tính theo authoritative aggregate.
+  - `client/src/screens/character/status/CharacterStatus.api.ts`
+    - map `bonusAttackPercent` từ `PlayerEquipmentItemView.BonusAttackPercent`.
+    - map `equipmentStats` từ các field `Equip*` trong `PlayerRuntimeSnapshot`.
+    - derive `isBroken`/`contributesStats` theo durability view từ server contract để client hiển thị rõ trạng thái, không đổi gameplay authority.
+  - `client/src/screens/map/core/MapCharacterDialogs.tsx`
+    - equipment detail hiển thị thêm `Tấn Công +x%` cho tag `204`.
+    - broken equipment hiển thị `Đã hỏng - không cộng chỉ số` và `Hiệu lực: Không cộng chỉ số/effect`.
+    - action menu `Sửa chữa` chỉ bật khi item hỏng và inventory có repair hammer raw itemId `30099`.
+- Java evidence applied:
+  - `ll.p/tag 139` là current durability; `ll.q/tag 144` là max durability.
+  - `lb.n/tag 204` là `AttackPercent`, evidence cộng theo `baseAttack * percent / 100`.
+  - Icon equipment vẫn resolve theo `ll.n/resourceId` qua helper hiện có; không suy slot/icon từ tên.
+- Remake policy applied:
+  - User confirmation `2026-05-03`: equipment hỏng vẫn mặc được nhưng không cộng stat/effect.
+  - User confirmation `2026-05-03`: repair dùng 1 búa raw itemId `30099`, hồi full durability, không mất Quan.
+  - User confirmation `2026-05-03`: `Wing/e=8` tham gia aggregate server-side như equipment hợp lệ khác; UI contract chỉ nhận breakdown từ snapshot.
+- Boundary:
+  - Đây là client contract/UI wiring cho server authority đã có; không thêm combat formula mới.
+  - Không áp combat effect cho `DamageAbsorb/tag 200`, `ArmorPierce/tag 201`, `Block/tag 202`, `Revive/tag 203`, `HpPercent/tag 221`.
+  - Không bật roll upgrade thật, không đổi DB schema, không thêm fallback stat/slot.
+- Verification:
+  - `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass: stdout/stderr rỗng.

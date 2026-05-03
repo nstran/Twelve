@@ -35,6 +35,7 @@ export interface CharacterEquipmentItem {
   bonusNoiLuc: number;
   bonusTheLuc: number;
   bonusAttack: number;
+  bonusAttackPercent: number;
   bonusDefense: number;
   bonusDodge: number;
   bonusCrit: number;
@@ -48,6 +49,19 @@ export interface CharacterSkillNode {
   requiredLevel: number;
   cost: number;
   canUpgrade: boolean;
+}
+
+export interface CharacterEquipmentStatBreakdown {
+  cuongLuc: number;
+  thanPhap: number;
+  noiLuc: number;
+  theLuc: number;
+  flatAttack: number;
+  attackPercent: number;
+  crit: number;
+  defense: number;
+  dodge: number;
+  maxHp: number;
 }
 
 export interface CharacterAppearance {
@@ -75,6 +89,7 @@ export interface CharacterAppearance {
   freePoints?: number;
   skillPoints?: number;
   combat?: { attack: number; def: number; acc: number; dodge: number; hp: number; crit: string };
+  equipmentStats?: CharacterEquipmentStatBreakdown;
   /** Movement stats ngoài map, server tính từ Java kl.b(lh) baseline + Thân Pháp. */
   mapMovement?: { moveSpeed: number };
   inventory?: CharacterInventoryItem[];

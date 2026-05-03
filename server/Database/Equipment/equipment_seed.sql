@@ -1,12 +1,12 @@
 -- Module: Equipment — seed data (embedded as DB.04_equipment_seed.sql).
 -- Java evidence / Remake policy boundary:
--- - ItemId is raw gameplay id used by server logic.
+-- - Id is the raw gameplay item id used by server logic.
 -- - ResourceId/IconId are NULL when Java asset/resource evidence is pending.
 -- - Kind raw values follow PlayerItemKind: Consumable=0, Material=1, Egg=2, RepairMaterial=3.
 -- - EvidenceStatus raw values follow PlayerItemEvidenceStatus: PendingUnverified=0, RemakePolicy=1, JavaEvidence=2.
 
 INSERT INTO ItemCatalog (
-    ItemId,
+    Id,
     DisplayName,
     Description,
     StackCap,
@@ -34,7 +34,7 @@ VALUES
     (30097, 'Trứng phượng hoàng', 'Trứng phượng hoàng Đập ra có cơ hội nhận được vật phẩm quý hiếm cấp cao.', 20, FALSE, 0, 0, 'item', 'phoenix_egg', 2, 0, NULL, NULL),
     (30098, 'Trứng rồng', 'Trứng rồng Đập ra có cơ hội nhận được vật phẩm quý hiếm cấp cao.', 20, FALSE, 0, 0, 'item', 'dragon_egg', 2, 0, NULL, NULL),
     (30099, 'Búa sửa chữa', 'Dụng cụ sửa trang bị; dùng 1 búa để phục hồi độ bền cho một trang bị bị hư hỏng.', 20, FALSE, 0, 0, 'item', 'repair_hammer', 3, 1, NULL, NULL)
-ON CONFLICT (ItemId) DO UPDATE SET
+ON CONFLICT (Id) DO UPDATE SET
     DisplayName = EXCLUDED.DisplayName,
     Description = EXCLUDED.Description,
     StackCap = EXCLUDED.StackCap,

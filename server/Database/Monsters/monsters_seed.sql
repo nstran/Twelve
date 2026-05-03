@@ -58,7 +58,7 @@ VALUES
   ('MONSTER_1004_SLOT_4', 'Báo Đốm', 1004, 4, 0, '["100441", "100443", "100444", "100445"]'::jsonb, FALSE), -- Lôi 51 (Đường Lâm)
   ('MONSTER_1004_SLOT_5', 'Dê Râu Xanh', 1004, 5, 0, '["100451", "100453", "100454", "100455"]'::jsonb, FALSE),
   ('MONSTER_1004_SLOT_6', 'Báo Hồng', 1004, 6, 0, '["100461", "100463", "100464", "100465"]'::jsonb, FALSE), -- Lôi 83 (Tiên Du)
-  ('MONSTER_1006_SLOT_4', 'Ác Bá Đầu Trọc', 1006, 4, 0, '["100641", "100643", "100644", "100645"]'::jsonb, FALSE), -- Thủy 89 (Tiên Du)
+  ('MONSTER_1006_SLOT_4_ALIAS_AC_BA_DAU_TROC', 'Ác Bá Đầu Trọc', 1006, 4, 0, '["100641", "100643", "100644", "100645"]'::jsonb, FALSE), -- Thủy 89 (Tiên Du); remake policy: distinct catalog row sharing Java visual 1006/slot 4
   ('MONSTER_1004_SLOT_7', 'Hỏa Hồng Trư', 1004, 7, 0, '["100471", "100473", "100475", "100476"]'::jsonb, FALSE), -- Hỏa 110 (Luyên Ngục 3)
   ('MONSTER_1004_SLOT_8', 'Thỏ Chiến', 1004, 8, 0, '["100481", "100483", "100484", "100485"]'::jsonb, FALSE),
   ('MONSTER_1004_SLOT_9', 'Thỏ Tinh', 1004, 9, 0, '["100491", "100493", "100494", "100495"]'::jsonb, FALSE), -- Thủy 52 (Phù Liệt)
@@ -88,7 +88,7 @@ VALUES
   ('MONSTER_1007_SLOT_5', 'Gã Áo Đỏ', 1007, 5, 0, '["100751", "100753", "100754", "100755"]'::jsonb, FALSE),
   ('MONSTER_1007_SLOT_6', 'Lính Giáp Đen', 1007, 6, 0, '["100761", "100763", "100764", "100765"]'::jsonb, FALSE),
   ('MONSTER_1007_SLOT_7', 'Cô Vệ Hồng', 1007, 7, 0, '["100771", "100773", "100774", "100775"]'::jsonb, FALSE),
-  ('MONSTER_1005_SLOT_1', 'Tê Giác Yêu Vương', 1005, 1, 0, '["100511", "100513", "100515", "100516"]'::jsonb, FALSE), -- Thủy 220 (Phong Châu)
+  ('MONSTER_1005_SLOT_1_ALIAS_TE_GIAC_YEU_VUONG', 'Tê Giác Yêu Vương', 1005, 1, 0, '["100511", "100513", "100515", "100516"]'::jsonb, FALSE), -- Thủy 220 (Phong Châu); remake policy: distinct catalog row sharing Java visual 1005/slot 1
   ('MONSTER_1007_SLOT_8', 'Tóc Cam Đao', 1007, 8, 0, '["100781", "100783", "100784", "100785"]'::jsonb, FALSE)
 ON CONFLICT (AssetCatalogId) DO UPDATE SET
     SpeciesCode = EXCLUDED.SpeciesCode,
