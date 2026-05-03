@@ -2459,3 +2459,39 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - Không đổi gameplay behavior, không thêm công thức combat hoặc upgrade/drop/open-egg mới.
 - Pending/Unverified giữ nguyên:
   - Java server evidence chính thức cho item ids/resource ids/reward pool/rate vẫn pending như mục trước.
+
+### 2026-05-03 — Open-egg configured reward pool activation (safe Phase)
+
+- Code đã sửa:
+  - `server/Twelve.Application/Players/PlayerContentCatalog.cs`
+    - In-memory `PlayerItemDefinition` đã khai báo đủ các egg item ids hiện có trong `ItemCatalog` seed: `30094..30098`, giữ raw values qua enum `PlayerItemId`.
+    - `GetEggDefinition(...)` cấu hình chi phí mở trứng theo policy user chốt:
+      - `ChickenEgg/30094`: `20,000` Quan.
+      - `OstrichEgg/30095`: `30,000` Quan.
+      - `DinosaurEgg/30096`: `100,000` Quan.
+      - `PhoenixEgg/30097`: `300,000` Quan.
+      - `DragonEgg/30098`: `300,000` Quan.
+    - Reward slots vẫn bị giới hạn ở `Armor/Weapon/Helmet/Ring`; không include `Wing/e=8`.
+    - Chỉ `OstrichEgg/30095` có reward pool tạm đã cấu hình rõ bằng template catalog hiện có: `fire_guard_vest`, `zap_hunter_helm`, `water_guard_cloak`.
+    - Các trứng còn lại giữ `AllowedEquipmentTemplateKeys = Array.Empty<string>()` để endpoint trả lỗi cấu hình và không mutate.
+  - `server/Twelve.Application/Players/PlayerRuntimeService.cs`
+    - `OpenEgg(...)` đã chuyển từ skeleton chặn toàn bộ sang flow mutate an toàn khi reward pool được cấu hình rõ:
+      - validate item là egg, inventory có egg, đủ Quan, capacity chưa đầy;
+      - validate từng template trong reward pool tồn tại trong `EquipmentCatalog`;
+      - validate template slot thuộc danh sách slot được phép của egg;
+      - chặn cứng `Wing/e=8` trong reward pool;
+      - chọn reward bằng deterministic stable index theo player/egg/inventory/equipment state hiện tại;
+      - consume đúng `1` egg, trừ đúng `OpenCostQuan`, tạo equipment instance bằng `BuildEquipmentEntryFromTemplate(...)` và lưu collection.
+- Java evidence applied:
+  - `go.n` default inventory capacity `50`.
+  - Inventory capacity count bám `go.b()` theo equipment bag + equipment đang mặc + item stacks.
+  - Equipment instance vẫn dùng `ll.e` slot authoritative và `ll.n` resource ID authoritative từ template.
+- Remake policy applied:
+  - Open-egg costs là policy user chốt ngày `2026-05-03`, không phải Java server evidence.
+  - Trứng không mở ra cánh; `Wing/e=8` chỉ đi qua flow crafting/chế tạo riêng sau này.
+  - Reward pool chỉ được bật khi template list cấu hình rõ, không fallback random equipment.
+- Pending/Unverified giữ nguyên:
+  - Chưa có Java server evidence cho reward chance/rate/pity/event multiplier.
+  - Reward pool của `30094`, `30096`, `30097`, `30098` vẫn chưa bật vì chưa có list template cụ thể.
+  - Reward pool tạm của `30095` là remake-config Phase hiện tại dựa trên template catalog sẵn có, không ghi là reward pool Java gốc.
+  - Chưa mở combat formula cho `DamageAbsorb/ArmorPierce/Block/Revive/HpPercent`.

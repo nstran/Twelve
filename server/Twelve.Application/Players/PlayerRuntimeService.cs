@@ -478,9 +478,68 @@ namespace Twelve.Application.Players
                     "Chua cau hinh reward pool cho loai trung nay.");
             }
 
+            var rewardPool = new List<string>();
+            foreach (var templateKey in eggDefinition.AllowedEquipmentTemplateKeys)
+            {
+                var template = _contentCatalog.GetEquipmentDefinition(templateKey);
+                if (template is null)
+                {
+                    return new PlayerRuntimeResponse(
+                        BuildSnapshot(aggregate),
+                        $"Reward template '{templateKey}' chua ton tai trong EquipmentCatalog.");
+                }
+
+                if (!eggDefinition.AllowedRewardSlots.Contains(template.Slot))
+                {
+                    return new PlayerRuntimeResponse(
+                        BuildSnapshot(aggregate),
+                        $"Reward template '{templateKey}' khong thuoc slot trung cho phep.");
+                }
+
+                if (template.Slot == (int)PlayerEquipmentSlot.Wing)
+                {
+                    return new PlayerRuntimeResponse(
+                        BuildSnapshot(aggregate),
+                        "Trung khong duoc mo ra canh.");
+                }
+
+                rewardPool.Add(templateKey);
+            }
+
+            var rewardIndex = StableIndex(
+                $"{aggregate.Core.Id}:{request.EggItemId}:{inventory[eggIndex].Quantity}:{aggregate.Equipment.Count}",
+                rewardPool.Count);
+            var rewardEntry = _contentCatalog.BuildEquipmentEntryFromTemplate(
+                rewardPool[rewardIndex],
+                $"egg-{aggregate.Core.Id}-{request.EggItemId}");
+
+            var eggStack = inventory[eggIndex];
+            var nextEggQuantity = eggStack.Quantity - 1;
+            if (nextEggQuantity <= 0)
+            {
+                inventory.RemoveAt(eggIndex);
+            }
+            else
+            {
+                inventory[eggIndex] = new PlayerItemStack
+                {
+                    ItemId = eggStack.ItemId,
+                    Quantity = nextEggQuantity,
+                    RawJson = eggStack.RawJson
+                };
+            }
+
+            aggregate.Core.Gold -= eggDefinition.OpenCostQuan;
+            var equipment = aggregate.Equipment.ToList();
+            equipment.Add(rewardEntry);
+
+            _playerRepository.UpdateAsync(aggregate.Core).GetAwaiter().GetResult();
+            _playerAggregateRepository.SaveCollectionsAsync(
+                aggregate.Core.Id, equipment, inventory, aggregate.Skills).GetAwaiter().GetResult();
+
             return new PlayerRuntimeResponse(
-                BuildSnapshot(aggregate),
-                "Chua bat dap trung: pending reward pool/template cho tung loai trung.");
+                BuildSnapshot(ReloadAggregate(aggregate.Core.Id)),
+                $"Da dap {eggDefinition.DisplayName}.");
         }
 
         private PlayerAggregate? LoadAggregate(string username) =>
@@ -499,6 +558,25 @@ namespace Twelve.Application.Players
             const int DefaultInventoryCapacity = 50;
             var occupiedSlots = aggregate.Equipment.Count + aggregate.Inventory.Count;
             return occupiedSlots >= DefaultInventoryCapacity;
+        }
+
+        private static int StableIndex(string value, int count)
+        {
+            if (count <= 0)
+            {
+                throw new System.ArgumentOutOfRangeException(nameof(count), "Reward pool must not be empty.");
+            }
+
+            unchecked
+            {
+                var hash = 17;
+                foreach (var ch in value)
+                {
+                    hash = hash * 31 + ch;
+                }
+
+                return System.Math.Abs(hash % count);
+            }
         }
 
         private PlayerRuntimeSnapshot BuildSnapshot(PlayerAggregate aggregate)

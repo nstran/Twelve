@@ -17,10 +17,34 @@ namespace Twelve.Core.Players
     public enum PlayerItemId
     {
         /// <summary>
-        /// Remake policy (2026-05-03): ostrich egg open flow uses current DB/catalog shell raw itemId 30095.
-        /// Official Java server egg id list/reward pool is still pending/unverified.
+        /// Remake policy (2026-05-03): chicken/normal egg raw itemId from current ItemCatalog seed.
+        /// Official Java server reward pool/rate is still pending/unverified.
+        /// </summary>
+        ChickenEgg = 30094,
+
+        /// <summary>
+        /// Remake policy (2026-05-03): ostrich egg raw itemId from current ItemCatalog seed.
+        /// Official Java server reward pool/rate is still pending/unverified.
         /// </summary>
         OstrichEgg = 30095,
+
+        /// <summary>
+        /// Remake policy (2026-05-03): dinosaur egg raw itemId from current ItemCatalog seed.
+        /// Official Java server reward pool/rate is still pending/unverified.
+        /// </summary>
+        DinosaurEgg = 30096,
+
+        /// <summary>
+        /// Remake policy (2026-05-03): phoenix egg raw itemId from current ItemCatalog seed.
+        /// Official Java server reward pool/rate is still pending/unverified.
+        /// </summary>
+        PhoenixEgg = 30097,
+
+        /// <summary>
+        /// Remake policy (2026-05-03): dragon egg raw itemId from current ItemCatalog seed.
+        /// Official Java server reward pool/rate is still pending/unverified.
+        /// </summary>
+        DragonEgg = 30098,
 
         /// <summary>
         /// Remake policy (2026-05-03): consumed by cmd 48 repair flow, restores equipment durability to max.

@@ -4,6 +4,25 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-03
 
+### [EQUIPMENT] Open-egg configured reward pool activation (safe Phase)
+
+- Kích hoạt flow đập trứng an toàn cho loại trứng đã có reward pool rõ ràng.
+- Cập nhật `server/Twelve.Application/Players/PlayerContentCatalog.cs`:
+  - khai báo đủ item definitions cho các egg raw ids `30094..30098` qua `PlayerItemId`;
+  - cấu hình cost theo policy user chốt: `30094=20,000`, `30095=30,000`, `30096=100,000`, `30097=300,000`, `30098=300,000` Quan;
+  - giữ reward slots ở `Armor/Weapon/Helmet/Ring`, không include `Wing/e=8`;
+  - chỉ bật reward pool tạm cho `OstrichEgg/30095` bằng các template hiện có: `fire_guard_vest`, `zap_hunter_helm`, `water_guard_cloak`;
+  - các egg còn lại vẫn trả lỗi cấu hình vì chưa có list template cụ thể.
+- Cập nhật `server/Twelve.Application/Players/PlayerRuntimeService.cs`:
+  - `OpenEgg(...)` validate egg/inventory/Quan/capacity/template/slot;
+  - chặn cứng `Wing/e=8` trong reward pool;
+  - consume đúng `1` egg, trừ đúng `OpenCostQuan`, tạo equipment instance bằng template catalog và lưu server-side.
+- Boundary:
+  - cost/reward pool hiện tại là `Remake policy`, không phải Java server evidence;
+  - không fallback random equipment khi pool chưa cấu hình;
+  - reward rate/chance/pity/event multiplier và pool của các egg khác vẫn pending;
+  - không mở combat formula cho special stats pending.
+
 ### [EQUIPMENT] User-facing ItemCatalog descriptions cleanup
 
 - Cập nhật `server/Database/Equipment/equipment_seed.sql` để mô tả item là text hiển thị cho người chơi, không còn ghi chú kỹ thuật reconstruction trong cột `Description`.

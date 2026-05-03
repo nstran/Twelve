@@ -179,6 +179,24 @@ namespace Twelve.Application.Players
         public PlayerItemDefinition? GetItemDefinition(int itemId) =>
             _items.TryGetValue(itemId, out var definition) ? definition : null;
 
+        public PlayerEquipmentDefinition? GetEquipmentDefinition(string templateKey)
+        {
+            if (string.IsNullOrWhiteSpace(templateKey))
+            {
+                return null;
+            }
+
+            return GetEquipmentDefinitions().TryGetValue(templateKey, out var definition)
+                ? definition
+                : null;
+        }
+
+        public PlayerEquipmentEntry BuildEquipmentEntryFromTemplate(string templateKey, string uniqueSeed)
+        {
+            var definition = GetRequiredEquipmentDefinition(templateKey);
+            return BuildEquipmentEntry(definition, uniqueSeed);
+        }
+
         public BattleLootReward CreateBattleLoot(BattleSessionState session, MonsterBattleTemplate battleTemplate)
         {
             var itemDefinitions = new List<PlayerItemDefinition>();
@@ -306,20 +324,67 @@ namespace Twelve.Application.Players
         {
             // Remake policy / user confirmation 2026-05-03:
             // Open-egg costs are server-authoritative config, not Java server evidence.
-            // Pending/Unverified: official itemId list for non-ostrich eggs and reward pools.
+            // Pending/Unverified: official Java server reward rates and most reward pools.
+            var allowedRewardSlots = new[]
+            {
+                (int)PlayerEquipmentSlot.Armor,
+                (int)PlayerEquipmentSlot.Weapon,
+                (int)PlayerEquipmentSlot.Helmet,
+                (int)PlayerEquipmentSlot.Ring
+            };
+
+            if (itemId == (int)PlayerItemId.ChickenEgg)
+            {
+                return new PlayerEggDefinition(
+                    ItemId: itemId,
+                    DisplayName: "Trứng thường",
+                    OpenCostQuan: 20000,
+                    AllowedRewardSlots: allowedRewardSlots,
+                    AllowedEquipmentTemplateKeys: Array.Empty<string>());
+            }
+
             if (itemId == (int)PlayerItemId.OstrichEgg)
             {
                 return new PlayerEggDefinition(
                     ItemId: itemId,
                     DisplayName: "Trứng đà điểu",
                     OpenCostQuan: 30000,
-                    AllowedRewardSlots:
+                    AllowedRewardSlots: allowedRewardSlots,
+                    AllowedEquipmentTemplateKeys:
                     [
-                        (int)PlayerEquipmentSlot.Armor,
-                        (int)PlayerEquipmentSlot.Weapon,
-                        (int)PlayerEquipmentSlot.Helmet,
-                        (int)PlayerEquipmentSlot.Ring
-                    ],
+                        "fire_guard_vest",
+                        "zap_hunter_helm",
+                        "water_guard_cloak"
+                    ]);
+            }
+
+            if (itemId == (int)PlayerItemId.DinosaurEgg)
+            {
+                return new PlayerEggDefinition(
+                    ItemId: itemId,
+                    DisplayName: "Trứng khủng long",
+                    OpenCostQuan: 100000,
+                    AllowedRewardSlots: allowedRewardSlots,
+                    AllowedEquipmentTemplateKeys: Array.Empty<string>());
+            }
+
+            if (itemId == (int)PlayerItemId.PhoenixEgg)
+            {
+                return new PlayerEggDefinition(
+                    ItemId: itemId,
+                    DisplayName: "Trứng phượng",
+                    OpenCostQuan: 300000,
+                    AllowedRewardSlots: allowedRewardSlots,
+                    AllowedEquipmentTemplateKeys: Array.Empty<string>());
+            }
+
+            if (itemId == (int)PlayerItemId.DragonEgg)
+            {
+                return new PlayerEggDefinition(
+                    ItemId: itemId,
+                    DisplayName: "Trứng rồng",
+                    OpenCostQuan: 300000,
+                    AllowedRewardSlots: allowedRewardSlots,
                     AllowedEquipmentTemplateKeys: Array.Empty<string>());
             }
 
@@ -512,6 +577,16 @@ namespace Twelve.Application.Players
                 }
             });
 
+        private static int StableIndex(string value, int count)
+        {
+            if (count <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count), "Reward pool must not be empty.");
+            }
+
+            return StablePercent(value) % count;
+        }
+
         private static int StablePercent(string value)
         {
             unchecked
@@ -595,7 +670,11 @@ namespace Twelve.Application.Players
                 [5005] = new PlayerItemDefinition(5005, "Trung Hồi Phục", "Khôi phục HP ngoài battle; lượng hồi scale theo Cường Lực/thiếu HP.", 20, true, 70, 0, "hp", "potion_blue", PlayerItemKind.Consumable, PlayerItemEvidenceStatus.RemakePolicy, null, null),
                 [5006] = new PlayerItemDefinition(5006, "Tiểu Nội Dược", "Khôi phục MP ngoài battle; lượng hồi scale theo Nội Lực/thiếu MP.", 20, true, 0, 35, "mp", "potion_blue", PlayerItemKind.Consumable, PlayerItemEvidenceStatus.RemakePolicy, null, null),
                 [5007] = new PlayerItemDefinition(5007, "Trái Đào", "Khôi phục HP/MP ngoài battle; lượng hồi scale theo Cường Lực và Nội Lực.", 20, true, 500, 250, "hp_mp", "peach", PlayerItemKind.Consumable, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [(int)PlayerItemId.ChickenEgg] = new PlayerItemDefinition((int)PlayerItemId.ChickenEgg, "Trứng gà", "Đập trứng bằng Quan để có cơ hội nhận trang bị từ danh sách mở thưởng đã cấu hình cho trứng gà.", 20, false, 0, 0, "item", "chicken_egg", PlayerItemKind.Egg, PlayerItemEvidenceStatus.RemakePolicy, null, null),
                 [(int)PlayerItemId.OstrichEgg] = new PlayerItemDefinition((int)PlayerItemId.OstrichEgg, "Trứng đà điểu", "Đập trứng bằng Quan để có cơ hội nhận trang bị từ danh sách mở thưởng của trứng đà điểu.", 20, false, 0, 0, "item", "chicken_egg", PlayerItemKind.Egg, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [(int)PlayerItemId.DinosaurEgg] = new PlayerItemDefinition((int)PlayerItemId.DinosaurEgg, "Trứng khủng long", "Đập trứng bằng Quan để có cơ hội nhận trang bị từ danh sách mở thưởng đã cấu hình cho trứng khủng long.", 20, false, 0, 0, "item", "dinosaur_egg", PlayerItemKind.Egg, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [(int)PlayerItemId.PhoenixEgg] = new PlayerItemDefinition((int)PlayerItemId.PhoenixEgg, "Trứng phượng hoàng", "Đập trứng bằng Quan để có cơ hội nhận trang bị từ danh sách mở thưởng đã cấu hình cho trứng phượng hoàng.", 20, false, 0, 0, "item", "phoenix_egg", PlayerItemKind.Egg, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [(int)PlayerItemId.DragonEgg] = new PlayerItemDefinition((int)PlayerItemId.DragonEgg, "Trứng rồng", "Đập trứng bằng Quan để có cơ hội nhận trang bị từ danh sách mở thưởng đã cấu hình cho trứng rồng.", 20, false, 0, 0, "item", "dragon_egg", PlayerItemKind.Egg, PlayerItemEvidenceStatus.RemakePolicy, null, null),
                 [(int)PlayerItemId.RepairHammer] = new PlayerItemDefinition((int)PlayerItemId.RepairHammer, "Búa Sửa Chữa", "Dụng cụ sửa trang bị; dùng 1 búa để phục hồi độ bền cho một trang bị bị hư hỏng.", 20, false, 0, 0, "item", "repair_hammer", PlayerItemKind.RepairMaterial, PlayerItemEvidenceStatus.RemakePolicy, null, null),
             };
 
