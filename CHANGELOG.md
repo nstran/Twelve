@@ -4,17 +4,39 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-03
 
+### [EQUIPMENT] Open-egg / đập trứng remake policy
+
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` với policy user chốt cho flow mở trứng:
+  - Trứng thường tốn `20,000` Quan.
+  - Trứng đà điểu tốn `30,000` Quan.
+  - Trứng khủng long tốn `100,000` Quan.
+  - Trứng rồng tốn `300,000` Quan.
+  - Trứng phượng tốn `300,000` Quan.
+- Boundary quan trọng:
+  - Trứng không bao giờ mở ra cánh; `Wing/e=8` chỉ đi qua flow chế tạo/crafting riêng sau này.
+  - Equipment reward từ trứng chỉ được roll trong slot `Armor/Weapon/Helmet/Ring`.
+  - Sau này sẽ có list equipment/template mở riêng cho mỗi loại trứng; API thật phải đọc config/list rõ ràng, không fallback random.
+- Giữ trạng thái pending:
+  - chưa có Java server evidence cho drop rate/cost/reward pool gốc;
+  - itemId đầy đủ cho từng loại trứng, reward chance, list equipment từng trứng, pity/event multiplier còn chờ policy/config tiếp.
+- Chỉ sửa tài liệu `.md`, không sửa code server/client nên không chạy build/check.
+
 ### [EQUIPMENT] Inventory item icon asset wiring for equipment materials
 
 - Cập nhật UI inventory item theo asset đã cắt từ spritesheet:
-  - chuẩn hóa tên file trong `client/assets/equipment/items/` theo icon đã xác nhận: HP, MP, trứng đà điểu, búa sửa đồ, Kim Thạch, Huyết Thạch, Bùa 1/2/3;
+  - item/material/consumable đã tách khỏi domain equipment sang `client/assets/items/`;
+  - chuẩn hóa tên file đã xác nhận: HP, MP, trứng đà điểu, búa sửa đồ, Kim Thạch, Huyết Thạch, Bùa 1/2/3;
   - giữ icon chưa xác minh gameplay dưới dạng `pending_*.png`, không suy diễn tên domain.
 - Cập nhật `client/src/screens/map/core/MapCharacterDialogs.tsx`:
-  - thêm resolver icon item theo `CharacterInventoryItem.iconKind`;
+  - resolver `CharacterInventoryItem.iconKind` đọc từ `client/assets/items/`;
   - map `potion_red`, `potion_blue`, `peach`, `hammer`, `kim_thach`, `huyet_thach`, `charm_1`, `charm_2`, `charm_3`.
+- Cập nhật `client/assets/equipment/README.md`:
+  - loại `items/` khỏi layout equipment;
+  - ghi rõ repair hammer `30099` là item repair nằm ở `client/assets/items/repair_hammer.png`;
+  - tỉ lệ drop trứng từ monster và reward pool gốc vẫn là `Remake policy pending`, không suy ra từ icon; cost mở trứng đã được user chốt riêng trong mục `[EQUIPMENT] Open-egg / đập trứng remake policy`.
 - Giữ boundary:
   - repair hammer `30099` là policy/user confirmation đã chốt ngày `2026-05-03`;
-  - Kim Thạch/Huyết Thạch/Bùa mới wire icon/material identity UI, chưa consume/roll upgrade thật vì thiếu danh sách đá/bùa/tỉ lệ Java gốc.
+  - Kim Thạch/Huyết Thạch/Bùa/trứng mới wire icon/material identity UI, chưa consume/roll upgrade/drop/open thật vì thiếu danh sách đá/bùa/tỉ lệ Java gốc và list equipment/reward pool cụ thể cho từng loại trứng.
 
 ### [EQUIPMENT] Runtime API/client wiring + upgrade skeleton gate
 

@@ -1952,6 +1952,45 @@ Các quyết định dưới đây là **Remake policy / user confirmation**, kh
 | Upgrade fail tier cao bị vỡ | Vỡ là mất hẳn equipment instance | Destroy outcome deletes equipment instance permanently from ownership/inventory/equipped state. |
 | Trade/rao bán | Phải tháo đồ ra mới trade/rao bán được | Trade/market validation reject equipped item. |
 | Shop/drop stat roll | Đồ rơi và đồ shop roll stat random trong range template | Template defines stat ranges; instance stores rolled stats. Không dùng stat cố định tuyệt đối nếu template/range cho phép roll. |
+| Đập/mở trứng | Trứng mở bằng Quan theo từng loại; không bao giờ mở ra cánh | Đây là `Remake policy / user confirmation 2026-05-03`, không phải Java evidence. Cánh `Wing/e=8` chỉ đi qua flow chế tạo/crafting riêng sau này, không nằm trong reward pool đập trứng. Equipment từ trứng chỉ roll các slot `Armor/Weapon/Helmet/Ring`. |
+| Phí mở trứng | Trứng thường `20,000` Quan; trứng đà điểu `30,000` Quan; trứng khủng long `100,000` Quan; trứng rồng `300,000` Quan; trứng phượng `300,000` Quan | Các mức Quan là policy hiện tại và có thể chỉnh bằng config sau. Khi implement không hard-code vào logic rải rác; đưa vào egg config/server authority. |
+| Danh sách equip theo từng loại trứng | Sẽ có list equipment mở riêng cho mỗi loại trứng | Pending config/data: mỗi loại trứng cần `AllowedEquipmentTemplateKeys` hoặc reward pool template riêng. Nếu list chưa cấu hình thì API mở trứng phải trả lỗi cấu hình rõ ràng, không fallback sang template ngẫu nhiên sai tier. |
+
+#### Open-egg / đập trứng remake policy `2026-05-03`
+
+##### Java evidence
+
+- Java/client evidence hiện mới đủ cho item/icon identity một phần của trứng trong inventory UI.
+- Chưa có Java server evidence cho tỉ lệ drop trứng, phí mở trứng, reward pool, rank roll, hoặc list equipment có thể mở từ từng loại trứng.
+- Vì vậy toàn bộ rule bên dưới là **Remake policy / user confirmation**, không được ghi là logic Java gốc.
+
+##### User-confirmed remake policy
+
+| Egg type | Quan cost/open | Reward boundary |
+|----------|----------------:|-----------------|
+| Trứng thường | `20,000` | Mở ra reward theo list/config riêng của trứng thường. |
+| Trứng đà điểu | `30,000` | Mở ra reward theo list/config riêng của trứng đà điểu. |
+| Trứng khủng long | `100,000` | Mở ra reward theo list/config riêng của trứng khủng long. |
+| Trứng rồng | `300,000` | Mở ra reward theo list/config riêng của trứng rồng. |
+| Trứng phượng | `300,000` | Mở ra reward theo list/config riêng của trứng phượng. |
+
+Rules bắt buộc khi implement:
+- Consume đúng `1` trứng và trừ đúng Quan cost theo egg config.
+- Trứng **không bao giờ** mở ra cánh; `Wing/e=8` là flow chế tạo/crafting riêng sau này.
+- Equipment reward từ trứng chỉ được chọn từ slot `Armor`, `Weapon`, `Helmet`, `Ring`.
+- Mỗi loại trứng sẽ có list equipment/template mở riêng; cần note/config dạng `AllowedEquipmentTemplateKeys`, `AllowedTemplatePoolId`, hoặc bảng reward pool tương đương.
+- Nếu list equipment của loại trứng chưa cấu hình hoặc không có template hợp lệ thì trả lỗi cấu hình rõ ràng; không tự fallback sang đồ random để tránh sai policy.
+- Stat roll của equipment mở từ trứng dùng cùng pipeline template/range đã chốt cho shop/drop.
+- Special stats `DamageAbsorb/ArmorPierce/Block/Revive/HpPercent` nếu xuất hiện từ template vẫn chỉ hiển thị/aggregate theo rule đã có evidence; không tự bật combat formula.
+- Cost/rate/reward pool phải nằm trong config/server authority để sau này chỉnh mà không sửa nhiều code.
+
+##### Pending/Unverified
+
+- ItemId chính thức cho các loại trứng ngoài icon trứng đà điểu.
+- Drop rate trứng từ monster/map/event.
+- Reward chance cụ thể cho từng loại trứng.
+- List equipment/template mở riêng cho từng loại trứng.
+- Có/không có pity, bảo hiểm, hoặc event multiplier.
 
 ---
 
@@ -2274,6 +2313,23 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
 - Pending/Unverified giữ nguyên:
   - Chưa consume đá/bùa, chưa roll success/fail/destroy, chưa mutate enhance level vì thiếu danh sách material/rate Java gốc.
   - Chưa mở combat formula cho `DamageAbsorb/ArmorPierce/Block/Revive/HpPercent`.
+
+### 2026-05-03 — Open-egg / đập trứng remake policy
+
+- User chốt policy mở trứng:
+  - Trứng thường tốn `20,000` Quan.
+  - Trứng đà điểu tốn `30,000` Quan.
+  - Trứng khủng long tốn `100,000` Quan.
+  - Trứng rồng tốn `300,000` Quan.
+  - Trứng phượng tốn `300,000` Quan.
+- Boundary quan trọng:
+  - Trứng không bao giờ mở ra cánh; `Wing/e=8` chỉ đi qua flow chế tạo/crafting riêng sau này.
+  - Equipment reward từ trứng chỉ được roll trong các slot `Armor/Weapon/Helmet/Ring`.
+  - Sau này sẽ có list equipment/template mở riêng cho mỗi loại trứng; cần cấu hình rõ trước khi bật API thật.
+- Pending:
+  - Chưa có Java server evidence cho drop rate/cost/reward pool gốc.
+  - ItemId đầy đủ cho từng loại trứng, reward chance cụ thể, list equipment theo từng trứng, pity/event multiplier đều còn chờ config/policy tiếp.
+- Chỉ sửa tài liệu `.md`, không sửa code server/client → không chạy build.
 
 ### 2026-05-03 — Inventory item icon asset wiring for equipment materials
 

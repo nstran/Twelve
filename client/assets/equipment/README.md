@@ -15,8 +15,7 @@ equipment/
   helmet/       <- ll.e==2 headgear/head-overlay candidates
   accessory/    <- ll.e==5,7,8 ring/amulet/accessory icons/effects; stats-only trong compositor hiện biết
   premium/      <- premium/full-set visual bands, server quyết định ll.e thật
-  ui/           <- icon UI forge/equipment: broken_heart, star, slotlock, blacksmith, effblacksmith, 30099
-  items/        <- icon item/inventory đã cắt từ spritesheet, gồm hammer/material/charm và pending chưa xác minh
+  ui/           <- icon UI forge/equipment: broken_heart, star, slotlock, blacksmith, effblacksmith
   index.csv     <- manifest dạng CSV: file,id,numericId,band,group
   equipment_manifest.json <- manifest dạng JSON tương đương index.csv
 ```
@@ -31,9 +30,8 @@ Số lượng sau gom ngày 2026-05-03:
 | `helmet/` | 187 |
 | `accessory/` | 56 |
 | `premium/` | 110 |
-| `ui/` | 6 |
-| `items/` | 35 |
-| **Tổng** | **1009** |
+| `ui/` | 5 |
+| **Tổng** | **974** |
 
 Các folder audit cũ `01_default_overlays/`, `02_armor_e0/`, `03_weapon_e1/`, `04_helmet_e2/`, `07_accessory_e5_e7_e8/`, `08_premium_sets/`, `09_ui_icons/` đã được gộp/xóa để tránh cây thư mục quá sâu. Nếu cần truy vết band cũ, dùng `index.csv`/`equipment_manifest.json` và tài liệu reconstruction.
 
@@ -74,7 +72,6 @@ Layer 5: Weapon overlay = ll.e==1 resId band + frame
 - `701xx-783xx` nằm trong `armor/` vì icon `xx98` và frame `xx00` cho thấy outfit/body overlay.
 - `800xx-832xx` và `890xx-893xx` nằm trong `weapon/` vì icon `xx98` là kiếm/gậy/vũ khí.
 - `500xx-609xx`, `904xx`, `908xx` và các meta-backed headgear candidates nằm trong `helmet/` khi có bằng chứng head overlay.
-- `30099.png` là búa sửa đồ đã được user xác nhận: một loại hammer dùng cho mọi equipment repair.
-- `items/repair_hammer.png` là icon inventory tương ứng cho item repair hammer `30099`.
-- `items/kim_thach.png`, `items/huyet_thach.png`, `items/charm_1.png`, `items/charm_2.png`, `items/charm_3.png` chỉ được xác nhận ở mức icon/material UI trong phase hiện tại; chưa dùng làm công thức/tỉ lệ upgrade khi thiếu Java server evidence.
-- `items/pending_*.png` giữ tên pending để tránh suy diễn gameplay từ ảnh/icon chưa đủ evidence.
+- Repair hammer `30099` đã được user xác nhận là item repair dùng cho mọi equipment, nhưng asset inventory đã tách khỏi domain equipment và nằm ở `client/assets/items/repair_hammer.png`.
+- Kim Thạch/Huyết Thạch/Bùa/trứng/HP/MP là item/material/consumable, không lưu trong `client/assets/equipment/`. Asset inventory tương ứng nằm ở `client/assets/items/`.
+- Tỉ lệ drop trứng từ monster và tỉ lệ/cost mở trứng là **Remake policy pending** nếu chưa có Java server evidence hoặc bảng policy do user chốt. Không tự suy ra từ icon.
