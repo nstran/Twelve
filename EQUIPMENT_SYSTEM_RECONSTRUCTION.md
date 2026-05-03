@@ -90,8 +90,11 @@ public boolean b() { return this.q > 0 && this.p < this.q; }
 // Repairable check — true nếu repair cost > 0
 public boolean c() { return this.k > 0L; }
 
-// Clone — deep copy tất cả fields (trừ stats block chỉ copy ref)
-public ll d() { /* ... copies all fields ... */ }
+// Clone — PARTIAL copy (có decompiler bug, xem section 12.1)
+// [Java evidence: ll.java line 63-81]
+// Fields COPIED: c,e (via constructor), f, h, i, j, k, m, n, p, q, r (ref only), s, t, u
+// Fields MISSED (decompiler bug / omission): d (throwaway object bug), g, l, o
+public ll d() { /* ... partial copy — see section 12.1 for details ... */ }
 
 // toString — debug format
 // "Equip[key=X resid=N ; name=Y; type=E rank=M  \n stats level=J tradeableT"
@@ -158,7 +161,7 @@ Pending audit:
 
 ### 2.1 All 15 Stat Fields
 
-Suy luận từ `lb.toString()` + `com.mg.sq.a.a(ll)` stat string builder:
+Java evidence verified `2026-05-03` từ `lb.java`, `ky.java` tag parser line `1288-1302`, `lb.toString()` và `com.mg.sq.a.a(ll)` stat string builder. Mapping dưới đây giữ nguyên raw tag/field Java; không đổi tên field decompile thành gameplay nếu chưa có evidence UI/string tương ứng.
 
 | Field | Tag | Stat Name (VN) | Unit | toString label |
 |-------|-----|----------------|------|----------------|
@@ -264,7 +267,79 @@ public static long s = -1L;    // Player gold (-1 = not loaded)
 public static boolean t = true; // (flag, default true)
 ```
 
-### 4.2 Inventory Operations
+### 4.2 GameItem Data Model (`lm.java`)
+
+`lm` là model item/consumable/material trong inventory (`go.m`). Đây không phải equipment `ll`, nhưng liên quan trực tiếp tới equipment flow vì upgrade/combine/repair/shop dùng item/material và `fw.java`/`dc.java` render chung `ll` + `lm`.
+
+#### Java evidence
+
+`lm.java` extends `ld`. Base `ld` cung cấp các field chung được `lm.toString()` dùng:
+- `a`: item id.
+- `b`: name.
+- `c`: display name.
+- `d`: description.
+
+Own fields trong `lm.java`:
+
+| Field | Type | Initial | Evidence từ `toString()` / method | Meaning status |
+|-------|------|---------|-----------------------------------|----------------|
+| `e` | `byte` | `0` | `type = e`; `go.b()` dùng `item.e == 7` để tính stack by quantity | Java evidence: item type raw value; `7` là stack-count special trong inventory-full check |
+| `f` | `int` | `0` | copied in `b()`, không in `toString()` | Pending/Unverified |
+| `g` | `int` | `0` | `qty=g` | Java evidence: quantity |
+| `h` | `long` | `0` | `$=h` | Java evidence: price/currency-like value; exact economy meaning pending by flow |
+| `i` | `int` | `0` | copied in `b()`, không in `toString()` | Pending/Unverified |
+| `j` | `int` | `0` | `res id=j`; `dc.java` uses item icon rendering through item res id | Java evidence: item resource/icon id |
+| `k` | `long` | `0` | `requireKen=k` | Java evidence: required KEN/cost-like; exact usage pending |
+| `l` | `int` | `-1` | `slotCapacity=l`; stack/selection flows use item capacity/quantity limits | Java evidence: slot capacity / stack capacity raw field |
+| `m` | `byte` | `1` | `trade=m`; `a()` returns `m == 1` | Java evidence: tradeable flag raw value, `1=true` |
+
+```java
+public final boolean a() {
+    return this.m == 1;
+}
+
+public final String toString() {
+    return "Item[id=" + this.a + "; qty=" + this.g + "; $=" + this.h
+        + " type = " + this.e + " res id = " + this.j
+        + " ] name = " + this.b + " displaynam = " + this.c
+        + " requireKen = " + this.k + " des = " + this.d
+        + " slotCapacity = " + this.l + " trade " + this.m;
+}
+```
+
+#### Clone/decompile bug (`lm.b()`)
+
+`lm.b()` có cùng pattern decompiler bug như `ll.d()`:
+
+```java
+lm lm2 = new lm(this.a);
+new lm(this.a).e = this.e; // THROWAWAY object, lm2.e is not assigned
+lm2.d = this.d;
+lm2.g = this.g;
+lm2.f = this.f;
+lm2.h = this.h;
+lm2.i = this.i;
+lm2.b = this.b;
+lm2.c = this.c;
+lm2.j = this.j;
+lm2.k = this.k;
+lm2.l = this.l;
+lm2.m = this.m;
+return lm2;
+```
+
+Kết luận phục dựng:
+- Khi clone/copy item trong server/client remake, phải copy `e` vào object clone thật; không tái hiện bug decompiler.
+- Không suy diễn `f/i` thành field gameplay khi chưa có usage rõ.
+- Giữ raw value `m == 1` là tradeable theo Java method `lm.a()`.
+
+#### Remake policy
+
+- `lm` dùng cho material/consumable/repair hammer trong equipment flows.
+- Repair hammer đã được user xác nhận icon/id `30099`, nhưng item catalog gốc đầy đủ vẫn pending.
+- Không gộp `ll` và `lm` thành một entity gameplay nếu serializer/protocol vẫn phân biệt equipment và item.
+
+### 4.3 Inventory Operations
 
 ```java
 // Add equipment to bag
@@ -288,7 +363,7 @@ go.a(ll[] equips, lm[] items, int capacity, int offset) {
 }
 ```
 
-### 4.3 Inventory Full Check
+### 4.4 Inventory Full Check
 
 ```java
 // go.b() — check if inventory is full
@@ -516,7 +591,11 @@ Default resource IDs:
 | 204 | `n` | Sức tấn công % |
 | 221 | `o` | Sinh lực % |
 
+**Java evidence verified `2026-05-03`:** tag mapping `118/119/120/121/72/71/126/124/47/200/201/202/203/204/221` match trực tiếp `ky.java` parser line `1288-1302`.
+
 **Lưu ý bug decompile:** Ở line 1287-1288, decompiler tạo 2 `new lb()` nhưng chỉ assign `lb2` vào `equip.r`. Field `a` bị assign cho object bỏ đi. Logic thật cần assign `lb2.a = tag 118`.
+
+**Lưu ý decompiler alias:** Ở line 1273, code decompile có dạng `v0.n = ku2.a((short)4, n2, n3, 0);` trong khi object parse chính là equipment `ll`. Audit `2026-05-03` đánh dấu đây là **likely decompiler alias (`v0 == object`)**, không đủ evidence để coi là server/gameplay branch riêng. Khi viết parser remake, gán tag `4` trực tiếp vào `Equipment.ResourceId/ll.n`.
 
 ### 7.3 Character Equipment Array
 
@@ -537,7 +616,36 @@ for (int i = 0; i < lh2.D.length; i++) {
 | 97 | modifiedUpgradeEquip | Kết quả nâng cấp → `b.d(key, msg, readyStatus, gold)` |
 | 99 | requestCombineEquip | Check/yêu cầu kết hợp item/material. `ks.a().b(sessionKey, action, itemId, qty)` / `b.e(session, msg)` |
 | 100 | modifiedCombineEquip | Kết quả kết hợp → `b.a(key, msg, status, gold)` |
-| 112 | processEquipChange | Mặc/tháo trang bị → `b.a(equipKey, gold)` |
+| 112 | processEquipChange | Mặc/tháo trang bị → `b.a(equipKey, gold)` hoặc gold/count update; đọc tag `175` nhưng client không dùng text này |
+
+#### Cmd `112` detail (`processEquipChange`)
+
+Java evidence từ `ky.java` cmd `112`:
+
+```java
+String equipKey = packet.a((short)83);
+if (equipKey != null) {
+    String ignoredText = packet.a((short)175); // read but not used
+    long gold = packet.a((short)157, 0L);
+    b.a(equipKey, gold);
+    return;
+}
+
+int goldAmount = packet.c((short)114, 0);
+if (goldAmount > 0) {
+    String ignoredText = packet.a((short)175); // read but not used
+    int count = packet.c((short)106, 0);
+    packet.a((short)157, 0L); // read/discard
+    b.g(goldAmount, count);
+}
+```
+
+Kết luận phục dựng:
+- Tag `83`: equipment key string, nhánh equip/unequip sync chính.
+- Tag `175`: string được client đọc nhưng không truyền tiếp vào callback; không được suy diễn là message bắt buộc UI nếu chưa có usage khác.
+- Tag `157`: long gold/current-money-like value trong nhánh có equip key.
+- Tag `114` + `106`: nhánh update gold amount/count.
+- Server remake phải authoritative state; client chỉ sync key/gold callback.
 
 ### 7.5 Client Senders (`ks.java`)
 
@@ -545,6 +653,7 @@ Các sender sau là bằng chứng client-side về payload cần server tương
 
 | Flow | Java call | Payload suy luận |
 |------|-----------|------------------|
+| Equip/unequip sender case | `ks.java` switch case `84` | Sends tag `114` from `kw2.M`; audit `2026-05-03` xác nhận đây là nhánh sender equipment/economy-related, nhưng wrapper method cụ thể vẫn cần giữ theo overload Java khi serializer byte-perfect. |
 | Equip/unequip from inventory | `ks.a().a(String[] equipKeys)` | Danh sách key trang bị đang mặc sau khi client đổi slot trong `hh`; server chốt thay đổi và trả cmd `112`. |
 | Sell equipment | `ks.a().a(equipKey, price)` | Bán 1 trang bị đang chọn; giá nhập từ UI `hu`/sale dialog, key từ `ll.c`. |
 | Sell item | `ks.a().a(itemId, quantity, price)` | Bán item consumable/material. |
@@ -1164,6 +1273,63 @@ Mục tiêu phase 1 là dựng nền dữ liệu/protocol an toàn để các ph
 - `gx.java` confirms cart confirm dialog for shop multi-buy uses existing equipment icon/stat/rank rules only; no new model rule.
 - `of.java` confirms trade/transaction panel uses `dc` equipment cells and key-based add/remove/reclaim behavior; no new slot/stat/compositor rule.
 - The `.agent/skills/` section from older draft was removed because it was not Java source evidence and could mislead reconstruction.
+
+### 12.1 Decompiler Clone Bugs Summary
+
+Audit `2026-05-03` xác nhận pattern decompiler CFR 0.152 tạo throwaway object trong clone methods. Khi remake, phải copy đúng tất cả fields vào object chính; không tái hiện bug.
+
+#### `ll.d()` — Equipment clone (ll.java line 63-81)
+
+```java
+ll ll2 = new ll(this.c, this.e);      // ll2 gets c,e via constructor
+new ll(this.c, this.e).d = this.d;    // BUG: sets d on THROWAWAY, ll2.d is never set
+ll2.f = this.f;
+ll2.h = this.h;
+ll2.i = this.i;
+ll2.j = this.j;
+ll2.k = this.k;
+ll2.m = this.m;
+ll2.n = this.n;
+ll2.p = this.p;
+ll2.q = this.q;
+ll2.r = this.r;    // reference copy only
+ll2.s = this.s;
+ll2.t = this.t;
+ll2.u = this.u;
+return ll2;
+```
+
+| Field | Copied? | Note |
+|-------|---------|------|
+| `c`, `e` | ✅ | Via constructor |
+| `d` | ❌ | Throwaway object bug |
+| `f`, `h`, `i`, `j`, `k`, `m`, `n`, `p`, `q`, `s`, `t`, `u` | ✅ | Direct assignment |
+| `r` | ⚠️ | Reference copy (shallow) |
+| `b` | ❌ | Not copied (sequence ID) |
+| `g` | ❌ | Not copied (description) |
+| `l` | ❌ | Not copied (unknown) |
+| `o` | ❌ | Not copied (unknown) |
+
+**Remake policy:** Copy ALL fields vào clone thật, bao gồm `d`, `g`, `l`, `o`. Deep-copy `r` (stats) nếu clone cần independent stats.
+
+#### `lm.b()` — GameItem clone (lm.java line 28-43)
+
+```java
+lm lm2 = new lm(this.a);              // lm2 gets a via constructor
+new lm(this.a).e = this.e;            // BUG: sets e on THROWAWAY, lm2.e is never set
+lm2.d = this.d;
+lm2.g = this.g;
+// ... other fields copied correctly
+return lm2;
+```
+
+| Field | Copied? | Note |
+|-------|---------|------|
+| `a` | ✅ | Via constructor |
+| `e` | ❌ | Throwaway object bug |
+| `d`, `g`, `f`, `h`, `i`, `b`, `c`, `j`, `k`, `l`, `m` | ✅ | Direct assignment |
+
+**Remake policy:** Copy `e` (item type) vào clone thật.
 
 ---
 
@@ -1803,6 +1969,21 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - `Wing`
 - Không khai báo hằng số `Reserved`/`Unused` trong code để tránh hiểu nhầm là gameplay có nhiều slot hơn 5 nhóm hiện tại.
 - Ghi chú nguồn: armor/weapon/helmet bám Java client; ring/wing là quyết định remake theo gameplay memory/user confirmation ngày `2026-05-03`, có thể chỉnh mapping khi có template/server evidence mới.
+
+### 2026-05-03 — Audit cập nhật tài liệu (re-audit Java source)
+
+- Audit lại các file Java chính: `ll.java`, `lb.java`, `lm.java`, `ky.java`, `ks.java`, `mb.java`.
+- Phát hiện và sửa:
+  - **Section 1.2 clone mô tả sai**: `ll.d()` KHÔNG deep-copy tất cả fields. Fields `d`, `g`, `l`, `o` bị miss do decompiler throwaway bug và omission. Sửa comment + thêm reference section 12.1.
+  - **Section 2.1 stats table**: Thêm verified marker `2026-05-03` và note giữ raw tag/field Java.
+  - **Section 4.2 mới**: Thêm `lm.java` (GameItem) full field mapping table, `toString()` analysis, clone bug `lm.b()`, remake policy. Tách evidence/pending/remake policy rõ ràng.
+  - **Section 7.2 parser bugs**: Thêm `v0.n` decompiler alias note (likely `v0 == object`). Thêm verified marker cho tag mapping.
+  - **Section 7.4 cmd 112**: Bổ sung detail handler với tag `83/175/157/114/106`. Ghi chú tag `175` client đọc nhưng không dùng.
+  - **Section 7.5 senders**: Thêm `ks.java` switch case `84` equip sender → tag `114`.
+  - **Section 12.1 mới**: Tổng hợp decompiler clone bugs cho cả `ll.d()` và `lm.b()`, gồm field-by-field copy table và remake policy.
+- Files `.md` đã sửa:
+  - `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`
+- Không sửa code server/client → không cần build.
 
 ### 2026-05-03 — Backend equipment foundation Phase 1
 
