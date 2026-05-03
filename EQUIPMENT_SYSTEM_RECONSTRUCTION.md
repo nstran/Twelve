@@ -2,6 +2,10 @@
 
 Tài liệu khôi phục hệ thống trang bị (equipment) từ Java client cũ.
 
+> **Trạng thái an toàn phục dựng:** Tài liệu này đã gom evidence client-side Java, nhưng **không được coi là server gốc hoàn chỉnh**. Các section `1..12` là phần bám Java client mạnh nhất. Section `13` là quyết định server-side từ gameplay memory/user confirmation vì không có Java server; khi code phải ghi rõ là reconstructed/remake policy và không được coi là công thức gốc nếu chưa có thêm dump/template/packet evidence.
+>
+> **Quy tắc bắt buộc:** Nếu một rule/field không trace được về Java client (`ll/lb/ky/ks/hh/...`) hoặc evidence người dùng cung cấp, phải đánh dấu `UNVERIFIED`/`PENDING` và hỏi lại trước khi implement. Không tự thêm field/policy như `IsRepairable`, `RepairBlockReason`, `IsUpgradeable`, `InventoryCapacityCost` vào model Java-compatible nếu chưa có template/server evidence.
+
 ## Source Code Reference
 
 | File | Class | Vai trò |
@@ -103,11 +107,11 @@ Mảng static `ll.a` dùng để **sắp xếp** trang bị theo slot priority, 
 | 1 | 4 | Vũ Khí (Weapon) | ✅ weapon overlay |
 | 2 | 2 | Mũ/Nón (Helmet) | ✅ head overlay |
 | 3 | 3 | Giày/Ủng (Boots) | ❌ stats only |
-| 4 | 5 | Ngựa/Khiên (Mount) | ❌ affects `lh.ad` flag |
+| 4 | 5 | Ngựa/Khiên (Mount) | ❌ affects `lh.ad` flag; không phải layer equipment thường |
 | 5 | 9 | Nhẫn (Ring) | ❌ stats only |
 | 6 | 0 | (unused) | — |
 | 7 | 6 | Bùa 1 (Accessory) | ❌ stats only |
-| 8 | 10 | Bùa 2 (Accessory) | ❌ stats only |
+| 8 | 10 | Bùa 2 / slot đặc biệt | ❌ Java `hh` xử lý đặc biệt: không đưa vào 6 ô `F`, menu dùng `"Dùng"`; remake decision `Wing` xem section 13 |
 | 9-12 | 99 | Misc/Event slots | ❌ |
 
 ### 1.4 Rank → Display Color (`ll.a(int rank)`)
@@ -124,6 +128,29 @@ switch (rank) {
     default:    return bx.d;                                    // fallback white
 }
 ```
+
+### 1.5 Equipment Element / Hệ trang bị (`ll.f`, tag `15`)
+
+Trang bị có **hệ/nguyên tố** hiển thị bằng icon nhỏ đứng trước tên item trong dialog/tooltip. User screenshot ngày `2026-05-03` xác nhận ví dụ `Kim Đao (Luyện Ngục)` có icon **tia sét** trước tên.
+
+Java client evidence:
+- `ll.f` là `byte` element icon ID.
+- `ky.a(..., bl2=true)` parse `ll.f` từ tag `15`, default `7`.
+- `hg.java` render equipment detail có hiển thị element icon từ `equip.f`.
+- Element icon chỉ được client chứng minh là metadata/UI icon của equipment; chưa đủ evidence để kết luận nó tự động đổi công thức combat nếu chưa đối chiếu battle source/server policy.
+
+Reconstruction rule:
+```text
+Equipment.ElementIcon = ll.f / tag 15
+DefaultElementIcon = 7
+UI must display element icon before equipment name when available.
+Do not infer combat element effect from ll.f until battle/equipment interaction is audited.
+```
+
+Pending audit:
+- Tìm mapping đầy đủ `ll.f -> tên hệ/icon asset` trong Java UI/resource code.
+- Đối chiếu battle source xem equipment element có ảnh hưởng damage/khắc hệ không, hay chỉ là icon/thuộc tính hiển thị.
+- Nếu server remake quyết định dùng equipment element trong combat, phải ghi rõ là reconstructed policy hoặc link tới Java evidence tương ứng.
 
 ---
 
@@ -932,42 +959,53 @@ Mục tiêu phase 1 là dựng nền dữ liệu/protocol an toàn để các ph
 
 #### 11.1 Scope được phép làm trong Phase 1
 
-- [ ] **Core enums/value objects**
-  - `EquipmentSlot` bám `ll.e` (`0..12`), không suy slot từ folder asset.
-  - `EquipmentGender` bám Java: `0=Nam`, `1=Nữ`, `2=Cả hai`.
-  - `EquipmentRank` giữ numeric rank gốc; rank color/UI mapping để client dùng sau.
+- [x] **Core enums/value objects**
+- `EquipmentSlotIds` chỉ expose đúng **5 nhóm equipment gameplay hiện tại**, đặt tên rõ ràng, không dùng prefix `SlotN` và không khai báo các slot thừa:
+  - `Armor`
+  - `Weapon`
+  - `Helmet`
+  - `Ring`
+  - `Wing`
+- Các raw id khác từ Java `ll.e` vẫn được tài liệu hóa ở bảng evidence `ll.a[]`, nhưng chưa đưa vào code gameplay phase đầu khi chưa có template/server evidence thật.
+- Source note: armor/weapon/helmet bám Java visual/compositor; ring/wing là quyết định remake từ gameplay memory/user confirmation ngày `2026-05-03`, raw-id mapping có thể điều chỉnh nếu dump template/server evidence sau này chỉ ra khác.
+- Không tạo `EquipmentGender` enum trong code Phase 1; giữ raw numeric `ll.h`: `0=Nam`, `1=Nữ`, `2=Cả hai`.
+- Không tạo `EquipmentRankIds`/enum rank trong code vì Java chỉ lưu raw `ll.m` và `ll.a(int rank)` switch trực tiếp theo số (`0/1/2/3/4/7/8`) để quyết định màu/UI; `PlayerEquipmentDefinition.Rank` phải giữ nguyên `int`.
   - Comment nguồn: `ll.java`, `hh.java`, `mb.java`.
+  - Implemented Phase 1 in `server/Twelve.Core/Players/PlayerEquipmentDefinition.cs`.
 
-- [ ] **Domain model / entity**
+- [x] **Domain model / entity**
   - Tạo backend/domain model cho equipment instance bám `ll.java` fields:
     - `Key`, `SlotType`, `ResourceId`, `EnhancementLevel`, `CurrentDurability`, `MaxDurability`, `Rank`, `RequiredLevel`, `Gender`, `ElementIcon`, `Name`, `Description`, `Tradeable`, `RepairCost`, `Stats`.
-  - Bổ sung các field remake đã chốt nhưng phải ghi rõ nguồn gameplay-memory:
-    - `IsRepairable`, `IsUpgradeable`, optional `RepairBlockReason`, template reference nếu DB cần.
+  - Không thêm field policy remake (`IsRepairable`, `IsUpgradeable`, `RepairBlockReason`) vào Phase 1 cho tới khi có template evidence hoặc policy server chính thức.
   - Không bỏ các field Java chưa rõ (`b/l/o/s/u`) khỏi tài liệu; khi code phase 1 chỉ map field nào cần lưu/serialize, field unknown ghi comment `Unknown from ll.java`.
+- Implemented as immutable records / raw numeric id constants in `PlayerEquipmentDefinition.cs` and exposed through runtime view contracts.
 
-- [ ] **Stats model**
+- [x] **Stats model**
   - Tạo `EquipmentStats` bám `lb.java` đủ 15 fields:
     - `Strength`, `Agility`, `Magic`, `Vitality`, `Attack`, `Defense`, `CriticalRate`, `Dodge`, `Hp`, `DamageAbsorbPercent`, `ArmorPiercePercent`, `BlockPercent`, `RevivePercent`, `AttackPercent`, `HpPercent`.
   - Tag mapping phải ghi trong comment/source doc:
     - `118/119/120/121/72/71/126/124/47/200/201/202/203/204/221`.
   - Sửa đúng decompile bug khi parse: tag `118` phải assign vào `lb.a` / `Strength`, không tạo object bỏ đi.
+  - Phase 1 code keeps existing `PlayerStatModifier` for runtime bonuses and documents the full `lb.java` stats/tag set for next packet serializer step; special percent stats remain out-of-scope for combat until battle source confirms formulas.
 
-- [ ] **Database schema tối thiểu**
+- [x] **Database schema tối thiểu**
   - Tách bảng/template và instance:
-    - `EquipmentTemplates`: base data/range/config.
-    - `PlayerEquipment`: owned equipment instance có key riêng, durability/current stat roll/enhancement/tradeable/repairable.
+    - `EquipmentCatalog`: base template/catalog data hiện có trong project, tương đương template foundation.
+    - `PlayerEquipment`: owned equipment instance có key riêng, durability/current stat roll/enhancement/tradeable/repairable qua `RawJson` + catalog fields.
   - Inventory default capacity vẫn `50` theo `go.n`.
   - Broken rule lưu bằng `CurrentDurability == 0`, không xóa item.
   - Không tạo hard-coded template lớn nếu chưa có dump; chỉ schema + seed tối thiểu/test nếu cần.
+  - Implemented schema/seed in `server/Database/Equipment/equipment_schema.sql` and `server/Database/Equipment/equipment_seed.sql`.
 
-- [ ] **DTO/API contract foundation**
+- [x] **DTO/API contract foundation**
   - Dùng `record` DTO theo rule .NET.
   - DTO phải phân biệt:
     - Minimal equipment view tương đương `ky.a(..., bl2=false)` cho equipped array/list nhanh.
     - Full equipment detail tương đương `ky.a(..., bl2=true)` cho detail/drop/forge result.
   - Trường `Stats` nullable-safe; nếu null thì client/status không cộng.
+  - Implemented Phase 1 runtime view extension in `PlayerRuntimeContracts.cs`; explicit minimal/full packet DTO split remains reserved for binary protocol layer.
 
-- [ ] **Parser/serializer/service mapping**
+- [x] **Parser/serializer/service mapping**
   - Mapping packet/tag bám `ky.java`:
     - Minimal: key, tag `84` slot type, tag `4` resource id, tag `139` current durability, tag `27` enhancement.
     - Full: thêm `26/135/15/16/138/144/117/85/190/156` + stats tags.
@@ -979,19 +1017,20 @@ Mục tiêu phase 1 là dựng nền dữ liệu/protocol an toàn để các ph
     - `iconId = band + 98`
     - frames `band + 0..9`
   - Resolver chỉ lookup theo manifest/path hiện có; không quyết định gameplay slot từ folder.
-  - Đã có `client/src/screens/character/shared/equipmentAssets.generated.ts` trỏ folder mới, phase 1 chỉ cần dùng lại.
+  - Đã có `client/src/screens/character/shared/equipmentAssets.generated.ts` trỏ folder mới, gồm `EQUIPMENT_ICON_ASSETS_BY_BAND` và `EQUIPMENT_LAYER_ASSETS_BY_BAND`; phase 1 dùng lại, không suy slot từ folder.
 
 - [ ] **Verification bắt buộc cho Phase 1**
   - Backend có sửa code server thì chạy `dotnet build` theo workflow hidden/redirect.
   - Client có sửa TypeScript thì chạy local compiler:
     - `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit`
   - Không báo hoàn tất nếu chưa cập nhật tài liệu + changelog.
+  - 2026-05-03: `dotnet build Twelve.sln` pass sau cleanup: `0 Warning(s), 0 Error(s)`.
 
 #### 11.2 Out of Scope Phase 1 (để tránh tự bịa logic)
 
 - [ ] Chưa implement công thức combat cho `DamageAbsorb/Pierce/Block/Revive/HpPercent`.
 - [ ] Chưa seed đại trà stat đặc biệt chưa thấy trên item thật.
-- [ ] Chưa implement upgrade hard-mode/consume material/destroy; chỉ chuẩn bị field `EnhancementLevel`, `IsUpgradeable`.
+- [ ] Chưa implement upgrade hard-mode/consume material/destroy; chỉ chuẩn bị field `EnhancementLevel`.
 - [ ] Chưa implement combine recipe.
 - [ ] Chưa implement shop/drop pool thật nếu chưa có template/dump; chỉ chuẩn bị schema.
 - [ ] Chưa render slot cánh/event vào UI chính nếu chưa xác định UI gốc.
@@ -999,11 +1038,11 @@ Mục tiêu phase 1 là dựng nền dữ liệu/protocol an toàn để các ph
 
 #### 11.3 Phase 1 Acceptance Criteria
 
-- [ ] Có model/DTO/schema đủ biểu diễn một equipment Java `ll` + stats `lb`.
-- [ ] Có mapping minimal/full equipment detail rõ nguồn từ `ky.java`.
-- [ ] Có rule null/durability/gender/level documented trong code comment nhưng chưa cần endpoint mặc đồ nếu chưa sang Phase 2.
-- [ ] Không có logic nào tự ý hiện đại hóa khác Java/client evidence.
-- [ ] Build/check pass với phần code đã sửa.
+- [x] Có model/DTO/schema đủ biểu diễn một equipment Java `ll` + stats `lb`.
+- [x] Có mapping minimal/full equipment detail rõ nguồn từ `ky.java`.
+- [x] Có rule null/durability/gender/level documented trong code comment nhưng chưa cần endpoint mặc đồ nếu chưa sang Phase 2.
+- [x] Không có logic nào tự ý hiện đại hóa khác Java/client evidence.
+- [x] Build/check pass với phần code đã sửa.
 
 ### Phase 2 — Inventory & Equip Rules
 
@@ -1102,6 +1141,7 @@ Mục tiêu phase 1 là dựng nền dữ liệu/protocol an toàn để các ph
 
 - `ll.e` là slot type authoritative.
 - `ll.n` là resource ID authoritative cho icon/frame lookup.
+- `ll.f` / tag `15` là element icon ID/hệ trang bị dùng cho UI; screenshot user ngày `2026-05-03` xác nhận equipment có icon hệ trước tên item.
 - Equipment icon convention: `iconId = band + 98`.
 - Equipment visual frame convention: `frameIds = band + 0..9`.
 - Only slots `0`, `1`, `2` are actually composited visually; slot `3` is explicitly ignored for drawing.
@@ -1151,7 +1191,7 @@ Drop behavior:
 Reconstruction rule:
 ```text
 EquipmentTemplate = base data: slot, resId, rank, required level, gender, max durability, allowed stat ranges.
-EquipmentInstance = generated item: unique key, rolled stats, current durability, enhancement, repairable flag, tradeable flag.
+EquipmentInstance = generated item: unique key, rolled stats, current durability, enhancement, tradeable flag.
 ```
 
 ### 13.2 Equip validation policy
@@ -1164,9 +1204,16 @@ Server phải authoritative validate khi mặc/tháo:
 - Khi giao dịch giữa người chơi, đồ phải **tháo ra khỏi người trước**, không trade trực tiếp đồ đang mặc.
 
 Slot notes:
-- `e=4` trong client table từng ghi mount/shield/ngựa: gameplay memory xác nhận **chưa phát triển item này**. Giữ slot trong model/protocol nhưng không implement gameplay effect cho tới khi có dữ liệu.
-- `e=9..12`: gameplay memory xác nhận hiện chỉ cần note cho **cánh**. Chưa implement full event/cosmetic behavior nếu chưa có item data/screenshot.
-- `hh.java` main equipped UI chỉ có `dc[] F = new dc[6]`, nên slot đặc biệt/cánh không được nhét bừa vào 6 ô chính nếu chưa xác định UI gốc.
+- **Chốt gameplay 2026-05-03:** phase đầu chuẩn hóa hệ trang bị thực tế thành 5 nhóm: **vũ khí, ring/nhẫn, armor/áo giáp, nón/mũ, cánh**.
+- Mapping code hiện tại:
+  - `e=0` → `Armor`
+  - `e=1` → `Weapon`
+  - `e=2` → `Helmet`
+  - `e=5` → `Ring`
+  - `e=8` → `Wing`
+- `e=3`, `e=4`, `e=7`, `e=9..12` chỉ còn là Java evidence trong tài liệu; không khai báo hằng số code cho gameplay phase đầu.
+- `e=4` trong client table từng ghi mount/shield/ngựa: gameplay memory xác nhận **chưa phát triển item này**.
+- `hh.java` main equipped UI chỉ có `dc[] F = new dc[6]`; `e==8` trong Java inventory flow có xử lý đặc biệt (`Dùng`/không đưa vào 6 ô chính), nên cánh phải được xử lý riêng khi dựng UI/server feature, không nhét bừa vào 6 ô chính.
 
 ### 13.3 Server stat policy for equipment
 
@@ -1200,7 +1247,7 @@ Broken equipment remains in inventory/equipped state but gives no stat/effect.
 Repair:
 - Broken/damaged equipment sửa được bằng **búa sửa chữa**.
 - **Chốt gameplay 2026-05-03:** chỉ có duy nhất 1 loại búa sửa đồ dùng cho mọi equipment.
-  - Asset/icon user xác nhận: `client/assets/equipment/09_ui_icons/30099.png`.
+  - Asset/icon user xác nhận: `client/assets/equipment/ui/30099.png`.
 - Mỗi lần repair consume **1 búa**, hồi đầy `CurrentDurability = MaxDurability`, không dùng KEN/Quan trực tiếp.
 - Equipment mới rơi/mua/được cấp luôn khởi tạo full durability: `CurrentDurability = MaxDurability`.
 - **Chốt gameplay 2026-05-03:** durability/max durability là dữ liệu lưu DB riêng cho từng equipment instance, không chỉ là default/template chung.
@@ -1208,16 +1255,13 @@ Repair:
 - **Chốt gameplay 2026-05-03:** upgrade/enhancement cũng tăng độ bền tối đa của chính equipment instance đó; công thức tăng cụ thể sẽ được cấu hình theo tier upgrade khi implement.
 - **Chốt gameplay 2026-05-03:** upgrade thành công giữ nguyên `CurrentDurability`; upgrade thất bại không trừ durability.
 - **Chốt gameplay 2026-05-03:** equipment có durability `p == 0` vẫn mặc được và vẫn nằm ở slot trang bị, nhưng toàn bộ stat/effect của món đó không còn tác dụng cho status/combat.
-- Có các equipment **không thể sửa**, đặc biệt một số item trong map Luyện Ngục. Cần thêm field server-side rõ ràng:
-  - `IsRepairable` — có được dùng búa sửa hay không.
-  - `RepairBlockReason` optional để trace item đặc biệt.
-- Đề xuất model:
+- Có các equipment **không thể sửa**, đặc biệt một số item trong map Luyện Ngục, nhưng chưa có template evidence để đánh dấu chính xác ở Phase 1.
+- Phase 1 chỉ giữ raw Java-compatible fields:
 ```text
 CurrentDurability        // stored per equipment instance in DB
 MaxDurability            // stored per equipment instance in DB
-IsRepairable
-RepairBlockReason
-IsUpgradeable
+RepairCost               // maps to ll.k; ll.c() true when k > 0
+Tradeable                // maps to ll.t
 RepairItemId / HammerItemId = 30099
 DefaultMaxDurability = 30 // fallback only when generated item/template has no explicit max durability
 DurabilityBonusByEnhancementLevel
@@ -1226,7 +1270,7 @@ DurabilityBonusByEnhancementLevel
 Mapping với Java client:
 - `ll.p` = current durability.
 - `ll.q` = max durability.
-- `ll.k > 0` làm `ll.c()` trả true trong client, nhưng server remake dùng `IsRepairable` làm source of truth; khi serialize về client có thể map `IsRepairable=false` thành `ll.k=-1`.
+- `ll.k > 0` làm `ll.c()` trả true trong client; Phase 1 chưa thêm field repair policy riêng, vì vậy không được tự suy diễn ngoài `RepairCost/ll.k` nếu chưa có template evidence.
 - `hl.java`/`ks.java` repair sender dùng `hammerItemId + equipKey`.
 
 ### 13.5 Upgrade / enhancement
@@ -1510,7 +1554,7 @@ Flat stats eligible for enhancement:
 
 ```text
 1. Validate owner, equipment exists, not locked/trading, not equipped, target <= +15.
-2. Validate template/instance allows upgrade via server field IsUpgradeable.
+2. Validate template/instance allows upgrade via server-side policy/config when implemented; Phase 1 has no `IsUpgradeable` field.
 3. Validate required materials and optional luck/protection items.
 4. Phase-1 economy: consume materials/optional items at attempt start; do not consume Quan fee yet.
 5. Roll success using basis points.
@@ -1544,7 +1588,7 @@ Initial remake combine policy để implement:
 - Combine chạy qua `CombineRecipes` server config/table.
 - Recipe gồm:
   - `RecipeId`
-  - `InputEquipmentSlot/Rank/LevelRange/EnhancementRange` optional filters
+  - `InputEquipmentSlotId/RankId/LevelRange/EnhancementRange` optional filters
   - `MaterialItemId + Quantity`
   - `OutputTemplateId` hoặc `OutputPoolId`
   - `SuccessRateBasisPoints`
@@ -1574,21 +1618,48 @@ Trade:
 - Có rao bán/market trang bị.
 - Market có thuế/fee, công thức pending.
 
-### 13.8 Asset/template evidence still pending
+### 13.8 Slot đặc biệt `e=8` và `e=4`
+
+#### `e=8` — cánh/remake slot đặc biệt
+
+Java client evidence:
+- `hh.java` khai báo `dc[] F = new dc[6]` cho 6 ô equipped UI chính.
+- Khi build equipped cells từ `lh.D`, equipment `e == 8` không được đưa vào 6 ô `F`.
+- Khi chọn equipment trong bag và `ll.e == 8`, menu dùng action `"Dùng"` thay vì flow `"Mặc"` thường.
+- `e=8` vẫn đi qua model `ll`, icon resolver, detail/tooltip và packet như equipment nếu server gửi.
+
+Reconstruction decision:
+- Theo xác nhận gameplay ngày `2026-05-03`, phase hiện tại map nhóm gameplay thứ 5 là **cánh** và dùng `e=8 -> Wing`.
+- Vì Java evidence chỉ chứng minh `e=8` là slot đặc biệt/use-flow, không render cánh vào body compositor nếu chưa có asset/template/server evidence.
+- Phase đầu: lưu DB + inventory icon + detail/tooltip; stat/effect/render của cánh để `PENDING` hoặc bật bằng server config khi có evidence.
+
+#### `e=4` — mount/shield/ngựa / `lh.ad` flag
+
+Java client evidence:
+- `lh.b()` scan `lh.D`; nếu có equipment `e == 4` thì set `this.ad = true`, ngược lại `this.ad = false`.
+- `mb.java` dùng `lh.ad` để đổi nhánh render/pose/facing, không đưa `e=4` vào layer armor/weapon/helmet thường.
+- Một số flow loại `e == 4` khỏi điều kiện forge/equip-style giống slot đặc biệt.
+
+Reconstruction decision:
+- Theo gameplay memory ngày `2026-05-03`, game hiện tại chưa phát triển mount/shield/ngựa như gameplay equipment phase đầu.
+- Không khai báo gameplay slot `Mount` trong code Phase 1; chỉ giữ evidence Java `e=4` trong tài liệu.
+- Không suy diễn `e=4` thành cánh; cánh hiện map theo decision remake `e=8`.
+
+### 13.9 Asset/template evidence still pending
 
 Cần chờ người dùng cung cấp thêm:
 - Equipment template dump/list: name, resId, slot, level, stats range, rank, gender, max durability, repairable/tradeable.
 - Screenshot/video item mẫu.
 - Giải thích các asset band `12xxxx-14xxxx`.
 - Premium/event set `95xxx/96xxx`: gameplay memory xác nhận là item hiếm/event, sẽ phát triển event sau.
-- Một số item đặc biệt trong map Luyện Ngục không sửa được; cần template evidence để đánh dấu chính xác `IsRepairable=false`.
+- Một số item đặc biệt trong map Luyện Ngục không sửa được; cần template evidence trước khi thêm cờ policy hoặc đánh dấu chính xác.
 
 Until then:
 - Không seed cứng toàn bộ asset band thành equipment.
 - Chỉ seed item có bằng chứng từ template/screenshot/memory.
 - Event/premium items phải để `Event/Premium pending`, không trộn vào shop/drop thường.
 
-### 13.9 Initial server implementation plan from current evidence
+### 13.10 Initial server implementation plan from current evidence
 
 Có thể implement an toàn trước:
 - Equipment template + equipment instance model tách chuẩn:
@@ -1613,7 +1684,7 @@ Có thể implement an toàn trước:
   - Protection/luck/material policy as reconstructed in section `13.5`.
   - Phase-1 upgrade consumes material only; fee formula is reserved/off by config.
   - Upgrade allowed only while equipment is in bag, not equipped.
-  - Broken equipment can still be upgraded if `IsUpgradeable=true`.
+  - Broken equipment upgrade policy cần chốt bằng server config khi implement upgrade; Phase 1 chưa có `IsUpgradeable`.
   - Destroy outcome deletes equipment instance permanently.
 - Combine implemented via server-configured `CombineRecipes`, not placeholder.
 - Server key generation: use sortable unique string keys (ULID-style or equivalent) so keys are compact, unique and log/debug friendly without exposing player sequence assumptions.
@@ -1622,8 +1693,8 @@ Chưa implement nếu chưa có thêm evidence:
 - Original Java server material IDs/names for upgrade stones, luck items, and protection items. Current section `13.5.6` is remake taxonomy.
 - Market tax formula.
 - Special stat combat effects beyond currently confirmed status aggregation.
-- Slot `e=4` effect.
-- Cánh/event slot behavior beyond storing/displaying when data arrives.
+- Slot `e=4` mount/riding effect beyond confirmed `lh.ad` render flag.
+- Cánh/event `e=8` behavior beyond special `"Dùng"` flow and storing/displaying when data arrives.
 
 ---
 
@@ -1631,7 +1702,7 @@ Chưa implement nếu chưa có thêm evidence:
 
 ### 14.1 Mức độ đã rà soát
 
-Ước lượng hiện tại: **~99.5% phần equipment client-side core đã được gom vào tài liệu**.
+Ước lượng hiện tại: **phần equipment client-side core chính đã được gom ở mức cao, nhưng không chốt phần trăm tuyệt đối** vì còn thiếu Java server/template dump và vẫn có các nhánh UI/protocol phụ cần test byte-perfect với client thật. Không dùng con số phần trăm để tuyên bố hoàn chỉnh.
 
 Đã đọc/đối chiếu các nhóm chính:
 - Data/protocol: `ll`, `lb`, `ky`, `ks`.
@@ -1669,10 +1740,11 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - Full field model `ll` gồm cả field chưa rõ `b/l/o/s/u`.
   - Full 15-field `lb` stats và tag mapping packet.
   - Parser minimal/full equipment theo `ky.a(..., bl2=false/true)`.
+  - Equipment element/icon field `ll.f` từ tag `15`; screenshot user xác nhận icon hệ hiển thị trước tên item.
   - ResId convention `band = resId - resId % 10`, icon `band + 98`.
   - Rule status panel: equipment `p == 0` không cộng stat.
   - `lb.n` (`AttackPercent`) chắc chắn cộng theo `baseAttack * percent / 100`; các stat đặc biệt khác còn pending combat audit.
-- Coverage hiện tại: khoảng `99.5%` phần equipment client-side core đã gom; phần còn thiếu chủ yếu là combat usage của stat đặc biệt, server template dump và byte-perfect serializer test với client thật.
+- Coverage hiện tại: phần equipment client-side core chính đã gom ở mức cao nhưng chưa được tuyên bố tuyệt đối; phần còn thiếu chủ yếu là combat usage của stat đặc biệt, server template dump và byte-perfect serializer test với client thật.
 
 ### 2026-05-03 — Server-side reconstruction decisions
 
@@ -1690,8 +1762,11 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - Đồ mới rơi/mua/cấp luôn full durability.
   - Thắng trận trừ `1`, thua trận trừ `3`.
   - Durability `0` chỉ broken, không mất đồ, nhưng không cộng stat/effect.
-  - Repair dùng duy nhất búa icon `client/assets/equipment/09_ui_icons/30099.png`, mỗi lần consume `1` búa và hồi đầy durability.
-  - Có đồ không sửa/nâng cấp được nên cần `IsRepairable`, `RepairBlockReason`, `IsUpgradeable`.
+  - Repair dùng duy nhất búa icon `client/assets/equipment/ui/30099.png`, mỗi lần consume `1` búa và hồi đầy durability.
+  - Có đồ không sửa/nâng cấp được trong gameplay memory, nhưng Java client chỉ xác nhận raw fields/method:
+    - `ll.c()` repairable khi `k > 0`.
+    - upgrade block gốc cần đối chiếu đúng tại luồng sender/UI trước khi thêm cột server riêng.
+    - Không thêm `IsRepairable`/`RepairBlockReason`/`IsUpgradeable` khi chưa có template evidence hoặc policy server hoàn chỉnh.
 - Chốt economy/trade/shop:
   - Remake dùng đơn vị `Quan`; Java string cũ có thể còn `KEN`.
   - Equipment không bán lại NPC theo memory hiện tại.
@@ -1714,3 +1789,35 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
 - Dọn section nhật ký để bỏ phần lặp lại dài đã có trong `CHANGELOG.md`.
 - Giữ lại các mốc quyết định quan trọng và link nguồn bằng tên file Java để không mất evidence phục dựng.
 - Không xóa các section kỹ thuật `1..14` vì đây là spec trực tiếp cần cho Phase 1 equipment.
+
+### 2026-05-03 — Chuẩn hóa 5 nhóm equipment gameplay hiện tại
+
+- Cập nhật lại terminology sau user confirmation: gameplay hiện tại chỉ chuẩn hóa 5 nhóm equipment chính **vũ khí, ring/nhẫn, armor/áo giáp, nón/mũ, cánh**.
+- File code cập nhật:
+  - `server/Twelve.Core/Players/PlayerEquipmentDefinition.cs`
+- Thay hướng `SlotNRaw`/`SlotN...` bằng naming rõ đúng 5 nhóm đang dùng:
+  - `Armor`
+  - `Weapon`
+  - `Helmet`
+  - `Ring`
+  - `Wing`
+- Không khai báo hằng số `Reserved`/`Unused` trong code để tránh hiểu nhầm là gameplay có nhiều slot hơn 5 nhóm hiện tại.
+- Ghi chú nguồn: armor/weapon/helmet bám Java client; ring/wing là quyết định remake theo gameplay memory/user confirmation ngày `2026-05-03`, có thể chỉnh mapping khi có template/server evidence mới.
+
+### 2026-05-03 — Backend equipment foundation Phase 1
+
+- Code đã sửa:
+  - `server/Twelve.Core/Players/PlayerEquipmentDefinition.cs`
+  - `server/Twelve.Core/Players/PlayerRuntimeContracts.cs`
+  - `server/Twelve.Application/Players/PlayerContentCatalog.cs`
+  - `server/Twelve.Infrastructure/Repositories/EquipmentCatalogRepository.cs`
+  - `server/Database/Equipment/equipment_schema.sql`
+  - `server/Database/Equipment/equipment_seed.sql`
+- Nội dung logic:
+  - Bổ sung foundation catalog/template equipment bám `ll.java`: slot/resource/rank/element/gender/durability/tradeable/repair-cost.
+  - Giữ raw Java fields thay vì tạo enum/cột policy quá sớm:
+    - `Gender` giữ số `ll.h` (`0=Nam`, `1=Nữ`, `2=Cả hai`), không dùng enum C#.
+    - `Rank` giữ số `ll.m`, không invent named rank enum.
+    - Bỏ các cột/view metadata chưa đủ evidence: `IsRepairable`, `RepairBlockReason`, `IsUpgradeable`, `InventoryCapacityCost`.
+  - Seed chỉ là starter/test tối thiểu; không tạo template đại trà khi chưa có dump item thật.
+- `dotnet build Twelve.sln` pass sau cleanup: `0 Warning(s), 0 Error(s)`.

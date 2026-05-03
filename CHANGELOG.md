@@ -30,6 +30,37 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
   - `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` giữ spec/evidence.
   - `CHANGELOG.md` chỉ giữ summary quan trọng.
 
+### [EQUIPMENT] Backend equipment foundation Phase 1
+
+- Thêm foundation server cho equipment bám Java client `ll/lb/ky`:
+  - `PlayerEquipmentDefinition.cs` định nghĩa `EquipmentSlotIds` chỉ gồm 5 tên gameplay rõ ràng: `Armor`, `Weapon`, `Helmet`, `Ring`, `Wing`; không khai báo các hằng số slot thừa/`Reserved`/`Unused` trong code phase đầu.
+  - `PlayerRuntimeContracts.cs` trả thêm equipment view metadata cho client.
+  - `PlayerContentCatalog.cs` và `EquipmentCatalogRepository.cs` load catalog equipment từ database.
+- Thêm schema/seed nền:
+  - `server/Database/Equipment/equipment_schema.sql`
+  - `server/Database/Equipment/equipment_seed.sql`
+- Giữ các rule đã chốt:
+  - Slot gameplay lấy từ 5 mapping đang dùng của `ll.e`; resource/icon lấy từ `ll.n`.
+  - Rank không tạo enum/constant `RankN`; giữ raw `ll.m` integer và chỉ switch trực tiếp theo Java `ll.a(rank)` khi cần mapping màu/UI (`0/1/2/3/4/7/8`).
+  - Durability `0` là broken, không xóa item.
+  - Giữ raw Java fields (`Rank`, `Gender`, `RepairCost`) và bỏ metadata policy chưa đủ evidence khỏi Phase 1: `IsRepairable`, `RepairBlockReason`, `IsUpgradeable`, `InventoryCapacityCost`.
+  - Seed chỉ là starter/test tối thiểu, không tự seed đại trà asset khi chưa có dump template gốc.
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` với trạng thái Phase 1, quyết định 5 nhóm equipment hiện tại và nhật ký code đã sửa.
+- `dotnet build Twelve.sln` pass sau cleanup: `0 Warning(s), 0 Error(s)`.
+
+### [EQUIPMENT] Safety cleanup tài liệu phục dựng
+
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` để tránh hiểu nhầm tài liệu là Java server gốc hoàn chỉnh.
+- Thêm rule an toàn:
+  - Section client-side Java là evidence mạnh nhất.
+  - Section server-side gameplay/remake policy phải được đánh dấu nguồn rõ ràng.
+  - Không tự thêm field/policy như `IsRepairable`, `RepairBlockReason`, `IsUpgradeable`, `InventoryCapacityCost` nếu chưa có template/server evidence.
+- Bỏ tuyên bố coverage theo phần trăm tuyệt đối; giữ trạng thái là đã gom phần equipment client-side core chính ở mức cao nhưng còn cần server template dump/combat audit/byte-perfect packet test.
+- Bổ sung evidence equipment có hệ/nguyên tố:
+  - `ll.f` / tag `15` là element icon ID.
+  - Screenshot user ngày `2026-05-03` xác nhận icon hệ hiển thị trước tên equipment như `Kim Đao (Luyện Ngục)`.
+  - Tạm chốt đây là metadata/UI icon; chưa suy diễn combat effect nếu chưa audit battle source.
+
 ### [EQUIPMENT] Gộp cây asset equipment
 
 - Gộp `client/assets/equipment/` về các nhóm lớn:
@@ -39,6 +70,16 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
   - `client/assets/equipment/equipment_manifest.json`
 - Tổng PNG sau gộp: `974`.
 - Rule giữ nguyên: folder vật lý chỉ là lookup hint; gameplay slot vẫn lấy từ `ll.e`.
+
+### [EQUIPMENT] Bổ sung audit slot đặc biệt e=8/e=4
+
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` với evidence Java client cho slot đặc biệt:
+  - `e=8`: `hh.java` không đưa vào 6 ô equipped `F`, menu dùng `"Dùng"`; phase hiện tại map remake `e=8 -> Wing` nhưng render/stat/effect vẫn pending evidence.
+  - `e=4`: `lh.b()` set `lh.ad` mount/riding flag; `mb.java` dùng flag này cho pose/render branch, không phải layer armor/weapon/helmet thường.
+- Chốt an toàn Phase 1:
+  - Không khai báo gameplay slot `Mount`.
+  - Không suy diễn `e=4` thành cánh.
+  - Cánh chỉ lưu DB/icon/detail trước khi có template/asset/server evidence rõ hơn.
 
 ## 2026-04-30
 
