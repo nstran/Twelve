@@ -36,7 +36,12 @@ namespace Twelve.Core.Players
         int Gender,
         int Durability,
         int MaxDurability,
+        bool IsBroken,
+        bool ContributesStats,
+        bool CanRepair,
         bool Tradeable,
+        bool CanUpgrade,
+        string UpgradeStatus,
         int BonusCuongLuc,
         int BonusThanPhap,
         int BonusNoiLuc,
@@ -149,5 +154,13 @@ namespace Twelve.Core.Players
         string Username,
         string EquipKey,
         int RepairItemId
+    );
+
+    // Upgrade skeleton — remake policy 2026-05-03:
+    // must unequip first; real roll is disabled until original stone/charm list is verified.
+    public sealed record PlayerUpgradeEquipmentRuntimeRequest(
+        string Username,
+        string EquipKey,
+        IReadOnlyList<int> MaterialItemIds
     );
 }

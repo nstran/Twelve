@@ -335,6 +335,14 @@ app.MapPost("/player/runtime/equipment/repair", (PlayerRepairEquipmentRuntimeReq
     return response is null ? Results.NotFound() : Results.Ok(response);
 });
 
+// Remake policy 2026-05-03 — upgrade requires unequipped item;
+// real roll remains disabled until Java stone/charm list is verified.
+app.MapPost("/player/runtime/equipment/upgrade", (PlayerUpgradeEquipmentRuntimeRequest request, IPlayerRuntimeService service) =>
+{
+    var response = service.UpgradeEquipment(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
 app.Run();
 
 static MonsterSharedSheetFamily ResolveSharedSheetFamily(

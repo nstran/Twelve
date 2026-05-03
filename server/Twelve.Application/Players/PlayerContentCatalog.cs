@@ -130,6 +130,10 @@ namespace Twelve.Application.Players
         public PlayerEquipmentItemView ToEquipmentView(PlayerEquipmentEntry entry)
         {
             var definition = ResolveEquipment(entry);
+            var isBroken = entry.MaxDurability > 0 && entry.Durability <= 0;
+            var contributesStats = entry.IsEquipped && !isBroken;
+            var canRepair = entry.MaxDurability > 0 && entry.Durability < entry.MaxDurability;
+
             return new PlayerEquipmentItemView(
                 EquipKey: entry.EquipKey,
                 DisplayName: definition.DisplayName,
@@ -143,9 +147,16 @@ namespace Twelve.Application.Players
                 Rank: definition.Rank,
                 ElementIcon: definition.ElementIcon,
                 Gender: definition.Gender,
-                Durability: definition.Durability,
-                MaxDurability: definition.MaxDurability,
+                Durability: entry.Durability,
+                MaxDurability: entry.MaxDurability,
+                IsBroken: isBroken,
+                ContributesStats: contributesStats,
+                CanRepair: canRepair,
                 Tradeable: definition.Tradeable,
+                CanUpgrade: !entry.IsEquipped,
+                UpgradeStatus: entry.IsEquipped
+                    ? "Phai thao trang bi truoc khi nang cap."
+                    : "Chua bat roll nang cap: pending danh sach da/bua goc.",
                 BonusCuongLuc: definition.Modifier.CuongLuc,
                 BonusThanPhap: definition.Modifier.ThanPhap,
                 BonusNoiLuc: definition.Modifier.NoiLuc,
@@ -228,6 +239,7 @@ namespace Twelve.Application.Players
                 equipKey = equipKey[..48];
             }
 
+            // Java evidence: new equipment instance inherits durability from template (ll.p = ll.q at creation).
             return new PlayerEquipmentEntry
             {
                 EquipKey = equipKey,
@@ -235,6 +247,8 @@ namespace Twelve.Application.Players
                 Slot = definition.Slot,
                 ResourceId = definition.ResourceId,
                 Level = definition.Level,
+                Durability = definition.MaxDurability,
+                MaxDurability = definition.MaxDurability,
                 IsEquipped = false,
                 RawJson = BuildEquipmentRawJson(definition)
             };
@@ -248,12 +262,22 @@ namespace Twelve.Application.Players
                 RawJson = BuildItemRawJson(definition)
             };
 
+        /// <summary>
+        /// Returns stat modifiers from equipped items. Broken equipment (Durability == 0)
+        /// is still worn but does NOT contribute stats.
+        /// Java evidence: broken item stays equipped but effect is skipped.
+        /// Remake policy (2026-05-03): equipment hỏng p==0 vẫn mặc nhưng không cộng stat/effect.
+        /// </summary>
         public IEnumerable<PlayerStatModifier> GetEquippedModifiers(IEnumerable<PlayerEquipmentEntry> equipment) =>
             equipment
-                .Where(entry => entry.IsEquipped)
+                .Where(entry => entry.IsEquipped && entry.Durability > 0)
                 .Select(entry => EquipmentStatModifierParser.Parse(entry.RawJson));
 
-        // cmd 48: khôi phục ll.p = ll.q (current durability = max durability)
+        /// <summary>
+        /// cmd 48: khôi phục ll.p = ll.q (current durability = max durability).
+        /// Remake policy (2026-05-03): consume exactly 1 repair hammer itemId 30099,
+        /// restore full durability, do not consume Quan.
+        /// </summary>
         public PlayerEquipmentEntry RestoreDurability(PlayerEquipmentEntry entry)
         {
             var definition = ResolveEquipment(entry);
@@ -265,12 +289,14 @@ namespace Twelve.Application.Players
                 Slot = entry.Slot,
                 ResourceId = entry.ResourceId,
                 Level = entry.Level,
+                Durability = entry.MaxDurability,
+                MaxDurability = entry.MaxDurability,
                 IsEquipped = entry.IsEquipped,
                 RawJson = BuildEquipmentRawJson(fullyRepaired)
             };
         }
 
-        public bool IsRepairMaterial(int itemId) => itemId == 5010;
+        public bool IsRepairMaterial(int itemId) => itemId == 30099;
 
         private PlayerEquipmentEntry CreateStarterEquipmentEntry(
             PlayerEquipmentDefinition definition,
@@ -285,6 +311,8 @@ namespace Twelve.Application.Players
                 Slot = entry.Slot,
                 ResourceId = entry.ResourceId,
                 Level = entry.Level,
+                Durability = entry.Durability,
+                MaxDurability = entry.MaxDurability,
                 IsEquipped = isEquipped,
                 RawJson = entry.RawJson
             };
@@ -362,8 +390,8 @@ namespace Twelve.Application.Players
                     Rank = ParseInt(payload, "rank", definition.Rank),
                     ElementIcon = ParseInt(payload, "elementIcon", definition.ElementIcon),
                     Gender = ParseInt(payload, "gender", definition.Gender),
-                    Durability = ParseInt(payload, "durability", definition.Durability),
-                    MaxDurability = ParseInt(payload, "maxDurability", definition.MaxDurability),
+                    Durability = entry.Durability,
+                    MaxDurability = entry.MaxDurability,
                     Tradeable = ParseBool(payload, "tradeable", definition.Tradeable),
                     RepairCost = ParseInt(payload, "repairCost", (int)definition.RepairCost)
                 };
@@ -507,7 +535,7 @@ namespace Twelve.Application.Players
                 [5005] = new PlayerItemDefinition(5005, "Trung Hồi Phục", "Khôi phục HP ngoài battle; lượng hồi scale theo Cường Lực/thiếu HP.", 20, true, 70, 0, "hp", "potion_blue"),
                 [5006] = new PlayerItemDefinition(5006, "Tiểu Nội Dược", "Khôi phục MP ngoài battle; lượng hồi scale theo Nội Lực/thiếu MP.", 20, true, 0, 35, "mp", "potion_blue"),
                 [5007] = new PlayerItemDefinition(5007, "Trái Đào", "Khôi phục HP/MP ngoài battle; lượng hồi scale theo Cường Lực và Nội Lực.", 20, true, 500, 250, "hp_mp", "peach"),
-                [5010] = new PlayerItemDefinition(5010, "Búa Sửa Chữa", "Dùng để sửa chữa trang bị đã hư hỏng. Khôi phục độ bền về mức tối đa.", 20, false, 0, 0, "none", "hammer"),
+                [30099] = new PlayerItemDefinition(30099, "Búa Sửa Chữa", "Dùng để sửa chữa trang bị đã hư hỏng. Khôi phục độ bền về mức tối đa.", 20, false, 0, 0, "none", "hammer"),
             };
 
         private static IReadOnlyDictionary<int, IReadOnlyList<PlayerSkillDefinition>> CreateSkillDefinitions() =>

@@ -24,7 +24,12 @@ export interface CharacterEquipmentItem {
   gender: number;
   durability: number;
   maxDurability: number;
+  isBroken: boolean;
+  contributesStats: boolean;
+  canRepair: boolean;
   tradeable: boolean;
+  canUpgrade: boolean;
+  upgradeStatus: string;
   bonusCuongLuc: number;
   bonusThanPhap: number;
   bonusNoiLuc: number;

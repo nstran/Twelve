@@ -49,14 +49,43 @@ namespace Twelve.Core.Entities
         public int Crit { get; init; }
     }
 
+    public enum PlayerEquipmentSlot
+    {
+        // Java evidence: ll.e is the authoritative equipment slot raw value.
+        // Current code-readiness gate (EQUIPMENT_SYSTEM_RECONSTRUCTION.md §13.10) only enables
+        // the gameplay slots proven/chosen for remake scope below. Unknown ll.e values must not
+        // be remapped or inferred from decompile field names.
+        Armor = 0,
+        Weapon = 1,
+        Helmet = 2,
+        Ring = 3,
+        Wing = 8
+    }
+
+    public enum PlayerEquipmentLocation
+    {
+        // Remake policy: PlayerEquipment currently stores inventory/equipped state as IsEquipped.
+        // This enum names the domain state while preserving raw slot values at DB/API boundaries.
+        Inventory = 0,
+        Equipped = 1
+    }
+
     public sealed class PlayerEquipmentEntry
     {
         public required string EquipKey { get; init; }
         public string? TemplateKey { get; init; }
         public int Slot { get; init; }
         public int ResourceId { get; init; }
+
+        // Java evidence: ll.j/tag 27 is enhancement level; ll.p/tag 139 is current durability;
+        // ll.q/tag 144 is max durability. Equipment instances persist durability separately from template.
         public int Level { get; init; }
+        public int Durability { get; init; }
+        public int MaxDurability { get; init; }
         public bool IsEquipped { get; init; }
+        public PlayerEquipmentLocation Location => IsEquipped
+            ? PlayerEquipmentLocation.Equipped
+            : PlayerEquipmentLocation.Inventory;
         public string RawJson { get; init; } = "{}";
     }
 

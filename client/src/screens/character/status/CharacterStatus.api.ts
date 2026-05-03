@@ -60,6 +60,7 @@ export interface PlayerRuntimeApi {
   discardEquipment: (username: string, equipKeys: string[]) => Promise<PlayerRuntimeResponse | null>;
   discardItem: (username: string, itemId: number, quantity: number) => Promise<PlayerRuntimeResponse | null>;
   repairEquipment: (username: string, equipKey: string, repairItemId: number) => Promise<PlayerRuntimeResponse | null>;
+  upgradeEquipment: (username: string, equipKey: string, materialItemIds: number[]) => Promise<PlayerRuntimeResponse | null>;
 }
 
 const toHttpBaseUrl = (socketUrl: string): string => {
@@ -156,6 +157,13 @@ export const createPlayerRuntimeApi = (socketUrl: string): PlayerRuntimeApi => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, equipKey, repairItemId }),
+      }),
+
+    upgradeEquipment: (username, equipKey, materialItemIds) =>
+      requestJson<PlayerRuntimeResponse>(`${baseUrl}/player/runtime/equipment/upgrade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, equipKey, materialItemIds }),
       }),
   };
 };

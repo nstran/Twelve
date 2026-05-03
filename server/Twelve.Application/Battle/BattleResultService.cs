@@ -125,10 +125,12 @@ namespace Twelve.Application.Battle
                 PlayerLevelProgression.ApplyExperience(player, expGained);
                 loot = ResolveLoot(session);
                 ApplyLoot(inventory, equipment, loot);
-                if (player.Level > levelBefore)
+                var durabilityChanged = ApplyEquippedEquipmentDurabilityLoss(equipment, lossAmount: 1);
+                if (player.Level > levelBefore || durabilityChanged)
                 {
                     PlayerStatPipeline.RecalculateAndApply(player, _contentCatalog.GetEquippedModifiers(equipment));
-                    clampedHp = player.Hp;
+                    clampedHp = Math.Min(player.Hp, player.MaxHp);
+                    player.Hp = clampedHp;
                 }
 
                 player.Mp = 0;
@@ -145,12 +147,23 @@ namespace Twelve.Application.Battle
             {
                 var expLost = PlayerLevelProgression.ApplyDefeatPenalty(player);
                 expGained = -expLost;
+                var durabilityChanged = ApplyEquippedEquipmentDurabilityLoss(equipment, lossAmount: 3);
+                if (durabilityChanged)
+                {
+                    PlayerStatPipeline.RecalculateAndApply(player, _contentCatalog.GetEquippedModifiers(equipment));
+                }
+
                 player.Hp = player.MaxHp;
                 player.Mp = 0;
                 player.Power = 0;
                 clampedHp = player.Hp;
                 clampedMp = player.Mp;
                 clampedPower = player.Power;
+
+                _playerAggregateRepository
+                    .SaveCollectionsAsync(player.Id, equipment, inventory, skills)
+                    .GetAwaiter()
+                    .GetResult();
             }
 
             DeactivateEncounterAfterBattle(session);
@@ -217,6 +230,51 @@ namespace Twelve.Application.Battle
         private static bool ContainsBossToken(string? value) =>
             !string.IsNullOrWhiteSpace(value) &&
             value.Contains("boss", StringComparison.OrdinalIgnoreCase);
+
+        private static bool ApplyEquippedEquipmentDurabilityLoss(
+            List<Twelve.Core.Entities.PlayerEquipmentEntry> equipment,
+            int lossAmount)
+        {
+            // Java evidence: ll.p/tag 139 is current durability and ll.q/tag 144 is max durability.
+            // Remake policy confirmed by user on 2026-05-03: after battle, victory loses 1 durability,
+            // defeat loses 3 durability; broken equipment stays equipped but contributes no stats/effects.
+            if (lossAmount <= 0)
+            {
+                return false;
+            }
+
+            var changed = false;
+            for (var i = 0; i < equipment.Count; i++)
+            {
+                var entry = equipment[i];
+                if (!entry.IsEquipped || entry.Durability <= 0)
+                {
+                    continue;
+                }
+
+                var nextDurability = Math.Max(0, entry.Durability - lossAmount);
+                if (nextDurability == entry.Durability)
+                {
+                    continue;
+                }
+
+                equipment[i] = new Twelve.Core.Entities.PlayerEquipmentEntry
+                {
+                    EquipKey = entry.EquipKey,
+                    TemplateKey = entry.TemplateKey,
+                    Slot = entry.Slot,
+                    ResourceId = entry.ResourceId,
+                    Level = entry.Level,
+                    Durability = nextDurability,
+                    MaxDurability = entry.MaxDurability,
+                    IsEquipped = entry.IsEquipped,
+                    RawJson = entry.RawJson
+                };
+                changed = true;
+            }
+
+            return changed;
+        }
 
         private (long Exp, long Gold) ResolveRewards(BattleSessionState session)
         {

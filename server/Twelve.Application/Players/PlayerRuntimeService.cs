@@ -356,6 +356,8 @@ namespace Twelve.Application.Players
                 return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong tim thay trang bi.");
             }
 
+            // Remake policy (2026-05-03): server-authoritative repair accepts only hammer 30099,
+            // consumes exactly one hammer, restores ll.p = ll.q, and does not consume Quan.
             if (!_contentCatalog.IsRepairMaterial(request.RepairItemId))
             {
                 return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Vat pham nay khong phai nguyen lieu sua chua.");
@@ -373,7 +375,7 @@ namespace Twelve.Application.Players
             }
 
             var inventory = aggregate.Inventory.ToList();
-            var repairItemIndex = inventory.FindIndex(entry => entry.ItemId == request.RepairItemId);
+            var repairItemIndex = inventory.FindIndex(entry => entry.ItemId == request.RepairItemId && entry.Quantity > 0);
             if (repairItemIndex < 0)
             {
                 return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Can 1 bua sua chua trong tui do.");
@@ -403,6 +405,33 @@ namespace Twelve.Application.Players
             return new PlayerRuntimeResponse(
                 BuildSnapshot(ReloadAggregate(aggregate.Core.Id)),
                 "Da sua chua trang bi.");
+        }
+
+        public PlayerRuntimeResponse? UpgradeEquipment(PlayerUpgradeEquipmentRuntimeRequest request)
+        {
+            var aggregate = LoadAggregate(request.Username);
+            if (aggregate is null)
+            {
+                return null;
+            }
+
+            var target = aggregate.Equipment.FirstOrDefault(entry => entry.EquipKey == request.EquipKey);
+            if (target is null)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong tim thay trang bi.");
+            }
+
+            // Remake policy (2026-05-03): upgrade requires the item to be unequipped.
+            // Pending/Unverified: original stone/charm ids and success/destroy roll are not verified,
+            // so server exposes a safe skeleton endpoint but does not mutate equipment yet.
+            if (target.IsEquipped)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Phai thao trang bi truoc khi nang cap.");
+            }
+
+            return new PlayerRuntimeResponse(
+                BuildSnapshot(aggregate),
+                "Chua bat nang cap: pending danh sach da/bua goc va ti le roll Java.");
         }
 
         private PlayerAggregate? LoadAggregate(string username) =>
@@ -641,16 +670,20 @@ namespace Twelve.Application.Players
                 return "Trang bi khong dung gioi tinh.";
             }
 
-            if (equipment.MaxDurability > 0 && equipment.Durability <= 0)
-            {
-                return "Trang bi da hong, can sua truoc khi mac.";
-            }
-
             return null;
         }
 
-        private static bool IsValidEquipmentSlot(int slot) =>
-            slot is 0 or 1 or 2 or 3 or 4 or 5 or 7 or 8;
+        private static bool IsValidEquipmentSlot(int slot)
+        {
+            // Java evidence: ll.e is authoritative for slot.
+            // Code-readiness gate 2026-05-03 enables only Armor/Weapon/Helmet/Ring/Wing(e=8).
+            // Remake policy: broken equipment may still be equipped, but GetEquippedModifiers skips it.
+            return slot == (int)PlayerEquipmentSlot.Armor
+                || slot == (int)PlayerEquipmentSlot.Weapon
+                || slot == (int)PlayerEquipmentSlot.Helmet
+                || slot == (int)PlayerEquipmentSlot.Ring
+                || slot == (int)PlayerEquipmentSlot.Wing;
+        }
 
         private static Player ClonePlayer(Player source) =>
             new()
@@ -707,6 +740,8 @@ namespace Twelve.Application.Players
                 Slot = source.Slot,
                 ResourceId = source.ResourceId,
                 Level = source.Level,
+                Durability = source.Durability,
+                MaxDurability = source.MaxDurability,
                 IsEquipped = isEquipped,
                 RawJson = source.RawJson
             };

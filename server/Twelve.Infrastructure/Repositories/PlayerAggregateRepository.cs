@@ -68,7 +68,9 @@ namespace Twelve.Infrastructure.Repositories
             using var connection = _connectionFactory.CreateConnection();
 
             var equipment = await connection.QueryAsync<PlayerEquipmentEntry>(
-                @"SELECT pe.EquipKey, c.TemplateKey, pe.Slot, pe.ResourceId, pe.Level, pe.IsEquipped, pe.RawJson::text AS RawJson
+                @"SELECT pe.EquipKey, c.TemplateKey, pe.Slot, pe.ResourceId, pe.Level,
+                         pe.Durability, pe.MaxDurability,
+                         pe.IsEquipped, pe.RawJson::text AS RawJson
                   FROM PlayerEquipment pe
                   INNER JOIN EquipmentCatalog c ON c.Id = pe.EquipmentCatalogId
                   WHERE pe.PlayerId = @PlayerId
@@ -198,8 +200,8 @@ namespace Twelve.Infrastructure.Repositories
             const string resolveSql = @"SELECT Id FROM EquipmentCatalog WHERE TemplateKey = @TemplateKey";
 
             const string insertEquipmentSql = @"
-                INSERT INTO PlayerEquipment (PlayerId, EquipKey, EquipmentCatalogId, Slot, ResourceId, Level, IsEquipped, RawJson)
-                VALUES (@PlayerId, @EquipKey, @EquipmentCatalogId, @Slot, @ResourceId, @Level, @IsEquipped, CAST(@RawJson AS jsonb))";
+                INSERT INTO PlayerEquipment (PlayerId, EquipKey, EquipmentCatalogId, Slot, ResourceId, Level, Durability, MaxDurability, IsEquipped, RawJson)
+                VALUES (@PlayerId, @EquipKey, @EquipmentCatalogId, @Slot, @ResourceId, @Level, @Durability, @MaxDurability, @IsEquipped, CAST(@RawJson AS jsonb))";
 
             foreach (var entry in equipment)
             {
@@ -220,6 +222,8 @@ namespace Twelve.Infrastructure.Repositories
                         entry.Slot,
                         entry.ResourceId,
                         entry.Level,
+                        entry.Durability,
+                        entry.MaxDurability,
                         entry.IsEquipped,
                         entry.RawJson
                     },

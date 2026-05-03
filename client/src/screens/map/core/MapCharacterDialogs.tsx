@@ -688,7 +688,6 @@ const InventoryDetailPanel: React.FC<{
     const canEquip = entry.isEquipped || (
       playerLevel >= entry.requiredLevel
       && (entry.gender === 2 || entry.gender === undefined || entry.gender === playerGender)
-      && !(entry.maxDurability > 0 && entry.durability <= 0)
     );
     const bonusRows = getEquipmentBonusRows(entry);
     const previewRows = getCombatPreviewRows(currentCombat, previewCombat);
@@ -780,7 +779,7 @@ const sameKeySet = (left: Set<string>, right: Set<string>) => {
 const clampActionMenuLeft = (left: number) => Math.max(6, Math.min(258, left));
 const clampActionMenuTop = (top: number) => Math.max(130, Math.min(430, top));
 
-const REPAIR_HAMMER_ITEM_ID = 5010;
+const REPAIR_HAMMER_ITEM_ID = 30099;
 
 const InventoryShell: React.FC<{
   appearance: CharacterAppearance;
@@ -925,7 +924,6 @@ const InventoryShell: React.FC<{
       const canEquip = selectedIsEquipped || (
         player.level >= entry.requiredLevel
         && (entry.gender === 2 || entry.gender === undefined || entry.gender === appearance.genderIndex)
-        && !(entry.maxDurability > 0 && entry.durability <= 0)
       );
 
       const isBroken = entry.maxDurability > 0 && entry.durability <= 0;
@@ -954,8 +952,18 @@ const InventoryShell: React.FC<{
           },
         },
         { id: 'detail', label: 'Chi Tiết', onPress: () => { setActionMenu(null); setShowDetail(true); } },
-        { id: 'upgrade', label: 'Nâng cấp', onPress: () => setActionMenu(null) },
-        { id: 'sell', label: 'Rao bán', onPress: () => setActionMenu(null) },
+        {
+          id: 'upgrade',
+          label: 'Nâng cấp',
+          disabled: pending !== null || selectedIsEquipped,
+          onPress: () => setActionMenu(null),
+        },
+        {
+          id: 'sell',
+          label: 'Rao bán',
+          disabled: selectedIsEquipped,
+          onPress: () => setActionMenu(null),
+        },
         {
           id: 'drop',
           label: 'Vứt bỏ',

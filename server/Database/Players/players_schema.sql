@@ -66,7 +66,9 @@ CREATE TABLE IF NOT EXISTS PlayerEquipment (
     EquipmentCatalogId BIGINT NOT NULL REFERENCES EquipmentCatalog(Id) ON DELETE RESTRICT,
     Slot       INT NOT NULL,
     ResourceId INT NOT NULL,
-    Level      INT NOT NULL DEFAULT 0,
+    Level      INT NOT NULL DEFAULT 0,          -- Enhancement level (maps to ll.j, tag 27)
+    Durability    INT NOT NULL DEFAULT 30,       -- Current durability (maps to ll.p, tag 139)
+    MaxDurability INT NOT NULL DEFAULT 30,       -- Max durability (maps to ll.q, tag 144)
     IsEquipped BOOLEAN NOT NULL DEFAULT FALSE,
     RawJson    JSONB NOT NULL DEFAULT '{}'::jsonb,
     UpdatedAt  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

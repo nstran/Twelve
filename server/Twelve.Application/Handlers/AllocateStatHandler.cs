@@ -96,7 +96,11 @@ namespace Twelve.Application.Handlers
                 player.CuongLuc, player.ThanPhap, player.NoiLuc, player.TheLuc, player.FreePoints);
 
             // ── Tính lại combat stats + cập nhật MaxHp ───────────────────────
-            var equipmentModifiers = aggregate?.Equipment.Select(e => EquipmentStatModifierParser.Parse(e.RawJson));
+            // Java evidence/remake policy: ll.p/tag139 durability <= 0 means broken equipment remains wearable,
+            // but does not contribute stats/effects; ll.e=8 wing participates like other enabled equipment slots.
+            var equipmentModifiers = aggregate?.Equipment
+                .Where(entry => entry.IsEquipped && entry.Durability > 0)
+                .Select(entry => EquipmentStatModifierParser.Parse(entry.RawJson));
             var combat = PlayerStatPipeline.RecalculateAndApply(player, equipmentModifiers);
 
             _logger.LogInformation("[AllocateStat] Combat recalc → MaxHp={Hp} TanCong={TC} ChinhXac={CX} PThu={PT} NeTranh={NT} ChiMang={CM}%",

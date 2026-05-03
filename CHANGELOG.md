@@ -4,6 +4,91 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-03
 
+### [EQUIPMENT] Runtime API/client wiring + upgrade skeleton gate
+
+- Tiếp tục Phase equipment server authority theo `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Cập nhật runtime API/server:
+  - thêm contract `PlayerUpgradeEquipmentRuntimeRequest`;
+  - expose `UpgradeEquipment(...)` qua `IPlayerRuntimeService`;
+  - thêm endpoint `POST /player/runtime/equipment/upgrade`;
+  - endpoint hiện là skeleton an toàn: validate ownership/item tồn tại, reject nếu equipment đang mặc, không mutate item/material/durability khi chưa có danh sách đá/bùa gốc.
+- Cập nhật equipment view:
+  - `PlayerEquipmentItemView` thêm `CanUpgrade`, `UpgradeStatus`;
+  - `CanUpgrade=false` khi item đang mặc; roll upgrade thật vẫn pending.
+- Cập nhật client:
+  - TypeScript model/API đồng bộ `canUpgrade`, `upgradeStatus`, `upgradeEquipment(...)`;
+  - UI inventory bỏ chặn mặc đồ hỏng, đúng policy broken item vẫn mặc được;
+  - repair hammer UI đổi sang itemId `30099`;
+  - upgrade/rao bán/drop equipment bị disable khi item đang mặc.
+- Giữ boundary:
+  - Java evidence: `ll.e`, `ll.n`, `ll.p/tag 139`, `ll.q/tag 144`, `da.java p != 0`;
+  - remake policy: upgrade/trade/rao bán/drop yêu cầu tháo đồ trước; broken item vẫn mặc được nhưng không cộng stat/effect;
+  - chưa consume đá/bùa, chưa roll success/fail/destroy, chưa mở combat formula cho special stats pending.
+
+### [EQUIPMENT] Repair flow API hardening + equipment state view
+
+- Tiếp tục Phase equipment server authority theo `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Cập nhật runtime contract/view:
+  - `PlayerEquipmentItemView` expose `IsBroken`, `ContributesStats`, `CanRepair`.
+  - TypeScript `CharacterEquipmentItem` đồng bộ các field state mới.
+- Cập nhật repair server flow:
+  - chỉ nhận repair hammer `30099`;
+  - yêu cầu inventory còn quantity `> 0`;
+  - consume đúng `1` hammer;
+  - restore `Durability = MaxDurability`;
+  - không trừ Quan.
+- Cập nhật equipment state boundary:
+  - broken item vẫn mặc được nhưng `ContributesStats=false`;
+  - `CanRepair` chỉ là state view từ durability hiện tại, chưa thêm template policy `IsRepairable` cho Luyện Ngục vì thiếu template/item evidence rõ.
+- Giữ boundary:
+  - Java evidence: `ll.p/tag 139`, `ll.q/tag 144`, `da.java p != 0`;
+  - remake policy: user chốt ngày `2026-05-03` repair bằng 1 búa `30099`, hồi full durability, không mất Quan;
+  - chưa mở combat formula cho special stats pending.
+
+### [EQUIPMENT/BATTLE] Battle-end durability loss authority
+
+- Tiếp tục Phase equipment server authority theo `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Cập nhật `server/Twelve.Application/Battle/BattleResultService.cs`:
+  - thắng trận: equipment đang mặc mất `1` durability;
+  - thua trận/đầu hàng: equipment đang mặc mất `3` durability;
+  - chỉ giảm item `IsEquipped && Durability > 0`, clamp durability về `0`;
+  - đồ hỏng vẫn giữ equipped state nhưng stat pipeline recalc để bỏ qua aggregate theo broken-stat gate;
+  - victory clamp lại HP theo `MaxHp` sau recalc để tránh HP vượt max khi equipment vừa hỏng.
+- Giữ boundary:
+  - Java evidence: `ll.p/tag 139`, `ll.q/tag 144`, `da.java` chỉ cộng stat khi `p != 0`;
+  - remake policy: user chốt ngày `2026-05-03` thắng trừ `1`, thua trừ `3`;
+  - chưa áp durability loss riêng cho `PvpShadow`; chưa mở combat formula cho special stats pending.
+
+### [EQUIPMENT] Equip/unequip authority cleanup + packet stat recalculation gate
+
+- Tiếp tục backend equipment Phase tiếp theo theo `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Cập nhật domain/runtime:
+  - `PlayerEquipmentSlot` giữ raw value gameplay đang chốt: `Armor=0`, `Weapon=1`, `Helmet=2`, `Ring=3`, `Wing=8`.
+  - `PlayerEquipmentLocation` đặt tên trạng thái `Inventory/Equipped` nhưng không đổi boundary lưu `IsEquipped`.
+  - Equip validation chỉ mở 5 slot gameplay Phase hiện tại theo `ll.e`.
+- Cập nhật rule server authority:
+  - Đồ hỏng `Durability <= 0` vẫn mặc được, không còn bị reject khi equip.
+  - Clone/preview/commit loadout giữ nguyên durability instance.
+  - Packet handler phân điểm tiềm năng cũng lọc equipment `IsEquipped && Durability > 0` khi recalc stat, tránh bypass broken-stat gate.
+  - Wing `e=8` tham gia aggregate như equipment hợp lệ khi còn durability.
+- Không mở combat formula cho `DamageAbsorb/ArmorPierce/Block/Revive/HpPercent`; các stat này vẫn pending combat evidence.
+
+### [EQUIPMENT] Durability instance + repair hammer 30099 + broken stat gate
+
+- Tiếp tục backend equipment Phase 1 theo `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Cập nhật durability thành dữ liệu instance lưu DB/entity riêng:
+  - `server/Database/Players/players_schema.sql`
+  - `server/Twelve.Core/Entities/PlayerAggregate.cs`
+  - `server/Twelve.Infrastructure/Repositories/PlayerAggregateRepository.cs`
+- Cập nhật `PlayerContentCatalog.cs`:
+  - equipment mới/starter khởi tạo `Durability = MaxDurability`;
+  - `ToEquipmentView` đọc durability từ instance;
+  - `RestoreDurability` hồi full durability trên entity;
+  - `GetEquippedModifiers` bỏ qua equipment `Durability <= 0`, giữ đúng policy đồ hỏng vẫn mặc nhưng không cộng stat/effect;
+  - repair hammer dùng đúng itemId `30099`.
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` với Java evidence (`ll.p/tag 139`, `ll.q/tag 144`, `da.java p != 0`) và remake policy tương ứng.
+- `dotnet build Twelve.sln --no-restore` pass: `0 Warning(s), 0 Error(s)`.
+
 ### [EQUIPMENT] Chốt gameplay policy cho implementation tiếp theo
 
 - Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` sau khi user chốt các quyết định gameplay cốt lõi:
