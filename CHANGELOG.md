@@ -4,6 +4,18 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-03
 
+### [EQUIPMENT] Inventory item icon asset wiring for equipment materials
+
+- Cập nhật UI inventory item theo asset đã cắt từ spritesheet:
+  - chuẩn hóa tên file trong `client/assets/equipment/items/` theo icon đã xác nhận: HP, MP, trứng đà điểu, búa sửa đồ, Kim Thạch, Huyết Thạch, Bùa 1/2/3;
+  - giữ icon chưa xác minh gameplay dưới dạng `pending_*.png`, không suy diễn tên domain.
+- Cập nhật `client/src/screens/map/core/MapCharacterDialogs.tsx`:
+  - thêm resolver icon item theo `CharacterInventoryItem.iconKind`;
+  - map `potion_red`, `potion_blue`, `peach`, `hammer`, `kim_thach`, `huyet_thach`, `charm_1`, `charm_2`, `charm_3`.
+- Giữ boundary:
+  - repair hammer `30099` là policy/user confirmation đã chốt ngày `2026-05-03`;
+  - Kim Thạch/Huyết Thạch/Bùa mới wire icon/material identity UI, chưa consume/roll upgrade thật vì thiếu danh sách đá/bùa/tỉ lệ Java gốc.
+
 ### [EQUIPMENT] Runtime API/client wiring + upgrade skeleton gate
 
 - Tiếp tục Phase equipment server authority theo `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.

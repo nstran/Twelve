@@ -38,6 +38,19 @@ const INFO_ASSETS = {
   hidenobj: require('../../../../assets/ui/12_info/hidenobj.png'),
   itemchest: require('../../../../assets/ui/12_info/itemchest.png'),
 };
+
+const INVENTORY_ITEM_ASSETS: Record<string, ReturnType<typeof require>> = {
+  potion_red: require('../../../../assets/items/hp.png'),
+  potion_blue: require('../../../../assets/items/mp.png'),
+  peach: require('../../../../assets/items/ostrich_egg.png'),
+  hammer: require('../../../../assets/items/repair_hammer.png'),
+  kim_thach: require('../../../../assets/items/kim_thach.png'),
+  huyet_thach: require('../../../../assets/items/huyet_thach.png'),
+  charm_1: require('../../../../assets/items/charm_1.png'),
+  charm_2: require('../../../../assets/items/charm_2.png'),
+  charm_3: require('../../../../assets/items/charm_3.png'),
+};
+
 const SKILL_UI_ASSETS = {
   increase: require('../../../../assets/skill/00_skill_tree_ui_confirmed/skill_tree_board/increase.png'),
   decrease: require('../../../../assets/skill/00_skill_tree_ui_confirmed/skill_tree_board/decrease.png'),
@@ -103,6 +116,14 @@ const toBarPct = (cur: number, max: number) => {
 };
 
 const formatSigned = (value: number, suffix = '') => `${value > 0 ? '+' : ''}${value}${suffix}`;
+
+const resolveInventoryItemIcon = (item: CharacterInventoryItem) => {
+  if (item.iconKind in INVENTORY_ITEM_ASSETS) {
+    return INVENTORY_ITEM_ASSETS[item.iconKind];
+  }
+
+  return INFO_ASSETS.itemchest;
+};
 
 const getEquipmentBonusRows = (entry: CharacterEquipmentItem) => [
   entry.bonusCuongLuc ? `Cường Lực ${formatSigned(entry.bonusCuongLuc)}` : null,
@@ -612,7 +633,7 @@ const InventoryGridCell: React.FC<{
     {cell.kind === 'empty' ? null : (
       <>
         <Image
-          source={cell.kind === 'equipment' ? resolveEquipmentIcon(cell.entry) ?? INFO_ASSETS.itemchest : INFO_ASSETS.itemchest}
+          source={cell.kind === 'equipment' ? resolveEquipmentIcon(cell.entry) ?? INFO_ASSETS.itemchest : resolveInventoryItemIcon(cell.item)}
           style={styles.inventoryCellIconImage}
           resizeMode="contain"
         />

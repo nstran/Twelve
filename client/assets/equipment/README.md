@@ -16,6 +16,7 @@ equipment/
   accessory/    <- ll.e==5,7,8 ring/amulet/accessory icons/effects; stats-only trong compositor hiện biết
   premium/      <- premium/full-set visual bands, server quyết định ll.e thật
   ui/           <- icon UI forge/equipment: broken_heart, star, slotlock, blacksmith, effblacksmith, 30099
+  items/        <- icon item/inventory đã cắt từ spritesheet, gồm hammer/material/charm và pending chưa xác minh
   index.csv     <- manifest dạng CSV: file,id,numericId,band,group
   equipment_manifest.json <- manifest dạng JSON tương đương index.csv
 ```
@@ -31,7 +32,8 @@ Số lượng sau gom ngày 2026-05-03:
 | `accessory/` | 56 |
 | `premium/` | 110 |
 | `ui/` | 6 |
-| **Tổng** | **974** |
+| `items/` | 35 |
+| **Tổng** | **1009** |
 
 Các folder audit cũ `01_default_overlays/`, `02_armor_e0/`, `03_weapon_e1/`, `04_helmet_e2/`, `07_accessory_e5_e7_e8/`, `08_premium_sets/`, `09_ui_icons/` đã được gộp/xóa để tránh cây thư mục quá sâu. Nếu cần truy vết band cũ, dùng `index.csv`/`equipment_manifest.json` và tài liệu reconstruction.
 
@@ -73,3 +75,6 @@ Layer 5: Weapon overlay = ll.e==1 resId band + frame
 - `800xx-832xx` và `890xx-893xx` nằm trong `weapon/` vì icon `xx98` là kiếm/gậy/vũ khí.
 - `500xx-609xx`, `904xx`, `908xx` và các meta-backed headgear candidates nằm trong `helmet/` khi có bằng chứng head overlay.
 - `30099.png` là búa sửa đồ đã được user xác nhận: một loại hammer dùng cho mọi equipment repair.
+- `items/repair_hammer.png` là icon inventory tương ứng cho item repair hammer `30099`.
+- `items/kim_thach.png`, `items/huyet_thach.png`, `items/charm_1.png`, `items/charm_2.png`, `items/charm_3.png` chỉ được xác nhận ở mức icon/material UI trong phase hiện tại; chưa dùng làm công thức/tỉ lệ upgrade khi thiếu Java server evidence.
+- `items/pending_*.png` giữ tên pending để tránh suy diễn gameplay từ ảnh/icon chưa đủ evidence.

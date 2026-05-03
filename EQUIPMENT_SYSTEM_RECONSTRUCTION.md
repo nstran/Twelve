@@ -2258,6 +2258,7 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
     - bỏ chặn equip item hỏng ở UI, đúng policy broken item vẫn mặc được.
     - đồng bộ repair hammer UI itemId từ `5010` sang `30099`.
     - menu upgrade/rao bán/drop disable khi equipment đang mặc, đúng rule tháo đồ trước.
+    - map icon inventory item theo `iconKind` cho HP/MP/trứng đà điểu/búa sửa đồ/Kim Thạch/Huyết Thạch/Bùa 1/2/3; item chưa có evidence icon tiếp tục dùng chest placeholder UI hiện có, không suy diễn gameplay.
 - Audit/verification:
   - Shop/drop/stat-roll Phase hiện tại vẫn đi qua `PlayerContentCatalog.BuildEquipmentEntry(...)`; instance mới lấy stat từ template/range đã có trong catalog path hiện tại, không thêm fallback random mới khi chưa có template gốc đầy đủ.
 - Java evidence applied:
@@ -2272,4 +2273,21 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - Trade/rao bán/drop equipment yêu cầu tháo đồ trước.
 - Pending/Unverified giữ nguyên:
   - Chưa consume đá/bùa, chưa roll success/fail/destroy, chưa mutate enhance level vì thiếu danh sách material/rate Java gốc.
+  - Chưa mở combat formula cho `DamageAbsorb/ArmorPierce/Block/Revive/HpPercent`.
+
+### 2026-05-03 — Inventory item icon asset wiring for equipment materials
+
+- Code/assets đã sửa:
+  - `client/assets/equipment/items/`
+    - Chuẩn hóa tên file item icon đã cắt từ spritesheet theo thứ tự user xác nhận: `hp.png`, `mp.png`, `repair_hammer.png`, `ostrich_egg.png`, `kim_thach.png`, `huyet_thach.png`, `charm_1.png`, `charm_2.png`, `charm_3.png` và các icon pending còn lại.
+    - Giữ các icon chưa xác minh gameplay với tên `pending_*.png`, không đặt tên domain nếu chưa có evidence.
+  - `client/src/screens/map/core/MapCharacterDialogs.tsx`
+    - Thêm resolver icon inventory item theo `CharacterInventoryItem.iconKind`.
+    - Map các `iconKind` đã có đủ evidence/policy hiện tại: `potion_red`, `potion_blue`, `peach`, `hammer`, `kim_thach`, `huyet_thach`, `charm_1`, `charm_2`, `charm_3`.
+- Java evidence / Remake policy boundary:
+  - Repair hammer `30099` là policy/user confirmation đã chốt ngày `2026-05-03`; UI dùng asset `repair_hammer.png`.
+  - Kim Thạch/Huyết Thạch/Bùa chỉ được wire icon UI/material identity; chưa dùng để roll upgrade thật.
+- Pending/Unverified giữ nguyên:
+  - Chưa có danh sách đá/bùa/tỉ lệ upgrade Java gốc nên không consume material, không roll success/fail/destroy, không mutate enhance level.
+  - Các icon `pending_*.png` chưa được suy diễn tên gameplay.
   - Chưa mở combat formula cho `DamageAbsorb/ArmorPierce/Block/Revive/HpPercent`.
