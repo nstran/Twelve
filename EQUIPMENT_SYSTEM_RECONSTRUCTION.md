@@ -926,18 +926,84 @@ Những band dưới đây **không được coi là equipment chắc chắn** n
 
 ## 11. Port Plan / Implementation Order
 
-### Phase 1 — Data Model & Protocol
+### Phase 1 — Code Checklist: Backend Equipment Foundation (KHÔNG đụng gameplay chưa chắc)
 
-- [ ] Tạo backend/domain model `Equipment` bám sát `ll.java` fields:
-  - `Key`, `SlotType`, `ResourceId`, `EnhancementLevel`, `Durability`, `MaxDurability`, `Rank`, `RequiredLevel`, `Gender`, `ElementIcon`, `Description`, `Tradeable`, `RepairCost`, `Stats`.
-  - Comment nguồn: `ll.java`, `ky.java`.
-- [ ] Tạo `EquipmentStats` bám sát `lb.java` 15 fields + tag mapping:
-  - `Strength`, `Agility`, `Magic`, `Vitality`, `Attack`, `Defense`, `CriticalRate`, `Dodge`, `Hp`, `DamageAbsorbPercent`, `ArmorPiercePercent`, `BlockPercent`, `RevivePercent`, `AttackPercent`, `HpPercent`.
-  - Comment nguồn: `lb.java`, `ky.java`, `com/mg/sq/a.java`.
-- [ ] Parser/serializer equipment packet phải phân biệt:
-  - Minimal equip (`bl2=false`) cho `lh.D`
-  - Full detail (`bl2=true`) cho inspect/detail/drop/upgrade result.
-- [ ] Sửa đúng decompile bug: assign tag `118` vào `lb2.a`, không tạo object bỏ đi.
+Mục tiêu phase 1 là dựng nền dữ liệu/protocol an toàn để các phase sau có thể mặc/tháo, hiển thị icon và cộng stat. Phase này **chưa implement upgrade/combine/drop/shop/repair hoàn chỉnh**, chưa tự seed option đặc biệt chưa có bằng chứng.
+
+#### 11.1 Scope được phép làm trong Phase 1
+
+- [ ] **Core enums/value objects**
+  - `EquipmentSlot` bám `ll.e` (`0..12`), không suy slot từ folder asset.
+  - `EquipmentGender` bám Java: `0=Nam`, `1=Nữ`, `2=Cả hai`.
+  - `EquipmentRank` giữ numeric rank gốc; rank color/UI mapping để client dùng sau.
+  - Comment nguồn: `ll.java`, `hh.java`, `mb.java`.
+
+- [ ] **Domain model / entity**
+  - Tạo backend/domain model cho equipment instance bám `ll.java` fields:
+    - `Key`, `SlotType`, `ResourceId`, `EnhancementLevel`, `CurrentDurability`, `MaxDurability`, `Rank`, `RequiredLevel`, `Gender`, `ElementIcon`, `Name`, `Description`, `Tradeable`, `RepairCost`, `Stats`.
+  - Bổ sung các field remake đã chốt nhưng phải ghi rõ nguồn gameplay-memory:
+    - `IsRepairable`, `IsUpgradeable`, optional `RepairBlockReason`, template reference nếu DB cần.
+  - Không bỏ các field Java chưa rõ (`b/l/o/s/u`) khỏi tài liệu; khi code phase 1 chỉ map field nào cần lưu/serialize, field unknown ghi comment `Unknown from ll.java`.
+
+- [ ] **Stats model**
+  - Tạo `EquipmentStats` bám `lb.java` đủ 15 fields:
+    - `Strength`, `Agility`, `Magic`, `Vitality`, `Attack`, `Defense`, `CriticalRate`, `Dodge`, `Hp`, `DamageAbsorbPercent`, `ArmorPiercePercent`, `BlockPercent`, `RevivePercent`, `AttackPercent`, `HpPercent`.
+  - Tag mapping phải ghi trong comment/source doc:
+    - `118/119/120/121/72/71/126/124/47/200/201/202/203/204/221`.
+  - Sửa đúng decompile bug khi parse: tag `118` phải assign vào `lb.a` / `Strength`, không tạo object bỏ đi.
+
+- [ ] **Database schema tối thiểu**
+  - Tách bảng/template và instance:
+    - `EquipmentTemplates`: base data/range/config.
+    - `PlayerEquipment`: owned equipment instance có key riêng, durability/current stat roll/enhancement/tradeable/repairable.
+  - Inventory default capacity vẫn `50` theo `go.n`.
+  - Broken rule lưu bằng `CurrentDurability == 0`, không xóa item.
+  - Không tạo hard-coded template lớn nếu chưa có dump; chỉ schema + seed tối thiểu/test nếu cần.
+
+- [ ] **DTO/API contract foundation**
+  - Dùng `record` DTO theo rule .NET.
+  - DTO phải phân biệt:
+    - Minimal equipment view tương đương `ky.a(..., bl2=false)` cho equipped array/list nhanh.
+    - Full equipment detail tương đương `ky.a(..., bl2=true)` cho detail/drop/forge result.
+  - Trường `Stats` nullable-safe; nếu null thì client/status không cộng.
+
+- [ ] **Parser/serializer/service mapping**
+  - Mapping packet/tag bám `ky.java`:
+    - Minimal: key, tag `84` slot type, tag `4` resource id, tag `139` current durability, tag `27` enhancement.
+    - Full: thêm `26/135/15/16/138/144/117/85/190/156` + stats tags.
+  - Nếu chưa có binary protocol server hoàn chỉnh, tạo mapper nội bộ + unit test shape trước; chưa giả lập byte-perfect nếu thiếu protocol framework.
+
+- [ ] **Asset resolver constants phía client/shared**
+  - Giữ công thức Java:
+    - `band = resId - resId % 10`
+    - `iconId = band + 98`
+    - frames `band + 0..9`
+  - Resolver chỉ lookup theo manifest/path hiện có; không quyết định gameplay slot từ folder.
+  - Đã có `client/src/screens/character/shared/equipmentAssets.generated.ts` trỏ folder mới, phase 1 chỉ cần dùng lại.
+
+- [ ] **Verification bắt buộc cho Phase 1**
+  - Backend có sửa code server thì chạy `dotnet build` theo workflow hidden/redirect.
+  - Client có sửa TypeScript thì chạy local compiler:
+    - `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit`
+  - Không báo hoàn tất nếu chưa cập nhật tài liệu + changelog.
+
+#### 11.2 Out of Scope Phase 1 (để tránh tự bịa logic)
+
+- [ ] Chưa implement công thức combat cho `DamageAbsorb/Pierce/Block/Revive/HpPercent`.
+- [ ] Chưa seed đại trà stat đặc biệt chưa thấy trên item thật.
+- [ ] Chưa implement upgrade hard-mode/consume material/destroy; chỉ chuẩn bị field `EnhancementLevel`, `IsUpgradeable`.
+- [ ] Chưa implement combine recipe.
+- [ ] Chưa implement shop/drop pool thật nếu chưa có template/dump; chỉ chuẩn bị schema.
+- [ ] Chưa render slot cánh/event vào UI chính nếu chưa xác định UI gốc.
+- [ ] Chưa dùng folder `premium/accessory` để suy slot hoặc cộng stat.
+
+#### 11.3 Phase 1 Acceptance Criteria
+
+- [ ] Có model/DTO/schema đủ biểu diễn một equipment Java `ll` + stats `lb`.
+- [ ] Có mapping minimal/full equipment detail rõ nguồn từ `ky.java`.
+- [ ] Có rule null/durability/gender/level documented trong code comment nhưng chưa cần endpoint mặc đồ nếu chưa sang Phase 2.
+- [ ] Không có logic nào tự ý hiện đại hóa khác Java/client evidence.
+- [ ] Build/check pass với phần code đã sửa.
 
 ### Phase 2 — Inventory & Equip Rules
 
@@ -1589,117 +1655,62 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
 
 ## 15. Nhật ký chỉnh sửa
 
-### 2026-05-03
+> Section này đã được dọn ngày `2026-05-03` để tránh trùng lặp dài với `CHANGELOG.md`. Chi tiết lịch sử thay đổi đầy đủ xem `CHANGELOG.md` mục `[EQUIPMENT]`. Tài liệu này chỉ giữ lại các mốc ảnh hưởng trực tiếp tới spec phục dựng.
 
-- Rà Java client equipment-related classes:
-  - `ll.java`, `lb.java`, `ky.java`, `mb.java`, `hg.java`, `fw.java`, `dc.java`, `id.java`, `gp.java`, `cz.java`, `go.java`, `com/mg/sq/a.java`.
-- Rà bổ sung vòng inventory/shop/repair/network sender:
-  - `hh.java`, `hl.java`, `ia.java`, `lq.java`, `ks.java`.
-- Rà bổ sung status/combine sau search toàn cục:
-  - `da.java`, `ho.java`.
-- Bổ sung các phần còn thiếu:
-  - Full `ll` fields (`b/l/o/s/u` included).
-  - Full 15-field `lb` stats + network tag mapping, including tag `221`.
-  - Equipment sort comparator `gp.java`.
-  - Global inventory/capacity logic `go.java`.
-  - Equip/unequip replacement and visual rebuild rule `cz.java`.
-  - Inventory equipment screen flow từ `hh.java`: equipped cell `F[]`, actions mặc/tháo/sửa/nâng cấp/rao bán/vứt bỏ, target-slot highlight.
-  - Repair dialog `hl.java`: búa sửa chữa, empty hammer warning, sender `ks.a().a(hammerItemId, equipKey)`.
-  - Shop preview/buy flow từ `ia.java`/`lq.java`: product wrapper, mặc thử, giỏ hàng, clone equipment và assign server key khi mua thành công.
-  - Network sender payloads từ `ks.java`.
-  - Upgrade panel flow `id.java`.
-  - Status panel rule từ `da.java`: equipment `p == 0` không cộng stat.
-  - Combine panel variant `ho.java`: sender action `0/1`, final combine arrays, result success/fail string.
-- Rà bổ sung exact callback/result packet shape trong `ky.java` cho command `96/97/99/100/112`:
-  - Tách request response (`96`, `99`) khỏi modified result (`97`, `100`) và equip-change (`112`).
-  - Ghi rõ tags `83`, `186`, `187`, `188`, `114`, `106`, `132`, `157`, `175`, `1`.
-- Rà bổ sung usage stat đặc biệt `lb.j..o`:
-  - `lb.n` (`AttackPercent`) chắc chắn ảnh hưởng aggregation theo `baseAttack * percent / 100`.
-  - `lb.o` (`HpPercent`) và `lb.j/k/l/m` hiện chắc chắn parse/display nhưng chưa có công thức combat/status từ phần equipment core.
-- Rà search phụ `hn.java`/`hq.java` quanh market/trade wrapper `lq` chứa `ll`; xác nhận không đổi core model/rule.
-- Rà bổ sung `gx.java`:
-  - Confirm cart multi-buy equipment dialog dùng `lq.e` → `ll`, icon `mb.a(ll)+98`, stat lines `com.mg.sq.a.a(ll)`, rank color `ll.a(rank)`, tổng tiền từ `lq.d`.
-- Rà bổ sung `of.java`:
-  - Confirm trade/transaction panel add/remove equipment bằng `dc`, icon convention cũ, key `ll.c`, log cập nhật/lấy lại và danh sách kiểm tra giao dịch.
-- Rà bổ sung `ks.java` trade/session sender names:
-  - `k()`, `k(String)`, `l(String)`, `l()`, `m()`, `n()` dùng cmd `55/56` với state byte/session; giữ riêng khỏi equip/upgrade/combine.
-- Nâng coverage estimate từ ~99% lên ~99.5% cho client-side equipment core.
-- Gỡ phần thừa/không phải Java source evidence:
-  - Removed old `.agent/skills/` reference table.
-  - Reworded asset exclusions so `12xxxx-14xxxx` are marked mixed/need audit rather than blindly excluded.
+### 2026-05-03 — Java client equipment audit
 
-### 2026-05-03 — Server-side gameplay memory decisions
+- Đã gom evidence client-side core từ:
+  - Data/protocol: `ll.java`, `lb.java`, `ky.java`, `ks.java`.
+  - Inventory/equip: `go.java`, `gp.java`, `hh.java`, `cz.java`, `dc.java`, `fw.java`, `hg.java`.
+  - Visual: `mb.java`.
+  - Shop/repair/forge/trade: `ia.java`, `gx.java`, `lq.java`, `hl.java`, `id.java`, `ho.java`, `of.java`.
+  - Status/stat display: `com/mg/sq/a.java`, `da.java`.
+- Bổ sung các điểm Java-critical:
+  - Full field model `ll` gồm cả field chưa rõ `b/l/o/s/u`.
+  - Full 15-field `lb` stats và tag mapping packet.
+  - Parser minimal/full equipment theo `ky.a(..., bl2=false/true)`.
+  - ResId convention `band = resId - resId % 10`, icon `band + 98`.
+  - Rule status panel: equipment `p == 0` không cộng stat.
+  - `lb.n` (`AttackPercent`) chắc chắn cộng theo `baseAttack * percent / 100`; các stat đặc biệt khác còn pending combat audit.
+- Coverage hiện tại: khoảng `99.5%` phần equipment client-side core đã gom; phần còn thiếu chủ yếu là combat usage của stat đặc biệt, server template dump và byte-perfect serializer test với client thật.
 
-- Bổ sung section server-side reconstruction do không có Java server gốc, nguồn từ gameplay memory/user-provided evidence ngày `2026-05-03`.
-- Chốt vòng đời equipment:
-  - Quái rơi hộp trên đất, mở dialog `Nhặt/Bỏ qua`.
-  - Shop/nhiệm vụ/event có thể cấp equipment.
-  - Drop phân cấp theo level/map/quái.
-  - Stats equipment instance random trong range từ template.
-- Chốt equip validation server-side:
-  - Sai giới tính không mặc được.
-  - Chưa đủ level không mặc được.
-  - Không giới hạn class/phái/hệ ngoài level + gender ở evidence hiện tại.
-  - Trade phải tháo đồ trước.
-  - Slot `e=4` chưa phát triển; slot `9..12` note cho cánh/event.
-- Chốt durability/repair:
-  - Thắng trận trừ `1` durability.
-  - Thua trận trừ `3` durability.
-  - Durability về `0` chỉ broken, không mất đồ.
-  - Broken equipment không có tác dụng stat/effect.
-  - Repair dùng duy nhất `1` búa mỗi lần.
-  - Có đồ không thể sửa, cần field `IsRepairable`.
-- Chốt economy/equipment shop:
-  - Shop bán bằng KEN gốc nhưng remake dùng đơn vị `Quan`.
-  - Equipment không bán lại NPC.
-  - Có market/rao bán và thuế, công thức pending.
-- Chốt pending:
-  - Combine pending.
-  - Tradeable visual, template dump, item sample, `12xxxx-14xxxx`, premium/event set sẽ chờ người dùng cung cấp thêm.
+### 2026-05-03 — Server-side reconstruction decisions
 
-### 2026-05-03 — Final pre-code gameplay decisions from user confirmation
-
-- Chốt 20 policy trước khi code:
-  - Búa sửa đồ chỉ có 1 loại, icon `client/assets/equipment/09_ui_icons/30099.png`.
-  - Một số item Luyện Ngục không sửa được; thêm field `IsRepairable`.
-  - Đồ mới rơi/mua luôn full durability.
-  - Upgrade thành công giữ nguyên current durability; chỉ tăng max durability nếu config có.
-  - Upgrade fail không trừ durability.
-  - Đồ broken vẫn nâng cấp được nếu `IsUpgradeable=true`; thêm field `IsUpgradeable`.
-  - Đồ đang mặc không được upgrade trực tiếp, phải tháo ra túi.
-  - Shop equipment roll stat random trong range.
-  - Server sinh key dạng sortable unique string/ULID-style hoặc tương đương.
-  - Tất cả equipment mặc định trade được.
+- Nguồn: gameplay memory/user confirmation ngày `2026-05-03` + Java client UI/protocol evidence; không phải Java server gốc.
+- Chốt model server:
+  - Tách `EquipmentTemplates` và `PlayerEquipment`.
+  - Equipment instance có key unique string, rolled stats, durability riêng, enhancement riêng.
+  - Inventory default capacity `50`.
+- Chốt validation:
   - Gender mapping giữ đúng Java `0=Nam`, `1=Nữ`, `2=Cả hai`.
+  - Chưa đủ level/sai giới tính không mặc được.
+  - Equipment đang mặc không dùng để trade/upgrade/combine.
   - Slot cánh/event khi thiếu data chỉ lưu DB + inventory icon, chưa cộng stat/chưa render.
-  - Upgrade destroy xóa hẳn equipment instance và báo mất đồ.
-  - Bùa chống vỡ giữ đồ nhưng vẫn có thể tụt cấp.
-  - Bảo hộ hoàn hảo fail thì giữ nguyên cấp và không vỡ.
-  - Phase đầu upgrade chỉ consume material, fee để sau.
-  - Server tạo trước template/stat range/drop thấp để user review; drop pool có thể gồm HP/MP/egg, đập trứng có thể ra equipment.
-  - DB tách chuẩn `EquipmentTemplates` và `PlayerEquipment`.
-  - Inventory default capacity `50`, sau này mở rộng.
-  - Combine phải làm hoàn chỉnh bằng recipe/config server-side, không placeholder.
-- Các quyết định này là `Source: user-provided gameplay confirmation 2026-05-03 + Java client equipment UI/protocol audit`.
-
-### 2026-05-03 — Upgrade hard-mode policy
-
-- User xác nhận upgrade:
+- Chốt durability/repair:
+  - Đồ mới rơi/mua/cấp luôn full durability.
+  - Thắng trận trừ `1`, thua trận trừ `3`.
+  - Durability `0` chỉ broken, không mất đồ, nhưng không cộng stat/effect.
+  - Repair dùng duy nhất búa icon `client/assets/equipment/09_ui_icons/30099.png`, mỗi lần consume `1` búa và hồi đầy durability.
+  - Có đồ không sửa/nâng cấp được nên cần `IsRepairable`, `RepairBlockReason`, `IsUpgradeable`.
+- Chốt economy/trade/shop:
+  - Remake dùng đơn vị `Quan`; Java string cũ có thể còn `KEN`.
+  - Equipment không bán lại NPC theo memory hiện tại.
+  - Equipment mặc định tradeable `ll.t=1`, nhưng phải tháo trước khi trade.
+  - Shop equipment roll stat trong range template/shop offer.
+- Chốt upgrade:
   - Max `+15`.
-  - Từ `+5` trở lên tỉ lệ phải thấp.
-  - Từ `+10` trở lên phải hard, khoảng `5% → 1%`.
-  - Fail có thể tụt cấp, vỡ/mất đồ.
-  - Có đồ bảo hộ.
-- Bổ sung upgrade policy remake vào section `13.5`:
   - Success roll dùng basis point `1..10000`.
-  - Base success rates: `+1 90%`, `+2 80%`, `+3 70%`, `+4 60%`, `+5 45%`, `+6 35%`, `+7 25%`, `+8 18%`, `+9 12%`, `+10 5%`, `+11 4%`, `+12 3%`, `+13 2%`, `+14 1.5%`, `+15 1%`.
-  - Cap sau luck/event: `+1..+4 95%`, `+5..+9 50%`, `+10..+12 10%`, `+13..+15 5%`.
-  - Failure table: early fail mất phí/nguyên liệu, mid tier tụt cấp, high tier có destroy chance nếu không bảo hộ.
-  - Destroy chance inside failed attempt for `+10..+15`: `10%`, `15%`, `20%`, `28%`, `35%`, `45%`.
-  - Protection items: chống tụt, chống vỡ, bảo hộ hoàn hảo.
-  - Luck items: `+1%`, `+2%`, `+3%`, `+5%` before cap.
-  - Materials currently reconstructed as remake taxonomy because original Java server item IDs are unknown: basic/intermediate/advanced/refined/divine upgrade stones.
-  - Fee formula: `feeQuan = baseByRank * targetLevel^2`.
-  - Enhancement stat formula: `enhancedFlatStat = baseFlatStat + floor(baseFlatStat * bonusPercent[level] / 100)`.
-  - Initial safe policy only enhances flat stats; percent/special stats stay unchanged until combat formulas are fully reconstructed.
-  - Tradeable visual, template dump, item sample, `12xxxx-14xxxx`, premium/event set sẽ chờ người dùng cung cấp thêm.
+  - Hard rates từ `+10..+15`: `5%`, `4%`, `3%`, `2%`, `1.5%`, `1%`.
+  - Fail có thể tụt cấp hoặc destroy từ high tier; destroy xóa hẳn equipment instance.
+  - Có protection/luck items; ID/tên item original chưa biết, dùng taxonomy remake tạm thời.
+  - Phase đầu upgrade chỉ consume material/optional item; fee formula reserved/off-by-config.
+  - Enhancement stat formula chỉ áp dụng flat stats trong implementation đầu.
+- Chốt combine:
+  - Không làm placeholder.
+  - Implement bằng `CombineRecipes` server config/table với input filters, material, output template/pool, success rate và failure policy.
+
+### 2026-05-03 — Documentation cleanup
+
+- Dọn section nhật ký để bỏ phần lặp lại dài đã có trong `CHANGELOG.md`.
+- Giữ lại các mốc quyết định quan trọng và link nguồn bằng tên file Java để không mất evidence phục dựng.
+- Không xóa các section kỹ thuật `1..14` vì đây là spec trực tiếp cần cho Phase 1 equipment.
