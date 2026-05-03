@@ -43,6 +43,32 @@ Java client coverage hiện tại: decompile đủ nhóm class battle/bàn cờ,
 
 Quy tắc: logic nào không có server Java source hoặc packet log phải ghi là `reconstruction/remake`, không gắn nhãn Java gốc.
 
+### Equipment stat boundary
+
+#### Java evidence
+
+Audit equipment `2026-05-03` từ `lb.java`, `ky.java`, `com/mg/sq/a.java`, `da.java`:
+
+- `lb` có raw fields/tags đặc biệt:
+  - `j` tag `200`: hấp thu sát thương %
+  - `k` tag `201`: đánh xuyên giáp %
+  - `l` tag `202`: cản đòn %
+  - `m` tag `203`: hồi sinh %
+  - `o` tag `221`: sinh lực %
+- Các field trên được parser/UI equipment nhận và có label hiển thị.
+- `com/mg/sq/a.java` và `da.java` hiện chỉ chứng minh status/preview aggregation cho `a,b,c,d,e,f,g,h,i,n`.
+- `lb.n` tag `204` (`Sức tấn công %`) đã được chứng minh cộng theo `baseAttack * percent / 100` trong stat aggregation.
+
+#### Pending/Unverified
+
+- Chưa có evidence Java client/server đã audit chứng minh formula battle runtime cho `j/k/l/m/o`.
+- Không được thêm các field này vào `Final damage order v1` như Java gốc nếu chưa có battle/server packet evidence hoặc policy được user chốt riêng.
+
+#### Remake policy
+
+- Battle v1 chỉ dùng các stat đã có trong `Actor.MinDamage/MaxDamage`, defense, crit, element/mode percent theo pipeline hiện tại.
+- Nếu sau này server remake bật absorb/pierce/block/revive/hp-percent combat effect, phải ghi rõ là policy/config server mới và cập nhật tài liệu trước khi code.
+
 ## 3. Board model và node
 
 - Render active: `8x8`.
@@ -218,6 +244,10 @@ damage = floor(damage * ModePercent / 100)
 damage = max(1, damage)
 ```
 
+Boundary:
+- Không tự chèn `lb.j/k/l/m/o` equipment special stats vào damage order này.
+- Các stat đó hiện chỉ có Java evidence parser/UI label; combat formula còn `Pending/Unverified` theo section `2`.
+
 Hiện client board local đã truyền `elementDamagePercent` cùng vòng khắc hệ server `100/112/92`, bám `BattleTurnEngine.ResolveElementDamagePercent()`.
 
 V1:
@@ -330,6 +360,17 @@ Các file chính:
 ---
 
 ## Nhật ký chỉnh sửa
+
+### 2026-05-03 — Equipment special stats battle boundary
+
+- Cập nhật boundary giữa battle và equipment:
+  - `lb.j/k/l/m/o` (`DamageAbsorb`, `ArmorPierce`, `Block`, `Revive`, `HpPercent`) chỉ có evidence parser/UI label trong equipment audit.
+  - Chưa có Java/server evidence cho formula battle runtime của các stat này.
+  - Final damage order v1 không được tự áp các stat đặc biệt này như Java gốc.
+- Nguồn audit liên quan:
+  - `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`
+  - `lb.java`, `ky.java`, `com/mg/sq/a.java`, `da.java`
+- Không sửa code server/client → không cần build.
 
 ### 2026-04-29
 

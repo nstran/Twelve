@@ -183,6 +183,8 @@ Java evidence verified `2026-05-03` từ `lb.java`, `ky.java` tag parser line `1
 
 ### 2.2 Stats Aggregation for Character
 
+#### Java evidence
+
 Từ `com.mg.sq.a.a(lh)` — khi tính tổng stat nhân vật, mỗi equip trong `lh.D`:
 
 ```java
@@ -205,6 +207,23 @@ for (int i = 0; i < lh2.D.length; i++) {
 
 **Quan trọng:** `lb.n` (Attack %) được tính bằng `baseAttack * stats.n / 100` — nhân tỉ lệ, không cộng flat.
 
+#### Pending/Unverified
+
+- Đoạn aggregation trên chỉ chứng minh client cộng các field `a,b,c,d,e,f,g,h,i,n` vào stat/status tổng hợp.
+- Chưa có evidence trong đoạn Java đã audit rằng `j/k/l/m/o` được áp dụng vào battle runtime:
+  - `j`: hấp thu sát thương %
+  - `k`: đánh xuyên giáp %
+  - `l`: cản đòn %
+  - `m`: hồi sinh %
+  - `o`: sinh lực %
+- Các field `j/k/l/m/o` có Java evidence về parser + UI label, nhưng **chưa đủ evidence formula gameplay**.
+
+#### Remake policy
+
+- Server/client remake được phép hiển thị `j/k/l/m/o` đúng raw field/tag và label UI.
+- Không implement combat effect cho `j/k/l/m/o` như công thức chắc chắn của game gốc nếu chưa có thêm battle/server packet evidence hoặc user confirmation policy riêng.
+- Nếu sau này bật combat effect bằng config server mới, phải ghi rõ là `Remake policy`, không ghi như Java gốc.
+
 ### 2.2b Status Panel Aggregation (`da.java`)
 
 `da.a(lh)` xác nhận một rule runtime quan trọng khi panel thông tin nhân vật cộng stat từ trang bị:
@@ -223,6 +242,7 @@ for (int i = 0; i < this.O.D.length; i++) {
 Kết luận phục dựng:
 - Trang bị đang mặc (`lh.D`) vẫn được đối chiếu lại với inventory global `go.l` bằng key `ll.c`.
 - Nếu durability `p == 0`, stat của trang bị **không được cộng** trong panel status.
+- `da.java` cộng `a,b,c,d,e,f,g,h,i,n`; không thấy cộng `j,k,l,m,o` trong status panel.
 - Đây là rule client-side UI/status; server combat cũng nên authoritative kiểm tra durability trước khi áp stat, nhưng công thức combat cuối cùng phải đối chiếu thêm battle Java source.
 
 ### 2.3 Stat Display Strings
@@ -1827,6 +1847,61 @@ Until then:
 
 ### 13.10 Initial server implementation plan from current evidence
 
+#### Code readiness gate `2026-05-03`
+
+Tài liệu hiện tại **đủ để bắt đầu code Phase 1 equipment foundation**, nhưng chưa đủ để code mọi nhánh equipment nâng cao như gameplay gốc hoàn chỉnh.
+
+##### Java evidence đủ để code ngay
+
+- Raw model `ll`/`lb`/`lm` và tag parser chính:
+  - `ll` equipment fields/tag shape.
+  - `lb` 15 stat fields/tag shape.
+  - `lm` consumable/item model cho hammer/material foundation.
+  - `ky.java` parser shape cho equipment/item.
+  - `ks.java` sender command chính cho equip/upgrade/shop/repair/combine/trade.
+- Core inventory/equip UI logic:
+  - `go.l` equipment bag/equipped state.
+  - `hh.java`, `cz.java`, `gp.java`, `dc.java`, `fw.java`, `hg.java`.
+- Status aggregation:
+  - `com/mg/sq/a.java` và `da.java` chứng minh chỉ cộng `lb.a,b,c,d,e,f,g,h,i,n` khi equipment còn durability.
+  - `lb.n`/tag `204` áp `baseAttack * percent / 100`.
+  - `lb.j/k/l/m/o` chỉ lưu/hiển thị, không apply combat/status trong Phase 1.
+- Visual resolver/compositor:
+  - icon `band = resId - resId % 10`, icon id `band + 98`.
+  - compositor chắc cho armor/weapon/helmet; slot đặc biệt giữ pending.
+- Remake policy đã được tách rõ và có thể code dưới feature/config:
+  - template/instance split.
+  - inventory capacity default `50`.
+  - durability loss/repair hammer `30099`.
+  - shop buy roll stat from template/shop range.
+  - upgrade hard-mode table/config.
+  - combine via `CombineRecipes`.
+
+##### Không chặn Phase 1, nhưng không được code như Java gốc
+
+- Combat runtime effects của `DamageAbsorb/Pierce/Block/Revive/HpPercent`.
+- Slot `e=4` mount/riding effect ngoài flag render đã thấy.
+- Slot `e=8` wing/event stat/render/effect ngoài lưu DB + icon/detail.
+- Original material IDs/names for upgrade/luck/protection.
+- Market tax formula.
+- Full byte-perfect serializer cho mọi optional branch nếu mục tiêu là emulator Java client hoàn chỉnh.
+
+##### Câu hỏi cần user chốt trước khi code Phase 1
+
+1. **Phạm vi Phase 1**: code foundation server trước hay làm cả mobile UI inventory/equipment detail cùng lúc?
+2. **Upgrade trong Phase 1**: chỉ tạo schema/config và API skeleton, hay bật luôn roll upgrade hard-mode theo section `13.5`?
+3. **Combine trong Phase 1**: tạo bảng `CombineRecipes` + endpoint nhưng chưa seed recipe, hay user sẽ cung cấp recipe seed ban đầu?
+4. **Drop/shop seed**: dùng starter/test equipment seed tối thiểu hiện có, hay user cung cấp thêm danh sách template thật trước khi mở drop/shop?
+5. **Wing `e=8`**: Phase 1 chỉ lưu/hiển thị icon/detail và không cộng stat/render, đúng như safety gate hiện tại?
+
+Nếu chưa có câu trả lời, safe default để code là:
+- server foundation + API core;
+- UI detail/inventory tối thiểu nếu cần;
+- không bật special combat stats;
+- không bật wing stat/render;
+- không seed đại trà;
+- upgrade/combine chỉ config-driven, không hardcode recipe/material original.
+
 Có thể implement an toàn trước:
 - Equipment template + equipment instance model tách chuẩn:
   - `EquipmentTemplates` cho base data/range/config.
@@ -1860,7 +1935,23 @@ Chưa implement nếu chưa có thêm evidence:
 - Market tax formula.
 - Special stat combat effects beyond currently confirmed status aggregation.
 - Slot `e=4` mount/riding effect beyond confirmed `lh.ad` render flag.
-- Cánh/event `e=8` behavior beyond special `"Dùng"` flow and storing/displaying when data arrives.
+
+#### Gameplay policy chốt thêm với user `2026-05-03`
+
+Các quyết định dưới đây là **Remake policy / user confirmation**, không phải Java server evidence. Khi code phải comment nguồn: `Source: user confirmation 2026-05-03 + Java client equipment evidence`.
+
+| Mục | Quyết định đã chốt | Implementation rule |
+|-----|---------------------|---------------------|
+| Cánh `e=8` | Có cộng stat và có slot UI riêng | `Wing` được tính như equipment gameplay hợp lệ trong stat pipeline nếu còn durability; UI cần slot riêng, không nhét vào `hh.java` 6 ô Java chính nếu đang dựng UI remake. Render lên nhân vật chỉ làm khi có asset/compositor policy rõ; slot UI riêng không tự đồng nghĩa body compositor Java gốc. |
+| Đồ hỏng `p == 0` | Vẫn mặc được, nhưng không cộng bất kỳ stat/effect nào | Giữ equipped state; stat/status/combat-facing aggregation phải bỏ qua toàn bộ stats/effects của item hỏng. |
+| Repair hammer `30099` | 1 búa sửa full durability cho mọi đồ sửa được, không mất Quan | Consume exactly 1 hammer item id `30099`; set `CurrentDurability = MaxDurability`; không trừ currency. |
+| Đồ không sửa được | Chỉ áp dụng nhóm Luyện Ngục hiện biết | Vì chưa có template dump, không tự gắn cờ đại trà. Khi template/item được đánh dấu Luyện Ngục thì không cho repair; ngoài nhóm này phase đầu theo `RepairCost > 0`/policy config. |
+| Cường hóa đồ đang mặc | Phải tháo ra túi mới nâng cấp được | Upgrade validation reject equipment currently equipped. |
+| Đồ hỏng nâng cấp | Được nâng cấp; durability giữ nguyên | Upgrade không yêu cầu repair trước; success/fail không tự hồi durability trừ khi có config riêng sau này. |
+| Cường hóa phase đầu | Chờ có danh sách đá/bùa gốc rồi mới bật roll thật | Phase hiện tại chỉ chuẩn bị schema/config/API skeleton nếu cần; không dùng material remake tạm để bật roll hard-mode. |
+| Upgrade fail tier cao bị vỡ | Vỡ là mất hẳn equipment instance | Destroy outcome deletes equipment instance permanently from ownership/inventory/equipped state. |
+| Trade/rao bán | Phải tháo đồ ra mới trade/rao bán được | Trade/market validation reject equipped item. |
+| Shop/drop stat roll | Đồ rơi và đồ shop roll stat random trong range template | Template defines stat ranges; instance stores rolled stats. Không dùng stat cố định tuyệt đối nếu template/range cho phép roll. |
 
 ---
 
@@ -1883,7 +1974,7 @@ Phạm vi đã đủ để lên kế hoạch port core equipment gồm: model, s
 
 Các mục dưới đây không chặn plan core equipment, nhưng cần đối chiếu thêm khi triển khai server/API chính thức để tránh đoán sai những phần nằm ngoài evidence equipment client-core:
 
-- Combat/battle source để xác nhận effect runtime của 5 stat đặc biệt của `lb`: absorb/pierce/block/revive/hpPercent. Hiện chỉ chắc chắn chúng được parse/display; `AttackPercent` đã chắc chắn được cộng theo `baseAttack * percent / 100`.
+- Combat/battle source để xác nhận effect runtime của 5 stat đặc biệt của `lb`: absorb/pierce/block/revive/hpPercent. Hiện chỉ chắc chắn chúng được parse/display; `AttackPercent` đã chắc chắn được cộng theo `baseAttack * percent / 100`. Re-audit `2026-05-03` xác nhận `da.java` và `com/mg/sq/a.java` chỉ cộng `a,b,c,d,e,f,g,h,i,n` vào status/preview, không chứng minh formula battle cho `j,k,l,m,o`.
 - Asset/meta đối chiếu `ll.n` thật từ server dump nếu có, đặc biệt các band `12xxxx-14xxxx`, mount/shield/accessory/premium.
 - Các màn thương mại phụ `hn.java`/`hq.java` nếu về sau cần phục dựng đầy đủ UI chợ/rao bán ngoài core equipment. Đã search xác nhận có wrap `ll` qua `lq`, chưa thấy thay đổi model/rule core.
 - Byte-perfect serializer cho mọi nhánh optional của `96/97/99/100/112` vẫn nên test với client thật; tài liệu hiện đã ghi đủ tag shape chính từ parser Java.
@@ -1983,6 +2074,49 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - **Section 12.1 mới**: Tổng hợp decompiler clone bugs cho cả `ll.d()` và `lm.b()`, gồm field-by-field copy table và remake policy.
 - Files `.md` đã sửa:
   - `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`
+- Không sửa code server/client → không cần build.
+
+### 2026-05-03 — Equipment special stats battle boundary audit
+
+- Audit bổ sung Java evidence:
+  - `lb.java`: xác nhận 15 field raw `a..o`.
+  - `ky.java`: xác nhận tag parser `118/119/120/121/72/71/126/124/47/200/201/202/203/204/221`.
+  - `com/mg/sq/a.java`: xác nhận UI label cho `j/k/l/m/o` nhưng chỉ cộng status aggregation cho `a,b,c,d,e,f,g,h,i,n`.
+  - `da.java`: status panel chỉ cộng equipment đang mặc còn durability (`p != 0`) với các field `a,b,c,d,e,f,g,h,i,n`; không thấy apply `j,k,l,m,o`.
+- Kết luận tài liệu:
+  - `j/k/l/m/o` giữ raw mapping + UI label là Java evidence.
+  - Combat formula của hấp thu sát thương / xuyên giáp / cản đòn / hồi sinh / sinh lực % chuyển rõ về `Pending/Unverified`.
+  - Remake không được tự bật combat effect cho các stat đặc biệt này nếu chưa có evidence hoặc policy được chốt riêng.
+- Files `.md` đã sửa:
+  - `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`
+  - `BATTLE_SYSTEM_RECONSTRUCTION.md`
+- Không sửa code server/client → không cần build.
+
+### 2026-05-03 — Code readiness gate before next implementation
+
+- Rà lại toàn bộ `Pending/Unverified` hiện còn trong tài liệu.
+- Kết luận:
+  - Tài liệu đủ để code **Phase 1 equipment foundation** theo Java evidence + remake policy đã tách.
+  - Chưa đủ để code combat special stats, wing/mount runtime effect, market tax, hoặc original material catalog như Java gốc.
+- Thêm section `13.10 Code readiness gate` gồm:
+  - phần evidence đủ để code ngay;
+  - phần không chặn Phase 1 nhưng không được code như Java gốc;
+  - 5 câu hỏi cần user chốt trước khi code implementation lớn.
+- Không sửa code server/client → không cần build.
+
+### 2026-05-03 — Gameplay policy questions resolved for next equipment implementation
+
+- User chốt thêm các quyết định gameplay:
+  - Cánh `e=8`: có cộng stat và có slot UI riêng trong remake.
+  - Đồ hỏng `p == 0`: vẫn mặc được nhưng không cộng bất kỳ stat/effect nào.
+  - Repair: dùng 1 búa `30099`, hồi full durability, không mất Quan.
+  - Đồ không sửa được: trước mắt chỉ áp dụng nhóm Luyện Ngục; cần template evidence để đánh dấu chính xác.
+  - Upgrade: đồ đang mặc phải tháo ra; đồ hỏng vẫn nâng cấp được và durability giữ nguyên.
+  - Upgrade roll thật: chờ danh sách đá/bùa gốc, không bật bằng material remake tạm.
+  - Upgrade destroy outcome: mất hẳn equipment instance.
+  - Trade/rao bán: phải tháo đồ ra trước.
+  - Shop/drop: roll stat random trong range template.
+- Đã thêm bảng `Gameplay policy chốt thêm với user 2026-05-03` vào section `13.10`.
 - Không sửa code server/client → không cần build.
 
 ### 2026-05-03 — Backend equipment foundation Phase 1

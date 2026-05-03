@@ -4,6 +4,47 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-03
 
+### [EQUIPMENT] Chốt gameplay policy cho implementation tiếp theo
+
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` sau khi user chốt các quyết định gameplay cốt lõi:
+  - Cánh `e=8` có cộng stat và có slot UI riêng trong remake.
+  - Equipment hỏng `p == 0` vẫn mặc được nhưng không cộng stat/effect.
+  - Repair dùng 1 búa `30099`, hồi full durability, không mất Quan.
+  - Đồ không sửa được trước mắt chỉ áp dụng nhóm Luyện Ngục khi template/item được đánh dấu rõ.
+  - Upgrade yêu cầu tháo đồ khỏi người; đồ hỏng vẫn nâng cấp được và durability giữ nguyên.
+  - Chưa bật roll upgrade thật cho đến khi có danh sách đá/bùa gốc.
+  - Upgrade destroy outcome xóa/mất hẳn equipment instance.
+  - Trade/rao bán yêu cầu tháo đồ trước.
+  - Shop/drop roll stat random trong range template.
+- Ghi rõ các điểm trên là `Remake policy / user confirmation`, không phải Java server evidence.
+- Chỉ sửa tài liệu `.md`, không sửa code server/client nên không chạy build.
+
+### [EQUIPMENT] Thêm code-readiness gate trước implementation tiếp theo
+
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` sau khi rà lại toàn bộ `Pending/Unverified`.
+- Kết luận tài liệu đã đủ để code **Phase 1 equipment foundation** theo Java evidence + remake policy đã tách.
+- Ghi rõ phần chưa được code như Java gốc:
+  - combat special stats `DamageAbsorb/Pierce/Block/Revive/HpPercent`;
+  - wing/mount runtime effect;
+  - original upgrade material catalog;
+  - market tax;
+  - serializer byte-perfect nâng cao.
+- Thêm 5 câu hỏi cần user chốt trước khi implementation lớn: phạm vi server/client, upgrade, combine, seed drop/shop, và rule safety cho `e=8`.
+- Chỉ sửa tài liệu `.md`, không sửa code server/client nên không chạy build.
+
+### [EQUIPMENT/BATTLE] Khóa boundary equipment special stats
+
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` và `BATTLE_SYSTEM_RECONSTRUCTION.md` sau audit bổ sung Java client.
+- Xác nhận `lb.j/k/l/m/o` có parser/UI label evidence:
+  - `200` hấp thu sát thương;
+  - `201` đánh xuyên giáp;
+  - `202` cản đòn;
+  - `203` hồi sinh;
+  - `221` sinh lực %.
+- Chỉ `lb.n` / tag `204` hiện có evidence aggregation rõ trong status (`baseAttack * percent / 100`).
+- Chuyển combat formula cho `DamageAbsorb`, `ArmorPierce`, `Block`, `Revive`, `HpPercent` sang `Pending/Unverified`; không tự chèn vào battle final damage order nếu chưa có Java/server evidence hoặc remake policy được chốt riêng.
+- Chỉ sửa tài liệu `.md`, không sửa code server/client nên không chạy build.
+
 ### [EQUIPMENT] Hoàn tất audit/plan phục dựng hệ thống trang bị trước khi code
 
 - Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` thành spec chính cho hệ thống trang bị.
