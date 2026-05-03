@@ -4,6 +4,42 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-03
 
+### [EQUIPMENT] Equipment stat aggregation helpers + snapshot equip breakdown + BonusAttackPercent
+
+- Cập nhật `server/Twelve.Core/Players/PlayerRuntimeContracts.cs`:
+  - `PlayerEquipmentItemView`: thêm field `BonusAttackPercent` (tag `204` evidence).
+  - `PlayerRuntimeSnapshot`: thêm 10 field `Equip*` tổng hợp stat contribution từ tất cả equipment đang mặc non-broken, để client hiển thị breakdown equipment riêng biệt với base/level stat.
+- Cập nhật `server/Twelve.Application/Players/PlayerContentCatalog.cs`:
+  - `ToEquipmentView`: truyền `BonusAttackPercent` từ modifier.
+  - Thêm `ReduceDurability(entry, amount)`: helper giảm durability clamped to 0, trả entry mới.
+  - Thêm `GetEquippedModifierTotal(equipment)`: aggregate tất cả equipped non-broken modifier thành 1 `PlayerStatModifier`.
+  - Thêm `SumModifiers(...)`: private accumulator cho 10 stat fields.
+- Cập nhật `server/Twelve.Application/Players/PlayerRuntimeService.cs`:
+  - `BuildSnapshot(...)`: gọi `GetEquippedModifierTotal` và truyền 10 field `Equip*` vào snapshot.
+- Java evidence applied:
+  - `AttackPercent/tag 204` evidence cộng theo `baseAttack * percent / 100` (đã audit `lb.java`).
+  - Broken equipment `p == 0` vẫn mặc nhưng bị bỏ qua khi aggregate (bám `da.java` evidence).
+- Remake policy applied:
+  - Wing `e=8` tham gia aggregate như các slot khác (user chốt `2026-05-03`).
+  - `ReduceDurability` là server authority helper cho combat durability loss; caller quyết định amount.
+- Boundary:
+  - Không đổi combat damage formula; 5 special stats (`DamageAbsorb/ArmorPierce/Block/Revive/HpPercent`) vẫn chỉ parse/display, chưa áp combat effect.
+  - Không đổi DB schema.
+  - `dotnet build Twelve.sln` pass: `0 Warning(s), 0 Error(s)`.
+
+### [EQUIPMENT] Equipment persistence snapshot stat aggregation
+
+- Cập nhật `server/Twelve.Infrastructure/Repositories/PlayerAggregateRepository.cs`.
+- `BuildStatSnapshot(...)` khi restore `PlayerAggregate` từ DB giờ aggregate stat từ `PlayerEquipment.RawJson` của equipment đang mặc.
+- Gate server authority:
+  - chỉ cộng equipment có `IsEquipped = true`;
+  - chỉ cộng khi `Durability > 0`, đúng policy đồ hỏng vẫn mặc được nhưng không có stat/effect;
+  - wing `e=8` không bị loại riêng, vì slot đang mặc hợp lệ sẽ đi qua cùng pipeline equipment.
+- Boundary:
+  - không đổi schema persistence hiện tại;
+  - không thêm formula cho `DamageAbsorb/ArmorPierce/Block/Revive/HpPercent`;
+  - verification bằng `dotnet build Twelve.sln`.
+
 ### [EQUIPMENT] Open-egg configured reward pool activation (safe Phase)
 
 - Kích hoạt flow đập trứng an toàn cho loại trứng đã có reward pool rõ ràng.

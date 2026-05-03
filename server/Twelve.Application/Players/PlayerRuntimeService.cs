@@ -582,6 +582,7 @@ namespace Twelve.Application.Players
         private PlayerRuntimeSnapshot BuildSnapshot(PlayerAggregate aggregate)
         {
             var player = aggregate.Core;
+            var equippedModifierTotal = _contentCatalog.GetEquippedModifierTotal(aggregate.Equipment);
             var derived = PlayerStatPipeline.Calculate(
                 player, _contentCatalog.GetEquippedModifiers(aggregate.Equipment));
             var mapMovement = MapMovementCalculator.Calculate(player.Level);
@@ -618,6 +619,16 @@ namespace Twelve.Application.Players
                 Dodge: derived.Dodge,
                 Hit: derived.Hit,
                 Crit: derived.Crit,
+                EquipCuongLuc: equippedModifierTotal.CuongLuc,
+                EquipThanPhap: equippedModifierTotal.ThanPhap,
+                EquipNoiLuc: equippedModifierTotal.NoiLuc,
+                EquipTheLuc: equippedModifierTotal.TheLuc,
+                EquipFlatAttack: equippedModifierTotal.FlatAttack,
+                EquipAttackPercent: equippedModifierTotal.AttackPercent,
+                EquipCrit: equippedModifierTotal.Crit,
+                EquipDefense: equippedModifierTotal.Defense,
+                EquipDodge: equippedModifierTotal.Dodge,
+                EquipMaxHp: equippedModifierTotal.MaxHp,
                 MapMoveSpeed: mapMovement.MoveSpeed,
                 Inventory: aggregate.Inventory.Select(_contentCatalog.ToInventoryView).ToArray(),
                 Equipment: aggregate.Equipment.Select(_contentCatalog.ToEquipmentView).ToArray(),

@@ -2495,3 +2495,68 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - Reward pool của `30094`, `30096`, `30097`, `30098` vẫn chưa bật vì chưa có list template cụ thể.
   - Reward pool tạm của `30095` là remake-config Phase hiện tại dựa trên template catalog sẵn có, không ghi là reward pool Java gốc.
   - Chưa mở combat formula cho `DamageAbsorb/ArmorPierce/Block/Revive/HpPercent`.
+
+### 2026-05-03 — Equipment persistence snapshot stat aggregation
+
+- Code đã sửa:
+  - `server/Twelve.Infrastructure/Repositories/PlayerAggregateRepository.cs`
+    - `BuildStatSnapshot(...)` khi restore `PlayerAggregate` từ database đã dùng `PlayerEquipment.RawJson` của equipment đang mặc để tính `PlayerStatSnapshot`.
+    - Chỉ aggregate equipment có `IsEquipped = true` và `Durability > 0`.
+    - Parse modifier bằng `EquipmentStatModifierParser.Parse(...)`, giữ raw stat/evidence pipeline hiện có.
+- Java evidence applied:
+  - `PlayerEquipment.RawJson` chứa stat instance đã được build từ `lb` stat block.
+  - `ll.e` là slot authoritative; repository không suy diễn slot gameplay từ tên template.
+  - `ll.p` durability là authoritative cho trạng thái hỏng khi tính contribution.
+- Remake policy applied:
+  - Policy user chốt `2026-05-03`: equipment hỏng vẫn mặc được nhưng không cộng stat/effect.
+  - Snapshot restore từ database phải phản ánh đúng stat contribution server-side, không chỉ phụ thuộc runtime recalculate sau equip/repair.
+- Boundary:
+  - Không thêm formula mới cho `DamageAbsorb/tag 200`, `ArmorPierce/tag 201`, `Block/tag 202`, `Revive/tag 203`, `HpPercent/tag 221`.
+  - Không đổi schema `PlayerEquipment`; các field hiện có `EquipKey`, `EquipmentCatalogId`, `Slot`, `ResourceId`, `Level`, `Durability`, `MaxDurability`, `IsEquipped`, `RawJson` đủ cho phase persistence hiện tại.
+- Pending/Unverified giữ nguyên:
+  - Chưa có test project tự động cho repository/persistence; phase này verify bằng `dotnet build`.
+  - Chưa chuyển toàn bộ `SaveCollectionsAsync(...)` sang upsert delta; hiện vẫn dùng delete/reinsert transaction cho aggregate collection.
+
+### 2026-05-03 — Equipment stat aggregation helpers + snapshot equip breakdown + BonusAttackPercent
+
+- Code đã sửa:
+  - `server/Twelve.Core/Players/PlayerRuntimeContracts.cs`
+    - `PlayerEquipmentItemView` expose thêm `BonusAttackPercent` để client/UI thấy rõ stat tag `204`.
+    - `PlayerRuntimeSnapshot` expose thêm các field tổng contribution từ equipment đang mặc/non-broken:
+      - `EquipCuongLuc`
+      - `EquipThanPhap`
+      - `EquipNoiLuc`
+      - `EquipTheLuc`
+      - `EquipFlatAttack`
+      - `EquipAttackPercent`
+      - `EquipCrit`
+      - `EquipDefense`
+      - `EquipDodge`
+      - `EquipMaxHp`
+  - `server/Twelve.Application/Players/PlayerContentCatalog.cs`
+    - `ToEquipmentView(...)` truyền `BonusAttackPercent` từ `PlayerStatModifier.AttackPercent`.
+    - Thêm `ReduceDurability(entry, amount)` làm helper server-side để giảm durability, clamp về `0`, không tự tháo/xóa equipment.
+    - Thêm `GetEquippedModifierTotal(equipment)` để aggregate modifier của tất cả equipment đang mặc và chưa hỏng.
+    - Thêm `SumModifiers(...)` để cộng đúng 10 field đã có evidence/đang được stat pipeline hỗ trợ.
+  - `server/Twelve.Application/Players/PlayerRuntimeService.cs`
+    - `BuildSnapshot(...)` lấy aggregate equipment modifier và trả breakdown `Equip*` trong runtime snapshot.
+- Java evidence applied:
+  - `ll.p/tag 139` là current durability; equipment `p == 0` không đóng góp stat/effect trong status pipeline đã audit từ `da.java`.
+  - `lb.n/tag 204` là attack percent; audit hiện có evidence cộng theo `baseAttack * percent / 100`.
+  - Stats block tiếp tục parse từ `lb`/`RawJson`; không suy diễn thêm field decompile mơ hồ.
+- Remake policy applied:
+  - User confirmation `2026-05-03`: equipment hỏng vẫn mặc được nhưng không cộng stat/effect.
+  - User confirmation `2026-05-03`: `Wing/e=8` tham gia aggregate như equipment hợp lệ khác.
+  - `ReduceDurability(...)` chỉ là helper server-authority; mức trừ durability thuộc caller/flow combat đã chốt riêng.
+- Boundary:
+  - Không thêm combat formula cho các special stats chỉ có parser/UI label evidence:
+    - `DamageAbsorb/tag 200`
+    - `ArmorPierce/tag 201`
+    - `Block/tag 202`
+    - `Revive/tag 203`
+    - `HpPercent/tag 221`
+  - Không đổi DB schema.
+  - Không bật roll upgrade thật.
+  - Không thêm fallback slot/stat/template ngoài evidence/policy đã chốt.
+- Verification:
+  - `dotnet build Twelve.sln` pass: `0 Warning(s), 0 Error(s)`.

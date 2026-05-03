@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Twelve.Core.Entities;
@@ -137,8 +138,15 @@ namespace Twelve.Infrastructure.Repositories
             Player player,
             System.Collections.Generic.IReadOnlyList<PlayerEquipmentEntry> equippedEntries)
         {
+            // Java evidence / Remake policy boundary:
+            // - Equipment stats are stored per instance in PlayerEquipment.RawJson, originally parsed from lb stat blocks.
+            // - ll.e slot and ll.p durability are authoritative for server-side loadout contribution.
+            // - Remake policy 2026-05-03: broken equipment may remain equipped but contributes no stat/effect.
             // Compute derived stats on-the-fly — never read from stale cached DB columns.
-            var derived = PlayerStatPipeline.Calculate(player);
+            var equipmentModifiers = equippedEntries
+                .Where(entry => entry.IsEquipped && entry.Durability > 0)
+                .Select(entry => EquipmentStatModifierParser.Parse(entry.RawJson));
+            var derived = PlayerStatPipeline.Calculate(player, equipmentModifiers);
             return new PlayerStatSnapshot
             {
                 CuongLuc = player.CuongLuc,

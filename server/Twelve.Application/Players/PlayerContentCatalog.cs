@@ -166,6 +166,7 @@ namespace Twelve.Application.Players
                 BonusNoiLuc: definition.Modifier.NoiLuc,
                 BonusTheLuc: definition.Modifier.TheLuc,
                 BonusAttack: definition.Modifier.FlatAttack,
+                BonusAttackPercent: definition.Modifier.AttackPercent,
                 BonusDefense: definition.Modifier.Defense,
                 BonusDodge: definition.Modifier.Dodge,
                 BonusCrit: definition.Modifier.Crit,
@@ -316,6 +317,88 @@ namespace Twelve.Application.Players
                 IsEquipped = entry.IsEquipped,
                 RawJson = BuildEquipmentRawJson(fullyRepaired)
             };
+        }
+
+        /// <summary>
+        /// Reduce current durability by <paramref name="amount"/>, clamped to 0.
+        /// Java evidence: combat causes durability loss on worn equipment.
+        /// Returns a new entry with updated durability; caller must persist.
+        /// </summary>
+        public PlayerEquipmentEntry ReduceDurability(PlayerEquipmentEntry entry, int amount)
+        {
+            if (amount <= 0 || entry.MaxDurability <= 0)
+            {
+                return entry;
+            }
+
+            var newDurability = System.Math.Max(0, entry.Durability - amount);
+            if (newDurability == entry.Durability)
+            {
+                return entry;
+            }
+
+            return new PlayerEquipmentEntry
+            {
+                EquipKey = entry.EquipKey,
+                TemplateKey = entry.TemplateKey,
+                Slot = entry.Slot,
+                ResourceId = entry.ResourceId,
+                Level = entry.Level,
+                Durability = newDurability,
+                MaxDurability = entry.MaxDurability,
+                IsEquipped = entry.IsEquipped,
+                RawJson = entry.RawJson
+            };
+        }
+
+        /// <summary>
+        /// Aggregate stat modifiers from all equipped, non-broken equipment.
+        /// Used to expose total equipment contribution in the client snapshot.
+        /// </summary>
+        public PlayerStatModifier GetEquippedModifierTotal(IEnumerable<PlayerEquipmentEntry> equipment)
+        {
+            var modifiers = GetEquippedModifiers(equipment);
+            return SumModifiers(modifiers);
+        }
+
+        private static PlayerStatModifier SumModifiers(IEnumerable<PlayerStatModifier> modifiers)
+        {
+            var cuongLuc = 0;
+            var thanPhap = 0;
+            var noiLuc = 0;
+            var theLuc = 0;
+            var flatAttack = 0;
+            var attackPercent = 0;
+            var crit = 0;
+            var defense = 0;
+            var dodge = 0;
+            var maxHp = 0;
+
+            foreach (var m in modifiers)
+            {
+                cuongLuc += m.CuongLuc;
+                thanPhap += m.ThanPhap;
+                noiLuc += m.NoiLuc;
+                theLuc += m.TheLuc;
+                flatAttack += m.FlatAttack;
+                attackPercent += m.AttackPercent;
+                crit += m.Crit;
+                defense += m.Defense;
+                dodge += m.Dodge;
+                maxHp += m.MaxHp;
+            }
+
+            return new PlayerStatModifier(
+                CuongLuc: cuongLuc,
+                ThanPhap: thanPhap,
+                NoiLuc: noiLuc,
+                TheLuc: theLuc,
+                FlatAttack: flatAttack,
+                AttackPercent: attackPercent,
+                Crit: crit,
+                Defense: defense,
+                Dodge: dodge,
+                MaxHp: maxHp);
         }
 
         public bool IsRepairMaterial(int itemId) => itemId == (int)PlayerItemId.RepairHammer;
