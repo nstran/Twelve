@@ -356,8 +356,9 @@ namespace Twelve.Application.Players
                 return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong tim thay trang bi.");
             }
 
-            // Remake policy (2026-05-03): server-authoritative repair accepts only hammer 30099,
-            // consumes exactly one hammer, restores ll.p = ll.q, and does not consume Quan.
+            // Remake policy (2026-05-03): server-authoritative repair accepts only
+            // PlayerItemId.RepairHammer (raw itemId 30099), consumes exactly one hammer,
+            // restores ll.p = ll.q, and does not consume Quan.
             if (!_contentCatalog.IsRepairMaterial(request.RepairItemId))
             {
                 return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Vat pham nay khong phai nguyen lieu sua chua.");
@@ -434,6 +435,54 @@ namespace Twelve.Application.Players
                 "Chua bat nang cap: pending danh sach da/bua goc va ti le roll Java.");
         }
 
+        public PlayerRuntimeResponse? OpenEgg(PlayerOpenEggRuntimeRequest request)
+        {
+            var aggregate = LoadAggregate(request.Username);
+            if (aggregate is null)
+            {
+                return null;
+            }
+
+            // Remake policy / user confirmation 2026-05-03:
+            // Open-egg costs are server-authoritative config. Java client currently proves only
+            // partial item/icon identity; Java server reward rates and pools are Pending/Unverified.
+            var eggDefinition = _contentCatalog.GetEggDefinition(request.EggItemId);
+            if (eggDefinition is null)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Vat pham nay khong phai trung co the dap.");
+            }
+
+            var inventory = aggregate.Inventory.ToList();
+            var eggIndex = inventory.FindIndex(entry => entry.ItemId == request.EggItemId && entry.Quantity > 0);
+            if (eggIndex < 0)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Can 1 trung trong tui do.");
+            }
+
+            if (aggregate.Core.Gold < eggDefinition.OpenCostQuan)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong du Quan de dap trung.");
+            }
+
+            if (IsInventoryFullForNewEquipment(aggregate))
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Tui do da day.");
+            }
+
+            // Strict reconstruction boundary: each egg type must have explicit configured reward templates.
+            // Do not fallback to random equipment, and never include Wing/e=8 in egg rewards.
+            if (eggDefinition.AllowedEquipmentTemplateKeys.Count == 0)
+            {
+                return new PlayerRuntimeResponse(
+                    BuildSnapshot(aggregate),
+                    "Chua cau hinh reward pool cho loai trung nay.");
+            }
+
+            return new PlayerRuntimeResponse(
+                BuildSnapshot(aggregate),
+                "Chua bat dap trung: pending reward pool/template cho tung loai trung.");
+        }
+
         private PlayerAggregate? LoadAggregate(string username) =>
             string.IsNullOrWhiteSpace(username)
                 ? null
@@ -442,6 +491,15 @@ namespace Twelve.Application.Players
         private PlayerAggregate ReloadAggregate(long playerId) =>
             _playerAggregateRepository.GetByPlayerIdAsync(playerId).GetAwaiter().GetResult()
             ?? throw new System.InvalidOperationException("Failed to reload player aggregate.");
+
+        private static bool IsInventoryFullForNewEquipment(PlayerAggregate aggregate)
+        {
+            // Java evidence: go.n default inventory capacity is 50 and go.b() counts
+            // equipment bag + currently worn equipment + item stacks against that capacity.
+            const int DefaultInventoryCapacity = 50;
+            var occupiedSlots = aggregate.Equipment.Count + aggregate.Inventory.Count;
+            return occupiedSlots >= DefaultInventoryCapacity;
+        }
 
         private PlayerRuntimeSnapshot BuildSnapshot(PlayerAggregate aggregate)
         {

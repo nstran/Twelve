@@ -10,6 +10,39 @@ namespace Twelve.Core.Players
         TheLuc = 3,
     }
 
+    /// <summary>
+    /// Raw item ids that are already used by server-authoritative gameplay flows.
+    /// Keep values identical to original/remake-config ids; cast only at API/storage boundaries.
+    /// </summary>
+    public enum PlayerItemId
+    {
+        /// <summary>
+        /// Remake policy (2026-05-03): ostrich egg open flow uses current DB/catalog shell raw itemId 30095.
+        /// Official Java server egg id list/reward pool is still pending/unverified.
+        /// </summary>
+        OstrichEgg = 30095,
+
+        /// <summary>
+        /// Remake policy (2026-05-03): consumed by cmd 48 repair flow, restores equipment durability to max.
+        /// </summary>
+        RepairHammer = 30099,
+    }
+
+    public enum PlayerItemKind
+    {
+        Consumable = 0,
+        Material = 1,
+        Egg = 2,
+        RepairMaterial = 3,
+    }
+
+    public enum PlayerItemEvidenceStatus
+    {
+        PendingUnverified = 0,
+        RemakePolicy = 1,
+        JavaEvidence = 2,
+    }
+
     public sealed record PlayerInventoryItemView(
         int ItemId,
         string DisplayName,
@@ -18,7 +51,11 @@ namespace Twelve.Core.Players
         int StackCap,
         bool IsUsable,
         int HealAmount,
-        string IconKind
+        string IconKind,
+        PlayerItemKind Kind,
+        PlayerItemEvidenceStatus EvidenceStatus,
+        int? ResourceId,
+        int? IconId
     );
 
     public sealed record PlayerEquipmentItemView(
@@ -162,5 +199,12 @@ namespace Twelve.Core.Players
         string Username,
         string EquipKey,
         IReadOnlyList<int> MaterialItemIds
+    );
+
+    // Open-egg / đập trứng skeleton — remake policy 2026-05-03:
+    // egg costs and reward-pool requirement are user-confirmed policy, not Java server evidence.
+    public sealed record PlayerOpenEggRuntimeRequest(
+        string Username,
+        int EggItemId
     );
 }

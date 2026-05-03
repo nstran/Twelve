@@ -343,6 +343,14 @@ app.MapPost("/player/runtime/equipment/upgrade", (PlayerUpgradeEquipmentRuntimeR
     return response is null ? Results.NotFound() : Results.Ok(response);
 });
 
+// Remake policy 2026-05-03 — đập/mở trứng requires explicit egg config and reward pool;
+// no fallback random equipment and no Wing/e=8 rewards.
+app.MapPost("/player/runtime/item/open-egg", (PlayerOpenEggRuntimeRequest request, IPlayerRuntimeService service) =>
+{
+    var response = service.OpenEgg(request);
+    return response is null ? Results.NotFound() : Results.Ok(response);
+});
+
 app.Run();
 
 static MonsterSharedSheetFamily ResolveSharedSheetFamily(

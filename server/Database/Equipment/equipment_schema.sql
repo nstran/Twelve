@@ -25,3 +25,28 @@ CREATE TABLE IF NOT EXISTS EquipmentCatalog (
 
 CREATE INDEX IF NOT EXISTS idx_equipment_catalog_resource_id ON EquipmentCatalog(ResourceId);
 CREATE INDEX IF NOT EXISTS idx_equipment_catalog_slot ON EquipmentCatalog(Slot);
+
+-- Java evidence / Remake policy boundary:
+-- - ItemId is raw gameplay id used by server logic.
+-- - ResourceId/IconId are nullable because Java asset/resource ids for non-equipment items are still pending.
+-- - Kind/EvidenceStatus use raw enum values from Twelve.Core.Players.PlayerItemKind/PlayerItemEvidenceStatus.
+CREATE TABLE IF NOT EXISTS ItemCatalog (
+    ItemId INT PRIMARY KEY,
+    DisplayName TEXT NOT NULL,
+    Description TEXT NOT NULL DEFAULT '',
+    StackCap INT NOT NULL DEFAULT 99,
+    IsUsable BOOLEAN NOT NULL DEFAULT FALSE,
+    HealAmount INT NOT NULL DEFAULT 0,
+    ManaAmount INT NOT NULL DEFAULT 0,
+    RestoreKind TEXT NOT NULL DEFAULT 'none',
+    IconKind TEXT NOT NULL DEFAULT 'item',
+    Kind INT NOT NULL DEFAULT 1,
+    EvidenceStatus INT NOT NULL DEFAULT 0,
+    ResourceId INT NULL,
+    IconId INT NULL,
+    IsEnabled BOOLEAN NOT NULL DEFAULT TRUE,
+    UpdatedAt TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_item_catalog_kind ON ItemCatalog(Kind);
+CREATE INDEX IF NOT EXISTS idx_item_catalog_resource_id ON ItemCatalog(ResourceId);

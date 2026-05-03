@@ -4,6 +4,85 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-03
 
+### [EQUIPMENT] User-facing ItemCatalog descriptions cleanup
+
+- Cập nhật `server/Database/Equipment/equipment_seed.sql` để mô tả item là text hiển thị cho người chơi, không còn ghi chú kỹ thuật reconstruction trong cột `Description`.
+- Các mô tả đã chuyển sang dạng gameplay/user-facing:
+  - `HP`/`MP`: mô tả hồi HP/MP.
+  - `Huyết Thạch`, `Kim Thạch`, `Vuốt Rồng`, `Lông Vũ`: mô tả là nguyên liệu cho chế tạo/cường hóa/nâng cấp khi hệ thống tương ứng mở khóa.
+  - `X2 EXP`: mô tả vật phẩm hỗ trợ tăng kinh nghiệm.
+  - Các loại trứng: mô tả dùng cho mở thưởng/triệu hồi khi hệ thống trứng được mở khóa.
+  - `Búa Sửa Chữa`: mô tả dùng 1 búa để hồi đầy độ bền trang bị hư hỏng.
+- Boundary:
+  - Evidence/policy/pending vẫn nằm ở tài liệu/comment và cột `EvidenceStatus`, không đưa vào text mô tả item.
+  - Không đổi raw item id, `Kind`, `EvidenceStatus`, `ResourceId/IconId`.
+  - Không đổi gameplay behavior.
+
+### [EQUIPMENT] Minimal DB ItemCatalog for inventory items
+
+- Thêm DB item catalog tối thiểu theo yêu cầu tạo database cho items.
+- Cập nhật `server/Database/Equipment/equipment_schema.sql`:
+  - thêm bảng `ItemCatalog`;
+  - giữ các trường cần thiết: `ItemId`, `DisplayName`, `Description`, stack/use/heal/mana/restore/icon kind, `Kind`, `EvidenceStatus`, nullable `ResourceId/IconId`, `IsEnabled`, `UpdatedAt`;
+  - thêm index theo `Kind` và `ResourceId`.
+- Cập nhật `server/Database/Equipment/equipment_seed.sql`:
+  - thay placeholder bằng seed tối thiểu cho item hiện đang dùng trong runtime/catalog shell: `5001..5007`, `30095..30099`;
+  - tên/icon kind bám asset thật trong `client/assets/items/` (`hp`, `mp`, `huyet_thach`, `kim_thach`, `dragon_claw`, `feather`, `x2_exp`, các egg icon và `repair_hammer`) thay vì đặt tên giả;
+  - dùng `ON CONFLICT (ItemId) DO UPDATE` để migrator chạy lại an toàn.
+- Boundary:
+  - `ItemId` là raw gameplay id, không dùng trực tiếp làm asset id;
+  - `Kind`/`EvidenceStatus` giữ raw enum values theo `PlayerItemKind` và `PlayerItemEvidenceStatus`;
+  - `ResourceId/IconId` để `NULL` khi Java asset/resource evidence chưa chắc chắn;
+  - các id seed tạm ngoài `30095/30099` chưa được ghi là Java server evidence, chỉ là catalog shell theo asset/runtime hiện có.
+
+### [EQUIPMENT] Minimal item catalog fields for inventory icon/resource authority
+
+- Thêm item catalog/template tối thiểu cho inventory item để tách raw gameplay id khỏi asset resource/icon id.
+- Cập nhật `server/Twelve.Core/Players/PlayerRuntimeContracts.cs`:
+  - thêm enum `PlayerItemKind`;
+  - thêm enum `PlayerItemEvidenceStatus`;
+  - `PlayerInventoryItemView` expose `Kind`, `EvidenceStatus`, `ResourceId`, `IconId`.
+- Cập nhật `server/Twelve.Application/Players/PlayerContentCatalog.cs`:
+  - mở rộng `PlayerItemDefinition` với kind/evidence/resource/icon id;
+  - serialize/resolve các field mới trong `RawJson`;
+  - `OstrichEgg = 30095` và `RepairHammer = 30099` giữ `ResourceId/IconId = null` vì chưa có Java asset/resource evidence chính thức.
+- Boundary:
+  - `PlayerItemId` chỉ là raw gameplay id cho server logic, không dùng trực tiếp làm asset id;
+  - equipment icon vẫn derive từ `ll.n/resourceId` theo Java evidence `iconId = (resId - resId % 10) + 98`;
+  - item tiêu hao/material dùng catalog riêng và `EvidenceStatus`, không tự gán raw item id như `30095/30099` thành icon id.
+
+### [EQUIPMENT] Raw item id enum boundary for equipment items
+
+- Tiếp tục cleanup server authority cho equipment item ids.
+- Cập nhật `server/Twelve.Core/Players/PlayerRuntimeContracts.cs`:
+  - thêm enum `PlayerItemId`;
+  - giữ raw values theo catalog/runtime hiện tại: `OstrichEgg = 30095`, `RepairHammer = 30099`.
+- Cập nhật `server/Twelve.Application/Players/PlayerContentCatalog.cs`:
+  - `IsRepairMaterial(...)`, item catalog và open-egg skeleton dùng `PlayerItemId` thay vì số trần trong logic code.
+- Cập nhật `server/Twelve.Application/Players/PlayerRuntimeService.cs`:
+  - comment repair flow trỏ tới `PlayerItemId.RepairHammer` và vẫn ghi rõ raw itemId `30099`.
+- Boundary:
+  - không đổi gameplay behavior;
+  - `30099` vẫn là remake policy/user confirmation ngày `2026-05-03`, không ghi thành Java server evidence;
+  - enum giữ raw value, chỉ cast tại boundary catalog/API/storage.
+
+### [EQUIPMENT] Open-egg backend safety skeleton + capacity gate
+
+- Tiếp tục Phase equipment server authority theo `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Cập nhật runtime API/server:
+  - thêm `PlayerOpenEggRuntimeRequest`;
+  - expose `OpenEgg(...)` qua `IPlayerRuntimeService`;
+  - thêm endpoint `POST /player/runtime/item/open-egg`.
+- Cập nhật catalog/service:
+  - thêm `PlayerEggDefinition`;
+  - cấu hình skeleton cho trứng đà điểu itemId `30095`, cost `30,000` Quan;
+  - validate egg config, có trứng trong inventory, đủ Quan, capacity chưa đầy;
+  - nếu chưa có reward pool/template rõ thì trả lỗi cấu hình và không mutate inventory/currency/equipment.
+- Giữ boundary:
+  - Java evidence: `go.n = 50`; inventory full check bám `go.b()` theo equipment + item stacks;
+  - remake policy: trứng không mở ra `Wing/e=8`, reward chỉ nằm trong `Armor/Weapon/Helmet/Ring`;
+  - pending: itemId các loại trứng khác, reward pool/rate/pity/event multiplier, và tạo equipment instance sau khi có config rõ.
+
 ### [EQUIPMENT] Open-egg / đập trứng remake policy
 
 - Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` với policy user chốt cho flow mở trứng:

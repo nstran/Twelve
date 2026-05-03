@@ -15,5 +15,6 @@ namespace Twelve.Core.Interfaces
         PlayerRuntimeResponse? DiscardItem(PlayerDiscardItemRuntimeRequest request);
         PlayerRuntimeResponse? RepairEquipment(PlayerRepairEquipmentRuntimeRequest request);
         PlayerRuntimeResponse? UpgradeEquipment(PlayerUpgradeEquipmentRuntimeRequest request);
+        PlayerRuntimeResponse? OpenEgg(PlayerOpenEggRuntimeRequest request);
     }
 }

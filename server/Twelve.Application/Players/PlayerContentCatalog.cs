@@ -124,7 +124,11 @@ namespace Twelve.Application.Players
                 StackCap: definition.StackCap,
                 IsUsable: definition.IsUsable,
                 HealAmount: definition.HealAmount,
-                IconKind: definition.IconKind);
+                IconKind: definition.IconKind,
+                Kind: definition.Kind,
+                EvidenceStatus: definition.EvidenceStatus,
+                ResourceId: definition.ResourceId,
+                IconId: definition.IconId);
         }
 
         public PlayerEquipmentItemView ToEquipmentView(PlayerEquipmentEntry entry)
@@ -275,8 +279,8 @@ namespace Twelve.Application.Players
 
         /// <summary>
         /// cmd 48: khôi phục ll.p = ll.q (current durability = max durability).
-        /// Remake policy (2026-05-03): consume exactly 1 repair hammer itemId 30099,
-        /// restore full durability, do not consume Quan.
+        /// Remake policy (2026-05-03): consume exactly 1 repair hammer <see cref="PlayerItemId.RepairHammer"/>
+        /// (raw itemId 30099), restore full durability, do not consume Quan.
         /// </summary>
         public PlayerEquipmentEntry RestoreDurability(PlayerEquipmentEntry entry)
         {
@@ -296,7 +300,31 @@ namespace Twelve.Application.Players
             };
         }
 
-        public bool IsRepairMaterial(int itemId) => itemId == 30099;
+        public bool IsRepairMaterial(int itemId) => itemId == (int)PlayerItemId.RepairHammer;
+
+        public PlayerEggDefinition? GetEggDefinition(int itemId)
+        {
+            // Remake policy / user confirmation 2026-05-03:
+            // Open-egg costs are server-authoritative config, not Java server evidence.
+            // Pending/Unverified: official itemId list for non-ostrich eggs and reward pools.
+            if (itemId == (int)PlayerItemId.OstrichEgg)
+            {
+                return new PlayerEggDefinition(
+                    ItemId: itemId,
+                    DisplayName: "Trứng đà điểu",
+                    OpenCostQuan: 30000,
+                    AllowedRewardSlots:
+                    [
+                        (int)PlayerEquipmentSlot.Armor,
+                        (int)PlayerEquipmentSlot.Weapon,
+                        (int)PlayerEquipmentSlot.Helmet,
+                        (int)PlayerEquipmentSlot.Ring
+                    ],
+                    AllowedEquipmentTemplateKeys: Array.Empty<string>());
+            }
+
+            return null;
+        }
 
         private PlayerEquipmentEntry CreateStarterEquipmentEntry(
             PlayerEquipmentDefinition definition,
@@ -370,7 +398,11 @@ namespace Twelve.Application.Players
                 HealAmount: ParseInt(payload, "healAmount", 0),
                 ManaAmount: ParseInt(payload, "manaAmount", 0),
                 RestoreKind: payload.TryGetValue("restoreKind", out var restoreKind) ? restoreKind : "hp",
-                IconKind: payload.TryGetValue("iconKind", out var iconKind) ? iconKind : "item");
+                IconKind: payload.TryGetValue("iconKind", out var iconKind) ? iconKind : "item",
+                Kind: ParseEnum(payload, "kind", PlayerItemKind.Material),
+                EvidenceStatus: ParseEnum(payload, "evidenceStatus", PlayerItemEvidenceStatus.PendingUnverified),
+                ResourceId: ParseNullableInt(payload, "resourceId"),
+                IconId: ParseNullableInt(payload, "iconId"));
         }
 
         private PlayerEquipmentDefinition ResolveEquipment(PlayerEquipmentEntry entry)
@@ -427,7 +459,11 @@ namespace Twelve.Application.Players
                 healAmount = definition.HealAmount,
                 manaAmount = definition.ManaAmount,
                 restoreKind = definition.RestoreKind,
-                iconKind = definition.IconKind
+                iconKind = definition.IconKind,
+                kind = definition.Kind,
+                evidenceStatus = definition.EvidenceStatus,
+                resourceId = definition.ResourceId,
+                iconId = definition.IconId
             });
 
         private static string BuildEquipmentRawJson(PlayerEquipmentDefinition definition) =>
@@ -525,17 +561,42 @@ namespace Twelve.Application.Players
                 ? parsed
                 : fallback;
 
+        private static int? ParseNullableInt(IReadOnlyDictionary<string, string> payload, string key)
+        {
+            if (!payload.TryGetValue(key, out var value) || string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            return int.TryParse(value, out var parsed) ? parsed : null;
+        }
+
+        private static TEnum ParseEnum<TEnum>(
+            IReadOnlyDictionary<string, string> payload,
+            string key,
+            TEnum fallback)
+            where TEnum : struct, Enum
+        {
+            if (!payload.TryGetValue(key, out var value) || string.IsNullOrWhiteSpace(value))
+            {
+                return fallback;
+            }
+
+            return Enum.TryParse<TEnum>(value, ignoreCase: true, out var parsed) ? parsed : fallback;
+        }
+
         private static IReadOnlyDictionary<int, PlayerItemDefinition> CreateItemDefinitions() =>
             new Dictionary<int, PlayerItemDefinition>
             {
-                [5001] = new PlayerItemDefinition(5001, "Tiểu Hồi Phục", "Khôi phục HP ngoài battle; lượng hồi scale theo Cường Lực/thiếu HP.", 20, true, 35, 0, "hp", "potion_red"),
-                [5002] = new PlayerItemDefinition(5002, "Hỏa Tinh Thạch", "Tinh thạch rơi từ quái hệ Hỏa.", 99, false, 0, 0, "none", "ember"),
-                [5003] = new PlayerItemDefinition(5003, "Băng Tủy", "Tinh hoa lạnh dùng cho nâng cấp sau này.", 99, false, 0, 0, "none", "ice"),
-                [5004] = new PlayerItemDefinition(5004, "Lôi Nha", "Mảnh sừng sét cất vào túi đồ.", 99, false, 0, 0, "none", "zap"),
-                [5005] = new PlayerItemDefinition(5005, "Trung Hồi Phục", "Khôi phục HP ngoài battle; lượng hồi scale theo Cường Lực/thiếu HP.", 20, true, 70, 0, "hp", "potion_blue"),
-                [5006] = new PlayerItemDefinition(5006, "Tiểu Nội Dược", "Khôi phục MP ngoài battle; lượng hồi scale theo Nội Lực/thiếu MP.", 20, true, 0, 35, "mp", "potion_blue"),
-                [5007] = new PlayerItemDefinition(5007, "Trái Đào", "Khôi phục HP/MP ngoài battle; lượng hồi scale theo Cường Lực và Nội Lực.", 20, true, 500, 250, "hp_mp", "peach"),
-                [30099] = new PlayerItemDefinition(30099, "Búa Sửa Chữa", "Dùng để sửa chữa trang bị đã hư hỏng. Khôi phục độ bền về mức tối đa.", 20, false, 0, 0, "none", "hammer"),
+                [5001] = new PlayerItemDefinition(5001, "Tiểu Hồi Phục", "Khôi phục HP ngoài battle; lượng hồi scale theo Cường Lực/thiếu HP.", 20, true, 35, 0, "hp", "potion_red", PlayerItemKind.Consumable, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [5002] = new PlayerItemDefinition(5002, "Hỏa Tinh Thạch", "Tinh thạch rơi từ quái hệ Hỏa.", 99, false, 0, 0, "none", "ember", PlayerItemKind.Material, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [5003] = new PlayerItemDefinition(5003, "Băng Tủy", "Tinh hoa lạnh dùng cho nâng cấp sau này.", 99, false, 0, 0, "none", "ice", PlayerItemKind.Material, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [5004] = new PlayerItemDefinition(5004, "Lôi Nha", "Mảnh sừng sét cất vào túi đồ.", 99, false, 0, 0, "none", "zap", PlayerItemKind.Material, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [5005] = new PlayerItemDefinition(5005, "Trung Hồi Phục", "Khôi phục HP ngoài battle; lượng hồi scale theo Cường Lực/thiếu HP.", 20, true, 70, 0, "hp", "potion_blue", PlayerItemKind.Consumable, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [5006] = new PlayerItemDefinition(5006, "Tiểu Nội Dược", "Khôi phục MP ngoài battle; lượng hồi scale theo Nội Lực/thiếu MP.", 20, true, 0, 35, "mp", "potion_blue", PlayerItemKind.Consumable, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [5007] = new PlayerItemDefinition(5007, "Trái Đào", "Khôi phục HP/MP ngoài battle; lượng hồi scale theo Cường Lực và Nội Lực.", 20, true, 500, 250, "hp_mp", "peach", PlayerItemKind.Consumable, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [(int)PlayerItemId.OstrichEgg] = new PlayerItemDefinition((int)PlayerItemId.OstrichEgg, "Trứng đà điểu", "Đập trứng bằng Quan để có cơ hội nhận trang bị từ danh sách mở thưởng của trứng đà điểu.", 20, false, 0, 0, "item", "chicken_egg", PlayerItemKind.Egg, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [(int)PlayerItemId.RepairHammer] = new PlayerItemDefinition((int)PlayerItemId.RepairHammer, "Búa Sửa Chữa", "Dụng cụ sửa trang bị; dùng 1 búa để phục hồi độ bền cho một trang bị bị hư hỏng.", 20, false, 0, 0, "item", "repair_hammer", PlayerItemKind.RepairMaterial, PlayerItemEvidenceStatus.RemakePolicy, null, null),
             };
 
         private static IReadOnlyDictionary<int, IReadOnlyList<PlayerSkillDefinition>> CreateSkillDefinitions() =>
@@ -582,12 +643,23 @@ namespace Twelve.Application.Players
             int HealAmount,
             int ManaAmount,
             string RestoreKind,
-            string IconKind);
+            string IconKind,
+            PlayerItemKind Kind,
+            PlayerItemEvidenceStatus EvidenceStatus,
+            int? ResourceId,
+            int? IconId);
 
         public sealed record PlayerSkillDefinition(
             int FamilyCode,
             int MaxLevel,
             int RequiredLevel,
             int Cost);
+
+        public sealed record PlayerEggDefinition(
+            int ItemId,
+            string DisplayName,
+            long OpenCostQuan,
+            IReadOnlyList<int> AllowedRewardSlots,
+            IReadOnlyList<string> AllowedEquipmentTemplateKeys);
     }
 }
