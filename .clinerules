@@ -42,6 +42,7 @@
 - Khi cần chạy command để lấy kết quả kiểm tra/build/script, PHẢI tự chạy ẩn/không chiếm terminal bằng PowerShell `Start-Process -WindowStyle Hidden -Wait ...` và redirect output ra file tạm, sau đó đọc file output bằng tool đọc file. Ví dụ: `Start-Process -WindowStyle Hidden -Wait -FilePath "client\node_modules\.bin\tsc.cmd" -ArgumentList "-p","client\tsconfig.json","--noEmit" -RedirectStandardOutput ".tmp\tsc.out" -RedirectStandardError ".tmp\tsc.err"`.
 - Với tác vụ cập nhật tài liệu/nội dung/sinh file, PHẢI ưu tiên dùng tool chỉnh file (`replace_in_file`/`write_to_file`). Không dùng `python -c` inline hoặc script dài trong terminal để sửa file, trừ khi người dùng yêu cầu rõ.
 - Nếu build thất bại, phải phân tích lỗi và sửa lỗi cho đến khi build thành công mới được báo cáo hoàn thành nhiệm vụ.
+- CẤM báo `attempt_completion`/Task Completed khi chưa thật sự sửa file, cập nhật tài liệu, kiểm tra lại kết quả hoặc khi vẫn còn tool/result cần xử lý. Nếu task mới dừng ở mức đọc/audit/plan chưa ghi vào file yêu cầu thì phải tiếp tục làm, không được báo hoàn tất giả.
 
 ## 7. Note
 - Sau mỗi ngày làm việc, hãy tóm tắt các thay đổi lớn vào file CHANGELOG.md để tôi có cái nhìn tổng quan

@@ -1,5 +1,25 @@
 ﻿# CHANGELOG
 
+## 2026-05-03
+
+### [EQUIPMENT] Rà Java client và cập nhật plan khôi phục trang bị
+
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` dựa trên audit Java client các lớp `ll/lb/ky/mb/hg/fw/dc/id/gp/cz/go/com.mg.sq.a`.
+- Bổ sung full field model `ll` gồm các field trước đó còn thiếu (`b/l/o/s/u`) và mapping packet tags cho equipment full/minimal parse.
+- Bổ sung `lb` 15 stat fields, mapping tag `118-221`, rule cộng stat nhân vật và lưu ý decompile bug tag `118`.
+- Ghi lại inventory/equip rules từ `go.java` và `cz.java`: capacity default `50`, full-check item type `7`, one item per slot `ll.e`, boots `e=3` không rebuild visual.
+- Bổ sung comparator `gp.java`, equipment icon/frame convention từ `mb.java`, detail/tooltip/cell renderer/upgrade panel flow từ `hg/fw/dc/id`.
+- Rà bổ sung `hh/hl/ia/lq/ks`: màn hình hành trang, equip/unequip sync key array, menu mặc/sửa/nâng cấp/rao bán/vứt bỏ, repair bằng búa, shop mặc thử/giỏ hàng/mua và network sender payloads.
+- Rà tiếp `da/ho` sau search toàn cục: status panel chỉ cộng stat trang bị còn trong `go.l` và `p != 0`; combine panel có flow riêng với sender action `0/1`, final arrays và kết quả `"Kết hợp thành công/thất bại"`.
+- Rà bổ sung exact callback/result packet shape trong `ky.java` cho command `96/97/99/100/112`: request-upgrade/combine response, modified-upgrade/combine result, equip-change response và các tag chính `83/186/187/188/114/106/132/157/175/1`.
+- Rà bổ sung usage stat đặc biệt `lb.j..o`: `lb.n` (`AttackPercent`) chắc chắn cộng theo `baseAttack * percent / 100`; `lb.o` (`HpPercent`) và `lb.j/k/l/m` hiện chỉ chắc chắn parse/display, chưa tự ý gán công thức combat/status.
+- Search phụ `hn/hq` xác nhận các màn market/trade có thể wrap `ll` qua `lq` nhưng không đổi core model/rule equipment.
+- Rà bổ sung `gx.java`: dialog confirm giỏ hàng mua nhiều equipment dùng `lq.e -> ll`, icon `mb.a(ll)+98`, stat strings `com.mg.sq.a.a(ll)`, rank color `ll.a(rank)` và tổng tiền từ `lq.d`.
+- Rà bổ sung `of.java`: panel giao dịch add/remove/reclaim equipment bằng `dc`, icon convention cũ, key `ll.c`, log cập nhật/lấy lại và danh sách kiểm tra giao dịch; mapping sender trade `ks.k/l/m/n` giữ riêng khỏi equip/upgrade/combine.
+- Cập nhật coverage estimate trong tài liệu: khoảng `99.5%` phần equipment client-side core đã gom; phần còn lại chủ yếu là combat usage của stat đặc biệt, asset/meta đối chiếu bằng server dump, UI thương mại phụ ngoài core và byte-perfect serializer test với client thật.
+- Dọn phần thừa không phải bằng chứng Java source: bỏ bảng `.agent/skills/` và đánh dấu `110xxx-140xxx` là mixed/needs re-audit thay vì exclude cứng.
+- Cập nhật `.clinerules` thêm rule cấm báo Task Completed khi chưa thật sự sửa file/cập nhật tài liệu/kiểm tra kết quả.
+
 ## 2026-04-30
 
 ### [MAP] Tăng reachability jump Hoa Lư theo policy reconstructed
