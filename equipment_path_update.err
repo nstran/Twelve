@@ -1,0 +1,74 @@
+=client/src/screens/character/shared/equipmentAssets.generated.ts : The term 
+'=client/src/screens/character/shared/equipmentAssets.generated.ts' is not recognized as the name of a cmdlet, 
+function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the 
+path is correct and try again.
+At line:1 char:1
++ ='client/src/screens/character/shared/equipmentAssets.generated.ts';  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=client/src/scr...ts.generated.ts:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+=Get-Content : The term '=Get-Content' is not recognized as the name of a cmdlet, function, script file, or operable 
+program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:70
++ ... /character/shared/equipmentAssets.generated.ts'; =Get-Content -Raw ;  ...
++                                                      ~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (=Get-Content:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+= : The term '=' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the 
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:90
++ ... r/shared/equipmentAssets.generated.ts'; =Get-Content -Raw ; = -replac ...
++                                                                 ~
+    + CategoryInfo          : ObjectNotFound: (=:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+= : The term '=' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the 
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:176
++ ... nt/01_default_overlays/[^/]+/','assets/equipment/default/'; = -replac ...
++                                                                 ~
+    + CategoryInfo          : ObjectNotFound: (=:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+= : The term '=' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the 
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:252
++ ... ts/equipment/02_armor_e0/[^/]+/','assets/equipment/armor/'; = -replac ...
++                                                                 ~
+    + CategoryInfo          : ObjectNotFound: (=:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+= : The term '=' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the 
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:330
++ ... /equipment/03_weapon_e1/[^/]+/','assets/equipment/weapon/'; = -replac ...
++                                                                 ~
+    + CategoryInfo          : ObjectNotFound: (=:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+= : The term '=' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the 
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:408
++ ... /equipment/04_helmet_e2/[^/]+/','assets/equipment/helmet/'; = -replac ...
++                                                                 ~
+    + CategoryInfo          : ObjectNotFound: (=:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+= : The term '=' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the 
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:498
++ ... 7_accessory_e5_e7_e8/[^/]+/','assets/equipment/accessory/'; = -replac ...
++                                                                 ~
+    + CategoryInfo          : ObjectNotFound: (=:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+= : The term '=' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the 
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:580
++ ... ipment/08_premium_sets/[^/]+/','assets/equipment/premium/'; = -replac ...
++                                                                 ~
+    + CategoryInfo          : ObjectNotFound: (=:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 

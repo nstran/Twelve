@@ -93,6 +93,25 @@
   - Drop pool ngoài equipment có thể gồm HP/MP item, trứng và material; trứng có thể mở/đập ra equipment theo config.
   - Combine không làm placeholder; sẽ implement bằng `CombineRecipes` server config/table với input filters, material, output template/pool, success rate và failure policy.
 
+### [EQUIPMENT] Gộp lại cây asset equipment theo folder slot lớn
+
+- Gộp cấu trúc asset `client/assets/equipment/` từ các folder audit sâu (`01_default_overlays/`, `02_armor_e0/`, `03_weapon_e1/`, `04_helmet_e2/`, `07_accessory_e5_e7_e8/`, `08_premium_sets/`, `09_ui_icons/`) sang folder slot lớn:
+  - `default/`, `armor/`, `weapon/`, `helmet/`, `accessory/`, `premium/`, `ui/`.
+- Tạo/cập nhật manifest:
+  - `client/assets/equipment/index.csv`
+  - `client/assets/equipment/equipment_manifest.json`
+- Cập nhật `client/assets/equipment/README.md` với layout mới, convention `band + 98`, rule resolver và số lượng asset sau gộp.
+- Cập nhật `EQUIPMENT_SYSTEM_RECONSTRUCTION.md` section `9` để tài liệu reconstruction khớp với cây asset hiện tại.
+- Số lượng PNG sau gộp: `974`:
+  - `default`: `32`
+  - `armor`: `363`
+  - `weapon`: `220`
+  - `helmet`: `187`
+  - `accessory`: `56`
+  - `premium`: `110`
+  - `ui`: `6`
+- Giữ rule quan trọng: folder vật lý chỉ là asset lookup hint; gameplay slot authoritative vẫn là `ll.e` từ packet/model Java.
+
 ## 2026-04-30
 
 ### [MAP] Tăng reachability jump Hoa Lư theo policy reconstructed

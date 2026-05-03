@@ -885,63 +885,29 @@ Rule phục dựng:
 
 ## 9. Organized Asset Folder Structure
 
+Asset equipment đã được gộp lại theo folder slot lớn ngày 2026-05-03 để resolver đơn giản và tránh cây thư mục quá sâu. Các folder audit cũ `01_default_overlays/`, `02_armor_e0/`, `03_weapon_e1/`, `04_helmet_e2/`, `07_accessory_e5_e7_e8/`, `08_premium_sets/`, `09_ui_icons/` đã được copy vào nhóm mới rồi xóa.
+
 ```
 client/assets/equipment/
 │
-├── 01_default_overlays/
-│   ├── weapon_male_default_799xx/     79900-79909, 79998/79999 family
-│   ├── weapon_female_default_798xx/   79800-79809, 79898/79899 family
-│   └── helmet_default_899xx/          89900-89909, 89999 family
-│
-├── 02_armor_e0/
-│   ├── armor_701xx/
-│   ├── armor_703xx/
-│   └── ...
-│
-├── 03_weapon_e1/
-│   ├── weapon_800xx/
-│   ├── weapon_802xx/
-│   ├── weapon_832xx/
-│   ├── weapon_890xx/
-│   └── weapon_893xx/
-│
-├── 04_helmet_e2/
-│   ├── headgear_candidate_500xx/
-│   ├── headgear_candidate_501xx/
-│   ├── ...
-│   ├── meta_helmet_971xx/
-│   └── meta_helmet_999xx/
-│
-├── 05_boot_e3/
-│   └── Boots are stats-only in compositor; asset evidence remains unconfirmed.
-│
-├── 06_mount_e4/
-│   └── Mount/shield slot exists in `ll.a[4]=5`; visual compositor path not confirmed.
-│
-├── 07_accessory_e5_e7_e8/
-│   ├── aura_candidate_902xx/
-│   ├── aura_candidate_903xx/
-│   ├── accessory_candidate_120xxx/
-│   ├── accessory_candidate_121xxx/
-│   ├── accessory_candidate_122xxx/
-│   ├── accessory_candidate_128xxx/
-│   ├── accessory_candidate_130xxx/
-│   └── accessory_candidate_140xxx/
-│
-├── 08_premium_sets/
-│   ├── premium_01_952xx/
-│   ├── ...
-│   └── premium_10_963xx/
-│
-├── 09_ui_icons/
-│   ├── broken_heart.png       dc.java — broken equipment overlay
-│   ├── star.png               dc.java — legendary rank effect
-│   ├── slotlock.png           id.java — locked slot
-│   ├── blacksmith.png         id.java — blacksmith NPC
-│   └── effblacksmith.png      id.java — blacksmith effect
-│
+├── default/       32 PNG  — default overlays khi không mặc đồ (weapon 798/799xx, helmet 899xx)
+├── armor/        363 PNG  — `ll.e == 0`, visual armor/body overlays
+├── weapon/       220 PNG  — `ll.e == 1`, visual weapon overlays
+├── helmet/       187 PNG  — `ll.e == 2`, headgear/head-overlay candidates
+├── accessory/     56 PNG  — `ll.e == 5,7,8`, ring/amulet/accessory icons/effects; stats-only trong compositor hiện biết
+├── premium/      110 PNG  — premium/full-set bands; server quyết định `ll.e` thật
+├── ui/             6 PNG  — broken_heart, star, slotlock, blacksmith, effblacksmith, repair hammer 30099
+├── index.csv              — manifest CSV: `file,id,numericId,band,group`
+├── equipment_manifest.json — manifest JSON tương đương `index.csv`
 └── README.md
 ```
+
+**Tổng sau gộp:** 974 PNG.
+
+Rule quan trọng:
+- Folder vật lý chỉ là lookup hint cho asset resolver; gameplay slot vẫn phải lấy từ `ll.e`.
+- `premium/` không tự động có nghĩa là slot riêng; server packet/detail phải cung cấp slot thật.
+- `index.csv` / `equipment_manifest.json` dùng để tra `band` và group mà không cần scan thư mục runtime.
 
 ## 10. NOT in Equipment Folder / Needs Re-audit
 

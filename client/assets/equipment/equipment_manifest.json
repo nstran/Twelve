@@ -1,0 +1,6820 @@
+﻿[
+    {
+        "file":  "client/assets/equipment/default/79800.png",
+        "id":  "79800",
+        "numericId":  79800,
+        "band":  79800,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79801.png",
+        "id":  "79801",
+        "numericId":  79801,
+        "band":  79800,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79802.png",
+        "id":  "79802",
+        "numericId":  79802,
+        "band":  79800,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79803.png",
+        "id":  "79803",
+        "numericId":  79803,
+        "band":  79800,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79804.png",
+        "id":  "79804",
+        "numericId":  79804,
+        "band":  79800,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79805.png",
+        "id":  "79805",
+        "numericId":  79805,
+        "band":  79800,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79806.png",
+        "id":  "79806",
+        "numericId":  79806,
+        "band":  79800,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79807.png",
+        "id":  "79807",
+        "numericId":  79807,
+        "band":  79800,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79808.png",
+        "id":  "79808",
+        "numericId":  79808,
+        "band":  79800,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79809.png",
+        "id":  "79809",
+        "numericId":  79809,
+        "band":  79800,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79898.png",
+        "id":  "79898",
+        "numericId":  79898,
+        "band":  79890,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79900.png",
+        "id":  "79900",
+        "numericId":  79900,
+        "band":  79900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79901.png",
+        "id":  "79901",
+        "numericId":  79901,
+        "band":  79900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79902.png",
+        "id":  "79902",
+        "numericId":  79902,
+        "band":  79900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79903.png",
+        "id":  "79903",
+        "numericId":  79903,
+        "band":  79900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79904.png",
+        "id":  "79904",
+        "numericId":  79904,
+        "band":  79900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79905.png",
+        "id":  "79905",
+        "numericId":  79905,
+        "band":  79900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79906.png",
+        "id":  "79906",
+        "numericId":  79906,
+        "band":  79900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79907.png",
+        "id":  "79907",
+        "numericId":  79907,
+        "band":  79900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79908.png",
+        "id":  "79908",
+        "numericId":  79908,
+        "band":  79900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79909.png",
+        "id":  "79909",
+        "numericId":  79909,
+        "band":  79900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/79998.png",
+        "id":  "79998",
+        "numericId":  79998,
+        "band":  79990,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/89900.png",
+        "id":  "89900",
+        "numericId":  89900,
+        "band":  89900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/89901.png",
+        "id":  "89901",
+        "numericId":  89901,
+        "band":  89900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/89902.png",
+        "id":  "89902",
+        "numericId":  89902,
+        "band":  89900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/89903.png",
+        "id":  "89903",
+        "numericId":  89903,
+        "band":  89900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/89904.png",
+        "id":  "89904",
+        "numericId":  89904,
+        "band":  89900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/89905.png",
+        "id":  "89905",
+        "numericId":  89905,
+        "band":  89900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/89906.png",
+        "id":  "89906",
+        "numericId":  89906,
+        "band":  89900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/89907.png",
+        "id":  "89907",
+        "numericId":  89907,
+        "band":  89900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/89908.png",
+        "id":  "89908",
+        "numericId":  89908,
+        "band":  89900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/default/89909.png",
+        "id":  "89909",
+        "numericId":  89909,
+        "band":  89900,
+        "group":  "default"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70100.png",
+        "id":  "70100",
+        "numericId":  70100,
+        "band":  70100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70101.png",
+        "id":  "70101",
+        "numericId":  70101,
+        "band":  70100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70102.png",
+        "id":  "70102",
+        "numericId":  70102,
+        "band":  70100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70103.png",
+        "id":  "70103",
+        "numericId":  70103,
+        "band":  70100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70104.png",
+        "id":  "70104",
+        "numericId":  70104,
+        "band":  70100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70105.png",
+        "id":  "70105",
+        "numericId":  70105,
+        "band":  70100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70106.png",
+        "id":  "70106",
+        "numericId":  70106,
+        "band":  70100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70107.png",
+        "id":  "70107",
+        "numericId":  70107,
+        "band":  70100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70108.png",
+        "id":  "70108",
+        "numericId":  70108,
+        "band":  70100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70109.png",
+        "id":  "70109",
+        "numericId":  70109,
+        "band":  70100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70198.png",
+        "id":  "70198",
+        "numericId":  70198,
+        "band":  70190,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70300.png",
+        "id":  "70300",
+        "numericId":  70300,
+        "band":  70300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70301.png",
+        "id":  "70301",
+        "numericId":  70301,
+        "band":  70300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70302.png",
+        "id":  "70302",
+        "numericId":  70302,
+        "band":  70300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70303.png",
+        "id":  "70303",
+        "numericId":  70303,
+        "band":  70300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70304.png",
+        "id":  "70304",
+        "numericId":  70304,
+        "band":  70300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70305.png",
+        "id":  "70305",
+        "numericId":  70305,
+        "band":  70300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70306.png",
+        "id":  "70306",
+        "numericId":  70306,
+        "band":  70300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70307.png",
+        "id":  "70307",
+        "numericId":  70307,
+        "band":  70300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70308.png",
+        "id":  "70308",
+        "numericId":  70308,
+        "band":  70300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70309.png",
+        "id":  "70309",
+        "numericId":  70309,
+        "band":  70300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70398.png",
+        "id":  "70398",
+        "numericId":  70398,
+        "band":  70390,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70700.png",
+        "id":  "70700",
+        "numericId":  70700,
+        "band":  70700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70701.png",
+        "id":  "70701",
+        "numericId":  70701,
+        "band":  70700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70702.png",
+        "id":  "70702",
+        "numericId":  70702,
+        "band":  70700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70703.png",
+        "id":  "70703",
+        "numericId":  70703,
+        "band":  70700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70704.png",
+        "id":  "70704",
+        "numericId":  70704,
+        "band":  70700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70705.png",
+        "id":  "70705",
+        "numericId":  70705,
+        "band":  70700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70706.png",
+        "id":  "70706",
+        "numericId":  70706,
+        "band":  70700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70707.png",
+        "id":  "70707",
+        "numericId":  70707,
+        "band":  70700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70708.png",
+        "id":  "70708",
+        "numericId":  70708,
+        "band":  70700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70709.png",
+        "id":  "70709",
+        "numericId":  70709,
+        "band":  70700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/70798.png",
+        "id":  "70798",
+        "numericId":  70798,
+        "band":  70790,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71200.png",
+        "id":  "71200",
+        "numericId":  71200,
+        "band":  71200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71201.png",
+        "id":  "71201",
+        "numericId":  71201,
+        "band":  71200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71202.png",
+        "id":  "71202",
+        "numericId":  71202,
+        "band":  71200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71203.png",
+        "id":  "71203",
+        "numericId":  71203,
+        "band":  71200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71204.png",
+        "id":  "71204",
+        "numericId":  71204,
+        "band":  71200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71205.png",
+        "id":  "71205",
+        "numericId":  71205,
+        "band":  71200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71206.png",
+        "id":  "71206",
+        "numericId":  71206,
+        "band":  71200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71207.png",
+        "id":  "71207",
+        "numericId":  71207,
+        "band":  71200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71208.png",
+        "id":  "71208",
+        "numericId":  71208,
+        "band":  71200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71209.png",
+        "id":  "71209",
+        "numericId":  71209,
+        "band":  71200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71298.png",
+        "id":  "71298",
+        "numericId":  71298,
+        "band":  71290,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71300.png",
+        "id":  "71300",
+        "numericId":  71300,
+        "band":  71300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71301.png",
+        "id":  "71301",
+        "numericId":  71301,
+        "band":  71300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71302.png",
+        "id":  "71302",
+        "numericId":  71302,
+        "band":  71300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71303.png",
+        "id":  "71303",
+        "numericId":  71303,
+        "band":  71300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71304.png",
+        "id":  "71304",
+        "numericId":  71304,
+        "band":  71300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71305.png",
+        "id":  "71305",
+        "numericId":  71305,
+        "band":  71300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71306.png",
+        "id":  "71306",
+        "numericId":  71306,
+        "band":  71300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71307.png",
+        "id":  "71307",
+        "numericId":  71307,
+        "band":  71300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71308.png",
+        "id":  "71308",
+        "numericId":  71308,
+        "band":  71300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71309.png",
+        "id":  "71309",
+        "numericId":  71309,
+        "band":  71300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71398.png",
+        "id":  "71398",
+        "numericId":  71398,
+        "band":  71390,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71400.png",
+        "id":  "71400",
+        "numericId":  71400,
+        "band":  71400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71401.png",
+        "id":  "71401",
+        "numericId":  71401,
+        "band":  71400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71402.png",
+        "id":  "71402",
+        "numericId":  71402,
+        "band":  71400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71403.png",
+        "id":  "71403",
+        "numericId":  71403,
+        "band":  71400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71404.png",
+        "id":  "71404",
+        "numericId":  71404,
+        "band":  71400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71405.png",
+        "id":  "71405",
+        "numericId":  71405,
+        "band":  71400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71406.png",
+        "id":  "71406",
+        "numericId":  71406,
+        "band":  71400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71407.png",
+        "id":  "71407",
+        "numericId":  71407,
+        "band":  71400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71408.png",
+        "id":  "71408",
+        "numericId":  71408,
+        "band":  71400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71409.png",
+        "id":  "71409",
+        "numericId":  71409,
+        "band":  71400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71498.png",
+        "id":  "71498",
+        "numericId":  71498,
+        "band":  71490,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71600.png",
+        "id":  "71600",
+        "numericId":  71600,
+        "band":  71600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71601.png",
+        "id":  "71601",
+        "numericId":  71601,
+        "band":  71600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71602.png",
+        "id":  "71602",
+        "numericId":  71602,
+        "band":  71600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71603.png",
+        "id":  "71603",
+        "numericId":  71603,
+        "band":  71600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71604.png",
+        "id":  "71604",
+        "numericId":  71604,
+        "band":  71600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71605.png",
+        "id":  "71605",
+        "numericId":  71605,
+        "band":  71600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71606.png",
+        "id":  "71606",
+        "numericId":  71606,
+        "band":  71600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71607.png",
+        "id":  "71607",
+        "numericId":  71607,
+        "band":  71600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71608.png",
+        "id":  "71608",
+        "numericId":  71608,
+        "band":  71600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71609.png",
+        "id":  "71609",
+        "numericId":  71609,
+        "band":  71600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71698.png",
+        "id":  "71698",
+        "numericId":  71698,
+        "band":  71690,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71700.png",
+        "id":  "71700",
+        "numericId":  71700,
+        "band":  71700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71701.png",
+        "id":  "71701",
+        "numericId":  71701,
+        "band":  71700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71702.png",
+        "id":  "71702",
+        "numericId":  71702,
+        "band":  71700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71703.png",
+        "id":  "71703",
+        "numericId":  71703,
+        "band":  71700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71704.png",
+        "id":  "71704",
+        "numericId":  71704,
+        "band":  71700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71705.png",
+        "id":  "71705",
+        "numericId":  71705,
+        "band":  71700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71706.png",
+        "id":  "71706",
+        "numericId":  71706,
+        "band":  71700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71707.png",
+        "id":  "71707",
+        "numericId":  71707,
+        "band":  71700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71708.png",
+        "id":  "71708",
+        "numericId":  71708,
+        "band":  71700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71709.png",
+        "id":  "71709",
+        "numericId":  71709,
+        "band":  71700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71798.png",
+        "id":  "71798",
+        "numericId":  71798,
+        "band":  71790,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71800.png",
+        "id":  "71800",
+        "numericId":  71800,
+        "band":  71800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71801.png",
+        "id":  "71801",
+        "numericId":  71801,
+        "band":  71800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71802.png",
+        "id":  "71802",
+        "numericId":  71802,
+        "band":  71800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71803.png",
+        "id":  "71803",
+        "numericId":  71803,
+        "band":  71800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71804.png",
+        "id":  "71804",
+        "numericId":  71804,
+        "band":  71800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71805.png",
+        "id":  "71805",
+        "numericId":  71805,
+        "band":  71800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71806.png",
+        "id":  "71806",
+        "numericId":  71806,
+        "band":  71800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71807.png",
+        "id":  "71807",
+        "numericId":  71807,
+        "band":  71800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71808.png",
+        "id":  "71808",
+        "numericId":  71808,
+        "band":  71800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71809.png",
+        "id":  "71809",
+        "numericId":  71809,
+        "band":  71800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/71898.png",
+        "id":  "71898",
+        "numericId":  71898,
+        "band":  71890,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72000.png",
+        "id":  "72000",
+        "numericId":  72000,
+        "band":  72000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72001.png",
+        "id":  "72001",
+        "numericId":  72001,
+        "band":  72000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72002.png",
+        "id":  "72002",
+        "numericId":  72002,
+        "band":  72000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72003.png",
+        "id":  "72003",
+        "numericId":  72003,
+        "band":  72000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72004.png",
+        "id":  "72004",
+        "numericId":  72004,
+        "band":  72000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72005.png",
+        "id":  "72005",
+        "numericId":  72005,
+        "band":  72000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72006.png",
+        "id":  "72006",
+        "numericId":  72006,
+        "band":  72000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72007.png",
+        "id":  "72007",
+        "numericId":  72007,
+        "band":  72000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72008.png",
+        "id":  "72008",
+        "numericId":  72008,
+        "band":  72000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72009.png",
+        "id":  "72009",
+        "numericId":  72009,
+        "band":  72000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72098.png",
+        "id":  "72098",
+        "numericId":  72098,
+        "band":  72090,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72400.png",
+        "id":  "72400",
+        "numericId":  72400,
+        "band":  72400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72401.png",
+        "id":  "72401",
+        "numericId":  72401,
+        "band":  72400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72402.png",
+        "id":  "72402",
+        "numericId":  72402,
+        "band":  72400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72403.png",
+        "id":  "72403",
+        "numericId":  72403,
+        "band":  72400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72404.png",
+        "id":  "72404",
+        "numericId":  72404,
+        "band":  72400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72405.png",
+        "id":  "72405",
+        "numericId":  72405,
+        "band":  72400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72406.png",
+        "id":  "72406",
+        "numericId":  72406,
+        "band":  72400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72407.png",
+        "id":  "72407",
+        "numericId":  72407,
+        "band":  72400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72408.png",
+        "id":  "72408",
+        "numericId":  72408,
+        "band":  72400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72409.png",
+        "id":  "72409",
+        "numericId":  72409,
+        "band":  72400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72498.png",
+        "id":  "72498",
+        "numericId":  72498,
+        "band":  72490,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72500.png",
+        "id":  "72500",
+        "numericId":  72500,
+        "band":  72500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72501.png",
+        "id":  "72501",
+        "numericId":  72501,
+        "band":  72500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72502.png",
+        "id":  "72502",
+        "numericId":  72502,
+        "band":  72500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72503.png",
+        "id":  "72503",
+        "numericId":  72503,
+        "band":  72500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72504.png",
+        "id":  "72504",
+        "numericId":  72504,
+        "band":  72500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72505.png",
+        "id":  "72505",
+        "numericId":  72505,
+        "band":  72500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72506.png",
+        "id":  "72506",
+        "numericId":  72506,
+        "band":  72500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72507.png",
+        "id":  "72507",
+        "numericId":  72507,
+        "band":  72500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72508.png",
+        "id":  "72508",
+        "numericId":  72508,
+        "band":  72500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72509.png",
+        "id":  "72509",
+        "numericId":  72509,
+        "band":  72500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/72598.png",
+        "id":  "72598",
+        "numericId":  72598,
+        "band":  72590,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74000.png",
+        "id":  "74000",
+        "numericId":  74000,
+        "band":  74000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74001.png",
+        "id":  "74001",
+        "numericId":  74001,
+        "band":  74000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74002.png",
+        "id":  "74002",
+        "numericId":  74002,
+        "band":  74000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74003.png",
+        "id":  "74003",
+        "numericId":  74003,
+        "band":  74000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74004.png",
+        "id":  "74004",
+        "numericId":  74004,
+        "band":  74000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74005.png",
+        "id":  "74005",
+        "numericId":  74005,
+        "band":  74000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74006.png",
+        "id":  "74006",
+        "numericId":  74006,
+        "band":  74000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74007.png",
+        "id":  "74007",
+        "numericId":  74007,
+        "band":  74000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74008.png",
+        "id":  "74008",
+        "numericId":  74008,
+        "band":  74000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74009.png",
+        "id":  "74009",
+        "numericId":  74009,
+        "band":  74000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74098.png",
+        "id":  "74098",
+        "numericId":  74098,
+        "band":  74090,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74100.png",
+        "id":  "74100",
+        "numericId":  74100,
+        "band":  74100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74101.png",
+        "id":  "74101",
+        "numericId":  74101,
+        "band":  74100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74102.png",
+        "id":  "74102",
+        "numericId":  74102,
+        "band":  74100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74103.png",
+        "id":  "74103",
+        "numericId":  74103,
+        "band":  74100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74104.png",
+        "id":  "74104",
+        "numericId":  74104,
+        "band":  74100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74105.png",
+        "id":  "74105",
+        "numericId":  74105,
+        "band":  74100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74106.png",
+        "id":  "74106",
+        "numericId":  74106,
+        "band":  74100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74107.png",
+        "id":  "74107",
+        "numericId":  74107,
+        "band":  74100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74108.png",
+        "id":  "74108",
+        "numericId":  74108,
+        "band":  74100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74109.png",
+        "id":  "74109",
+        "numericId":  74109,
+        "band":  74100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74198.png",
+        "id":  "74198",
+        "numericId":  74198,
+        "band":  74190,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74200.png",
+        "id":  "74200",
+        "numericId":  74200,
+        "band":  74200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74201.png",
+        "id":  "74201",
+        "numericId":  74201,
+        "band":  74200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74202.png",
+        "id":  "74202",
+        "numericId":  74202,
+        "band":  74200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74203.png",
+        "id":  "74203",
+        "numericId":  74203,
+        "band":  74200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74204.png",
+        "id":  "74204",
+        "numericId":  74204,
+        "band":  74200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74205.png",
+        "id":  "74205",
+        "numericId":  74205,
+        "band":  74200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74206.png",
+        "id":  "74206",
+        "numericId":  74206,
+        "band":  74200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74207.png",
+        "id":  "74207",
+        "numericId":  74207,
+        "band":  74200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74208.png",
+        "id":  "74208",
+        "numericId":  74208,
+        "band":  74200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74209.png",
+        "id":  "74209",
+        "numericId":  74209,
+        "band":  74200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74298.png",
+        "id":  "74298",
+        "numericId":  74298,
+        "band":  74290,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74300.png",
+        "id":  "74300",
+        "numericId":  74300,
+        "band":  74300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74301.png",
+        "id":  "74301",
+        "numericId":  74301,
+        "band":  74300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74302.png",
+        "id":  "74302",
+        "numericId":  74302,
+        "band":  74300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74303.png",
+        "id":  "74303",
+        "numericId":  74303,
+        "band":  74300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74304.png",
+        "id":  "74304",
+        "numericId":  74304,
+        "band":  74300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74305.png",
+        "id":  "74305",
+        "numericId":  74305,
+        "band":  74300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74306.png",
+        "id":  "74306",
+        "numericId":  74306,
+        "band":  74300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74307.png",
+        "id":  "74307",
+        "numericId":  74307,
+        "band":  74300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74308.png",
+        "id":  "74308",
+        "numericId":  74308,
+        "band":  74300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74309.png",
+        "id":  "74309",
+        "numericId":  74309,
+        "band":  74300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/74398.png",
+        "id":  "74398",
+        "numericId":  74398,
+        "band":  74390,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75100.png",
+        "id":  "75100",
+        "numericId":  75100,
+        "band":  75100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75101.png",
+        "id":  "75101",
+        "numericId":  75101,
+        "band":  75100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75102.png",
+        "id":  "75102",
+        "numericId":  75102,
+        "band":  75100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75103.png",
+        "id":  "75103",
+        "numericId":  75103,
+        "band":  75100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75104.png",
+        "id":  "75104",
+        "numericId":  75104,
+        "band":  75100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75105.png",
+        "id":  "75105",
+        "numericId":  75105,
+        "band":  75100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75106.png",
+        "id":  "75106",
+        "numericId":  75106,
+        "band":  75100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75107.png",
+        "id":  "75107",
+        "numericId":  75107,
+        "band":  75100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75108.png",
+        "id":  "75108",
+        "numericId":  75108,
+        "band":  75100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75109.png",
+        "id":  "75109",
+        "numericId":  75109,
+        "band":  75100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75198.png",
+        "id":  "75198",
+        "numericId":  75198,
+        "band":  75190,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75300.png",
+        "id":  "75300",
+        "numericId":  75300,
+        "band":  75300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75301.png",
+        "id":  "75301",
+        "numericId":  75301,
+        "band":  75300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75302.png",
+        "id":  "75302",
+        "numericId":  75302,
+        "band":  75300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75303.png",
+        "id":  "75303",
+        "numericId":  75303,
+        "band":  75300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75304.png",
+        "id":  "75304",
+        "numericId":  75304,
+        "band":  75300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75305.png",
+        "id":  "75305",
+        "numericId":  75305,
+        "band":  75300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75306.png",
+        "id":  "75306",
+        "numericId":  75306,
+        "band":  75300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75307.png",
+        "id":  "75307",
+        "numericId":  75307,
+        "band":  75300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75308.png",
+        "id":  "75308",
+        "numericId":  75308,
+        "band":  75300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75309.png",
+        "id":  "75309",
+        "numericId":  75309,
+        "band":  75300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75398.png",
+        "id":  "75398",
+        "numericId":  75398,
+        "band":  75390,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75400.png",
+        "id":  "75400",
+        "numericId":  75400,
+        "band":  75400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75401.png",
+        "id":  "75401",
+        "numericId":  75401,
+        "band":  75400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75402.png",
+        "id":  "75402",
+        "numericId":  75402,
+        "band":  75400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75403.png",
+        "id":  "75403",
+        "numericId":  75403,
+        "band":  75400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75404.png",
+        "id":  "75404",
+        "numericId":  75404,
+        "band":  75400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75405.png",
+        "id":  "75405",
+        "numericId":  75405,
+        "band":  75400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75406.png",
+        "id":  "75406",
+        "numericId":  75406,
+        "band":  75400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75407.png",
+        "id":  "75407",
+        "numericId":  75407,
+        "band":  75400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75408.png",
+        "id":  "75408",
+        "numericId":  75408,
+        "band":  75400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75409.png",
+        "id":  "75409",
+        "numericId":  75409,
+        "band":  75400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75498.png",
+        "id":  "75498",
+        "numericId":  75498,
+        "band":  75490,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75600.png",
+        "id":  "75600",
+        "numericId":  75600,
+        "band":  75600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75601.png",
+        "id":  "75601",
+        "numericId":  75601,
+        "band":  75600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75602.png",
+        "id":  "75602",
+        "numericId":  75602,
+        "band":  75600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75603.png",
+        "id":  "75603",
+        "numericId":  75603,
+        "band":  75600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75604.png",
+        "id":  "75604",
+        "numericId":  75604,
+        "band":  75600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75605.png",
+        "id":  "75605",
+        "numericId":  75605,
+        "band":  75600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75606.png",
+        "id":  "75606",
+        "numericId":  75606,
+        "band":  75600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75607.png",
+        "id":  "75607",
+        "numericId":  75607,
+        "band":  75600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75608.png",
+        "id":  "75608",
+        "numericId":  75608,
+        "band":  75600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75609.png",
+        "id":  "75609",
+        "numericId":  75609,
+        "band":  75600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75698.png",
+        "id":  "75698",
+        "numericId":  75698,
+        "band":  75690,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75800.png",
+        "id":  "75800",
+        "numericId":  75800,
+        "band":  75800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75801.png",
+        "id":  "75801",
+        "numericId":  75801,
+        "band":  75800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75802.png",
+        "id":  "75802",
+        "numericId":  75802,
+        "band":  75800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75803.png",
+        "id":  "75803",
+        "numericId":  75803,
+        "band":  75800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75804.png",
+        "id":  "75804",
+        "numericId":  75804,
+        "band":  75800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75805.png",
+        "id":  "75805",
+        "numericId":  75805,
+        "band":  75800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75806.png",
+        "id":  "75806",
+        "numericId":  75806,
+        "band":  75800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75807.png",
+        "id":  "75807",
+        "numericId":  75807,
+        "band":  75800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75808.png",
+        "id":  "75808",
+        "numericId":  75808,
+        "band":  75800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75809.png",
+        "id":  "75809",
+        "numericId":  75809,
+        "band":  75800,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/75898.png",
+        "id":  "75898",
+        "numericId":  75898,
+        "band":  75890,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76200.png",
+        "id":  "76200",
+        "numericId":  76200,
+        "band":  76200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76201.png",
+        "id":  "76201",
+        "numericId":  76201,
+        "band":  76200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76202.png",
+        "id":  "76202",
+        "numericId":  76202,
+        "band":  76200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76203.png",
+        "id":  "76203",
+        "numericId":  76203,
+        "band":  76200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76204.png",
+        "id":  "76204",
+        "numericId":  76204,
+        "band":  76200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76205.png",
+        "id":  "76205",
+        "numericId":  76205,
+        "band":  76200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76206.png",
+        "id":  "76206",
+        "numericId":  76206,
+        "band":  76200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76207.png",
+        "id":  "76207",
+        "numericId":  76207,
+        "band":  76200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76208.png",
+        "id":  "76208",
+        "numericId":  76208,
+        "band":  76200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76209.png",
+        "id":  "76209",
+        "numericId":  76209,
+        "band":  76200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76298.png",
+        "id":  "76298",
+        "numericId":  76298,
+        "band":  76290,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76400.png",
+        "id":  "76400",
+        "numericId":  76400,
+        "band":  76400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76401.png",
+        "id":  "76401",
+        "numericId":  76401,
+        "band":  76400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76402.png",
+        "id":  "76402",
+        "numericId":  76402,
+        "band":  76400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76403.png",
+        "id":  "76403",
+        "numericId":  76403,
+        "band":  76400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76404.png",
+        "id":  "76404",
+        "numericId":  76404,
+        "band":  76400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76405.png",
+        "id":  "76405",
+        "numericId":  76405,
+        "band":  76400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76406.png",
+        "id":  "76406",
+        "numericId":  76406,
+        "band":  76400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76407.png",
+        "id":  "76407",
+        "numericId":  76407,
+        "band":  76400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76408.png",
+        "id":  "76408",
+        "numericId":  76408,
+        "band":  76400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76409.png",
+        "id":  "76409",
+        "numericId":  76409,
+        "band":  76400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76498.png",
+        "id":  "76498",
+        "numericId":  76498,
+        "band":  76490,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76500.png",
+        "id":  "76500",
+        "numericId":  76500,
+        "band":  76500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76501.png",
+        "id":  "76501",
+        "numericId":  76501,
+        "band":  76500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76502.png",
+        "id":  "76502",
+        "numericId":  76502,
+        "band":  76500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76503.png",
+        "id":  "76503",
+        "numericId":  76503,
+        "band":  76500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76504.png",
+        "id":  "76504",
+        "numericId":  76504,
+        "band":  76500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76505.png",
+        "id":  "76505",
+        "numericId":  76505,
+        "band":  76500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76506.png",
+        "id":  "76506",
+        "numericId":  76506,
+        "band":  76500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76507.png",
+        "id":  "76507",
+        "numericId":  76507,
+        "band":  76500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76508.png",
+        "id":  "76508",
+        "numericId":  76508,
+        "band":  76500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76509.png",
+        "id":  "76509",
+        "numericId":  76509,
+        "band":  76500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76598.png",
+        "id":  "76598",
+        "numericId":  76598,
+        "band":  76590,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76600.png",
+        "id":  "76600",
+        "numericId":  76600,
+        "band":  76600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76601.png",
+        "id":  "76601",
+        "numericId":  76601,
+        "band":  76600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76602.png",
+        "id":  "76602",
+        "numericId":  76602,
+        "band":  76600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76603.png",
+        "id":  "76603",
+        "numericId":  76603,
+        "band":  76600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76604.png",
+        "id":  "76604",
+        "numericId":  76604,
+        "band":  76600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76605.png",
+        "id":  "76605",
+        "numericId":  76605,
+        "band":  76600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76606.png",
+        "id":  "76606",
+        "numericId":  76606,
+        "band":  76600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76607.png",
+        "id":  "76607",
+        "numericId":  76607,
+        "band":  76600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76608.png",
+        "id":  "76608",
+        "numericId":  76608,
+        "band":  76600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76609.png",
+        "id":  "76609",
+        "numericId":  76609,
+        "band":  76600,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76698.png",
+        "id":  "76698",
+        "numericId":  76698,
+        "band":  76690,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76700.png",
+        "id":  "76700",
+        "numericId":  76700,
+        "band":  76700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76701.png",
+        "id":  "76701",
+        "numericId":  76701,
+        "band":  76700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76702.png",
+        "id":  "76702",
+        "numericId":  76702,
+        "band":  76700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76703.png",
+        "id":  "76703",
+        "numericId":  76703,
+        "band":  76700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76704.png",
+        "id":  "76704",
+        "numericId":  76704,
+        "band":  76700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76705.png",
+        "id":  "76705",
+        "numericId":  76705,
+        "band":  76700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76706.png",
+        "id":  "76706",
+        "numericId":  76706,
+        "band":  76700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76707.png",
+        "id":  "76707",
+        "numericId":  76707,
+        "band":  76700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76708.png",
+        "id":  "76708",
+        "numericId":  76708,
+        "band":  76700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76709.png",
+        "id":  "76709",
+        "numericId":  76709,
+        "band":  76700,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/76798.png",
+        "id":  "76798",
+        "numericId":  76798,
+        "band":  76790,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77100.png",
+        "id":  "77100",
+        "numericId":  77100,
+        "band":  77100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77101.png",
+        "id":  "77101",
+        "numericId":  77101,
+        "band":  77100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77102.png",
+        "id":  "77102",
+        "numericId":  77102,
+        "band":  77100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77103.png",
+        "id":  "77103",
+        "numericId":  77103,
+        "band":  77100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77104.png",
+        "id":  "77104",
+        "numericId":  77104,
+        "band":  77100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77105.png",
+        "id":  "77105",
+        "numericId":  77105,
+        "band":  77100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77106.png",
+        "id":  "77106",
+        "numericId":  77106,
+        "band":  77100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77107.png",
+        "id":  "77107",
+        "numericId":  77107,
+        "band":  77100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77108.png",
+        "id":  "77108",
+        "numericId":  77108,
+        "band":  77100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77109.png",
+        "id":  "77109",
+        "numericId":  77109,
+        "band":  77100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77198.png",
+        "id":  "77198",
+        "numericId":  77198,
+        "band":  77190,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77400.png",
+        "id":  "77400",
+        "numericId":  77400,
+        "band":  77400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77401.png",
+        "id":  "77401",
+        "numericId":  77401,
+        "band":  77400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77402.png",
+        "id":  "77402",
+        "numericId":  77402,
+        "band":  77400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77403.png",
+        "id":  "77403",
+        "numericId":  77403,
+        "band":  77400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77404.png",
+        "id":  "77404",
+        "numericId":  77404,
+        "band":  77400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77405.png",
+        "id":  "77405",
+        "numericId":  77405,
+        "band":  77400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77406.png",
+        "id":  "77406",
+        "numericId":  77406,
+        "band":  77400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77407.png",
+        "id":  "77407",
+        "numericId":  77407,
+        "band":  77400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77408.png",
+        "id":  "77408",
+        "numericId":  77408,
+        "band":  77400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77409.png",
+        "id":  "77409",
+        "numericId":  77409,
+        "band":  77400,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77498.png",
+        "id":  "77498",
+        "numericId":  77498,
+        "band":  77490,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77500.png",
+        "id":  "77500",
+        "numericId":  77500,
+        "band":  77500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77501.png",
+        "id":  "77501",
+        "numericId":  77501,
+        "band":  77500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77502.png",
+        "id":  "77502",
+        "numericId":  77502,
+        "band":  77500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77503.png",
+        "id":  "77503",
+        "numericId":  77503,
+        "band":  77500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77504.png",
+        "id":  "77504",
+        "numericId":  77504,
+        "band":  77500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77505.png",
+        "id":  "77505",
+        "numericId":  77505,
+        "band":  77500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77506.png",
+        "id":  "77506",
+        "numericId":  77506,
+        "band":  77500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77507.png",
+        "id":  "77507",
+        "numericId":  77507,
+        "band":  77500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77508.png",
+        "id":  "77508",
+        "numericId":  77508,
+        "band":  77500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77509.png",
+        "id":  "77509",
+        "numericId":  77509,
+        "band":  77500,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/77598.png",
+        "id":  "77598",
+        "numericId":  77598,
+        "band":  77590,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78000.png",
+        "id":  "78000",
+        "numericId":  78000,
+        "band":  78000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78001.png",
+        "id":  "78001",
+        "numericId":  78001,
+        "band":  78000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78002.png",
+        "id":  "78002",
+        "numericId":  78002,
+        "band":  78000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78003.png",
+        "id":  "78003",
+        "numericId":  78003,
+        "band":  78000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78004.png",
+        "id":  "78004",
+        "numericId":  78004,
+        "band":  78000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78005.png",
+        "id":  "78005",
+        "numericId":  78005,
+        "band":  78000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78006.png",
+        "id":  "78006",
+        "numericId":  78006,
+        "band":  78000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78007.png",
+        "id":  "78007",
+        "numericId":  78007,
+        "band":  78000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78008.png",
+        "id":  "78008",
+        "numericId":  78008,
+        "band":  78000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78009.png",
+        "id":  "78009",
+        "numericId":  78009,
+        "band":  78000,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78098.png",
+        "id":  "78098",
+        "numericId":  78098,
+        "band":  78090,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78100.png",
+        "id":  "78100",
+        "numericId":  78100,
+        "band":  78100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78101.png",
+        "id":  "78101",
+        "numericId":  78101,
+        "band":  78100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78102.png",
+        "id":  "78102",
+        "numericId":  78102,
+        "band":  78100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78103.png",
+        "id":  "78103",
+        "numericId":  78103,
+        "band":  78100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78104.png",
+        "id":  "78104",
+        "numericId":  78104,
+        "band":  78100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78105.png",
+        "id":  "78105",
+        "numericId":  78105,
+        "band":  78100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78106.png",
+        "id":  "78106",
+        "numericId":  78106,
+        "band":  78100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78107.png",
+        "id":  "78107",
+        "numericId":  78107,
+        "band":  78100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78108.png",
+        "id":  "78108",
+        "numericId":  78108,
+        "band":  78100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78109.png",
+        "id":  "78109",
+        "numericId":  78109,
+        "band":  78100,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78198.png",
+        "id":  "78198",
+        "numericId":  78198,
+        "band":  78190,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78200.png",
+        "id":  "78200",
+        "numericId":  78200,
+        "band":  78200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78201.png",
+        "id":  "78201",
+        "numericId":  78201,
+        "band":  78200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78202.png",
+        "id":  "78202",
+        "numericId":  78202,
+        "band":  78200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78203.png",
+        "id":  "78203",
+        "numericId":  78203,
+        "band":  78200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78204.png",
+        "id":  "78204",
+        "numericId":  78204,
+        "band":  78200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78205.png",
+        "id":  "78205",
+        "numericId":  78205,
+        "band":  78200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78206.png",
+        "id":  "78206",
+        "numericId":  78206,
+        "band":  78200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78207.png",
+        "id":  "78207",
+        "numericId":  78207,
+        "band":  78200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78208.png",
+        "id":  "78208",
+        "numericId":  78208,
+        "band":  78200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78209.png",
+        "id":  "78209",
+        "numericId":  78209,
+        "band":  78200,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78298.png",
+        "id":  "78298",
+        "numericId":  78298,
+        "band":  78290,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78300.png",
+        "id":  "78300",
+        "numericId":  78300,
+        "band":  78300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78301.png",
+        "id":  "78301",
+        "numericId":  78301,
+        "band":  78300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78302.png",
+        "id":  "78302",
+        "numericId":  78302,
+        "band":  78300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78303.png",
+        "id":  "78303",
+        "numericId":  78303,
+        "band":  78300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78304.png",
+        "id":  "78304",
+        "numericId":  78304,
+        "band":  78300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78305.png",
+        "id":  "78305",
+        "numericId":  78305,
+        "band":  78300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78306.png",
+        "id":  "78306",
+        "numericId":  78306,
+        "band":  78300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78307.png",
+        "id":  "78307",
+        "numericId":  78307,
+        "band":  78300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78308.png",
+        "id":  "78308",
+        "numericId":  78308,
+        "band":  78300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78309.png",
+        "id":  "78309",
+        "numericId":  78309,
+        "band":  78300,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/armor/78398.png",
+        "id":  "78398",
+        "numericId":  78398,
+        "band":  78390,
+        "group":  "armor"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80000.png",
+        "id":  "80000",
+        "numericId":  80000,
+        "band":  80000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80001.png",
+        "id":  "80001",
+        "numericId":  80001,
+        "band":  80000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80002.png",
+        "id":  "80002",
+        "numericId":  80002,
+        "band":  80000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80003.png",
+        "id":  "80003",
+        "numericId":  80003,
+        "band":  80000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80004.png",
+        "id":  "80004",
+        "numericId":  80004,
+        "band":  80000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80005.png",
+        "id":  "80005",
+        "numericId":  80005,
+        "band":  80000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80006.png",
+        "id":  "80006",
+        "numericId":  80006,
+        "band":  80000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80007.png",
+        "id":  "80007",
+        "numericId":  80007,
+        "band":  80000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80008.png",
+        "id":  "80008",
+        "numericId":  80008,
+        "band":  80000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80009.png",
+        "id":  "80009",
+        "numericId":  80009,
+        "band":  80000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80098.png",
+        "id":  "80098",
+        "numericId":  80098,
+        "band":  80090,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80200.png",
+        "id":  "80200",
+        "numericId":  80200,
+        "band":  80200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80201.png",
+        "id":  "80201",
+        "numericId":  80201,
+        "band":  80200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80202.png",
+        "id":  "80202",
+        "numericId":  80202,
+        "band":  80200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80203.png",
+        "id":  "80203",
+        "numericId":  80203,
+        "band":  80200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80204.png",
+        "id":  "80204",
+        "numericId":  80204,
+        "band":  80200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80205.png",
+        "id":  "80205",
+        "numericId":  80205,
+        "band":  80200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80206.png",
+        "id":  "80206",
+        "numericId":  80206,
+        "band":  80200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80207.png",
+        "id":  "80207",
+        "numericId":  80207,
+        "band":  80200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80208.png",
+        "id":  "80208",
+        "numericId":  80208,
+        "band":  80200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80209.png",
+        "id":  "80209",
+        "numericId":  80209,
+        "band":  80200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80298.png",
+        "id":  "80298",
+        "numericId":  80298,
+        "band":  80290,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80400.png",
+        "id":  "80400",
+        "numericId":  80400,
+        "band":  80400,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80401.png",
+        "id":  "80401",
+        "numericId":  80401,
+        "band":  80400,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80402.png",
+        "id":  "80402",
+        "numericId":  80402,
+        "band":  80400,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80403.png",
+        "id":  "80403",
+        "numericId":  80403,
+        "band":  80400,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80404.png",
+        "id":  "80404",
+        "numericId":  80404,
+        "band":  80400,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80405.png",
+        "id":  "80405",
+        "numericId":  80405,
+        "band":  80400,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80406.png",
+        "id":  "80406",
+        "numericId":  80406,
+        "band":  80400,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80407.png",
+        "id":  "80407",
+        "numericId":  80407,
+        "band":  80400,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80408.png",
+        "id":  "80408",
+        "numericId":  80408,
+        "band":  80400,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80409.png",
+        "id":  "80409",
+        "numericId":  80409,
+        "band":  80400,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80498.png",
+        "id":  "80498",
+        "numericId":  80498,
+        "band":  80490,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80600.png",
+        "id":  "80600",
+        "numericId":  80600,
+        "band":  80600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80601.png",
+        "id":  "80601",
+        "numericId":  80601,
+        "band":  80600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80602.png",
+        "id":  "80602",
+        "numericId":  80602,
+        "band":  80600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80603.png",
+        "id":  "80603",
+        "numericId":  80603,
+        "band":  80600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80604.png",
+        "id":  "80604",
+        "numericId":  80604,
+        "band":  80600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80605.png",
+        "id":  "80605",
+        "numericId":  80605,
+        "band":  80600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80606.png",
+        "id":  "80606",
+        "numericId":  80606,
+        "band":  80600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80607.png",
+        "id":  "80607",
+        "numericId":  80607,
+        "band":  80600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80608.png",
+        "id":  "80608",
+        "numericId":  80608,
+        "band":  80600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80609.png",
+        "id":  "80609",
+        "numericId":  80609,
+        "band":  80600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80698.png",
+        "id":  "80698",
+        "numericId":  80698,
+        "band":  80690,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80700.png",
+        "id":  "80700",
+        "numericId":  80700,
+        "band":  80700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80701.png",
+        "id":  "80701",
+        "numericId":  80701,
+        "band":  80700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80702.png",
+        "id":  "80702",
+        "numericId":  80702,
+        "band":  80700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80703.png",
+        "id":  "80703",
+        "numericId":  80703,
+        "band":  80700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80704.png",
+        "id":  "80704",
+        "numericId":  80704,
+        "band":  80700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80705.png",
+        "id":  "80705",
+        "numericId":  80705,
+        "band":  80700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80706.png",
+        "id":  "80706",
+        "numericId":  80706,
+        "band":  80700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80707.png",
+        "id":  "80707",
+        "numericId":  80707,
+        "band":  80700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80708.png",
+        "id":  "80708",
+        "numericId":  80708,
+        "band":  80700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80709.png",
+        "id":  "80709",
+        "numericId":  80709,
+        "band":  80700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80798.png",
+        "id":  "80798",
+        "numericId":  80798,
+        "band":  80790,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80800.png",
+        "id":  "80800",
+        "numericId":  80800,
+        "band":  80800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80801.png",
+        "id":  "80801",
+        "numericId":  80801,
+        "band":  80800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80802.png",
+        "id":  "80802",
+        "numericId":  80802,
+        "band":  80800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80803.png",
+        "id":  "80803",
+        "numericId":  80803,
+        "band":  80800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80804.png",
+        "id":  "80804",
+        "numericId":  80804,
+        "band":  80800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80805.png",
+        "id":  "80805",
+        "numericId":  80805,
+        "band":  80800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80806.png",
+        "id":  "80806",
+        "numericId":  80806,
+        "band":  80800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80807.png",
+        "id":  "80807",
+        "numericId":  80807,
+        "band":  80800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80808.png",
+        "id":  "80808",
+        "numericId":  80808,
+        "band":  80800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80809.png",
+        "id":  "80809",
+        "numericId":  80809,
+        "band":  80800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/80898.png",
+        "id":  "80898",
+        "numericId":  80898,
+        "band":  80890,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81000.png",
+        "id":  "81000",
+        "numericId":  81000,
+        "band":  81000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81001.png",
+        "id":  "81001",
+        "numericId":  81001,
+        "band":  81000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81002.png",
+        "id":  "81002",
+        "numericId":  81002,
+        "band":  81000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81003.png",
+        "id":  "81003",
+        "numericId":  81003,
+        "band":  81000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81004.png",
+        "id":  "81004",
+        "numericId":  81004,
+        "band":  81000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81005.png",
+        "id":  "81005",
+        "numericId":  81005,
+        "band":  81000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81006.png",
+        "id":  "81006",
+        "numericId":  81006,
+        "band":  81000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81007.png",
+        "id":  "81007",
+        "numericId":  81007,
+        "band":  81000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81008.png",
+        "id":  "81008",
+        "numericId":  81008,
+        "band":  81000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81009.png",
+        "id":  "81009",
+        "numericId":  81009,
+        "band":  81000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81098.png",
+        "id":  "81098",
+        "numericId":  81098,
+        "band":  81090,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81100.png",
+        "id":  "81100",
+        "numericId":  81100,
+        "band":  81100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81101.png",
+        "id":  "81101",
+        "numericId":  81101,
+        "band":  81100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81102.png",
+        "id":  "81102",
+        "numericId":  81102,
+        "band":  81100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81103.png",
+        "id":  "81103",
+        "numericId":  81103,
+        "band":  81100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81104.png",
+        "id":  "81104",
+        "numericId":  81104,
+        "band":  81100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81105.png",
+        "id":  "81105",
+        "numericId":  81105,
+        "band":  81100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81106.png",
+        "id":  "81106",
+        "numericId":  81106,
+        "band":  81100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81107.png",
+        "id":  "81107",
+        "numericId":  81107,
+        "band":  81100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81108.png",
+        "id":  "81108",
+        "numericId":  81108,
+        "band":  81100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81109.png",
+        "id":  "81109",
+        "numericId":  81109,
+        "band":  81100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81198.png",
+        "id":  "81198",
+        "numericId":  81198,
+        "band":  81190,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81800.png",
+        "id":  "81800",
+        "numericId":  81800,
+        "band":  81800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81801.png",
+        "id":  "81801",
+        "numericId":  81801,
+        "band":  81800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81802.png",
+        "id":  "81802",
+        "numericId":  81802,
+        "band":  81800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81803.png",
+        "id":  "81803",
+        "numericId":  81803,
+        "band":  81800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81804.png",
+        "id":  "81804",
+        "numericId":  81804,
+        "band":  81800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81805.png",
+        "id":  "81805",
+        "numericId":  81805,
+        "band":  81800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81806.png",
+        "id":  "81806",
+        "numericId":  81806,
+        "band":  81800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81807.png",
+        "id":  "81807",
+        "numericId":  81807,
+        "band":  81800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81808.png",
+        "id":  "81808",
+        "numericId":  81808,
+        "band":  81800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81809.png",
+        "id":  "81809",
+        "numericId":  81809,
+        "band":  81800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/81898.png",
+        "id":  "81898",
+        "numericId":  81898,
+        "band":  81890,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82000.png",
+        "id":  "82000",
+        "numericId":  82000,
+        "band":  82000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82001.png",
+        "id":  "82001",
+        "numericId":  82001,
+        "band":  82000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82002.png",
+        "id":  "82002",
+        "numericId":  82002,
+        "band":  82000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82003.png",
+        "id":  "82003",
+        "numericId":  82003,
+        "band":  82000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82004.png",
+        "id":  "82004",
+        "numericId":  82004,
+        "band":  82000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82005.png",
+        "id":  "82005",
+        "numericId":  82005,
+        "band":  82000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82006.png",
+        "id":  "82006",
+        "numericId":  82006,
+        "band":  82000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82007.png",
+        "id":  "82007",
+        "numericId":  82007,
+        "band":  82000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82008.png",
+        "id":  "82008",
+        "numericId":  82008,
+        "band":  82000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82009.png",
+        "id":  "82009",
+        "numericId":  82009,
+        "band":  82000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82098.png",
+        "id":  "82098",
+        "numericId":  82098,
+        "band":  82090,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82300.png",
+        "id":  "82300",
+        "numericId":  82300,
+        "band":  82300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82301.png",
+        "id":  "82301",
+        "numericId":  82301,
+        "band":  82300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82302.png",
+        "id":  "82302",
+        "numericId":  82302,
+        "band":  82300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82303.png",
+        "id":  "82303",
+        "numericId":  82303,
+        "band":  82300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82304.png",
+        "id":  "82304",
+        "numericId":  82304,
+        "band":  82300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82305.png",
+        "id":  "82305",
+        "numericId":  82305,
+        "band":  82300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82306.png",
+        "id":  "82306",
+        "numericId":  82306,
+        "band":  82300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82307.png",
+        "id":  "82307",
+        "numericId":  82307,
+        "band":  82300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82308.png",
+        "id":  "82308",
+        "numericId":  82308,
+        "band":  82300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82309.png",
+        "id":  "82309",
+        "numericId":  82309,
+        "band":  82300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82398.png",
+        "id":  "82398",
+        "numericId":  82398,
+        "band":  82390,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82600.png",
+        "id":  "82600",
+        "numericId":  82600,
+        "band":  82600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82601.png",
+        "id":  "82601",
+        "numericId":  82601,
+        "band":  82600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82602.png",
+        "id":  "82602",
+        "numericId":  82602,
+        "band":  82600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82603.png",
+        "id":  "82603",
+        "numericId":  82603,
+        "band":  82600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82604.png",
+        "id":  "82604",
+        "numericId":  82604,
+        "band":  82600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82605.png",
+        "id":  "82605",
+        "numericId":  82605,
+        "band":  82600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82606.png",
+        "id":  "82606",
+        "numericId":  82606,
+        "band":  82600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82607.png",
+        "id":  "82607",
+        "numericId":  82607,
+        "band":  82600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82608.png",
+        "id":  "82608",
+        "numericId":  82608,
+        "band":  82600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82609.png",
+        "id":  "82609",
+        "numericId":  82609,
+        "band":  82600,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82698.png",
+        "id":  "82698",
+        "numericId":  82698,
+        "band":  82690,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82700.png",
+        "id":  "82700",
+        "numericId":  82700,
+        "band":  82700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82701.png",
+        "id":  "82701",
+        "numericId":  82701,
+        "band":  82700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82702.png",
+        "id":  "82702",
+        "numericId":  82702,
+        "band":  82700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82703.png",
+        "id":  "82703",
+        "numericId":  82703,
+        "band":  82700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82704.png",
+        "id":  "82704",
+        "numericId":  82704,
+        "band":  82700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82705.png",
+        "id":  "82705",
+        "numericId":  82705,
+        "band":  82700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82706.png",
+        "id":  "82706",
+        "numericId":  82706,
+        "band":  82700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82707.png",
+        "id":  "82707",
+        "numericId":  82707,
+        "band":  82700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82708.png",
+        "id":  "82708",
+        "numericId":  82708,
+        "band":  82700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82709.png",
+        "id":  "82709",
+        "numericId":  82709,
+        "band":  82700,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82798.png",
+        "id":  "82798",
+        "numericId":  82798,
+        "band":  82790,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82800.png",
+        "id":  "82800",
+        "numericId":  82800,
+        "band":  82800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82801.png",
+        "id":  "82801",
+        "numericId":  82801,
+        "band":  82800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82802.png",
+        "id":  "82802",
+        "numericId":  82802,
+        "band":  82800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82803.png",
+        "id":  "82803",
+        "numericId":  82803,
+        "band":  82800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82804.png",
+        "id":  "82804",
+        "numericId":  82804,
+        "band":  82800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82805.png",
+        "id":  "82805",
+        "numericId":  82805,
+        "band":  82800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82806.png",
+        "id":  "82806",
+        "numericId":  82806,
+        "band":  82800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82807.png",
+        "id":  "82807",
+        "numericId":  82807,
+        "band":  82800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82808.png",
+        "id":  "82808",
+        "numericId":  82808,
+        "band":  82800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82809.png",
+        "id":  "82809",
+        "numericId":  82809,
+        "band":  82800,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/82898.png",
+        "id":  "82898",
+        "numericId":  82898,
+        "band":  82890,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83100.png",
+        "id":  "83100",
+        "numericId":  83100,
+        "band":  83100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83101.png",
+        "id":  "83101",
+        "numericId":  83101,
+        "band":  83100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83102.png",
+        "id":  "83102",
+        "numericId":  83102,
+        "band":  83100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83103.png",
+        "id":  "83103",
+        "numericId":  83103,
+        "band":  83100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83104.png",
+        "id":  "83104",
+        "numericId":  83104,
+        "band":  83100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83105.png",
+        "id":  "83105",
+        "numericId":  83105,
+        "band":  83100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83106.png",
+        "id":  "83106",
+        "numericId":  83106,
+        "band":  83100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83107.png",
+        "id":  "83107",
+        "numericId":  83107,
+        "band":  83100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83108.png",
+        "id":  "83108",
+        "numericId":  83108,
+        "band":  83100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83109.png",
+        "id":  "83109",
+        "numericId":  83109,
+        "band":  83100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83198.png",
+        "id":  "83198",
+        "numericId":  83198,
+        "band":  83190,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83200.png",
+        "id":  "83200",
+        "numericId":  83200,
+        "band":  83200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83201.png",
+        "id":  "83201",
+        "numericId":  83201,
+        "band":  83200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83202.png",
+        "id":  "83202",
+        "numericId":  83202,
+        "band":  83200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83203.png",
+        "id":  "83203",
+        "numericId":  83203,
+        "band":  83200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83204.png",
+        "id":  "83204",
+        "numericId":  83204,
+        "band":  83200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83205.png",
+        "id":  "83205",
+        "numericId":  83205,
+        "band":  83200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83206.png",
+        "id":  "83206",
+        "numericId":  83206,
+        "band":  83200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83207.png",
+        "id":  "83207",
+        "numericId":  83207,
+        "band":  83200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83208.png",
+        "id":  "83208",
+        "numericId":  83208,
+        "band":  83200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83209.png",
+        "id":  "83209",
+        "numericId":  83209,
+        "band":  83200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/83298.png",
+        "id":  "83298",
+        "numericId":  83298,
+        "band":  83290,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89000.png",
+        "id":  "89000",
+        "numericId":  89000,
+        "band":  89000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89001.png",
+        "id":  "89001",
+        "numericId":  89001,
+        "band":  89000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89002.png",
+        "id":  "89002",
+        "numericId":  89002,
+        "band":  89000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89003.png",
+        "id":  "89003",
+        "numericId":  89003,
+        "band":  89000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89004.png",
+        "id":  "89004",
+        "numericId":  89004,
+        "band":  89000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89005.png",
+        "id":  "89005",
+        "numericId":  89005,
+        "band":  89000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89006.png",
+        "id":  "89006",
+        "numericId":  89006,
+        "band":  89000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89007.png",
+        "id":  "89007",
+        "numericId":  89007,
+        "band":  89000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89008.png",
+        "id":  "89008",
+        "numericId":  89008,
+        "band":  89000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89009.png",
+        "id":  "89009",
+        "numericId":  89009,
+        "band":  89000,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89098.png",
+        "id":  "89098",
+        "numericId":  89098,
+        "band":  89090,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89100.png",
+        "id":  "89100",
+        "numericId":  89100,
+        "band":  89100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89101.png",
+        "id":  "89101",
+        "numericId":  89101,
+        "band":  89100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89102.png",
+        "id":  "89102",
+        "numericId":  89102,
+        "band":  89100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89103.png",
+        "id":  "89103",
+        "numericId":  89103,
+        "band":  89100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89104.png",
+        "id":  "89104",
+        "numericId":  89104,
+        "band":  89100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89105.png",
+        "id":  "89105",
+        "numericId":  89105,
+        "band":  89100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89106.png",
+        "id":  "89106",
+        "numericId":  89106,
+        "band":  89100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89107.png",
+        "id":  "89107",
+        "numericId":  89107,
+        "band":  89100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89108.png",
+        "id":  "89108",
+        "numericId":  89108,
+        "band":  89100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89109.png",
+        "id":  "89109",
+        "numericId":  89109,
+        "band":  89100,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89198.png",
+        "id":  "89198",
+        "numericId":  89198,
+        "band":  89190,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89200.png",
+        "id":  "89200",
+        "numericId":  89200,
+        "band":  89200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89201.png",
+        "id":  "89201",
+        "numericId":  89201,
+        "band":  89200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89202.png",
+        "id":  "89202",
+        "numericId":  89202,
+        "band":  89200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89203.png",
+        "id":  "89203",
+        "numericId":  89203,
+        "band":  89200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89204.png",
+        "id":  "89204",
+        "numericId":  89204,
+        "band":  89200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89205.png",
+        "id":  "89205",
+        "numericId":  89205,
+        "band":  89200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89206.png",
+        "id":  "89206",
+        "numericId":  89206,
+        "band":  89200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89207.png",
+        "id":  "89207",
+        "numericId":  89207,
+        "band":  89200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89208.png",
+        "id":  "89208",
+        "numericId":  89208,
+        "band":  89200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89209.png",
+        "id":  "89209",
+        "numericId":  89209,
+        "band":  89200,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89298.png",
+        "id":  "89298",
+        "numericId":  89298,
+        "band":  89290,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89300.png",
+        "id":  "89300",
+        "numericId":  89300,
+        "band":  89300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89301.png",
+        "id":  "89301",
+        "numericId":  89301,
+        "band":  89300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89302.png",
+        "id":  "89302",
+        "numericId":  89302,
+        "band":  89300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89303.png",
+        "id":  "89303",
+        "numericId":  89303,
+        "band":  89300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89304.png",
+        "id":  "89304",
+        "numericId":  89304,
+        "band":  89300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89305.png",
+        "id":  "89305",
+        "numericId":  89305,
+        "band":  89300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89306.png",
+        "id":  "89306",
+        "numericId":  89306,
+        "band":  89300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89307.png",
+        "id":  "89307",
+        "numericId":  89307,
+        "band":  89300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89308.png",
+        "id":  "89308",
+        "numericId":  89308,
+        "band":  89300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89309.png",
+        "id":  "89309",
+        "numericId":  89309,
+        "band":  89300,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/weapon/89398.png",
+        "id":  "89398",
+        "numericId":  89398,
+        "band":  89390,
+        "group":  "weapon"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90400.png",
+        "id":  "90400",
+        "numericId":  90400,
+        "band":  90400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90401.png",
+        "id":  "90401",
+        "numericId":  90401,
+        "band":  90400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90402.png",
+        "id":  "90402",
+        "numericId":  90402,
+        "band":  90400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90403.png",
+        "id":  "90403",
+        "numericId":  90403,
+        "band":  90400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90404.png",
+        "id":  "90404",
+        "numericId":  90404,
+        "band":  90400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90405.png",
+        "id":  "90405",
+        "numericId":  90405,
+        "band":  90400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90406.png",
+        "id":  "90406",
+        "numericId":  90406,
+        "band":  90400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90407.png",
+        "id":  "90407",
+        "numericId":  90407,
+        "band":  90400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90408.png",
+        "id":  "90408",
+        "numericId":  90408,
+        "band":  90400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90409.png",
+        "id":  "90409",
+        "numericId":  90409,
+        "band":  90400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90498.png",
+        "id":  "90498",
+        "numericId":  90498,
+        "band":  90490,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90800.png",
+        "id":  "90800",
+        "numericId":  90800,
+        "band":  90800,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90801.png",
+        "id":  "90801",
+        "numericId":  90801,
+        "band":  90800,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90802.png",
+        "id":  "90802",
+        "numericId":  90802,
+        "band":  90800,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90803.png",
+        "id":  "90803",
+        "numericId":  90803,
+        "band":  90800,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90804.png",
+        "id":  "90804",
+        "numericId":  90804,
+        "band":  90800,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90805.png",
+        "id":  "90805",
+        "numericId":  90805,
+        "band":  90800,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90806.png",
+        "id":  "90806",
+        "numericId":  90806,
+        "band":  90800,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90807.png",
+        "id":  "90807",
+        "numericId":  90807,
+        "band":  90800,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90808.png",
+        "id":  "90808",
+        "numericId":  90808,
+        "band":  90800,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90809.png",
+        "id":  "90809",
+        "numericId":  90809,
+        "band":  90800,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/90898.png",
+        "id":  "90898",
+        "numericId":  90898,
+        "band":  90890,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92000.png",
+        "id":  "92000",
+        "numericId":  92000,
+        "band":  92000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92001.png",
+        "id":  "92001",
+        "numericId":  92001,
+        "band":  92000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92002.png",
+        "id":  "92002",
+        "numericId":  92002,
+        "band":  92000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92003.png",
+        "id":  "92003",
+        "numericId":  92003,
+        "band":  92000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92004.png",
+        "id":  "92004",
+        "numericId":  92004,
+        "band":  92000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92005.png",
+        "id":  "92005",
+        "numericId":  92005,
+        "band":  92000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92006.png",
+        "id":  "92006",
+        "numericId":  92006,
+        "band":  92000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92007.png",
+        "id":  "92007",
+        "numericId":  92007,
+        "band":  92000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92008.png",
+        "id":  "92008",
+        "numericId":  92008,
+        "band":  92000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92009.png",
+        "id":  "92009",
+        "numericId":  92009,
+        "band":  92000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92098.png",
+        "id":  "92098",
+        "numericId":  92098,
+        "band":  92090,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92400.png",
+        "id":  "92400",
+        "numericId":  92400,
+        "band":  92400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92401.png",
+        "id":  "92401",
+        "numericId":  92401,
+        "band":  92400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92402.png",
+        "id":  "92402",
+        "numericId":  92402,
+        "band":  92400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92403.png",
+        "id":  "92403",
+        "numericId":  92403,
+        "band":  92400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92404.png",
+        "id":  "92404",
+        "numericId":  92404,
+        "band":  92400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92405.png",
+        "id":  "92405",
+        "numericId":  92405,
+        "band":  92400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92406.png",
+        "id":  "92406",
+        "numericId":  92406,
+        "band":  92400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92407.png",
+        "id":  "92407",
+        "numericId":  92407,
+        "band":  92400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92408.png",
+        "id":  "92408",
+        "numericId":  92408,
+        "band":  92400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92409.png",
+        "id":  "92409",
+        "numericId":  92409,
+        "band":  92400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92498.png",
+        "id":  "92498",
+        "numericId":  92498,
+        "band":  92490,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92500.png",
+        "id":  "92500",
+        "numericId":  92500,
+        "band":  92500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92501.png",
+        "id":  "92501",
+        "numericId":  92501,
+        "band":  92500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92502.png",
+        "id":  "92502",
+        "numericId":  92502,
+        "band":  92500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92503.png",
+        "id":  "92503",
+        "numericId":  92503,
+        "band":  92500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92504.png",
+        "id":  "92504",
+        "numericId":  92504,
+        "band":  92500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92505.png",
+        "id":  "92505",
+        "numericId":  92505,
+        "band":  92500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92506.png",
+        "id":  "92506",
+        "numericId":  92506,
+        "band":  92500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92507.png",
+        "id":  "92507",
+        "numericId":  92507,
+        "band":  92500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92508.png",
+        "id":  "92508",
+        "numericId":  92508,
+        "band":  92500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92509.png",
+        "id":  "92509",
+        "numericId":  92509,
+        "band":  92500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/92598.png",
+        "id":  "92598",
+        "numericId":  92598,
+        "band":  92590,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94000.png",
+        "id":  "94000",
+        "numericId":  94000,
+        "band":  94000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94001.png",
+        "id":  "94001",
+        "numericId":  94001,
+        "band":  94000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94002.png",
+        "id":  "94002",
+        "numericId":  94002,
+        "band":  94000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94003.png",
+        "id":  "94003",
+        "numericId":  94003,
+        "band":  94000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94004.png",
+        "id":  "94004",
+        "numericId":  94004,
+        "band":  94000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94005.png",
+        "id":  "94005",
+        "numericId":  94005,
+        "band":  94000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94006.png",
+        "id":  "94006",
+        "numericId":  94006,
+        "band":  94000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94007.png",
+        "id":  "94007",
+        "numericId":  94007,
+        "band":  94000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94008.png",
+        "id":  "94008",
+        "numericId":  94008,
+        "band":  94000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94009.png",
+        "id":  "94009",
+        "numericId":  94009,
+        "band":  94000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94098.png",
+        "id":  "94098",
+        "numericId":  94098,
+        "band":  94090,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94100.png",
+        "id":  "94100",
+        "numericId":  94100,
+        "band":  94100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94101.png",
+        "id":  "94101",
+        "numericId":  94101,
+        "band":  94100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94102.png",
+        "id":  "94102",
+        "numericId":  94102,
+        "band":  94100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94103.png",
+        "id":  "94103",
+        "numericId":  94103,
+        "band":  94100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94104.png",
+        "id":  "94104",
+        "numericId":  94104,
+        "band":  94100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94105.png",
+        "id":  "94105",
+        "numericId":  94105,
+        "band":  94100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94106.png",
+        "id":  "94106",
+        "numericId":  94106,
+        "band":  94100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94107.png",
+        "id":  "94107",
+        "numericId":  94107,
+        "band":  94100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94108.png",
+        "id":  "94108",
+        "numericId":  94108,
+        "band":  94100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94109.png",
+        "id":  "94109",
+        "numericId":  94109,
+        "band":  94100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94198.png",
+        "id":  "94198",
+        "numericId":  94198,
+        "band":  94190,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94200.png",
+        "id":  "94200",
+        "numericId":  94200,
+        "band":  94200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94201.png",
+        "id":  "94201",
+        "numericId":  94201,
+        "band":  94200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94202.png",
+        "id":  "94202",
+        "numericId":  94202,
+        "band":  94200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94203.png",
+        "id":  "94203",
+        "numericId":  94203,
+        "band":  94200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94204.png",
+        "id":  "94204",
+        "numericId":  94204,
+        "band":  94200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94205.png",
+        "id":  "94205",
+        "numericId":  94205,
+        "band":  94200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94206.png",
+        "id":  "94206",
+        "numericId":  94206,
+        "band":  94200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94207.png",
+        "id":  "94207",
+        "numericId":  94207,
+        "band":  94200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94208.png",
+        "id":  "94208",
+        "numericId":  94208,
+        "band":  94200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94209.png",
+        "id":  "94209",
+        "numericId":  94209,
+        "band":  94200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94298.png",
+        "id":  "94298",
+        "numericId":  94298,
+        "band":  94290,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94300.png",
+        "id":  "94300",
+        "numericId":  94300,
+        "band":  94300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94301.png",
+        "id":  "94301",
+        "numericId":  94301,
+        "band":  94300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94302.png",
+        "id":  "94302",
+        "numericId":  94302,
+        "band":  94300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94303.png",
+        "id":  "94303",
+        "numericId":  94303,
+        "band":  94300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94304.png",
+        "id":  "94304",
+        "numericId":  94304,
+        "band":  94300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94305.png",
+        "id":  "94305",
+        "numericId":  94305,
+        "band":  94300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94306.png",
+        "id":  "94306",
+        "numericId":  94306,
+        "band":  94300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94307.png",
+        "id":  "94307",
+        "numericId":  94307,
+        "band":  94300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94308.png",
+        "id":  "94308",
+        "numericId":  94308,
+        "band":  94300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94309.png",
+        "id":  "94309",
+        "numericId":  94309,
+        "band":  94300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/94398.png",
+        "id":  "94398",
+        "numericId":  94398,
+        "band":  94390,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97100.png",
+        "id":  "97100",
+        "numericId":  97100,
+        "band":  97100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97101.png",
+        "id":  "97101",
+        "numericId":  97101,
+        "band":  97100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97102.png",
+        "id":  "97102",
+        "numericId":  97102,
+        "band":  97100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97103.png",
+        "id":  "97103",
+        "numericId":  97103,
+        "band":  97100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97104.png",
+        "id":  "97104",
+        "numericId":  97104,
+        "band":  97100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97105.png",
+        "id":  "97105",
+        "numericId":  97105,
+        "band":  97100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97106.png",
+        "id":  "97106",
+        "numericId":  97106,
+        "band":  97100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97107.png",
+        "id":  "97107",
+        "numericId":  97107,
+        "band":  97100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97108.png",
+        "id":  "97108",
+        "numericId":  97108,
+        "band":  97100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97109.png",
+        "id":  "97109",
+        "numericId":  97109,
+        "band":  97100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97198.png",
+        "id":  "97198",
+        "numericId":  97198,
+        "band":  97190,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97400.png",
+        "id":  "97400",
+        "numericId":  97400,
+        "band":  97400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97401.png",
+        "id":  "97401",
+        "numericId":  97401,
+        "band":  97400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97402.png",
+        "id":  "97402",
+        "numericId":  97402,
+        "band":  97400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97403.png",
+        "id":  "97403",
+        "numericId":  97403,
+        "band":  97400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97404.png",
+        "id":  "97404",
+        "numericId":  97404,
+        "band":  97400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97405.png",
+        "id":  "97405",
+        "numericId":  97405,
+        "band":  97400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97406.png",
+        "id":  "97406",
+        "numericId":  97406,
+        "band":  97400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97407.png",
+        "id":  "97407",
+        "numericId":  97407,
+        "band":  97400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97408.png",
+        "id":  "97408",
+        "numericId":  97408,
+        "band":  97400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97409.png",
+        "id":  "97409",
+        "numericId":  97409,
+        "band":  97400,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97498.png",
+        "id":  "97498",
+        "numericId":  97498,
+        "band":  97490,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97500.png",
+        "id":  "97500",
+        "numericId":  97500,
+        "band":  97500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97501.png",
+        "id":  "97501",
+        "numericId":  97501,
+        "band":  97500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97502.png",
+        "id":  "97502",
+        "numericId":  97502,
+        "band":  97500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97503.png",
+        "id":  "97503",
+        "numericId":  97503,
+        "band":  97500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97504.png",
+        "id":  "97504",
+        "numericId":  97504,
+        "band":  97500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97505.png",
+        "id":  "97505",
+        "numericId":  97505,
+        "band":  97500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97506.png",
+        "id":  "97506",
+        "numericId":  97506,
+        "band":  97500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97507.png",
+        "id":  "97507",
+        "numericId":  97507,
+        "band":  97500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97508.png",
+        "id":  "97508",
+        "numericId":  97508,
+        "band":  97500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97509.png",
+        "id":  "97509",
+        "numericId":  97509,
+        "band":  97500,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/97598.png",
+        "id":  "97598",
+        "numericId":  97598,
+        "band":  97590,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98000.png",
+        "id":  "98000",
+        "numericId":  98000,
+        "band":  98000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98001.png",
+        "id":  "98001",
+        "numericId":  98001,
+        "band":  98000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98002.png",
+        "id":  "98002",
+        "numericId":  98002,
+        "band":  98000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98003.png",
+        "id":  "98003",
+        "numericId":  98003,
+        "band":  98000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98004.png",
+        "id":  "98004",
+        "numericId":  98004,
+        "band":  98000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98005.png",
+        "id":  "98005",
+        "numericId":  98005,
+        "band":  98000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98006.png",
+        "id":  "98006",
+        "numericId":  98006,
+        "band":  98000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98007.png",
+        "id":  "98007",
+        "numericId":  98007,
+        "band":  98000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98008.png",
+        "id":  "98008",
+        "numericId":  98008,
+        "band":  98000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98009.png",
+        "id":  "98009",
+        "numericId":  98009,
+        "band":  98000,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98098.png",
+        "id":  "98098",
+        "numericId":  98098,
+        "band":  98090,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98100.png",
+        "id":  "98100",
+        "numericId":  98100,
+        "band":  98100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98101.png",
+        "id":  "98101",
+        "numericId":  98101,
+        "band":  98100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98102.png",
+        "id":  "98102",
+        "numericId":  98102,
+        "band":  98100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98103.png",
+        "id":  "98103",
+        "numericId":  98103,
+        "band":  98100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98104.png",
+        "id":  "98104",
+        "numericId":  98104,
+        "band":  98100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98105.png",
+        "id":  "98105",
+        "numericId":  98105,
+        "band":  98100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98106.png",
+        "id":  "98106",
+        "numericId":  98106,
+        "band":  98100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98107.png",
+        "id":  "98107",
+        "numericId":  98107,
+        "band":  98100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98108.png",
+        "id":  "98108",
+        "numericId":  98108,
+        "band":  98100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98109.png",
+        "id":  "98109",
+        "numericId":  98109,
+        "band":  98100,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98198.png",
+        "id":  "98198",
+        "numericId":  98198,
+        "band":  98190,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98200.png",
+        "id":  "98200",
+        "numericId":  98200,
+        "band":  98200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98201.png",
+        "id":  "98201",
+        "numericId":  98201,
+        "band":  98200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98202.png",
+        "id":  "98202",
+        "numericId":  98202,
+        "band":  98200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98203.png",
+        "id":  "98203",
+        "numericId":  98203,
+        "band":  98200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98204.png",
+        "id":  "98204",
+        "numericId":  98204,
+        "band":  98200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98205.png",
+        "id":  "98205",
+        "numericId":  98205,
+        "band":  98200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98206.png",
+        "id":  "98206",
+        "numericId":  98206,
+        "band":  98200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98207.png",
+        "id":  "98207",
+        "numericId":  98207,
+        "band":  98200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98208.png",
+        "id":  "98208",
+        "numericId":  98208,
+        "band":  98200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98209.png",
+        "id":  "98209",
+        "numericId":  98209,
+        "band":  98200,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98298.png",
+        "id":  "98298",
+        "numericId":  98298,
+        "band":  98290,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98300.png",
+        "id":  "98300",
+        "numericId":  98300,
+        "band":  98300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98301.png",
+        "id":  "98301",
+        "numericId":  98301,
+        "band":  98300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98302.png",
+        "id":  "98302",
+        "numericId":  98302,
+        "band":  98300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98303.png",
+        "id":  "98303",
+        "numericId":  98303,
+        "band":  98300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98304.png",
+        "id":  "98304",
+        "numericId":  98304,
+        "band":  98300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98305.png",
+        "id":  "98305",
+        "numericId":  98305,
+        "band":  98300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98306.png",
+        "id":  "98306",
+        "numericId":  98306,
+        "band":  98300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98307.png",
+        "id":  "98307",
+        "numericId":  98307,
+        "band":  98300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98308.png",
+        "id":  "98308",
+        "numericId":  98308,
+        "band":  98300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98309.png",
+        "id":  "98309",
+        "numericId":  98309,
+        "band":  98300,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/98398.png",
+        "id":  "98398",
+        "numericId":  98398,
+        "band":  98390,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/99900.png",
+        "id":  "99900",
+        "numericId":  99900,
+        "band":  99900,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/99901.png",
+        "id":  "99901",
+        "numericId":  99901,
+        "band":  99900,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/99902.png",
+        "id":  "99902",
+        "numericId":  99902,
+        "band":  99900,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/99903.png",
+        "id":  "99903",
+        "numericId":  99903,
+        "band":  99900,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/99904.png",
+        "id":  "99904",
+        "numericId":  99904,
+        "band":  99900,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/99905.png",
+        "id":  "99905",
+        "numericId":  99905,
+        "band":  99900,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/99906.png",
+        "id":  "99906",
+        "numericId":  99906,
+        "band":  99900,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/99907.png",
+        "id":  "99907",
+        "numericId":  99907,
+        "band":  99900,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/99908.png",
+        "id":  "99908",
+        "numericId":  99908,
+        "band":  99900,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/99909.png",
+        "id":  "99909",
+        "numericId":  99909,
+        "band":  99900,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/helmet/99998.png",
+        "id":  "99998",
+        "numericId":  99998,
+        "band":  99990,
+        "group":  "helmet"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/120198.png",
+        "id":  "120198",
+        "numericId":  120198,
+        "band":  120190,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/120298.png",
+        "id":  "120298",
+        "numericId":  120298,
+        "band":  120290,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/120398.png",
+        "id":  "120398",
+        "numericId":  120398,
+        "band":  120390,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/120498.png",
+        "id":  "120498",
+        "numericId":  120498,
+        "band":  120490,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/120598.png",
+        "id":  "120598",
+        "numericId":  120598,
+        "band":  120590,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/120698.png",
+        "id":  "120698",
+        "numericId":  120698,
+        "band":  120690,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/120798.png",
+        "id":  "120798",
+        "numericId":  120798,
+        "band":  120790,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/120898.png",
+        "id":  "120898",
+        "numericId":  120898,
+        "band":  120890,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/120998.png",
+        "id":  "120998",
+        "numericId":  120998,
+        "band":  120990,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/121098.png",
+        "id":  "121098",
+        "numericId":  121098,
+        "band":  121090,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/121198.png",
+        "id":  "121198",
+        "numericId":  121198,
+        "band":  121190,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/121298.png",
+        "id":  "121298",
+        "numericId":  121298,
+        "band":  121290,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/121398.png",
+        "id":  "121398",
+        "numericId":  121398,
+        "band":  121390,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/121498.png",
+        "id":  "121498",
+        "numericId":  121498,
+        "band":  121490,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/121598.png",
+        "id":  "121598",
+        "numericId":  121598,
+        "band":  121590,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/121698.png",
+        "id":  "121698",
+        "numericId":  121698,
+        "band":  121690,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/121798.png",
+        "id":  "121798",
+        "numericId":  121798,
+        "band":  121790,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/121898.png",
+        "id":  "121898",
+        "numericId":  121898,
+        "band":  121890,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/121998.png",
+        "id":  "121998",
+        "numericId":  121998,
+        "band":  121990,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/122098.png",
+        "id":  "122098",
+        "numericId":  122098,
+        "band":  122090,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/122198.png",
+        "id":  "122198",
+        "numericId":  122198,
+        "band":  122190,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/122298.png",
+        "id":  "122298",
+        "numericId":  122298,
+        "band":  122290,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/122398.png",
+        "id":  "122398",
+        "numericId":  122398,
+        "band":  122390,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/122498.png",
+        "id":  "122498",
+        "numericId":  122498,
+        "band":  122490,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/122598.png",
+        "id":  "122598",
+        "numericId":  122598,
+        "band":  122590,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/128098.png",
+        "id":  "128098",
+        "numericId":  128098,
+        "band":  128090,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/128198.png",
+        "id":  "128198",
+        "numericId":  128198,
+        "band":  128190,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/128298.png",
+        "id":  "128298",
+        "numericId":  128298,
+        "band":  128290,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/128398.png",
+        "id":  "128398",
+        "numericId":  128398,
+        "band":  128390,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/130000.png",
+        "id":  "130000",
+        "numericId":  130000,
+        "band":  130000,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/130098.png",
+        "id":  "130098",
+        "numericId":  130098,
+        "band":  130090,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/130100.png",
+        "id":  "130100",
+        "numericId":  130100,
+        "band":  130100,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/130198.png",
+        "id":  "130198",
+        "numericId":  130198,
+        "band":  130190,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/140098.png",
+        "id":  "140098",
+        "numericId":  140098,
+        "band":  140090,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90200.png",
+        "id":  "90200",
+        "numericId":  90200,
+        "band":  90200,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90201.png",
+        "id":  "90201",
+        "numericId":  90201,
+        "band":  90200,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90202.png",
+        "id":  "90202",
+        "numericId":  90202,
+        "band":  90200,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90203.png",
+        "id":  "90203",
+        "numericId":  90203,
+        "band":  90200,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90204.png",
+        "id":  "90204",
+        "numericId":  90204,
+        "band":  90200,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90205.png",
+        "id":  "90205",
+        "numericId":  90205,
+        "band":  90200,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90206.png",
+        "id":  "90206",
+        "numericId":  90206,
+        "band":  90200,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90207.png",
+        "id":  "90207",
+        "numericId":  90207,
+        "band":  90200,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90208.png",
+        "id":  "90208",
+        "numericId":  90208,
+        "band":  90200,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90209.png",
+        "id":  "90209",
+        "numericId":  90209,
+        "band":  90200,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90298.png",
+        "id":  "90298",
+        "numericId":  90298,
+        "band":  90290,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90300.png",
+        "id":  "90300",
+        "numericId":  90300,
+        "band":  90300,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90301.png",
+        "id":  "90301",
+        "numericId":  90301,
+        "band":  90300,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90302.png",
+        "id":  "90302",
+        "numericId":  90302,
+        "band":  90300,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90303.png",
+        "id":  "90303",
+        "numericId":  90303,
+        "band":  90300,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90304.png",
+        "id":  "90304",
+        "numericId":  90304,
+        "band":  90300,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90305.png",
+        "id":  "90305",
+        "numericId":  90305,
+        "band":  90300,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90306.png",
+        "id":  "90306",
+        "numericId":  90306,
+        "band":  90300,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90307.png",
+        "id":  "90307",
+        "numericId":  90307,
+        "band":  90300,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90308.png",
+        "id":  "90308",
+        "numericId":  90308,
+        "band":  90300,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90309.png",
+        "id":  "90309",
+        "numericId":  90309,
+        "band":  90300,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/accessory/90398.png",
+        "id":  "90398",
+        "numericId":  90398,
+        "band":  90390,
+        "group":  "accessory"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95200.png",
+        "id":  "95200",
+        "numericId":  95200,
+        "band":  95200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95201.png",
+        "id":  "95201",
+        "numericId":  95201,
+        "band":  95200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95202.png",
+        "id":  "95202",
+        "numericId":  95202,
+        "band":  95200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95203.png",
+        "id":  "95203",
+        "numericId":  95203,
+        "band":  95200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95204.png",
+        "id":  "95204",
+        "numericId":  95204,
+        "band":  95200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95205.png",
+        "id":  "95205",
+        "numericId":  95205,
+        "band":  95200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95206.png",
+        "id":  "95206",
+        "numericId":  95206,
+        "band":  95200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95207.png",
+        "id":  "95207",
+        "numericId":  95207,
+        "band":  95200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95208.png",
+        "id":  "95208",
+        "numericId":  95208,
+        "band":  95200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95209.png",
+        "id":  "95209",
+        "numericId":  95209,
+        "band":  95200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95298.png",
+        "id":  "95298",
+        "numericId":  95298,
+        "band":  95290,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95400.png",
+        "id":  "95400",
+        "numericId":  95400,
+        "band":  95400,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95401.png",
+        "id":  "95401",
+        "numericId":  95401,
+        "band":  95400,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95402.png",
+        "id":  "95402",
+        "numericId":  95402,
+        "band":  95400,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95403.png",
+        "id":  "95403",
+        "numericId":  95403,
+        "band":  95400,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95404.png",
+        "id":  "95404",
+        "numericId":  95404,
+        "band":  95400,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95405.png",
+        "id":  "95405",
+        "numericId":  95405,
+        "band":  95400,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95406.png",
+        "id":  "95406",
+        "numericId":  95406,
+        "band":  95400,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95407.png",
+        "id":  "95407",
+        "numericId":  95407,
+        "band":  95400,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95408.png",
+        "id":  "95408",
+        "numericId":  95408,
+        "band":  95400,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95409.png",
+        "id":  "95409",
+        "numericId":  95409,
+        "band":  95400,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95498.png",
+        "id":  "95498",
+        "numericId":  95498,
+        "band":  95490,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95500.png",
+        "id":  "95500",
+        "numericId":  95500,
+        "band":  95500,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95501.png",
+        "id":  "95501",
+        "numericId":  95501,
+        "band":  95500,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95502.png",
+        "id":  "95502",
+        "numericId":  95502,
+        "band":  95500,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95503.png",
+        "id":  "95503",
+        "numericId":  95503,
+        "band":  95500,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95504.png",
+        "id":  "95504",
+        "numericId":  95504,
+        "band":  95500,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95505.png",
+        "id":  "95505",
+        "numericId":  95505,
+        "band":  95500,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95506.png",
+        "id":  "95506",
+        "numericId":  95506,
+        "band":  95500,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95507.png",
+        "id":  "95507",
+        "numericId":  95507,
+        "band":  95500,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95508.png",
+        "id":  "95508",
+        "numericId":  95508,
+        "band":  95500,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95509.png",
+        "id":  "95509",
+        "numericId":  95509,
+        "band":  95500,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95598.png",
+        "id":  "95598",
+        "numericId":  95598,
+        "band":  95590,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95700.png",
+        "id":  "95700",
+        "numericId":  95700,
+        "band":  95700,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95701.png",
+        "id":  "95701",
+        "numericId":  95701,
+        "band":  95700,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95702.png",
+        "id":  "95702",
+        "numericId":  95702,
+        "band":  95700,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95703.png",
+        "id":  "95703",
+        "numericId":  95703,
+        "band":  95700,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95704.png",
+        "id":  "95704",
+        "numericId":  95704,
+        "band":  95700,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95705.png",
+        "id":  "95705",
+        "numericId":  95705,
+        "band":  95700,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95706.png",
+        "id":  "95706",
+        "numericId":  95706,
+        "band":  95700,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95707.png",
+        "id":  "95707",
+        "numericId":  95707,
+        "band":  95700,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95708.png",
+        "id":  "95708",
+        "numericId":  95708,
+        "band":  95700,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95709.png",
+        "id":  "95709",
+        "numericId":  95709,
+        "band":  95700,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95798.png",
+        "id":  "95798",
+        "numericId":  95798,
+        "band":  95790,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95800.png",
+        "id":  "95800",
+        "numericId":  95800,
+        "band":  95800,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95801.png",
+        "id":  "95801",
+        "numericId":  95801,
+        "band":  95800,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95802.png",
+        "id":  "95802",
+        "numericId":  95802,
+        "band":  95800,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95803.png",
+        "id":  "95803",
+        "numericId":  95803,
+        "band":  95800,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95804.png",
+        "id":  "95804",
+        "numericId":  95804,
+        "band":  95800,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95805.png",
+        "id":  "95805",
+        "numericId":  95805,
+        "band":  95800,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95806.png",
+        "id":  "95806",
+        "numericId":  95806,
+        "band":  95800,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95807.png",
+        "id":  "95807",
+        "numericId":  95807,
+        "band":  95800,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95808.png",
+        "id":  "95808",
+        "numericId":  95808,
+        "band":  95800,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95809.png",
+        "id":  "95809",
+        "numericId":  95809,
+        "band":  95800,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95898.png",
+        "id":  "95898",
+        "numericId":  95898,
+        "band":  95890,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95900.png",
+        "id":  "95900",
+        "numericId":  95900,
+        "band":  95900,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95901.png",
+        "id":  "95901",
+        "numericId":  95901,
+        "band":  95900,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95902.png",
+        "id":  "95902",
+        "numericId":  95902,
+        "band":  95900,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95903.png",
+        "id":  "95903",
+        "numericId":  95903,
+        "band":  95900,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95904.png",
+        "id":  "95904",
+        "numericId":  95904,
+        "band":  95900,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95905.png",
+        "id":  "95905",
+        "numericId":  95905,
+        "band":  95900,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95906.png",
+        "id":  "95906",
+        "numericId":  95906,
+        "band":  95900,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95907.png",
+        "id":  "95907",
+        "numericId":  95907,
+        "band":  95900,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95908.png",
+        "id":  "95908",
+        "numericId":  95908,
+        "band":  95900,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95909.png",
+        "id":  "95909",
+        "numericId":  95909,
+        "band":  95900,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/95998.png",
+        "id":  "95998",
+        "numericId":  95998,
+        "band":  95990,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96000.png",
+        "id":  "96000",
+        "numericId":  96000,
+        "band":  96000,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96001.png",
+        "id":  "96001",
+        "numericId":  96001,
+        "band":  96000,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96002.png",
+        "id":  "96002",
+        "numericId":  96002,
+        "band":  96000,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96003.png",
+        "id":  "96003",
+        "numericId":  96003,
+        "band":  96000,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96004.png",
+        "id":  "96004",
+        "numericId":  96004,
+        "band":  96000,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96005.png",
+        "id":  "96005",
+        "numericId":  96005,
+        "band":  96000,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96006.png",
+        "id":  "96006",
+        "numericId":  96006,
+        "band":  96000,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96007.png",
+        "id":  "96007",
+        "numericId":  96007,
+        "band":  96000,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96008.png",
+        "id":  "96008",
+        "numericId":  96008,
+        "band":  96000,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96009.png",
+        "id":  "96009",
+        "numericId":  96009,
+        "band":  96000,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96098.png",
+        "id":  "96098",
+        "numericId":  96098,
+        "band":  96090,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96100.png",
+        "id":  "96100",
+        "numericId":  96100,
+        "band":  96100,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96101.png",
+        "id":  "96101",
+        "numericId":  96101,
+        "band":  96100,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96102.png",
+        "id":  "96102",
+        "numericId":  96102,
+        "band":  96100,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96103.png",
+        "id":  "96103",
+        "numericId":  96103,
+        "band":  96100,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96104.png",
+        "id":  "96104",
+        "numericId":  96104,
+        "band":  96100,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96105.png",
+        "id":  "96105",
+        "numericId":  96105,
+        "band":  96100,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96106.png",
+        "id":  "96106",
+        "numericId":  96106,
+        "band":  96100,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96107.png",
+        "id":  "96107",
+        "numericId":  96107,
+        "band":  96100,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96108.png",
+        "id":  "96108",
+        "numericId":  96108,
+        "band":  96100,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96109.png",
+        "id":  "96109",
+        "numericId":  96109,
+        "band":  96100,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96198.png",
+        "id":  "96198",
+        "numericId":  96198,
+        "band":  96190,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96200.png",
+        "id":  "96200",
+        "numericId":  96200,
+        "band":  96200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96201.png",
+        "id":  "96201",
+        "numericId":  96201,
+        "band":  96200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96202.png",
+        "id":  "96202",
+        "numericId":  96202,
+        "band":  96200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96203.png",
+        "id":  "96203",
+        "numericId":  96203,
+        "band":  96200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96204.png",
+        "id":  "96204",
+        "numericId":  96204,
+        "band":  96200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96205.png",
+        "id":  "96205",
+        "numericId":  96205,
+        "band":  96200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96206.png",
+        "id":  "96206",
+        "numericId":  96206,
+        "band":  96200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96207.png",
+        "id":  "96207",
+        "numericId":  96207,
+        "band":  96200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96208.png",
+        "id":  "96208",
+        "numericId":  96208,
+        "band":  96200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96209.png",
+        "id":  "96209",
+        "numericId":  96209,
+        "band":  96200,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96298.png",
+        "id":  "96298",
+        "numericId":  96298,
+        "band":  96290,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96300.png",
+        "id":  "96300",
+        "numericId":  96300,
+        "band":  96300,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96301.png",
+        "id":  "96301",
+        "numericId":  96301,
+        "band":  96300,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96302.png",
+        "id":  "96302",
+        "numericId":  96302,
+        "band":  96300,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96303.png",
+        "id":  "96303",
+        "numericId":  96303,
+        "band":  96300,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96304.png",
+        "id":  "96304",
+        "numericId":  96304,
+        "band":  96300,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96305.png",
+        "id":  "96305",
+        "numericId":  96305,
+        "band":  96300,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96306.png",
+        "id":  "96306",
+        "numericId":  96306,
+        "band":  96300,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96307.png",
+        "id":  "96307",
+        "numericId":  96307,
+        "band":  96300,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96308.png",
+        "id":  "96308",
+        "numericId":  96308,
+        "band":  96300,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96309.png",
+        "id":  "96309",
+        "numericId":  96309,
+        "band":  96300,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/premium/96398.png",
+        "id":  "96398",
+        "numericId":  96398,
+        "band":  96390,
+        "group":  "premium"
+    },
+    {
+        "file":  "client/assets/equipment/ui/30099.png",
+        "id":  "30099",
+        "numericId":  30099,
+        "band":  30090,
+        "group":  "ui"
+    },
+    {
+        "file":  "client/assets/equipment/ui/blacksmith.png",
+        "id":  "blacksmith",
+        "numericId":  null,
+        "band":  null,
+        "group":  "ui"
+    },
+    {
+        "file":  "client/assets/equipment/ui/broken_heart.png",
+        "id":  "broken_heart",
+        "numericId":  null,
+        "band":  null,
+        "group":  "ui"
+    },
+    {
+        "file":  "client/assets/equipment/ui/effblacksmith.png",
+        "id":  "effblacksmith",
+        "numericId":  null,
+        "band":  null,
+        "group":  "ui"
+    },
+    {
+        "file":  "client/assets/equipment/ui/slotlock.png",
+        "id":  "slotlock",
+        "numericId":  null,
+        "band":  null,
+        "group":  "ui"
+    },
+    {
+        "file":  "client/assets/equipment/ui/star.png",
+        "id":  "star",
+        "numericId":  null,
+        "band":  null,
+        "group":  "ui"
+    }
+]
