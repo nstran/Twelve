@@ -2,6 +2,35 @@
 
 CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng theo module. Chi tiết đầy đủ nằm trong tài liệu reconstruction tương ứng và lịch sử git.
 
+## 2026-05-04
+
+### [EQUIPMENT] Inventory detail panel spacing cleanup
+
+- Cập nhật `client/src/screens/map/core/MapCharacterDialogs.tsx`:
+  - bỏ emoji/icon prefix trước tên item/equipment trong dialog chi tiết để tên item hiển thị đúng, gọn.
+- Cập nhật `client/src/screens/map/core/MapCharacterDialogs.styles.ts`:
+  - tăng padding trái/phải phần header/content của panel chi tiết;
+  - thu và canh lại panel chi tiết để nội dung không sát viền.
+- Boundary:
+  - Chỉ chỉnh UI presentation React Native.
+  - Không đổi gameplay logic, raw item id, equipment slot, stat aggregation hoặc server API.
+
+### [EQUIPMENT] Inventory item icon mapping correction
+
+- Sửa lỗi nhiều vật phẩm trong túi đồ hiển thị sai thành icon rương do `iconKind` server/client không khớp asset thật.
+- Cập nhật `server/Twelve.Application/Players/PlayerContentCatalog.cs`:
+  - item `5002` đổi sang MP consumable dùng `iconKind = potion_blue`;
+  - item `5003` dùng `Huyết thạch` / `iconKind = huyet_thach`;
+  - item `5004` dùng `Kim thạch` / `iconKind = kim_thach`;
+  - `OstrichEgg/30095` dùng `iconKind = ostrich_egg` thay vì `chicken_egg`.
+- Cập nhật `client/src/screens/map/core/MapCharacterDialogs.tsx`:
+  - bổ sung mapping asset cho các egg icon `chicken_egg`, `ostrich_egg`, `dinosaur_egg`, `phoenix_egg`, `dragon_egg`;
+  - bổ sung alias `repair_hammer` để khớp `iconKind` server.
+- Boundary:
+  - Không đổi raw item id.
+  - Đây là sửa mapping hiển thị/asset theo catalog remake hiện có, không phải Java server evidence mới.
+  - Không đổi equipment icon formula; equipment vẫn resolve từ `ll.n/resourceId` theo Java evidence.
+
 ## 2026-05-03
 
 ### [EQUIPMENT] ItemCatalog primary key naming cleanup

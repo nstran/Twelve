@@ -651,8 +651,8 @@ export const styles = StyleSheet.create({
   },
   inventoryDetailPanel: {
     position: 'absolute',
-    left: 10,
-    width: 320,
+    left: 14,
+    width: 312,
     top: 492,
     minHeight: 140,
     backgroundColor: '#ffffff',
@@ -666,7 +666,7 @@ export const styles = StyleSheet.create({
   inventoryDetailHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     backgroundColor: '#f0f9ff',
     borderBottomWidth: 1,
@@ -674,7 +674,8 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   inventoryDetailContent: {
-    padding: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   inventoryDetailTitle: {
     flex: 1,

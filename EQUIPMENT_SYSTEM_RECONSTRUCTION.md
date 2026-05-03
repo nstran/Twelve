@@ -2590,3 +2590,46 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - Không bật roll upgrade thật, không đổi DB schema, không thêm fallback stat/slot.
 - Verification:
   - `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass: stdout/stderr rỗng.
+
+### 2026-05-04 — Inventory item icon mapping correction
+
+- Code đã sửa:
+  - `server/Twelve.Application/Players/PlayerContentCatalog.cs`
+    - Sửa `PlayerItemDefinition` runtime catalog cho các item đang xuất hiện trong inventory/battle loot để `iconKind` khớp asset thật trong `client/assets/items/`.
+    - `5002`: đổi sang MP consumable, `iconKind = potion_blue`.
+    - `5003`: đổi sang `Huyết thạch`, `iconKind = huyet_thach`.
+    - `5004`: đổi sang `Kim thạch`, `iconKind = kim_thach`.
+    - `OstrichEgg/30095`: đổi `iconKind` từ `chicken_egg` sang `ostrich_egg`.
+  - `client/src/screens/map/core/MapCharacterDialogs.tsx`
+    - Bổ sung asset resolver key cho `chicken_egg`, `ostrich_egg`, `dinosaur_egg`, `phoenix_egg`, `dragon_egg`.
+    - Bổ sung alias `repair_hammer` để khớp server catalog.
+- Java evidence / Remake policy:
+  - Raw item ids vẫn giữ nguyên theo enum/runtime hiện có; không đổi gameplay id.
+  - Đây là mapping hiển thị theo asset/remake catalog hiện có, không phải Java server evidence mới.
+  - Equipment icon formula không đổi: equipment vẫn resolve từ `ll.n/resourceId` theo Java evidence `iconId = (resId - resId % 10) + 98`.
+- Boundary:
+  - Không đổi DB schema.
+  - Không đổi combat formula/stat aggregation/repair logic.
+  - Không thêm fallback icon gameplay; client chỉ dùng `itemchest` khi `iconKind` chưa có asset mapping rõ.
+- Verification:
+  - Pending trong bước sau của task: chạy `dotnet build Twelve.sln` và TypeScript check client.
+
+### 2026-05-04 — Inventory detail panel spacing cleanup
+
+- Code đã sửa:
+  - `client/src/screens/map/core/MapCharacterDialogs.tsx`
+    - Bỏ emoji/icon prefix trước tên equipment/item trong detail panel để tránh lệch text và giữ tên hiển thị gọn.
+    - Giữ resolver icon ở grid/slot; không đổi công thức icon equipment.
+  - `client/src/screens/map/core/MapCharacterDialogs.styles.ts`
+    - Canh lại panel chi tiết trong inventory: `left = 14`, `width = 312`.
+    - Tăng padding ngang header/content lên `14` để nội dung không sát viền.
+- Java evidence / Remake policy:
+  - Đây chỉ là cleanup presentation React Native.
+  - Không thêm Java evidence mới.
+  - Không đổi slot gameplay, raw item id, raw equipment resource id hoặc equipment stat policy.
+- Boundary:
+  - Equipment icon formula vẫn giữ theo Java evidence: `iconId = (resId - resId % 10) + 98`.
+  - Repair hammer raw itemId `30099` không đổi.
+  - Không đổi server API, DB schema, combat formula, stat aggregation hoặc repair flow.
+- Verification:
+  - Pending trong bước sau của task: TypeScript check client.

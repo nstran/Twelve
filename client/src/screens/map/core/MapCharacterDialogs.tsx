@@ -43,7 +43,13 @@ const INVENTORY_ITEM_ASSETS: Record<string, ReturnType<typeof require>> = {
   potion_red: require('../../../../assets/items/hp.png'),
   potion_blue: require('../../../../assets/items/mp.png'),
   peach: require('../../../../assets/items/ostrich_egg.png'),
+  chicken_egg: require('../../../../assets/items/chicken_egg.png'),
+  ostrich_egg: require('../../../../assets/items/ostrich_egg.png'),
+  dinosaur_egg: require('../../../../assets/items/dinosaur_egg.png'),
+  phoenix_egg: require('../../../../assets/items/phoenix_egg.png'),
+  dragon_egg: require('../../../../assets/items/dragon_egg.png'),
   hammer: require('../../../../assets/items/repair_hammer.png'),
+  repair_hammer: require('../../../../assets/items/repair_hammer.png'),
   kim_thach: require('../../../../assets/items/kim_thach.png'),
   huyet_thach: require('../../../../assets/items/huyet_thach.png'),
   charm_1: require('../../../../assets/items/charm_1.png'),
@@ -718,7 +724,7 @@ const InventoryDetailPanel: React.FC<{
     return (
       <View style={[styles.inventoryDetailPanel, { backgroundColor: '#ffffff', zIndex: 10000 }]}>
         <View style={styles.inventoryDetailHeader}>
-          <Text style={styles.inventoryDetailTitle} numberOfLines={1}>🔥 {entry.displayName}</Text>
+          <Text style={styles.inventoryDetailTitle} numberOfLines={1}>{entry.displayName}</Text>
           <TouchableOpacity onPress={onClose}>
             <Image source={require('../../../../assets/ui/11_softkey_icons_confirmed/icon_cancel.png')} style={styles.inventoryDetailCloseIcon} />
           </TouchableOpacity>
@@ -772,7 +778,7 @@ const InventoryDetailPanel: React.FC<{
           <Image source={require('../../../../assets/ui/11_softkey_icons_confirmed/icon_cancel.png')} style={styles.inventoryDetailCloseIcon} />
         </TouchableOpacity>
         <View style={styles.inventoryDetailHeader}>
-          <Text style={styles.inventoryDetailTitle} numberOfLines={1}>📦 {item.displayName}</Text>
+          <Text style={styles.inventoryDetailTitle} numberOfLines={1}>{item.displayName}</Text>
         </View>
         <Text style={styles.inventoryDetailMeta}>Số lượng: {item.quantity}/{item.stackCap}</Text>
         <Text style={styles.inventoryDetailText} numberOfLines={3}>{item.description}</Text>
