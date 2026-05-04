@@ -2075,6 +2075,18 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
 
 > Section này đã được dọn ngày `2026-05-03` để tránh trùng lặp dài với `CHANGELOG.md`. Chi tiết lịch sử thay đổi đầy đủ xem `CHANGELOG.md` mục `[EQUIPMENT]`. Tài liệu này chỉ giữ lại các mốc ảnh hưởng trực tiếp tới spec phục dựng.
 
+### 2026-05-05 — Inventory JavaViewport responsive pass
+
+- Java evidence:
+  - `hh.java` constructor uses Java inventory screen base `240x(320-ba.a)` or `320x(v.u-ba.a)` depending `hh.B()` device branch.
+  - `hh.java` places six equipment slots as `32x32` Java logical pixels and a bag list/grid viewport; current RN inventory already had the reconstructed equipment/body/bag layout.
+- Remake/client policy:
+  - React Native now keeps the existing Java-like logical inventory canvas at `340x600`, then scales it through a viewport using device dimensions so visual proportions remain Java-like on iPhone/Android.
+  - This is a first responsive port layer, not a full byte/pixel clone of `fg/dc/cu/ba` renderers yet.
+- Files code đã sửa:
+  - `client/src/screens/map/core/MapCharacterDialogs.tsx`
+  - `client/src/screens/map/core/MapCharacterDialogs.styles.ts`
+
 ### 2026-05-05 — Combine/Forge cmd 99/100 end-to-end
 
 - Java evidence:

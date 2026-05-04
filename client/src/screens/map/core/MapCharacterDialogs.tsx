@@ -6,6 +6,7 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { PopupMenu } from '../../../components/controls/PopupMenu/PopupMenu';
@@ -38,7 +39,7 @@ const EI_DISP_H = Math.round(EI_H * EI_SCALE);
 const INFO_ASSETS = {
   skilltree: require('../../../../assets/skill/00_skill_tree_ui_confirmed/skill_tree_board/increase.png'),
   hidenobj: require('../../../../assets/ui/12_info/hidenobj.png'),
-  itemchest: require('../../../../assets/ui/12_info/itemchest.png'),
+  itemchest: require('../../../../assets/hud/02_gauge_and_chest/itemchest.png'),
 };
 
 const INVENTORY_ITEM_ASSETS: Record<string, ReturnType<typeof require>> = {
@@ -64,7 +65,7 @@ const SKILL_UI_ASSETS = {
   decrease: require('../../../../assets/skill/00_skill_tree_ui_confirmed/skill_tree_board/decrease.png'),
 };
 const HUD_ASSETS = {
-  btinscrease: require('../../../../assets/hud/01_button_markers/btinscrease.png'),
+  btinscrease: require('../../../../assets/ui/12_info/btinscrease.png'),
 };
 const HIDDEN_SLOT_SIZE = 47;
 const STAT_ARROW_FRAME_SIZE = 12;
@@ -918,6 +919,8 @@ const sameKeySet = (left: Set<string>, right: Set<string>) => {
 
 const clampActionMenuLeft = (left: number) => Math.max(6, Math.min(258, left));
 const clampActionMenuTop = (top: number) => Math.max(130, Math.min(430, top));
+const JAVA_INVENTORY_WIDTH = 340;
+const JAVA_INVENTORY_HEIGHT = 600;
 
 const REPAIR_HAMMER_ITEM_ID = 30099;
 const HUYET_THACH_ITEM_ID = 5003;
@@ -999,6 +1002,14 @@ const InventoryShell: React.FC<{
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
   onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
 }> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment, onUpgradeEquipment }) => {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const inventoryScale = Math.min(
+    1,
+    (windowWidth - 28) / JAVA_INVENTORY_WIDTH,
+    (windowHeight - 92) / JAVA_INVENTORY_HEIGHT,
+  );
+  const scaledInventoryWidth = JAVA_INVENTORY_WIDTH * inventoryScale;
+  const scaledInventoryHeight = JAVA_INVENTORY_HEIGHT * inventoryScale;
   const player = createPlayerModel(appearance);
   const equipmentSource = appearance.equipment ?? EMPTY_EQUIPMENT;
   const serverEquippedKeys = useMemo(
@@ -1245,46 +1256,56 @@ const InventoryShell: React.FC<{
   };
 
   return (
-    <View style={styles.inventoryBody}>
-      <View style={styles.inventoryNameRow}>
-        <Text style={styles.inventoryName} numberOfLines={1}>{player.username}</Text>
-        <Text style={styles.inventoryLevel}>Cấp:{player.level}</Text>
-      </View>
-      {renderEquipSlot(0, styles.equipSlotArmor, 56, 46)}
-      {renderEquipSlot(1, styles.equipSlotWeapon, 56, 102)}
-      {renderEquipSlot(2, styles.equipSlotHat, 194, 46)}
-      {renderEquipSlot(3, styles.equipSlotBoot, 194, 102)}
-      {renderEquipSlot(4, styles.equipSlotMount, 250, 46)}
-      {renderEquipSlot(5, styles.equipSlotRing, 250, 102)}
-      <View style={styles.inventoryAvatarBox}>
-        <CharacterRenderer
-          appearance={previewAppearance}
-          scale={1.45}
-          style={{ position: 'relative', bottom: 2 }}
-        />
-      </View>
-      <Text style={styles.capacityText}>{rawCells.length}/50</Text>
-
-      <View style={styles.inventoryGrid}>
-        {cells.map((cell, index) => (
-          <InventoryGridCell
-            key={cell.key}
-            cell={cell}
-            selected={selectedKey === cell.key}
-            onPress={() => openActionMenu(
-              cell,
-              22 + (index % 6) * 51 + 34,
-              178 + Math.floor(index / 6) * 51,
-            )}
-            style={{
-              left: (index % 6) * 51,
-              top: Math.floor(index / 6) * 51,
-            }}
+    <View style={[styles.inventoryViewport, { width: scaledInventoryWidth, height: scaledInventoryHeight }]}>
+      <View
+        style={[
+          styles.inventoryBody,
+          {
+            left: (scaledInventoryWidth - JAVA_INVENTORY_WIDTH) / 2,
+            top: (scaledInventoryHeight - JAVA_INVENTORY_HEIGHT) / 2,
+            transform: [{ scale: inventoryScale }],
+          },
+        ]}
+      >
+        <View style={styles.inventoryNameRow}>
+          <Text style={styles.inventoryName} numberOfLines={1}>{player.username}</Text>
+          <Text style={styles.inventoryLevel}>Cấp:{player.level}</Text>
+        </View>
+        {renderEquipSlot(0, styles.equipSlotArmor, 56, 46)}
+        {renderEquipSlot(1, styles.equipSlotWeapon, 56, 102)}
+        {renderEquipSlot(2, styles.equipSlotHat, 194, 46)}
+        {renderEquipSlot(3, styles.equipSlotBoot, 194, 102)}
+        {renderEquipSlot(4, styles.equipSlotMount, 250, 46)}
+        {renderEquipSlot(5, styles.equipSlotRing, 250, 102)}
+        <View style={styles.inventoryAvatarBox}>
+          <CharacterRenderer
+            appearance={previewAppearance}
+            scale={1.45}
+            style={{ position: 'relative', bottom: 2 }}
           />
-        ))}
-      </View>
+        </View>
+        <Text style={styles.capacityText}>{rawCells.length}/50</Text>
 
-      {upgradeTargetKey && selected?.kind === 'equipment' ? (() => {
+        <View style={styles.inventoryGrid}>
+          {cells.map((cell, index) => (
+            <InventoryGridCell
+              key={cell.key}
+              cell={cell}
+              selected={selectedKey === cell.key}
+              onPress={() => openActionMenu(
+                cell,
+                22 + (index % 6) * 51 + 34,
+                178 + Math.floor(index / 6) * 51,
+              )}
+              style={{
+                left: (index % 6) * 51,
+                top: Math.floor(index / 6) * 51,
+              }}
+            />
+          ))}
+        </View>
+
+        {upgradeTargetKey && selected?.kind === 'equipment' ? (() => {
         const policy = resolveUpgradePolicy(selected.entry.level);
         const inventory = appearance.inventory ?? [];
         const materialIds = [HUYET_THACH_ITEM_ID, KIM_THACH_ITEM_ID];
@@ -1338,17 +1359,18 @@ const InventoryShell: React.FC<{
         );
       })() : null}
 
-      <InventoryDetailPanel
-        visible={showDetail}
-        onClose={() => setShowDetail(false)}
-        playerLevel={player.level}
-        playerGender={appearance.genderIndex}
-        currentCombat={appearance.combat}
-        previewCombat={previewRuntime?.combat}
-        selected={selected}
-        pending={pending}
-      />
-      {renderActionMenu()}
+        <InventoryDetailPanel
+          visible={showDetail}
+          onClose={() => setShowDetail(false)}
+          playerLevel={player.level}
+          playerGender={appearance.genderIndex}
+          currentCombat={appearance.combat}
+          previewCombat={previewRuntime?.combat}
+          selected={selected}
+          pending={pending}
+        />
+        {renderActionMenu()}
+      </View>
     </View>
   );
 };

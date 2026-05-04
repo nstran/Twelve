@@ -487,12 +487,18 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
   },
+  inventoryViewport: {
+    position: 'relative',
+    alignSelf: 'center',
+    overflow: 'hidden',
+  },
   inventoryBody: {
     width: 340,
     minWidth: 340,
     height: 600,
-    position: 'relative',
+    position: 'absolute',
     alignSelf: 'center',
+    transformOrigin: 'top left',
   },
   inventoryNameRow: {
     position: 'absolute',

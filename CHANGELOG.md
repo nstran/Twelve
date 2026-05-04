@@ -4,6 +4,13 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-04
 
+### [EQUIPMENT] Inventory JavaViewport responsive pass
+
+- Chỉnh inventory RN sang mô hình Java logical canvas responsive: giữ layout logical `340x600`, scale theo kích thước thiết bị bằng `useWindowDimensions` để bám tỷ lệ Java nhưng không vỡ trên iPhone/Android.
+- Evidence dùng từ `hh.java`: inventory screen có base canvas/device branch, equip slots/list viewport; hiện là lớp responsive đầu tiên, chưa phải full clone renderer `fg/dc/cu/ba`.
+- Files: `MapCharacterDialogs.tsx`, `MapCharacterDialogs.styles.ts`, `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Verification: `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass.
+
 ### [EQUIPMENT] System shop implementation
 
 - Implement shop hệ thống/NPC end-to-end từ evidence `reference/raw/images/shop.jpg`: mở từ menu `Mua bán > Cửa hàng`, list offer, `Mặc thử`, `Mua`, `C.Tiết`, detail panel và ví Ken.
