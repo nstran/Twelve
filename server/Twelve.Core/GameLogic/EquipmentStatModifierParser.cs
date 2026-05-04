@@ -28,7 +28,13 @@ namespace Twelve.Core.GameLogic
                     Crit: ReadInt(modifier, "crit", "critical", "g"),
                     Defense: ReadInt(modifier, "defense", "pThu", "f"),
                     Dodge: ReadInt(modifier, "dodge", "neTranh", "h"),
-                    MaxHp: ReadInt(modifier, "maxHp", "hp", "i"));
+                    MaxHp: ReadInt(modifier, "maxHp", "hp", "i"),
+                    // Java evidence: lb.j/k/l/m/o parsed/displayable; combat formula pending
+                    DamageAbsorbPercent: ReadInt(modifier, "damageAbsorbPercent", "damageAbsorb", "j"),
+                    ArmorPiercePercent: ReadInt(modifier, "armorPiercePercent", "armorPierce", "k"),
+                    BlockPercent: ReadInt(modifier, "blockPercent", "block", "l"),
+                    RevivePercent: ReadInt(modifier, "revivePercent", "revive", "m"),
+                    HpPercent: ReadInt(modifier, "hpPercent", "hpPct", "o"));
             }
             catch (JsonException)
             {

@@ -52,13 +52,17 @@ namespace Twelve.Core.Entities
     public enum PlayerEquipmentSlot
     {
         // Java evidence: ll.e is the authoritative equipment slot raw value.
+        // ll.a[] slot table: index 0=Armor, 1=Weapon, 2=Helmet, 3=Boots, 5=Ring, 8=Wing.
         // Current code-readiness gate (EQUIPMENT_SYSTEM_RECONSTRUCTION.md §13.10) only enables
         // the gameplay slots proven/chosen for remake scope below. Unknown ll.e values must not
         // be remapped or inferred from decompile field names.
+        // FIX 2026-05-04: Ring was incorrectly mapped to e=3 (Boots); corrected to e=5 per
+        // Java evidence ll.a[] and EQUIPMENT_SYSTEM_RECONSTRUCTION.md §13.2.
         Armor = 0,
         Weapon = 1,
         Helmet = 2,
-        Ring = 3,
+        // Boots = 3,  // Java evidence: e=3 is Boots/Giày; not enabled in gameplay Phase 1
+        Ring = 5,      // Java evidence: e=5 is Ring/Nhẫn (ll.a[5] priority 9)
         Wing = 8
     }
 

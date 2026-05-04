@@ -2633,3 +2633,33 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - Không đổi server API, DB schema, combat formula, stat aggregation hoặc repair flow.
 - Verification:
   - Pending trong bước sau của task: TypeScript check client.
+
+### 2026-05-04 — Priority Java-alignment fixes for equipment slots, stats, inventory capacity, repair gate
+
+- Code đã sửa:
+  - `server/Twelve.Core/Entities/PlayerAggregate.cs`
+    - Sửa `PlayerEquipmentSlot.Ring` từ raw `3` sang raw `5` theo Java `ll.e`; giữ `3` là Boots/Giày chưa bật trong Phase 1.
+  - `server/Twelve.Core/GameLogic/PlayerStatPipeline.cs`
+    - Mở rộng `PlayerStatModifier` đủ 15 field `lb.java` (`a..o`).
+    - Chỉ áp dụng công thức/status cho nhóm đã có evidence: `a,b,c,d,e,f,g,h,i,n`; các field `j,k,l,m,o` chỉ được lưu/sum để round-trip/display, combat formula pending.
+  - `server/Twelve.Core/GameLogic/EquipmentStatModifierParser.cs`
+    - Parse thêm `DamageAbsorbPercent/tag 200`, `ArmorPiercePercent/tag 201`, `BlockPercent/tag 202`, `RevivePercent/tag 203`, `HpPercent/tag 221`.
+  - `server/Twelve.Application/Players/PlayerContentCatalog.cs`
+    - `CanRepair` nay yêu cầu item có `RepairCost > 0` theo Java `ll.c()` và đang mất durability.
+    - `SumModifiers` và `BuildEquipmentRawJson` giữ đủ 15 stat field để không mất dữ liệu khi serialize/aggregate view.
+  - `server/Twelve.Application/Players/PlayerRuntimeService.cs`
+    - Sửa inventory full check theo Java `go.b()`: chỉ đếm equipment trong túi (`!IsEquipped`), cộng item stack theo quantity khi backend có `StackCap > 1`, rồi so với capacity mặc định `go.n = 50`.
+- Java evidence applied:
+  - `ll.e`: `0=Armor`, `1=Weapon`, `2=Helmet`, `3=Boots`, `5=Ring`, `8=Wing/remake special`.
+  - `lb.java/ky.java`: stat block có 15 field/tags `a..o`.
+  - `go.b()`: capacity tính equipment bag + inventory item usage, không tính trang bị đang mặc.
+  - `ll.c()`: repairable khi `repairCost > 0`.
+- Remake policy retained:
+  - Repair vẫn dùng 1 hammer raw itemId `30099`, hồi full durability, không mất Quan.
+  - `StackCap > 1` là backend proxy cho stack semantics vì hiện chưa lưu raw `lm.e` trên item stack runtime.
+- Boundary:
+  - Không thêm combat formula cho special stats `j/k/l/m/o`.
+  - Không đổi DB schema, API public contract client, hoặc reward pool/rate.
+  - Không tự bật Boots/e=3 trong Phase 1.
+- Verification:
+  - Pending trong bước sau của task: `dotnet build Twelve.sln`.

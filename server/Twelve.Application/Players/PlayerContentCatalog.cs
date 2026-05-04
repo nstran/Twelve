@@ -136,7 +136,11 @@ namespace Twelve.Application.Players
             var definition = ResolveEquipment(entry);
             var isBroken = entry.MaxDurability > 0 && entry.Durability <= 0;
             var contributesStats = entry.IsEquipped && !isBroken;
-            var canRepair = entry.MaxDurability > 0 && entry.Durability < entry.MaxDurability;
+            // Java evidence: ll.c() returns true when repairCost > 0, meaning the item
+            // is repairable by design. Combined with durability damage check for UI gate.
+            var canRepair = entry.MaxDurability > 0
+                         && entry.Durability < entry.MaxDurability
+                         && definition.RepairCost > 0;
 
             return new PlayerEquipmentItemView(
                 EquipKey: entry.EquipKey,
@@ -361,6 +365,12 @@ namespace Twelve.Application.Players
             return SumModifiers(modifiers);
         }
 
+        /// <summary>
+        /// Sum all 15 lb.java stat fields across equipped modifiers.
+        /// Java evidence: lb.java fields a-o; aggregation proven for a,b,c,d,e,f,g,h,i,n
+        /// via da.java/com.mg.sq.a.java status formulas. Special fields j,k,l,m,o are
+        /// summed for storage/display but combat formula application is pending.
+        /// </summary>
         private static PlayerStatModifier SumModifiers(IEnumerable<PlayerStatModifier> modifiers)
         {
             var cuongLuc = 0;
@@ -373,6 +383,12 @@ namespace Twelve.Application.Players
             var defense = 0;
             var dodge = 0;
             var maxHp = 0;
+            // Java evidence: lb.j/k/l/m/o special stats parsed/displayable; combat formula pending
+            var damageAbsorbPercent = 0;
+            var armorPiercePercent = 0;
+            var blockPercent = 0;
+            var revivePercent = 0;
+            var hpPercent = 0;
 
             foreach (var m in modifiers)
             {
@@ -386,6 +402,11 @@ namespace Twelve.Application.Players
                 defense += m.Defense;
                 dodge += m.Dodge;
                 maxHp += m.MaxHp;
+                damageAbsorbPercent += m.DamageAbsorbPercent;
+                armorPiercePercent += m.ArmorPiercePercent;
+                blockPercent += m.BlockPercent;
+                revivePercent += m.RevivePercent;
+                hpPercent += m.HpPercent;
             }
 
             return new PlayerStatModifier(
@@ -398,7 +419,12 @@ namespace Twelve.Application.Players
                 Crit: crit,
                 Defense: defense,
                 Dodge: dodge,
-                MaxHp: maxHp);
+                MaxHp: maxHp,
+                DamageAbsorbPercent: damageAbsorbPercent,
+                ArmorPiercePercent: armorPiercePercent,
+                BlockPercent: blockPercent,
+                RevivePercent: revivePercent,
+                HpPercent: hpPercent);
         }
 
         public bool IsRepairMaterial(int itemId) => itemId == (int)PlayerItemId.RepairHammer;
@@ -656,7 +682,13 @@ namespace Twelve.Application.Players
                     crit = definition.Modifier.Crit,
                     defense = definition.Modifier.Defense,
                     dodge = definition.Modifier.Dodge,
-                    maxHp = definition.Modifier.MaxHp
+                    maxHp = definition.Modifier.MaxHp,
+                    // Java evidence: lb.j/k/l/m/o special stats; serialized for round-trip fidelity
+                    damageAbsorbPercent = definition.Modifier.DamageAbsorbPercent,
+                    armorPiercePercent = definition.Modifier.ArmorPiercePercent,
+                    blockPercent = definition.Modifier.BlockPercent,
+                    revivePercent = definition.Modifier.RevivePercent,
+                    hpPercent = definition.Modifier.HpPercent
                 }
             });
 

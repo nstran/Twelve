@@ -4,6 +4,16 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-04
 
+### [EQUIPMENT] Priority Java-alignment fixes: slot mapping, stat model, inventory capacity, repair gate
+
+- Sửa `PlayerEquipmentSlot.Ring` từ raw `3` (sai) sang `5` theo Java `ll.e` evidence.
+- Mở rộng `PlayerStatModifier` đủ 15 field `lb.java` (`a..o`); chỉ aggregate 10 field có status evidence, 5 special stats (`j/k/l/m/o`) lưu/sum cho round-trip/display.
+- `EquipmentStatModifierParser` parse thêm 5 special stat tags (`200/201/202/203/221`).
+- `PlayerContentCatalog.SumModifiers` và `BuildEquipmentRawJson` serialize đủ 15 field.
+- `CanRepair` thêm gate `RepairCost > 0` theo Java `ll.c()`.
+- `IsInventoryFullForNewEquipment` bám Java `go.b()`: chỉ đếm equipment bag, item stack theo quantity khi `StackCap > 1`.
+- Files: `PlayerAggregate.cs`, `PlayerStatPipeline.cs`, `EquipmentStatModifierParser.cs`, `PlayerContentCatalog.cs`, `PlayerRuntimeService.cs`.
+
 ### [MAP] Shared side-scroll map shell
 
 - Common hóa map side-scroll để tránh copy [`HoaLuMapScreen`](client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx) cho nhiều bản đồ:

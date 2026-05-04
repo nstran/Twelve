@@ -551,12 +551,28 @@ namespace Twelve.Application.Players
             _playerAggregateRepository.GetByPlayerIdAsync(playerId).GetAwaiter().GetResult()
             ?? throw new System.InvalidOperationException("Failed to reload player aggregate.");
 
-        private static bool IsInventoryFullForNewEquipment(PlayerAggregate aggregate)
+        private bool IsInventoryFullForNewEquipment(PlayerAggregate aggregate)
         {
-            // Java evidence: go.n default inventory capacity is 50 and go.b() counts
-            // equipment bag + currently worn equipment + item stacks against that capacity.
+            // Java evidence: go.b() starts from all equipment, subtracts equipped items,
+            // then adds inventory item usage before comparing with go.n default capacity 50.
             const int DefaultInventoryCapacity = 50;
-            var occupiedSlots = aggregate.Equipment.Count + aggregate.Inventory.Count;
+            var occupiedSlots = aggregate.Equipment.Count(entry => !entry.IsEquipped);
+
+            foreach (var stack in aggregate.Inventory)
+            {
+                var definition = _contentCatalog.GetItemDefinition(stack.ItemId);
+                if (definition is not null && definition.StackCap > 1)
+                {
+                    // Java evidence: lm.e == 7 stacks count by quantity in go.b().
+                    // Backend currently preserves stack semantics through StackCap, not raw lm.e.
+                    occupiedSlots += stack.Quantity;
+                }
+                else
+                {
+                    occupiedSlots++;
+                }
+            }
+
             return occupiedSlots >= DefaultInventoryCapacity;
         }
 

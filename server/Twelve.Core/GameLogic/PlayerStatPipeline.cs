@@ -5,16 +5,23 @@ using Twelve.Core.Entities;
 namespace Twelve.Core.GameLogic
 {
     public sealed record PlayerStatModifier(
-        int CuongLuc = 0,
-        int ThanPhap = 0,
-        int NoiLuc = 0,
-        int TheLuc = 0,
-        int FlatAttack = 0,
-        int AttackPercent = 0,
-        int Crit = 0,
-        int Defense = 0,
-        int Dodge = 0,
-        int MaxHp = 0);
+        // Java evidence: lb.java/ky.java 15-field equipment stat block.
+        // Aggregation applies only the status-proven fields a,b,c,d,e,f,g,h,i,n.
+        int CuongLuc = 0,              // lb.a / tag 118
+        int ThanPhap = 0,              // lb.b / tag 119
+        int NoiLuc = 0,                // lb.c / tag 120
+        int TheLuc = 0,                // lb.d / tag 121
+        int FlatAttack = 0,            // lb.e / tag 72
+        int AttackPercent = 0,         // lb.n / tag 204; applied as baseAttack * percent / 100
+        int Crit = 0,                  // lb.g / tag 126
+        int Defense = 0,               // lb.f / tag 71
+        int Dodge = 0,                 // lb.h / tag 124
+        int MaxHp = 0,                 // lb.i / tag 47
+        int DamageAbsorbPercent = 0,   // lb.j / tag 200; parsed/displayable, combat formula pending
+        int ArmorPiercePercent = 0,    // lb.k / tag 201; parsed/displayable, combat formula pending
+        int BlockPercent = 0,          // lb.l / tag 202; parsed/displayable, combat formula pending
+        int RevivePercent = 0,         // lb.m / tag 203; parsed/displayable, combat formula pending
+        int HpPercent = 0);            // lb.o / tag 221; parsed/displayable, formula pending
 
     /// <summary>
     /// Ports the Java bridge around com.mg.sq.a.a(lh): base + bonus + equipment
@@ -123,7 +130,12 @@ namespace Twelve.Core.GameLogic
                 Crit: list.Sum(m => m.Crit),
                 Defense: list.Sum(m => m.Defense),
                 Dodge: list.Sum(m => m.Dodge),
-                MaxHp: list.Sum(m => m.MaxHp));
+                MaxHp: list.Sum(m => m.MaxHp),
+                DamageAbsorbPercent: list.Sum(m => m.DamageAbsorbPercent),
+                ArmorPiercePercent: list.Sum(m => m.ArmorPiercePercent),
+                BlockPercent: list.Sum(m => m.BlockPercent),
+                RevivePercent: list.Sum(m => m.RevivePercent),
+                HpPercent: list.Sum(m => m.HpPercent));
         }
     }
 
