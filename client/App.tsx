@@ -441,6 +441,13 @@ export default function App() {
               applyRuntimeResponse(response);
               return response?.message ?? null;
             }}
+            onUpgradeEquipment={async (equipKey, materialItemIds) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.upgradeEquipment(username, equipKey, materialItemIds);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
             onBattle={(type, initialTurn, monsterBootstrap) => {
               setBattleMonster(type as MonsterTypeNav);
               setBattleInitialTurn(

@@ -8,8 +8,8 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 - User bổ sung ảnh `reference/raw/images/upgrade.png`, `reference/raw/images/upgrade1.png`, `reference/raw/images/upgrade2.jpg`; ghi nhận UI Java có dòng `Phí kết hợp: ... KEN`, slot trang bị/nguyên liệu, text cơ hội thành công và popup `Nâng cấp`/`Không`.
 - RN inventory/equipment dialog đã mở prompt `Nâng cấp` theo evidence ảnh: hiển thị phí, vật phẩm yêu cầu, cơ hội, nút xác nhận; logic material/rate vẫn là `RemakePolicy` mirror từ server.
-- Thread prop `onUpgradeEquipment(equipKey, materialItemIds)` qua `SideScrollMapScreen` và `HoaLuMapScreen` để màn hình map có thể nối API upgrade.
-- Files: `MapCharacterDialogs.tsx`, `MapCharacterDialogs.styles.ts`, `SideScrollMapScreen.tsx`, `HoaLuMapScreen.tsx`, `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Thread prop `onUpgradeEquipment(equipKey, materialItemIds)` qua `SideScrollMapScreen` và `HoaLuMapScreen`, rồi nối từ `App.tsx` vào `playerRuntimeApi.upgradeEquipment(...)` để flow map upgrade chạy end-to-end và merge snapshot trả về.
+- Files: `App.tsx`, `MapCharacterDialogs.tsx`, `MapCharacterDialogs.styles.ts`, `SideScrollMapScreen.tsx`, `HoaLuMapScreen.tsx`, `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
 - Verification: `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass.
 
 ### [EQUIPMENT] Upgrade material policy + shop DB foundation

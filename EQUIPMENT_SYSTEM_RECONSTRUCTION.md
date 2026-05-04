@@ -2826,6 +2826,8 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
     - Added separated `StyleSheet` rules for the upgrade prompt; no complex inline styles for the new UI.
   - `client/src/screens/map/shared/SideScrollMapScreen.tsx` and `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`
     - Threaded optional `onUpgradeEquipment(equipKey, materialItemIds)` prop down to the dialog.
+  - `client/App.tsx`
+    - Connected `onUpgradeEquipment` on the Hoa Lu map path to `playerRuntimeApi.upgradeEquipment(...)`, then merges the returned runtime snapshot back into current appearance.
 - Boundary:
   - Screenshot proves UI text/layout direction and KEN wording, not original Java server material ids/rates/fee formulas.
   - Current RN prompt fee/rate/material quantities remain RemakePolicy display mirrored from `EquipmentUpgradeService`.
