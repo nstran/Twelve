@@ -419,6 +419,26 @@ Java evidence:
 - Roster mode uses tag `40`; Java dispatch observes modes `0`, `1`, and `3`.
 - Each NPC record uses tag `9` and fields `jo.a`, `jo.b`, `jo.c`, `jo.d`, `jo.e`, `jo.f`, `jo.g` from tags documented above.
 
+DB seed policy confirmed 2026-05-04:
+
+- `NpcCatalog` stores only fields needed by the current NPC roster runtime:
+  - `NpcKey` maps to server-side NPC id / Java `jo.a` policy.
+  - `DisplayName` maps to Java `jo.b`.
+  - `SpriteAssetId` / `SpritePath` store the confirmed numbered `110xxx` NPC sprite.
+  - `VisualTypeByte` maps to Java `jo.c` for shared-sheet fallback.
+  - `DisplayLevel` maps to Java `jo.d`.
+  - `NameColorMode` maps to Java `jo.g`.
+- `NpcMapRosters` stores per-map placement fields:
+  - `MapId`, `RoomId`, `DisplayNameOverride`, `TileX`, `TileY`, `RosterMode`, `IsActive`.
+  - `TileX` maps to Java `jo.e`; `TileY` maps to Java `jo.f`.
+  - One NPC can appear in many maps by having multiple roster rows.
+- `MissionCatalog` stores minimal mission seed data: `MissionKey`, `Title`, `Description`, `RewardText`.
+- `MissionObjectives` stores mission goals: `ObjectiveType`, `TargetKey`, `RequiredAmount`, `SortOrder`.
+- `MissionRewards` stores only approved reward types for now: `Exp`, `Item`, `Equipment`.
+- `NpcMissionLinks` is a many-to-many link so one NPC can contain many missions and a mission can be moved/reused without changing NPC identity.
+- Seed files are [server/Database/Npcs/npcs_schema.sql](server/Database/Npcs/npcs_schema.sql) and [server/Database/Npcs/npcs_seed.sql](server/Database/Npcs/npcs_seed.sql).
+- Migration embeds these as `DB.09_npcs_schema.sql` and `DB.10_npcs_seed.sql` from [server/Twelve.Infrastructure/Twelve.Infrastructure.csproj](server/Twelve.Infrastructure/Twelve.Infrastructure.csproj).
+
 Remake policy confirmed 2026-05-04:
 
 - First server roster target: map `Hoa Lu`, room `1`.
@@ -483,3 +503,8 @@ can start being promoted into final semantic roles.
 - Added Mission parser foundation on RN from Java client evidence: commands `31`, `33`, `34`, `35`, `38` now decode into `MissionRecord` / `MissionTaskRecord` equivalents of Java `ns` / `nt`; outbound mission list/detail/accept/cancel requests use commands `31`, `33`, `32`, `41` with tag `77` where Java `ks` proves it.
 - Added separate map mission state reducer/queue so Mission notifications stay isolated from NPC talk dialog; no quest giver, reward, ownership, or completion policy has been inferred yet.
 - Corrected NPC asset organization per user evidence: moved numbered NPC sprites `110000.png..110160.png` directly under `client/assets/npc/`; remaining NPC subfolders are UI/shared-sheet/prop evidence, not the numbered NPC set.
+- Added NPC DB schema/seed files with `NpcCatalog`, `NpcMapRosters`, and `NpcDialogLines`; seeded all `110000..110160` sprites with placeholder names so the original NPC names/roles can be filled later without changing schema.
+- Trimmed NPC DB fields to the currently needed roster/dialog fields, added `MissionCatalog` plus `NpcMissionLinks` for NPCs containing multiple missions, and seeded `Lính Hoa Lư` (`npc_110110`) into every enabled world map via `WorldMapCatalog`.
+- Added `NpcMapRosters.DisplayNameOverride` so shared NPCs can have map-specific names, e.g. `Lính Hoa Lư`, `Lính Kỷ Bố`, without duplicating the base sprite/NPC catalog row.
+- Removed unused DB fields/tables from the current seed scope: `InteractionMode`, `DialogKey`, `IsVerifiedJava`, and `NpcDialogLines` were dropped because no DB-backed runtime currently reads them.
+- Added minimal mission objective/reward tables: `MissionObjectives` plus `MissionRewards`; reward type is constrained to `Exp`, `Item`, and `Equipment` only so future reward categories can be added deliberately later.

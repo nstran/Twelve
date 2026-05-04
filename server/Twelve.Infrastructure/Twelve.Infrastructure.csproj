@@ -33,6 +33,12 @@
     <EmbeddedResource Include="..\Database\Monsters\monsters_seed.sql">
       <LogicalName>DB.08_monsters_seed.sql</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\Database\Npcs\npcs_schema.sql">
+      <LogicalName>DB.09_npcs_schema.sql</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Database\Npcs\npcs_seed.sql">
+      <LogicalName>DB.10_npcs_seed.sql</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

@@ -4,6 +4,23 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-04
 
+### [NPC/MISSION] NPC database seed foundation
+
+- Thêm schema/seed DB tối giản cho NPC:
+  - `server/Database/Npcs/npcs_schema.sql` tạo `NpcCatalog`, `NpcMapRosters`, `MissionCatalog`, `MissionObjectives`, `MissionRewards`, `NpcMissionLinks`;
+  - `server/Database/Npcs/npcs_seed.sql` seed đủ `110000..110160` với tên user vừa cập nhật;
+  - embed migration qua `DB.09_npcs_schema.sql` và `DB.10_npcs_seed.sql` trong `server/Twelve.Infrastructure/Twelve.Infrastructure.csproj`.
+- Field bám Java evidence:
+  - `NpcKey` / `DisplayName` / `VisualTypeByte` / `DisplayLevel` / `TileX` / `TileY` / `NameColorMode` tương ứng `jo.a` đến `jo.g`.
+- Điều chỉnh theo review:
+  - bỏ các field/bảng chưa được runtime DB dùng như `InteractionMode`, `DialogKey`, `IsVerifiedJava`, `NpcDialogLines`, `MissionGroupKey`, `ShopKey`, `Notes`;
+  - hỗ trợ NPC xuất hiện nhiều map qua nhiều dòng `NpcMapRosters`;
+  - hỗ trợ một NPC chứa nhiều nhiệm vụ qua `NpcMissionLinks`;
+  - seed `npc_110110` vào mọi map đang bật trong `WorldMapCatalog`, với `DisplayNameOverride = 'Lính ' || WorldMapCatalog.DisplayName` để tên lính đi theo từng map;
+  - thêm `MissionObjectives` và `MissionRewards`; reward hiện chỉ cho phép `Exp`, `Item`, `Equipment` theo chốt scope hiện tại.
+- Boundary:
+  - Mission seed hiện là placeholder remake để chứng minh quan hệ DB, không ghi nhận là Java mission evidence.
+
 ### [NPC/MISSION] Numbered NPC asset layout correction
 
 - Di chuyển các sprite NPC numbered `110000.png..110160.png` ra trực tiếp dưới `client/assets/npc/` theo xác nhận của user.
