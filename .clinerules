@@ -65,5 +65,5 @@
 
 ## 8. Note
 - Sau mỗi ngày làm việc, hãy tóm tắt các thay đổi lớn vào file CHANGELOG.md để tôi có cái nhìn tổng quan
-
+- Respond to users in Vietnamese; keep source code, variable names, and technical code comments in English.
 - Nếu mà không sửa code Server thì không cần chạy dotnet build nhé
