@@ -12,15 +12,18 @@ namespace Twelve.Application.Players
         private readonly IPlayerRepository _playerRepository;
         private readonly IPlayerAggregateRepository _playerAggregateRepository;
         private readonly PlayerContentCatalog _contentCatalog;
+        private readonly IEquipmentUpgradeService _equipmentUpgradeService;
 
         public PlayerRuntimeService(
             IPlayerRepository playerRepository,
             IPlayerAggregateRepository playerAggregateRepository,
-            PlayerContentCatalog contentCatalog)
+            PlayerContentCatalog contentCatalog,
+            IEquipmentUpgradeService equipmentUpgradeService)
         {
             _playerRepository = playerRepository;
             _playerAggregateRepository = playerAggregateRepository;
             _contentCatalog = contentCatalog;
+            _equipmentUpgradeService = equipmentUpgradeService;
         }
 
         public PlayerRuntimeResponse? GetSnapshot(PlayerRuntimeRequest request)
@@ -416,23 +419,29 @@ namespace Twelve.Application.Players
                 return null;
             }
 
-            var target = aggregate.Equipment.FirstOrDefault(entry => entry.EquipKey == request.EquipKey);
-            if (target is null)
+            // Remake policy 2026-05-04: user approved Huyet thach/Kim thach/luck charms
+            // as upgrade materials while Java server material ids/rates remain pending.
+            var result = _equipmentUpgradeService.Apply(aggregate, request);
+            if (result.QuanCost > 0)
             {
-                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong tim thay trang bi.");
+                aggregate.Core.Gold -= result.QuanCost;
+                if (aggregate.Core.Gold < 0)
+                {
+                    aggregate.Core.Gold = 0;
+                }
+
+                _playerRepository.UpdateAsync(aggregate.Core).GetAwaiter().GetResult();
             }
 
-            // Remake policy (2026-05-03): upgrade requires the item to be unequipped.
-            // Pending/Unverified: original stone/charm ids and success/destroy roll are not verified,
-            // so server exposes a safe skeleton endpoint but does not mutate equipment yet.
-            if (target.IsEquipped)
-            {
-                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Phai thao trang bi truoc khi nang cap.");
-            }
+            _playerAggregateRepository.SaveCollectionsAsync(
+                aggregate.Core.Id,
+                result.Equipment,
+                result.Inventory,
+                aggregate.Skills).GetAwaiter().GetResult();
 
             return new PlayerRuntimeResponse(
-                BuildSnapshot(aggregate),
-                "Chua bat nang cap: pending danh sach da/bua goc va ti le roll Java.");
+                BuildSnapshot(ReloadAggregate(aggregate.Core.Id)),
+                result.Message);
         }
 
         public PlayerRuntimeResponse? OpenEgg(PlayerOpenEggRuntimeRequest request)

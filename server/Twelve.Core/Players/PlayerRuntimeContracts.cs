@@ -50,6 +50,25 @@ namespace Twelve.Core.Players
         /// Remake policy (2026-05-03): consumed by cmd 48 repair flow, restores equipment durability to max.
         /// </summary>
         RepairHammer = 30099,
+
+        // ── Upgrade materials — Remake policy 2026-05-04, user-approved ──
+        // Java server material ids are still pending; these are remake-config ids
+        // matching existing ItemCatalog seed and client asset icons.
+
+        /// <summary>Huyết thạch — primary upgrade material for +0..+9.</summary>
+        HuyetThach = 5003,
+
+        /// <summary>Kim thạch — primary upgrade material for +10..+15.</summary>
+        KimThach = 5004,
+
+        /// <summary>Bùa may mắn cấp 1 — +5% success bonus (500 basis points).</summary>
+        LuckCharm1 = 5008,
+
+        /// <summary>Bùa may mắn cấp 2 — +10% success bonus (1000 basis points).</summary>
+        LuckCharm2 = 5009,
+
+        /// <summary>Bùa may mắn cấp 3 — +15% success bonus (1500 basis points).</summary>
+        LuckCharm3 = 5010,
     }
 
     public enum PlayerItemKind

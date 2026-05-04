@@ -31,8 +31,18 @@ namespace Twelve.Core.Tlv
         MapMonsterRoster        = 43,   // Existing RN monster roster packet; keep until roster command migration is decided.
         MapNpcRosterRemake      = 45,   // Temporary RN-safe NPC roster command; Java evidence remains raw command 43.
         NpcTalkResponseRemake   = 46,   // RN-safe ack/dialog envelope for the reconstructed NPC talk request.
-        MonsterBootstrapRequest = 96,
-        MonsterBootstrapResponse= 97,
+
+        // Java equipment commands — returned to original Java IDs per user decision 2026-05-04.
+        // ky.java/ks.java evidence: 96=shop/buy, 97=equip/unequip, 99=upgrade, 100=repair/use, 112=combine/forge.
+        EquipmentShopBuy        = 96,
+        EquipmentEquipUnequip   = 97,
+        EquipmentUpgrade        = 99,
+        EquipmentRepairUse      = 100,
+        EquipmentCombineForge   = 112,
+
+        // Monster bootstrap — migrated from 96/97 to 240/241 to avoid Java equipment command conflict.
+        MonsterBootstrapRequest = 240,
+        MonsterBootstrapResponse= 241,
         MapLoad                 = 20,
 
         // ── Stat Allocation ───────────────────────────────────────────
@@ -103,6 +113,31 @@ namespace Twelve.Core.Tlv
         ChinhXac        = 132,  // Accuracy
         PThu            = 133,  // Defense
         NeTranh         = 134,  // Dodge
-        ChiMang         = 135   // Crit %
+        ChiMang         = 135,  // Crit %
+
+        // Java equipment ll/lb parser tags — ky.java a(ku,int,int,boolean).
+        EquipmentArray      = 83,   // repeated nested equipment record
+        EquipmentSlot       = 84,   // ll.e byte
+        EquipmentKey        = 186,  // equip key/string in command wrappers
+        EquipmentToggleMode = 187,  // equip/unequip mode in command wrappers
+        ResourceId          = 4,    // ll.n int
+        EnhancementLevel    = 27,   // ll.j int
+        CurrentDurability   = 139,  // ll.p int
+        DisplayName         = 26,   // ll.d string
+        RequiredLevel       = 135,  // ll.i int
+        ElementIcon         = 15,   // ll.f byte
+        EquipmentGender     = 16,   // ll.h byte
+        EquipmentRank       = 138,  // ll.m byte
+        MaxDurability       = 144,  // ll.q int
+        Summary             = 117,  // ll.g string
+        UnknownS            = 156,  // ll.s byte, meaning pending/unverified
+        Tradeable           = 85,   // ll.t byte
+        RepairCost          = 190,  // ll.k byte in Java parser ll.c()
+        DamageAbsorbPercent = 200,  // lb.j
+        ArmorPiercePercent  = 201,  // lb.k
+        BlockPercent        = 202,  // lb.l
+        RevivePercent       = 203,  // lb.m
+        AttackPercent       = 204,  // lb.n
+        HpPercent           = 221   // lb.o
     }
 }

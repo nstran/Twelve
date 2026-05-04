@@ -33,8 +33,10 @@ export enum Command {
     MAP_MONSTER_ROSTER  = 43,
     MAP_NPC_ROSTER_REMAKE = 45,
     NPC_TALK_RESPONSE_REMAKE = 46,
-    MONSTER_BOOTSTRAP_REQUEST = 96,
-    MONSTER_BOOTSTRAP_RESPONSE = 97,
+    // Remake-only RN battle bootstrap. Migrated away from 96/97 so Java equipment
+    // commands can keep their original IDs.
+    MONSTER_BOOTSTRAP_REQUEST = 240,
+    MONSTER_BOOTSTRAP_RESPONSE = 241,
     MAP_LOAD            = 20,
     MOVE                = 44
 }

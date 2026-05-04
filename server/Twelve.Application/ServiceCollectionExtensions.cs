@@ -28,6 +28,7 @@ namespace Twelve.Application
             services.AddSingleton<IMonsterBattleBootstrapService, MonsterBattleBootstrapService>();
             services.AddSingleton<PlayerCharacterPacketFactory>();
             services.AddSingleton<PlayerContentCatalog>();
+            services.AddSingleton<IEquipmentUpgradeService, EquipmentUpgradeService>();
             services.AddSingleton<IPlayerRuntimeService, PlayerRuntimeService>();
             services.AddSingleton<IPvpArenaService, PvpArenaService>();
             services.AddSingleton<IMissionRewardClaimService, MissionRewardClaimService>();
@@ -42,6 +43,7 @@ namespace Twelve.Application
             services.AddSingleton<NpcTalkHandler>();
             services.AddSingleton<MissionHandler>();
             services.AddSingleton<MonsterEncounterHandler>();
+            services.AddSingleton<EquipmentCommandHandler>();
             services.AddSingleton<MoveHandler>();
 
             // ── Wiring PacketDispatcher ────────────────────────────────────────
@@ -72,6 +74,11 @@ namespace Twelve.Application
                 dispatcher.RegisterHandler((int)CommandCode.MissionAccept, sp.GetRequiredService<MissionHandler>());
                 dispatcher.RegisterHandler((int)CommandCode.MissionCancel, sp.GetRequiredService<MissionHandler>());
                 dispatcher.RegisterHandler((int)CommandCode.MonsterBootstrapRequest, sp.GetRequiredService<MonsterEncounterHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.EquipmentShopBuy, sp.GetRequiredService<EquipmentCommandHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.EquipmentEquipUnequip, sp.GetRequiredService<EquipmentCommandHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.EquipmentUpgrade, sp.GetRequiredService<EquipmentCommandHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.EquipmentRepairUse, sp.GetRequiredService<EquipmentCommandHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.EquipmentCombineForge, sp.GetRequiredService<EquipmentCommandHandler>());
                 dispatcher.RegisterHandler(44, sp.GetRequiredService<MoveHandler>());
 
                 return dispatcher;
