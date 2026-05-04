@@ -2803,3 +2803,31 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - Current upgrade rates/material ids/quantities/Quan fee are config/remake policy, not original Java server behavior.
 - Verification:
   - `dotnet build server\Twelve.Server\Twelve.Server.csproj` pass: `0 Warning(s), 0 Error(s)`.
+
+### 2026-05-05 — Upgrade UI evidence from screenshots (Java UI evidence + Remake client integration)
+
+- New visual evidence supplied by user:
+  - `reference/raw/images/upgrade.png`
+  - `reference/raw/images/upgrade1.png`
+  - `reference/raw/images/upgrade2.jpg`
+- Java UI evidence observed:
+  - Upgrade/combine screen title uses `Phí kết hợp: {amount} KEN`.
+  - Top row shows selected equipment in the left slot, then material/charm slots to the right.
+  - Chance line is displayed as `Có {percent}% cơ hội nâng cấp thành công`.
+  - Confirmation popup asks `Bạn có muốn nâng cấp không?` with buttons `Nâng cấp` and `Không`.
+  - Success state displays `Nâng cấp thành công` with a `Tiếp tục` button.
+  - Inventory counter like `26/50`, `35/50` is shown under the upgrade/chance area.
+- Client remake integration:
+  - `client/src/screens/map/core/MapCharacterDialogs.tsx`
+    - Added Java-inspired upgrade prompt inside inventory/equipment dialog instead of leaving `Nâng cấp` menu inert.
+    - Prompt mirrors the screenshot flow: fee line, equipment/material slots, success chance text, requirements, `Nâng cấp`/`Không` confirmation buttons.
+    - Uses existing remake material ids `5003/5004/5008/5009/5010` and mirrors current server remake policy locally for display only.
+  - `client/src/screens/map/core/MapCharacterDialogs.styles.ts`
+    - Added separated `StyleSheet` rules for the upgrade prompt; no complex inline styles for the new UI.
+  - `client/src/screens/map/shared/SideScrollMapScreen.tsx` and `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`
+    - Threaded optional `onUpgradeEquipment(equipKey, materialItemIds)` prop down to the dialog.
+- Boundary:
+  - Screenshot proves UI text/layout direction and KEN wording, not original Java server material ids/rates/fee formulas.
+  - Current RN prompt fee/rate/material quantities remain RemakePolicy display mirrored from `EquipmentUpgradeService`.
+- Verification:
+  - `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass.

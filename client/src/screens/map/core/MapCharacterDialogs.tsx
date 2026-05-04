@@ -90,6 +90,7 @@ interface MapCharacterDialogsProps {
   onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
+  onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
 }
 
 const PRIMARY_STAT: Record<number, number> = { 0: 0, 1: 2, 2: 1 };
@@ -550,7 +551,8 @@ const EquipmentDialog: React.FC<{
   onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment }) => {
+  onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment, onUpgradeEquipment }) => {
   return (
     <InventoryShell
       appearance={appearance}
@@ -563,6 +565,7 @@ const EquipmentDialog: React.FC<{
       onDiscardEquipment={onDiscardEquipment}
       onDiscardItem={onDiscardItem}
       onRepairEquipment={onRepairEquipment}
+      onUpgradeEquipment={onUpgradeEquipment}
     />
   );
 };
@@ -813,6 +816,71 @@ const clampActionMenuLeft = (left: number) => Math.max(6, Math.min(258, left));
 const clampActionMenuTop = (top: number) => Math.max(130, Math.min(430, top));
 
 const REPAIR_HAMMER_ITEM_ID = 30099;
+const HUYET_THACH_ITEM_ID = 5003;
+const KIM_THACH_ITEM_ID = 5004;
+const LUCK_CHARM_1_ITEM_ID = 5008;
+const LUCK_CHARM_2_ITEM_ID = 5009;
+const LUCK_CHARM_3_ITEM_ID = 5010;
+const LUCK_CHARM_IDS = [LUCK_CHARM_1_ITEM_ID, LUCK_CHARM_2_ITEM_ID, LUCK_CHARM_3_ITEM_ID];
+
+const resolveUpgradePolicy = (currentLevel: number) => {
+  const targetLevel = Math.min(15, Math.max(0, currentLevel) + 1);
+  let kimQty = 1;
+  if (targetLevel >= 4) {
+    kimQty = 2;
+  }
+  if (targetLevel >= 7) {
+    kimQty = 3;
+  }
+  if (targetLevel >= 10) {
+    kimQty = 5;
+  }
+  if (targetLevel >= 13) {
+    kimQty = 8;
+  }
+
+  let successPercent = 100;
+  if (currentLevel === 1) {
+    successPercent = 90;
+  } else if (currentLevel === 2) {
+    successPercent = 80;
+  } else if (currentLevel === 3) {
+    successPercent = 70;
+  } else if (currentLevel === 4) {
+    successPercent = 60;
+  } else if (currentLevel === 5) {
+    successPercent = 50;
+  } else if (currentLevel === 6) {
+    successPercent = 40;
+  } else if (currentLevel === 7) {
+    successPercent = 30;
+  } else if (currentLevel === 8) {
+    successPercent = 20;
+  } else if (currentLevel === 9) {
+    successPercent = 10;
+  } else if (currentLevel === 10) {
+    successPercent = 5;
+  } else if (currentLevel === 11) {
+    successPercent = 4;
+  } else if (currentLevel === 12) {
+    successPercent = 3;
+  } else if (currentLevel === 13) {
+    successPercent = 2;
+  } else if (currentLevel >= 14) {
+    successPercent = 1.5;
+  }
+
+  return {
+    targetLevel,
+    huyetQty: targetLevel,
+    kimQty,
+    quanCost: targetLevel * targetLevel * 1000,
+    successPercent,
+  };
+};
+
+const countItem = (inventory: CharacterInventoryItem[], itemId: number) =>
+  inventory.find(item => item.itemId === itemId)?.quantity ?? 0;
 
 const InventoryShell: React.FC<{
   appearance: CharacterAppearance;
@@ -825,7 +893,8 @@ const InventoryShell: React.FC<{
   onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment }) => {
+  onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment, onUpgradeEquipment }) => {
   const player = createPlayerModel(appearance);
   const equipmentSource = appearance.equipment ?? EMPTY_EQUIPMENT;
   const serverEquippedKeys = useMemo(
@@ -864,6 +933,7 @@ const InventoryShell: React.FC<{
   const [actionMenu, setActionMenu] = useState<InventoryActionMenuState | null>(null);
   const [actionMenuSelectedIndex, setActionMenuSelectedIndex] = useState<number>(0);
   const [showDetail, setShowDetail] = useState(false);
+  const [upgradeTargetKey, setUpgradeTargetKey] = useState<string | null>(null);
   const equippedCells = equipped.map((entry): EquipmentCell => ({ kind: 'equipment', key: `equipped-${entry.equipKey}`, entry }));
   const selected = rawCells.find(cell => cell.key === selectedKey)
     ?? equippedCells.find(cell => cell.key === selectedKey)
@@ -966,6 +1036,14 @@ const InventoryShell: React.FC<{
       );
       const canRepair = isBroken && hasHammer && !!onRepairEquipment;
 
+      const inventory = appearance.inventory ?? [];
+      const upgradePolicy = resolveUpgradePolicy(entry.level);
+      const canUpgrade = !!onUpgradeEquipment
+        && !selectedIsEquipped
+        && entry.level < 15
+        && countItem(inventory, HUYET_THACH_ITEM_ID) >= upgradePolicy.huyetQty
+        && countItem(inventory, KIM_THACH_ITEM_ID) >= upgradePolicy.kimQty;
+
       items = [
         {
           id: 'repair',
@@ -989,8 +1067,11 @@ const InventoryShell: React.FC<{
         {
           id: 'upgrade',
           label: 'Nâng cấp',
-          disabled: pending !== null || selectedIsEquipped,
-          onPress: () => setActionMenu(null),
+          disabled: pending !== null || !canUpgrade,
+          onPress: () => {
+            setActionMenu(null);
+            setUpgradeTargetKey(entry.equipKey);
+          },
         },
         {
           id: 'sell',
@@ -1099,6 +1180,60 @@ const InventoryShell: React.FC<{
         ))}
       </View>
 
+      {upgradeTargetKey && selected?.kind === 'equipment' ? (() => {
+        const policy = resolveUpgradePolicy(selected.entry.level);
+        const inventory = appearance.inventory ?? [];
+        const materialIds = [HUYET_THACH_ITEM_ID, KIM_THACH_ITEM_ID];
+        for (const charmId of LUCK_CHARM_IDS) {
+          if (countItem(inventory, charmId) > 0) {
+            materialIds.push(charmId);
+          }
+        }
+        const chance = Math.min(100, policy.successPercent + materialIds.slice(2).length * 5);
+        return (
+          <View style={styles.upgradePromptPanel}>
+            <Text style={styles.upgradeFeeText}>Phí kết hợp: {policy.quanCost.toLocaleString('en-US')} KEN</Text>
+            <View style={styles.upgradeSlotsRow}>
+              <InventoryGridCell cell={{ kind: 'equipment', key: `upgrade-${selected.entry.equipKey}`, entry: selected.entry }} selected={false} onPress={() => undefined} style={styles.upgradePreviewCell} />
+              <View style={styles.upgradeMaterialsRow}>
+                {[HUYET_THACH_ITEM_ID, KIM_THACH_ITEM_ID, ...LUCK_CHARM_IDS].map((itemId, index) => {
+                  const item = inventory.find(stack => stack.itemId === itemId);
+                  return (
+                    <InventoryGridCell
+                      key={`upgrade-mat-${itemId}`}
+                      cell={item ? { kind: 'item', key: `mat-${itemId}`, item } : { kind: 'empty', key: `mat-empty-${index}` }}
+                      selected={false}
+                      onPress={() => undefined}
+                      style={styles.upgradeMaterialCell}
+                    />
+                  );
+                })}
+              </View>
+            </View>
+            <Text style={styles.upgradeChanceText}>Có {chance}% cơ hội nâng cấp thành công</Text>
+            <View style={styles.upgradeRequirementBox}>
+              <Text style={styles.upgradeRequirementText}>Cần Huyết thạch x{policy.huyetQty} + Kim thạch x{policy.kimQty}</Text>
+              <Text style={styles.upgradeRequirementText}>Thất bại từ +10 sẽ giảm 1 cấp</Text>
+            </View>
+            <View style={styles.upgradeActionRow}>
+              <TouchableOpacity
+                style={styles.upgradeButton}
+                disabled={pending !== null}
+                onPress={() => {
+                  setUpgradeTargetKey(null);
+                  onRunAction(`upgrade-${selected.entry.equipKey}`, () => onUpgradeEquipment?.(selected.entry.equipKey, materialIds));
+                }}
+              >
+                <Text style={styles.upgradeButtonText}>Nâng cấp</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.upgradeButton} onPress={() => setUpgradeTargetKey(null)}>
+                <Text style={styles.upgradeButtonText}>Không</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      })() : null}
+
       <InventoryDetailPanel
         visible={showDetail}
         onClose={() => setShowDetail(false)}
@@ -1125,7 +1260,8 @@ const InventoryDialog: React.FC<{
   onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment }) => {
+  onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment, onUpgradeEquipment }) => {
   return (
     <InventoryShell
       appearance={appearance}
@@ -1138,6 +1274,7 @@ const InventoryDialog: React.FC<{
       onDiscardEquipment={onDiscardEquipment}
       onDiscardItem={onDiscardItem}
       onRepairEquipment={onRepairEquipment}
+      onUpgradeEquipment={onUpgradeEquipment}
     />
   );
 };
@@ -1155,6 +1292,7 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
   onDiscardEquipment,
   onDiscardItem,
   onRepairEquipment,
+  onUpgradeEquipment,
 }) => {
   const [pending, setPending] = useState<string | null>(null);
 
@@ -1232,6 +1370,7 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
               onDiscardEquipment={onDiscardEquipment}
               onDiscardItem={onDiscardItem}
               onRepairEquipment={onRepairEquipment}
+              onUpgradeEquipment={onUpgradeEquipment}
             />
           )}
           {activeDialog === 'inventory' && (
@@ -1246,6 +1385,7 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
               onDiscardEquipment={onDiscardEquipment}
               onDiscardItem={onDiscardItem}
               onRepairEquipment={onRepairEquipment}
+              onUpgradeEquipment={onUpgradeEquipment}
             />
           )}
         </ScrollView>

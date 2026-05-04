@@ -125,6 +125,7 @@ interface Props {
   onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
+  onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
 }
 
 interface MapDebugOverlayState {
@@ -183,6 +184,7 @@ export const SideScrollMapScreen: React.FC<Props> = ({
   onDiscardEquipment,
   onDiscardItem,
   onRepairEquipment,
+  onUpgradeEquipment,
 }) => {
   const sceneConfig = useMemo(
     () => resolveSideScrollMapSceneConfig(mapId, roomId),
@@ -1175,6 +1177,7 @@ export const SideScrollMapScreen: React.FC<Props> = ({
         onDiscardEquipment={onDiscardEquipment}
         onDiscardItem={onDiscardItem}
         onRepairEquipment={onRepairEquipment}
+        onUpgradeEquipment={onUpgradeEquipment}
       />
 
       {missionDialogVisible && (

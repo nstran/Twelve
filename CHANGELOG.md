@@ -4,6 +4,14 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-04
 
+### [EQUIPMENT] Upgrade UI from Java screenshots
+
+- User bổ sung ảnh `reference/raw/images/upgrade.png`, `reference/raw/images/upgrade1.png`, `reference/raw/images/upgrade2.jpg`; ghi nhận UI Java có dòng `Phí kết hợp: ... KEN`, slot trang bị/nguyên liệu, text cơ hội thành công và popup `Nâng cấp`/`Không`.
+- RN inventory/equipment dialog đã mở prompt `Nâng cấp` theo evidence ảnh: hiển thị phí, vật phẩm yêu cầu, cơ hội, nút xác nhận; logic material/rate vẫn là `RemakePolicy` mirror từ server.
+- Thread prop `onUpgradeEquipment(equipKey, materialItemIds)` qua `SideScrollMapScreen` và `HoaLuMapScreen` để màn hình map có thể nối API upgrade.
+- Files: `MapCharacterDialogs.tsx`, `MapCharacterDialogs.styles.ts`, `SideScrollMapScreen.tsx`, `HoaLuMapScreen.tsx`, `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Verification: `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass.
+
 ### [EQUIPMENT] Upgrade material policy + shop DB foundation
 
 - User chốt upgrade dùng `huyet_thach`, `kim_thach`, `charm_1`, `charm_2`, `charm_3` từ `client/assets/items/`; ghi rõ là `RemakePolicy`, không phải Java server evidence.
