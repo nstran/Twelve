@@ -21,6 +21,13 @@ namespace Twelve.Core.Tlv
         EnterGame               = 10,
         PlayerInfo              = 11,
         NpcTalkRequest          = 16,   // Java evidence: ks.a().a(String, boolean) builds kw(16).
+        MissionList             = 31,   // Java evidence: mission list request/response.
+        MissionAccept           = 32,   // Java evidence: mission accept request with tag 77.
+        MissionDetail           = 33,   // Java evidence: mission detail request/response with tag 77.
+        MissionTaskNotify       = 34,   // Java evidence: mission task/objective notification.
+        MissionNotify           = 35,   // Java evidence: mission/new/complete notification.
+        MissionUpdate           = 38,   // Java evidence: mission progress/update notification.
+        MissionCancel           = 41,   // Java evidence: mission cancel request with tag 77.
         MapMonsterRoster        = 43,   // Existing RN monster roster packet; keep until roster command migration is decided.
         MapNpcRosterRemake      = 45,   // Temporary RN-safe NPC roster command; Java evidence remains raw command 43.
         NpcTalkResponseRemake   = 46,   // RN-safe ack/dialog envelope for the reconstructed NPC talk request.

@@ -438,6 +438,11 @@ DB seed policy confirmed 2026-05-04:
 - `NpcMissionLinks` is a many-to-many link so one NPC can contain many missions and a mission can be moved/reused without changing NPC identity.
 - Seed files are [server/Database/Npcs/npcs_schema.sql](server/Database/Npcs/npcs_schema.sql) and [server/Database/Npcs/npcs_seed.sql](server/Database/Npcs/npcs_seed.sql).
 - Migration embeds these as `DB.09_npcs_schema.sql` and `DB.10_npcs_seed.sql` from [server/Twelve.Infrastructure/Twelve.Infrastructure.csproj](server/Twelve.Infrastructure/Twelve.Infrastructure.csproj).
+- Hoa Lư starter mission seed approved by user on 2026-05-04:
+  - `npc_110020` / Trưởng làng Gia Viễn owns `hoa_lu_ga_dien_quay_pha_001` and `hoa_lu_bao_tin_cho_linh_002`.
+  - `npc_110110` / Lính Hoa Lư owns `hoa_lu_tuan_tra_cung_linh_003`.
+  - Mission objectives currently use `KillMonster` against `MONSTER_1000_SLOT_0` / Gà Điên and `TalkNpc` against `npc_110110`.
+  - Mission rewards currently use only approved reward types: `Exp`, `Item`, `Equipment`.
 
 Remake policy confirmed 2026-05-04:
 
@@ -457,10 +462,18 @@ Implemented server files:
 - [server/Twelve.Core/Npcs/NpcContracts.cs](server/Twelve.Core/Npcs/NpcContracts.cs)
 - [server/Twelve.Core/Interfaces/IMapNpcRosterService.cs](server/Twelve.Core/Interfaces/IMapNpcRosterService.cs)
 - [server/Twelve.Application/Npcs/NpcRosterPacketFactory.cs](server/Twelve.Application/Npcs/NpcRosterPacketFactory.cs)
-- [server/Twelve.Infrastructure/Repositories/StaticMapNpcRosterService.cs](server/Twelve.Infrastructure/Repositories/StaticMapNpcRosterService.cs)
+- [server/Twelve.Infrastructure/Repositories/StaticMapNpcRosterService.cs](server/Twelve.Infrastructure/Repositories/StaticMapNpcRosterService.cs) — old v1 fallback/static seed, no longer wired in DI.
+- [server/Twelve.Infrastructure/Repositories/DbMapNpcRosterService.cs](server/Twelve.Infrastructure/Repositories/DbMapNpcRosterService.cs) — DB-backed runtime roster, reads `NpcMapRosters` + `NpcCatalog` and emits Java `jo`-shaped NPC records by map/room.
 - [server/Twelve.Application/Handlers/MapHandler.cs](server/Twelve.Application/Handlers/MapHandler.cs) — preserves Monster roster flow on `43` and sends NPC roster on temporary command `45`.
 - [server/Twelve.Core/Tlv/CommandCodes.cs](server/Twelve.Core/Tlv/CommandCodes.cs) — keeps `MapMonsterRoster = 43`, adds `MapNpcRosterRemake = 45`, uses Java evidence command `16` for NPC talk request, and command `46` as RN-safe talk response transport.
-- [server/Twelve.Application/Handlers/NpcTalkHandler.cs](server/Twelve.Application/Handlers/NpcTalkHandler.cs) — handles `tutorial_npc` talk request from Java evidence shape `ks.a().a(String, boolean)` without assigning Mission ownership.
+- [server/Twelve.Core/Npcs/NpcMissionContracts.cs](server/Twelve.Core/Npcs/NpcMissionContracts.cs) — DB mission/talk contracts for NPC-linked mission summaries, details, objectives, and rewards.
+- [server/Twelve.Core/Interfaces/INpcMissionCatalog.cs](server/Twelve.Core/Interfaces/INpcMissionCatalog.cs) — read-only mission catalog boundary so future seed reward changes stay data-driven.
+- [server/Twelve.Infrastructure/Repositories/DbNpcMissionCatalog.cs](server/Twelve.Infrastructure/Repositories/DbNpcMissionCatalog.cs) — reads `NpcMissionLinks`, `MissionCatalog`, `MissionObjectives`, and `MissionRewards` from DB.
+- [server/Twelve.Application/Npcs/MissionPacketFactory.cs](server/Twelve.Application/Npcs/MissionPacketFactory.cs) — emits mission list/detail packets using the already-audited Java Mission command/tag shape.
+- [server/Twelve.Application/Handlers/NpcTalkHandler.cs](server/Twelve.Application/Handlers/NpcTalkHandler.cs) — resolves NPC talk context from DB mission links instead of hardcoded `tutorial_npc` content.
+- [server/Twelve.Application/Handlers/MissionHandler.cs](server/Twelve.Application/Handlers/MissionHandler.cs) — handles mission list/detail/accept/cancel and remake-policy reward claim when a completed mission is accepted again.
+- [server/Twelve.Application/Npcs/MissionRewardClaimService.cs](server/Twelve.Application/Npcs/MissionRewardClaimService.cs) — grants data-driven mission rewards from `MissionRewards` into EXP/item/equipment persistence.
+- [server/Twelve.Core/Interfaces/IMissionRewardClaimService.cs](server/Twelve.Core/Interfaces/IMissionRewardClaimService.cs) — application boundary for mission reward claim logic.
 - [client/src/network/Protocol.ts](client/src/network/Protocol.ts)
 - [client/src/network/SocketClient.ts](client/src/network/SocketClient.ts)
 - [client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx](client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx)
@@ -468,14 +481,32 @@ Implemented server files:
 
 Boundary:
 
+- Runtime NPC roster is now DB-backed, so future NPC placement/name/mission ownership changes should be made through seed/catalog data instead of hardcoded service rows.
 - This is remake policy based on Java client packet shape, not recovered Java server data.
-- NPC talk request command `16` is Java client evidence from `ks.a().a(String, boolean)`; response command `46` and static tutorial message are remake transport/content policy.
-- Do not infer mission ownership, reward flow, quest giver role, shop role, or portal role from this first talk seed.
+- NPC talk request command `16` is Java client evidence from `ks.a().a(String, boolean)`; response command `46` remains remake transport policy for RN.
+- Mission list/detail use Java-evidence commands/tags already audited from client, but the current mission rows/rewards are approved remake seed data.
+- Mission ownership is DB-backed through `NpcMissionLinks`.
+- Mission accept/cancel state is now persisted per player in `PlayerMissions`; per-objective progress rows are initialized in `PlayerMissionObjectives` on accept.
+- Objective progress is data-driven by `MissionObjectives.ObjectiveType`, `TargetKey`, and `RequiredAmount`.
+- `KillMonster` progress accepts both `SpawnTemplateKey` (shared monster target such as `MONSTER_1000_SLOT_0`) and runtime `MonsterKey` so future mission seeds can choose either target style.
+- `TalkNpc` progress uses the talked NPC id (`jo.a` / `NpcKey`) as `TargetKey`.
+- Reward claim/grant is implemented as explicit remake policy: accepting a `Completed` mission again claims rewards once, then status stays `RewardClaimed`.
+- Reward grants are data-driven from `MissionRewards`: `Exp` updates player EXP/level, `Item` merges inventory stacks by raw item id, and `Equipment` expects an equipment `TemplateKey`.
+- Seed correction: reward key `30094` is confirmed in `ItemCatalog` as `Trứng gà`, so the Hoa Lư patrol seed now stores it as `Item`, not `Equipment`.
+- Mission progress now returns changed objective data so handlers can emit Java-client mission notification/update packets (`34`, `35`, `38`) instead of silently updating DB state.
 - Existing Monster roster behavior must not be removed as part of NPC work; command ownership must be decided before wiring NPC roster into live map packets.
 
 ## Next Practical Step
 
-The next coding step should be a client-side NPC + Mission evidence port that:
+The next coding step should be deeper client-side Mission screen polish, while keeping these current boundaries clear:
+
+- Java client proves mission list/detail/accept/cancel commands, but original Java server reward catalog is still missing.
+- Reward claim command is remake policy for now: repeated accept on a completed mission means claim reward.
+- Server emits mission progress/complete/reward notifications, and RN now renders a lightweight map toast queue for these updates.
+- Toast presentation is remake polish based on Java `nu`/`hr`/`hb` flow; a pixel-perfect Java mission list/detail/reward popup is still future work.
+- Future `Equipment` rewards must use equipment template keys from `EquipmentCatalog.TemplateKey`, not raw item ids from `ItemCatalog`.
+
+In parallel, continue with a client-side NPC + Mission evidence port that:
 
 - implements a `jo`-shaped NPC actor contract from command `43` / TLV tags;
 - extends Mission UI from the now-added Mission DTO/parser foundation for `ns` / `nt` and commands `31` / `33` / `34` / `35` / `38`;
@@ -508,3 +539,12 @@ can start being promoted into final semantic roles.
 - Added `NpcMapRosters.DisplayNameOverride` so shared NPCs can have map-specific names, e.g. `Lính Hoa Lư`, `Lính Kỷ Bố`, without duplicating the base sprite/NPC catalog row.
 - Removed unused DB fields/tables from the current seed scope: `InteractionMode`, `DialogKey`, `IsVerifiedJava`, and `NpcDialogLines` were dropped because no DB-backed runtime currently reads them.
 - Added minimal mission objective/reward tables: `MissionObjectives` plus `MissionRewards`; reward type is constrained to `Exp`, `Item`, and `Equipment` only so future reward categories can be added deliberately later.
+- Implemented the approved Hoa Lư starter mission seed as remake policy: Trưởng làng Gia Viễn gives the first Gà Điên kill mission and a talk-to-guard mission; Lính Hoa Lư gives a follow-up Gà Điên patrol mission. Java server mission catalog evidence is still missing, so these rows remain clearly marked as approved remake seed data.
+- Replaced the runtime NPC roster wiring with `DbMapNpcRosterService`, which reads `NpcMapRosters` joined with `NpcCatalog` and emits the existing Java `jo`-shaped `MapNpcRosterEntry` packet data by map/room. This keeps future NPC placement/name changes in DB seed data instead of hardcoded runtime code.
+- Added DB-backed NPC Mission read flow: `DbNpcMissionCatalog` loads NPC talk contexts, mission summaries, objectives, and rewards from DB; `NpcTalkHandler` now returns linked missions for the talked NPC; `MissionHandler` serves mission list/detail packets using Java-evidence mission commands while leaving objective progress/reward claim unimplemented.
+- Added minimal per-player mission persistence: `PlayerMissions` stores Accepted/Completed/RewardClaimed/Canceled state, `PlayerMissionObjectives` stores objective progress rows, and `PlayerMissionStateRepository` wires accept/cancel without hardcoding mission keys or rewards.
+- Added data-driven mission progress updates: `PlayerMissionStateRepository.AddProgressAsync(username, objectiveType, targetKey, amount)` updates accepted objectives by `ObjectiveType + TargetKey`, clamps by `RequiredAmount`, and marks the mission completed when all objectives are complete. `BattleResultService` reports `KillMonster` progress using both monster spawn template key and runtime monster key; `NpcTalkHandler` reports `TalkNpc` progress using NPC id.
+- Added mission reward claim/grant remake policy: `MissionRewardClaimService` grants `Exp`, `Item`, and `Equipment` rewards from DB seed data, `MissionHandler` treats accept on a completed mission as claim, and `PlayerMissionStateRepository` transitions completed missions to `RewardClaimed` to prevent double-claim.
+- Corrected the Hoa Lư patrol reward seed: raw id `30094` is `Trứng gà` in `ItemCatalog`, so the reward remains data-driven as `Item 30094 x1`; `Equipment` rewards are reserved for equipment template keys.
+- Added mission notification/update packets for progress flow: `MissionProgressUpdate` carries changed objective status, `MissionPacketFactory` builds command `34` task notifications, command `38` mission updates, and command `35` complete/reward notifications. `NpcTalkHandler` sends these immediately for `TalkNpc`; battle result responses now include mission updates for `KillMonster` so RN can render progress after battle claim.
+- Added RN mission toast queue polish: `MapMission.reducer` now builds task/mission/progress toasts, `HoaLuMapScreen` renders a stacked mission notification panel separate from NPC talk, and `App` carries pending battle result mission updates back to the map after leaving battle. This UI is remake polish; objective/reward data remains server/DB-driven.

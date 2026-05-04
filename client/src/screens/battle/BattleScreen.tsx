@@ -463,6 +463,7 @@ export const BattleScreen: React.FC<BattleScreenProps> = ({
       goldBefore: appearance.walletQuan ?? 0,
       goldAfter: appearance.walletQuan ?? 0,
       goldGained: 0,
+      missionUpdates: [],
     };
 
     if (!resolveBattleResult) {

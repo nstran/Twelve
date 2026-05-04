@@ -1,8 +1,9 @@
-using System.Linq;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Twelve.Core;
 using Twelve.Core.Interfaces;
+using Twelve.Application.Npcs;
 using Twelve.Core.Npcs;
 using Twelve.Core.Tlv;
 
@@ -13,11 +14,15 @@ namespace Twelve.Application.Handlers
         private const int TagNpcId = 9;
         private const int TagContinue = 40;
 
-        private readonly IMapNpcRosterService _mapNpcRosterService;
+        private readonly INpcMissionCatalog _missionCatalog;
+        private readonly IPlayerMissionStateRepository _missionStateRepository;
 
-        public NpcTalkHandler(IMapNpcRosterService mapNpcRosterService)
+        public NpcTalkHandler(
+            INpcMissionCatalog missionCatalog,
+            IPlayerMissionStateRepository missionStateRepository)
         {
-            _mapNpcRosterService = mapNpcRosterService;
+            _missionCatalog = missionCatalog;
+            _missionStateRepository = missionStateRepository;
         }
 
         public Task HandleAsync(GameSession session, PacketRequest request)
@@ -30,29 +35,62 @@ namespace Twelve.Application.Handlers
             var npcId = request.GetStringTag(TagNpcId);
             if (string.IsNullOrWhiteSpace(npcId))
             {
-                return SendResponseAsync(session, ok: false, npcId: null, message: null, error: "invalid_request");
+                return SendResponseAsync(session, ok: false, npcId: null, message: null, missions: [], error: "invalid_request");
             }
 
             if (!session.IsAuthenticated)
             {
-                return SendResponseAsync(session, ok: false, npcId: npcId, message: null, error: "unauthenticated");
+                return SendResponseAsync(session, ok: false, npcId: npcId, message: null, missions: [], error: "unauthenticated");
             }
 
             // Java evidence: om.java calls ks.a().a(ki2.f.a, bl2), where ki2.f is the focused jo NPC record.
-            var isKnownNpc = _mapNpcRosterService
-                .GetActiveRoster("Hoa Lu", 1)
-                .Any(npc => npc.NpcId == npcId);
-            if (!isKnownNpc)
+            var context = _missionCatalog.GetTalkContext("Hoa Lu", 1, npcId);
+            if (context is null)
             {
-                return SendResponseAsync(session, ok: false, npcId: npcId, message: null, error: "not_found");
+                return SendResponseAsync(session, ok: false, npcId: npcId, message: null, missions: [], error: "not_found");
             }
 
-            var isContinue = request.GetByteTag(TagContinue) == 1;
-            var message = isContinue
-                ? "Huong dan: Hay tiep tuc kham pha Hoa Lu."
-                : "Huong dan: Chao mung den Hoa Lu.";
+            SendProgressNotifications(session, awaitProgressForTalkNpc(session.Username, npcId));
 
-            return SendResponseAsync(session, ok: true, npcId: npcId, message: message, error: null);
+            var isContinue = request.GetByteTag(TagContinue) == 1;
+            var message = BuildTalkMessage(context, isContinue);
+
+            return SendResponseAsync(session, ok: true, npcId: npcId, message: message, missions: context.Missions, error: null);
+        }
+
+        private IReadOnlyList<MissionProgressUpdate> awaitProgressForTalkNpc(string? username, string npcId)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+                return [];
+
+            return _missionStateRepository
+                .AddProgressAsync(username, "TalkNpc", npcId, 1)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        private static void SendProgressNotifications(GameSession session, IReadOnlyList<MissionProgressUpdate> updates)
+        {
+            foreach (var update in updates)
+            {
+                session.SendPacketAsync(MissionPacketFactory.BuildMissionTaskNotification(update)).GetAwaiter().GetResult();
+                session.SendPacketAsync(MissionPacketFactory.BuildMissionUpdate(update)).GetAwaiter().GetResult();
+                if (update.MissionCompleted)
+                {
+                    session.SendPacketAsync(MissionPacketFactory.BuildMissionNotification(update)).GetAwaiter().GetResult();
+                }
+            }
+        }
+
+        private static string BuildTalkMessage(NpcTalkContext context, bool isContinue)
+        {
+            if (context.Missions.Count == 0)
+                return isContinue ? $"{context.DisplayName}: Chua co nhiem vu moi." : $"{context.DisplayName}: Xin chao.";
+
+            var firstMission = context.Missions[0];
+            return isContinue
+                ? $"{context.DisplayName}: Hay xem nhiem vu {firstMission.Title}."
+                : $"{context.DisplayName}: Ta co {context.Missions.Count} nhiem vu cho nguoi.";
         }
 
         private static Task SendResponseAsync(
@@ -60,9 +98,10 @@ namespace Twelve.Application.Handlers
             bool ok,
             string? npcId,
             string? message,
+            IReadOnlyList<MissionSummary> missions,
             string? error)
         {
-            var payload = JsonSerializer.SerializeToUtf8Bytes(new NpcTalkSocketEnvelope(ok, npcId, message, error));
+            var payload = JsonSerializer.SerializeToUtf8Bytes(new NpcTalkSocketEnvelope(ok, npcId, message, missions, error));
             return session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.NpcTalkResponseRemake, payload));
         }
 
@@ -70,6 +109,7 @@ namespace Twelve.Application.Handlers
             bool Ok,
             string? NpcId,
             string? Message,
+            IReadOnlyList<MissionSummary> Missions,
             string? Error
         );
     }

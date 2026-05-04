@@ -58,6 +58,7 @@ import type {
 import { applyMapMonsterRuntimePacket } from '../core';
 import type { CharacterAppearance } from '../../character/shared';
 import type {
+  BattleResultRewardResponse,
   MonsterBattleBootstrapResponse,
   PvpOpponentEntry,
   PvpChallengeTicket,
@@ -460,6 +461,8 @@ interface Props {
     initialTurn: 'player' | 'monster',
     monsterBootstrap: MonsterBattleBootstrapResponse,
   ) => void;
+  pendingBattleResult?: BattleResultRewardResponse | null;
+  onConsumeBattleResult?: () => void;
   resolveMonsterRoster?: ResolveMapMonsterRoster;
   resolveMonsterBootstrap?: ResolveMonsterBattleBootstrap;
   resolvePvpOpponents?: ResolvePvpOpponents;
@@ -792,6 +795,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   onBack,
   onLogout,
   onBattle,
+  pendingBattleResult,
+  onConsumeBattleResult,
   resolveMonsterRoster,
   resolveMonsterBootstrap,
   resolvePvpOpponents,
@@ -1566,6 +1571,16 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       });
   }, [isEncounterActive, mapId, resolveMonsterBootstrap, roomId]);
 
+  useEffect(() => {
+    if (!pendingBattleResult) return;
+
+    if (pendingBattleResult.missionUpdates && pendingBattleResult.missionUpdates.length > 0) {
+      dispatchMission({ type: 'battleProgress', updates: pendingBattleResult.missionUpdates });
+    }
+
+    onConsumeBattleResult?.();
+  }, [onConsumeBattleResult, pendingBattleResult]);
+
   const confirmEncounter = useCallback(() => {
     if (!encounterPreview || !encounterPreview.monsterBootstrap || !onBattle) return;
     onBattle(
@@ -2123,9 +2138,17 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         />
       )}
 
-      {missionState.messages.length > 0 && (
-        <View style={styles.missionToast} pointerEvents="none">
-          <Text style={styles.missionToastText}>{missionState.messages[missionState.messages.length - 1]}</Text>
+      {missionState.toasts.length > 0 && (
+        <View style={styles.missionToastStack} pointerEvents="none">
+          {missionState.toasts.map((toast) => (
+            <View key={toast.id} style={styles.missionToast}>
+              <Text style={styles.missionToastTitle}>{toast.title}</Text>
+              <Text style={styles.missionToastText}>{toast.message}</Text>
+              {toast.lines.slice(0, 2).map((line) => (
+                <Text key={line} style={styles.missionToastLine}>{line}</Text>
+              ))}
+            </View>
+          ))}
         </View>
       )}
 

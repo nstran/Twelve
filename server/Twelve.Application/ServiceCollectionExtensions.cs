@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Twelve.Application.Battle;
 using Twelve.Application.Handlers;
 using Twelve.Application.Monsters;
+using Twelve.Application.Npcs;
 using Twelve.Application.Players;
 using Twelve.Core.Interfaces;
 using Twelve.Core.Tlv;
@@ -29,6 +30,7 @@ namespace Twelve.Application
             services.AddSingleton<PlayerContentCatalog>();
             services.AddSingleton<IPlayerRuntimeService, PlayerRuntimeService>();
             services.AddSingleton<IPvpArenaService, PvpArenaService>();
+            services.AddSingleton<IMissionRewardClaimService, MissionRewardClaimService>();
 
             // ── Đăng ký Handlers ───────────────────────────────────────────────
             services.AddSingleton<AuthHandler>();
@@ -38,6 +40,7 @@ namespace Twelve.Application
             services.AddSingleton<AllocateStatHandler>();
             services.AddSingleton<MapHandler>();
             services.AddSingleton<NpcTalkHandler>();
+            services.AddSingleton<MissionHandler>();
             services.AddSingleton<MonsterEncounterHandler>();
             services.AddSingleton<MoveHandler>();
 
@@ -48,6 +51,7 @@ namespace Twelve.Application
             //   6  = Tạo nhân vật (CreateCharacter)
             //   11 = Yêu cầu Map Info
             //   16 = NPC talk request (Java ks.a().a(String, boolean))
+            //   31/33 = Mission list/detail (Java Mission UI flow)
             //   44 = Di chuyển (Move)
             //   50 = Phân điểm tiềm năng (AllocateStat)
             services.AddSingleton<PacketDispatcher>(sp =>
@@ -63,6 +67,10 @@ namespace Twelve.Application
                 dispatcher.RegisterHandler(13, sp.GetRequiredService<MapHandler>());
                 dispatcher.RegisterHandler(29, sp.GetRequiredService<MapHandler>());
                 dispatcher.RegisterHandler((int)CommandCode.NpcTalkRequest, sp.GetRequiredService<NpcTalkHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.MissionList, sp.GetRequiredService<MissionHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.MissionDetail, sp.GetRequiredService<MissionHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.MissionAccept, sp.GetRequiredService<MissionHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.MissionCancel, sp.GetRequiredService<MissionHandler>());
                 dispatcher.RegisterHandler((int)CommandCode.MonsterBootstrapRequest, sp.GetRequiredService<MonsterEncounterHandler>());
                 dispatcher.RegisterHandler(44, sp.GetRequiredService<MoveHandler>());
 

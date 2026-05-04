@@ -68,6 +68,7 @@ export default function App() {
   const [battleMonster, setBattleMonster] = useState<MonsterTypeNav>('fire');
   const [battleInitialTurn, setBattleInitialTurn] = useState<BattleInitialTurn>('player');
   const [battleBootstrap, setBattleBootstrap] = useState<MonsterBattleBootstrapResponse | null>(null);
+  const [pendingMapBattleResult, setPendingMapBattleResult] = useState<BattleResultRewardResponse | null>(null);
   const [selectedMap, setSelectedMap] = useState<MapInfo | null>(null);
   const [playerAppearance, setPlayerAppearance] = useState<PlayerAppearance>({
     genderIndex: 0, faceIndex: 0, hairIndex: 0, hairColorIndex: 0, skinColorIndex: 0, elementIndex: 0,
@@ -278,6 +279,7 @@ export default function App() {
   const leaveBattle = () => {
     const pendingResult = pendingBattleResultRef.current;
     pendingBattleResultRef.current = null;
+    setPendingMapBattleResult(pendingResult);
     if (delayedBattleResultTimerRef.current) {
       clearTimeout(delayedBattleResultTimerRef.current);
       delayedBattleResultTimerRef.current = null;
@@ -373,6 +375,8 @@ export default function App() {
             resolvePvpBootstrap={resolvePvpBootstrap}
             resolvePvpChallengeApi={resolvePvpChallengeApi}
             defeatBlinkToken={defeatBlinkToken}
+            pendingBattleResult={pendingMapBattleResult}
+            onConsumeBattleResult={() => setPendingMapBattleResult(null)}
             onAllocateStat={async (stat) => {
               const username = playerAppearance.username;
               if (!username) return null;

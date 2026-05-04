@@ -6,6 +6,7 @@ using Twelve.Core.GameLogic;
 using Twelve.Core.Interfaces;
 using Twelve.Core.Monsters;
 using Twelve.Application.Players;
+using Twelve.Core.Npcs;
 
 namespace Twelve.Application.Battle
 {
@@ -21,6 +22,7 @@ namespace Twelve.Application.Battle
         private readonly IPlayerRepository _playerRepository;
         private readonly IPlayerAggregateRepository _playerAggregateRepository;
         private readonly PlayerContentCatalog _contentCatalog;
+        private readonly IPlayerMissionStateRepository _missionStateRepository;
 
         public BattleResultService(
             IBattleSessionStore battleSessionStore,
@@ -29,7 +31,8 @@ namespace Twelve.Application.Battle
             IMapMonsterRosterService mapMonsterRosterService,
             IPlayerRepository playerRepository,
             IPlayerAggregateRepository playerAggregateRepository,
-            PlayerContentCatalog contentCatalog)
+            PlayerContentCatalog contentCatalog,
+            IPlayerMissionStateRepository missionStateRepository)
         {
             _battleSessionStore = battleSessionStore;
             _monsterSpawnCatalog = monsterSpawnCatalog;
@@ -38,6 +41,7 @@ namespace Twelve.Application.Battle
             _playerRepository = playerRepository;
             _playerAggregateRepository = playerAggregateRepository;
             _contentCatalog = contentCatalog;
+            _missionStateRepository = missionStateRepository;
         }
 
         public BattleResultRewardResponse? Claim(BattleResultClaimRequest request)
@@ -116,6 +120,7 @@ namespace Twelve.Application.Battle
             var expGained = 0L;
             var goldGained = 0L;
             var loot = new PlayerContentCatalog.BattleLootReward([], []);
+            var missionUpdates = new List<MissionProgressUpdate>();
             if (request.Result == BattleResultKind.Victory)
             {
                 var rewards = ResolveRewards(session);
@@ -125,6 +130,7 @@ namespace Twelve.Application.Battle
                 PlayerLevelProgression.ApplyExperience(player, expGained);
                 loot = ResolveLoot(session);
                 ApplyLoot(inventory, equipment, loot);
+                missionUpdates.AddRange(AddKillMonsterMissionProgress(session, player.Username));
                 var durabilityChanged = ApplyEquippedEquipmentDurabilityLoss(equipment, lossAmount: 1);
                 if (player.Level > levelBefore || durabilityChanged)
                 {
@@ -188,7 +194,33 @@ namespace Twelve.Application.Battle
                 GoldAfter: player.Gold,
                 GoldGained: goldGained,
                 ItemRewards: loot.Items.Select(reward => reward.View).ToArray(),
-                EquipmentRewards: loot.Equipment.Select(reward => reward.View).ToArray());
+                EquipmentRewards: loot.Equipment.Select(reward => reward.View).ToArray(),
+                MissionUpdates: missionUpdates);
+        }
+
+        private IReadOnlyList<MissionProgressUpdate> AddKillMonsterMissionProgress(BattleSessionState session, string username)
+        {
+            var updates = new List<MissionProgressUpdate>();
+            if (session.Kind != BattleSessionKind.Monster)
+                return updates;
+
+            if (!string.IsNullOrWhiteSpace(session.SpawnTemplateKey))
+            {
+                updates.AddRange(_missionStateRepository
+                    .AddProgressAsync(username, "KillMonster", session.SpawnTemplateKey, 1)
+                    .GetAwaiter()
+                    .GetResult());
+            }
+
+            if (!string.IsNullOrWhiteSpace(session.MonsterKey))
+            {
+                updates.AddRange(_missionStateRepository
+                    .AddProgressAsync(username, "KillMonster", session.MonsterKey, 1)
+                    .GetAwaiter()
+                    .GetResult());
+            }
+
+            return updates;
         }
 
         private void DeactivateEncounterAfterBattle(BattleSessionState session)

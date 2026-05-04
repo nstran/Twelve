@@ -1,7 +1,9 @@
 import type {
+  MapMissionProgressUpdate,
   MapMissionRecord,
   MapMissionState,
   MapMissionTask,
+  MapMissionToast,
 } from './MapMission.types';
 
 export type MapMissionAction =
@@ -9,7 +11,8 @@ export type MapMissionAction =
   | { type: 'detail'; mission: MapMissionRecord }
   | { type: 'update'; mission: MapMissionRecord }
   | { type: 'notify'; mission: MapMissionRecord; message: string }
-  | { type: 'taskNotify'; task: MapMissionTask; message: string };
+  | { type: 'taskNotify'; task: MapMissionTask; message: string }
+  | { type: 'battleProgress'; updates: MapMissionProgressUpdate[] };
 
 const mergeMission = (missions: MapMissionRecord[], incoming: MapMissionRecord): MapMissionRecord[] => {
   const index = missions.findIndex((mission) => mission.questId === incoming.questId);
@@ -28,6 +31,34 @@ const mergeMission = (missions: MapMissionRecord[], incoming: MapMissionRecord):
   };
   return next;
 };
+
+const nextToastId = (state: MapMissionState): number => state.toasts.length + state.messages.length + 1;
+
+const trimToasts = (toasts: MapMissionToast[]): MapMissionToast[] => toasts.slice(-3);
+
+const buildTaskToast = (state: MapMissionState, task: MapMissionTask, message: string): MapMissionToast => ({
+  id: nextToastId(state),
+  title: 'Nhiem vu',
+  message: message || 'Tien do nhiem vu da cap nhat.',
+  lines: [task.text].filter(Boolean),
+  kind: 'task',
+});
+
+const buildMissionToast = (state: MapMissionState, mission: MapMissionRecord, message: string): MapMissionToast => ({
+  id: nextToastId(state),
+  title: mission.title || 'Nhiem vu',
+  message: message || 'Nhiem vu da cap nhat.',
+  lines: mission.rewardLines.length > 0 ? mission.rewardLines : mission.tasks.map(task => task.text),
+  kind: mission.rewardLines.length > 0 ? 'reward' : 'mission',
+});
+
+const buildProgressToast = (state: MapMissionState, update: MapMissionProgressUpdate, index: number): MapMissionToast => ({
+  id: nextToastId(state) + index,
+  title: update.missionTitle || 'Nhiem vu',
+  message: update.missionCompleted ? 'Nhiem vu da hoan thanh.' : 'Tien do nhiem vu da cap nhat.',
+  lines: [update.objectiveText],
+  kind: update.missionCompleted ? 'mission' : 'task',
+});
 
 export const reduceMapMissionState = (
   state: MapMissionState,
@@ -50,6 +81,7 @@ export const reduceMapMissionState = (
         ...state,
         missions: mergeMission(state.missions, action.mission),
         notifications: [...state.notifications, action.mission],
+        toasts: trimToasts([...state.toasts, buildMissionToast(state, action.mission, 'Tien do nhiem vu da cap nhat.')]),
       };
     case 'notify':
       return {
@@ -57,12 +89,25 @@ export const reduceMapMissionState = (
         missions: mergeMission(state.missions, action.mission),
         notifications: [...state.notifications, action.mission],
         messages: action.message ? [...state.messages, action.message] : state.messages,
+        toasts: trimToasts([...state.toasts, buildMissionToast(state, action.mission, action.message)]),
       };
     case 'taskNotify':
       return {
         ...state,
         taskNotifications: [...state.taskNotifications, action.task],
         messages: action.message ? [...state.messages, action.message] : state.messages,
+        toasts: trimToasts([...state.toasts, buildTaskToast(state, action.task, action.message)]),
+      };
+    case 'battleProgress':
+      return {
+        ...state,
+        messages: action.updates.length > 0
+          ? [...state.messages, action.updates[action.updates.length - 1].missionCompleted ? 'Nhiem vu da hoan thanh.' : 'Tien do nhiem vu da cap nhat.']
+          : state.messages,
+        toasts: trimToasts([
+          ...state.toasts,
+          ...action.updates.map((update, index) => buildProgressToast(state, update, index)),
+        ]),
       };
   }
 };

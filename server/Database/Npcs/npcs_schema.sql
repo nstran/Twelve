@@ -87,12 +87,14 @@ CREATE TABLE IF NOT EXISTS MissionRewards (
         REFERENCES MissionCatalog (Id)
         ON DELETE CASCADE,
     CONSTRAINT ck_mission_reward_type
-        CHECK (RewardType IN ('Exp', 'Item', 'Equipment')),
-    CONSTRAINT uq_mission_reward UNIQUE (MissionCatalogId, RewardType, COALESCE(RewardKey, ''), SortOrder)
+        CHECK (RewardType IN ('Exp', 'Item', 'Equipment'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_MissionRewards_MissionCatalogId
     ON MissionRewards (MissionCatalogId);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_MissionRewards_Mission_Type_Key_Sort
+    ON MissionRewards (MissionCatalogId, RewardType, COALESCE(RewardKey, ''), SortOrder);
 
 CREATE TABLE IF NOT EXISTS NpcMissionLinks (
     Id                  BIGSERIAL PRIMARY KEY,
@@ -117,3 +119,47 @@ CREATE INDEX IF NOT EXISTS idx_NpcMissionLinks_NpcCatalogId
 
 CREATE INDEX IF NOT EXISTS idx_NpcMissionLinks_MissionCatalogId
     ON NpcMissionLinks (MissionCatalogId);
+
+CREATE TABLE IF NOT EXISTS PlayerMissions (
+    PlayerId            BIGINT NOT NULL,
+    MissionCatalogId    BIGINT NOT NULL,
+    Status              TEXT NOT NULL DEFAULT 'Accepted',
+    AcceptedAt          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CompletedAt         TIMESTAMPTZ NULL,
+    RewardClaimedAt     TIMESTAMPTZ NULL,
+    UpdatedAt           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT pk_player_mission PRIMARY KEY (PlayerId, MissionCatalogId),
+    CONSTRAINT fk_player_mission_player
+        FOREIGN KEY (PlayerId)
+        REFERENCES Players (Id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_player_mission_mission
+        FOREIGN KEY (MissionCatalogId)
+        REFERENCES MissionCatalog (Id)
+        ON DELETE CASCADE,
+    CONSTRAINT ck_player_mission_status
+        CHECK (Status IN ('Accepted', 'Completed', 'RewardClaimed', 'Canceled'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_PlayerMissions_PlayerId_Status
+    ON PlayerMissions (PlayerId, Status);
+
+CREATE TABLE IF NOT EXISTS PlayerMissionObjectives (
+    PlayerId             BIGINT NOT NULL,
+    MissionObjectiveId   BIGINT NOT NULL,
+    CurrentAmount        INT NOT NULL DEFAULT 0,
+    IsCompleted          BOOLEAN NOT NULL DEFAULT FALSE,
+    UpdatedAt            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT pk_player_mission_objective PRIMARY KEY (PlayerId, MissionObjectiveId),
+    CONSTRAINT fk_player_mission_objective_player
+        FOREIGN KEY (PlayerId)
+        REFERENCES Players (Id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_player_mission_objective_objective
+        FOREIGN KEY (MissionObjectiveId)
+        REFERENCES MissionObjectives (Id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_PlayerMissionObjectives_PlayerId
+    ON PlayerMissionObjectives (PlayerId);

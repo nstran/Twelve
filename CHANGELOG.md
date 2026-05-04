@@ -4,6 +4,94 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-04
 
+### [NPC/MISSION] Client mission toast queue and battle progress UI
+
+- Hoàn thiện phần RN hiển thị notify nhiệm vụ trên map Hoa Lư:
+  - `MapMission.reducer` thêm toast queue riêng cho task notify, mission notify/update và battle progress;
+  - `HoaLuMapScreen` render stack toast nhiệm vụ trên map, không trộn với NPC talk dialog;
+  - `BattleResultRewardResponse.missionUpdates` được giữ ở `App` khi rời battle rồi consume trên map để hiện tiến độ `KillMonster` sau khi claim kết quả trận.
+- Boundary:
+  - UI toast là remake polish dựa trên flow Java `nu`/`hr`/`hb`, chưa phải bản clone pixel-perfect của popup Java gốc.
+  - Dữ liệu objective/reward vẫn đến từ server/DB seed, client không hardcode monster id, NPC id hoặc số lượng.
+
+### [NPC/MISSION] Mission progress notification/update packets
+
+- Thêm flow notify/update nhiệm vụ khi objective thay đổi:
+  - `MissionProgressUpdate` trả mission/task vừa thay đổi sau khi cộng progress;
+  - `MissionPacketFactory` build command `34` task notify, command `38` mission update, command `35` mission complete/reward notify;
+  - `NpcTalkHandler` gửi notify ngay khi `TalkNpc` update progress;
+  - battle result response mang kèm mission updates cho `KillMonster` để RN có dữ liệu render sau khi claim kết quả trận.
+- Boundary:
+  - Server đã phát/đính kèm dữ liệu notify theo parser RN hiện có; UI popup/queue kiểu Java `hr`/`hb` vẫn là bước client polish tiếp theo.
+  - Nội dung text notify là remake policy, còn command/tag shape bám parser Java-client đã audit.
+
+### [NPC/MISSION] Mission reward claim/grant
+
+- Thêm claim/grant reward nhiệm vụ theo DB seed:
+  - `MissionRewardClaimService` đọc `MissionRewards` qua mission detail và grant `Exp`, `Item`, `Equipment` theo kiểu reward;
+  - `Exp` dùng progression hiện có để cộng EXP/level và tính lại chỉ số khi cần;
+  - `Item` merge stack trong `PlayerInventory` theo raw item id;
+  - `Equipment` chỉ nhận equipment template key hợp lệ, không dùng raw item id.
+- `MissionHandler` dùng remake policy tạm: nếu mission đã `Completed`, gửi accept lần nữa sẽ claim reward; `PlayerMissionStateRepository` chuyển trạng thái sang `RewardClaimed` để chặn double-claim.
+- Sửa seed Hoa Lư: raw id `30094` là `Trứng gà` trong `ItemCatalog`, nên reward tuần tra đổi từ `Equipment 30094` sang `Item 30094`.
+- Boundary:
+  - Cơ chế claim bằng accept-lại là remake policy vì chưa có Java server command claim reward chính xác.
+  - Phần thưởng vẫn đổi được bằng seed DB; không hardcode mission key/phần thưởng trong handler.
+
+### [NPC/MISSION] Data-driven mission objective progress
+
+- Thêm progress objective dùng chung cho các dạng mission lặp lại nhiều trong game:
+  - `PlayerMissionStateRepository.AddProgressAsync(username, objectiveType, targetKey, amount)` update theo `ObjectiveType + TargetKey`, clamp theo `RequiredAmount`;
+  - mission tự chuyển `Completed` khi mọi objective đã hoàn thành;
+  - `KillMonster` progress từ `BattleResultService` dùng cả `SpawnTemplateKey` và runtime `MonsterKey`, nên seed sau này có thể target quái theo template hoặc instance key;
+  - `TalkNpc` progress từ `NpcTalkHandler` dùng NPC id làm `TargetKey`.
+- Boundary:
+  - Reward claim/grant đã được bổ sung ở bước sau bằng remake policy riêng.
+  - Công thức hoàn thành dựa trên DB objective seed, không hardcode monster id, NPC id hoặc số lượng.
+
+### [NPC/MISSION] Player mission accept/cancel state
+
+- Thêm state nhiệm vụ tối thiểu theo player:
+  - `PlayerMissions` lưu trạng thái `Accepted`, `Completed`, `RewardClaimed`, `Canceled` theo `PlayerId + MissionCatalogId`;
+  - `PlayerMissionObjectives` khởi tạo progress từng objective khi accept mission;
+  - `PlayerMissionStateRepository` xử lý accept/cancel bằng DB, không hardcode mission key hoặc phần thưởng;
+  - `MissionHandler` trả mission list/detail kèm trạng thái hiện tại của player.
+- Boundary:
+  - Chưa tự hoàn thành objective, chưa grant EXP/item/equipment, chưa claim reward.
+  - Đây là remake policy tối thiểu cho mission state để tiếp tục nối `KillMonster`/`TalkNpc` sau khi chốt progress policy.
+
+### [NPC/MISSION] DB-backed NPC talk and mission read flow
+
+- Thêm read flow NPC/Mission từ DB:
+  - `INpcMissionCatalog` + `DbNpcMissionCatalog` đọc `NpcMissionLinks`, `MissionCatalog`, `MissionObjectives`, `MissionRewards`;
+  - `NpcTalkHandler` không hardcode `tutorial_npc` nữa mà resolve NPC talk context từ DB và trả kèm mission summary gắn với NPC;
+  - `MissionHandler` xử lý mission list/detail theo command Java-evidence `31`/`33`, còn `32` accept và `41` cancel mới được wire nhưng chưa thay đổi state;
+  - `MissionPacketFactory` đóng gói list/detail theo parser hiện có của RN client.
+- Boundary:
+  - Chỉ đọc/hiển thị mission từ DB; chưa làm per-player mission state, progress, reward claim hoặc grant EXP/item/equipment.
+  - Reward/mission có thể đổi bằng seed DB vì handler không hardcode mission key/phần thưởng.
+
+### [NPC/MISSION] DB-backed NPC roster runtime
+
+- Thay runtime NPC roster từ static hardcode sang DB-backed service:
+  - thêm `server/Twelve.Infrastructure/Repositories/DbMapNpcRosterService.cs` đọc `NpcMapRosters` join `NpcCatalog`;
+  - DI chuyển `IMapNpcRosterService` từ `StaticMapNpcRosterService` sang `DbMapNpcRosterService`;
+  - packet output vẫn giữ contract `MapNpcRosterEntry` theo Java `jo` fields, còn dữ liệu map/tọa độ/tên override nằm trong DB seed.
+- Boundary:
+  - Chỉ đổi nguồn dữ liệu NPC roster runtime; chưa implement mission accept/progress/reward claim.
+  - Mục tiêu là để sau này đổi NPC/nhiệm vụ/phần thưởng bằng seed/catalog thay vì sửa hardcode handler.
+
+### [NPC/MISSION] Hoa Lư starter mission seed
+
+- Triển khai plan Hoa Lư đã được user duyệt vào seed DB:
+  - `npc_110020` / Trưởng làng Gia Viễn giao `hoa_lu_ga_dien_quay_pha_001` và `hoa_lu_bao_tin_cho_linh_002`;
+  - `npc_110110` / Lính Hoa Lư giao `hoa_lu_tuan_tra_cung_linh_003`;
+  - objective dùng `KillMonster` với `MONSTER_1000_SLOT_0` / Gà Điên và `TalkNpc` với `npc_110110`;
+  - reward chỉ dùng scope đã chốt: `Exp`, `Item`, `Equipment`.
+- Sửa schema `MissionRewards` để dùng unique index expression riêng cho `COALESCE(RewardKey, '')`, giúp `ON CONFLICT` trong seed khớp PostgreSQL đúng hơn.
+- Boundary:
+  - Đây là remake policy đã được user duyệt, không ghi nhận là Java server mission catalog evidence.
+
 ### [NPC/MISSION] NPC database seed foundation
 
 - Thêm schema/seed DB tối giản cho NPC:

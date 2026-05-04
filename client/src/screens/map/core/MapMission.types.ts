@@ -14,12 +14,29 @@ export interface MapMissionRecord {
   rewardLines: string[];
 }
 
+export interface MapMissionToast {
+  id: number;
+  title: string;
+  message: string;
+  lines: string[];
+  kind: 'task' | 'mission' | 'reward';
+}
+
+export interface MapMissionProgressUpdate {
+  missionKey: string;
+  missionTitle: string;
+  objectiveText: string;
+  objectiveCompleted: boolean;
+  missionCompleted: boolean;
+}
+
 export interface MapMissionState {
   missions: MapMissionRecord[];
   activeMission: MapMissionRecord | null;
   notifications: MapMissionRecord[];
   taskNotifications: MapMissionTask[];
   messages: string[];
+  toasts: MapMissionToast[];
 }
 
 export const EMPTY_MAP_MISSION_STATE: MapMissionState = {
@@ -28,4 +45,5 @@ export const EMPTY_MAP_MISSION_STATE: MapMissionState = {
   notifications: [],
   taskNotifications: [],
   messages: [],
+  toasts: [],
 };

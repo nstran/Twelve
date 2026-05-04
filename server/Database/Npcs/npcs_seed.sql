@@ -110,71 +110,64 @@ ON CONFLICT (RosterKey) DO UPDATE SET
     RosterMode = EXCLUDED.RosterMode,
     IsActive = EXCLUDED.IsActive;
 
+UPDATE NpcMapRosters r
+SET
+    TileX = 10,
+    TileY = 23,
+    SortOrder = 1
+FROM NpcCatalog n
+WHERE r.NpcCatalogId = n.Id
+  AND r.RosterKey = 'hoa_lu_room_1_npc_110020'
+  AND n.NpcKey = 'npc_110020';
+
+-- Remake policy approved by user: Hoa Lu starter missions until Java server mission catalog is found.
 INSERT INTO MissionCatalog (MissionKey, Title, Description, RewardText)
 VALUES
-    ('mission_placeholder_001', 'Nhiệm vụ mẫu 1', 'Placeholder mission; replace when original NPC mission data is available.', 'EXP x100; Item 5001 x1'),
-    ('mission_placeholder_002', 'Nhiệm vụ mẫu 2', 'Placeholder mission; proves one NPC can own many missions.', 'EXP x250; Equipment 30094 x1')
+    ('hoa_lu_ga_dien_quay_pha_001', 'Gà Điên Quấy Phá', 'Gần làng xuất hiện nhiều Gà Điên làm dân làng hoảng sợ. Hãy đánh bại chúng để giúp Trưởng làng ổn định lại Hoa Lư.', 'EXP x80; Item 5001 x2'),
+    ('hoa_lu_bao_tin_cho_linh_002', 'Báo Tin Cho Lính Hoa Lư', 'Sau khi xử lý Gà Điên, hãy báo lại cho Lính Hoa Lư để khu vực quanh làng được canh phòng cẩn thận hơn.', 'EXP x50'),
+    ('hoa_lu_tuan_tra_cung_linh_003', 'Tuần Tra Cùng Lính Hoa Lư', 'Lính Hoa Lư nhờ bạn tiếp tục tuần tra và đánh bại thêm Gà Điên quanh khu vực làng.', 'EXP x120; Item 5001 x3; Item 30094 x1')
 ON CONFLICT (MissionKey) DO UPDATE SET
     Title = EXCLUDED.Title,
     Description = EXCLUDED.Description,
     RewardText = EXCLUDED.RewardText;
 
 INSERT INTO MissionObjectives (MissionCatalogId, ObjectiveType, TargetKey, RequiredAmount, SortOrder)
-SELECT m.Id, 'TalkNpc', 'npc_110110', 1, 0
+SELECT m.Id, v.ObjectiveType, v.TargetKey, v.RequiredAmount, v.SortOrder
 FROM MissionCatalog m
-WHERE m.MissionKey = 'mission_placeholder_001'
+JOIN (VALUES
+    ('hoa_lu_ga_dien_quay_pha_001', 'KillMonster', 'MONSTER_1000_SLOT_0', 3, 0),
+    ('hoa_lu_bao_tin_cho_linh_002', 'TalkNpc', 'npc_110110', 1, 0),
+    ('hoa_lu_tuan_tra_cung_linh_003', 'KillMonster', 'MONSTER_1000_SLOT_0', 5, 0)
+) AS v(MissionKey, ObjectiveType, TargetKey, RequiredAmount, SortOrder)
+    ON v.MissionKey = m.MissionKey
 ON CONFLICT (MissionCatalogId, ObjectiveType, TargetKey, SortOrder) DO UPDATE SET
     RequiredAmount = EXCLUDED.RequiredAmount;
 
-INSERT INTO MissionObjectives (MissionCatalogId, ObjectiveType, TargetKey, RequiredAmount, SortOrder)
-SELECT m.Id, 'TalkNpc', 'npc_110110', 1, 0
-FROM MissionCatalog m
-WHERE m.MissionKey = 'mission_placeholder_002'
-ON CONFLICT (MissionCatalogId, ObjectiveType, TargetKey, SortOrder) DO UPDATE SET
-    RequiredAmount = EXCLUDED.RequiredAmount;
-
 INSERT INTO MissionRewards (MissionCatalogId, RewardType, RewardKey, Amount, SortOrder)
-SELECT m.Id, 'Exp', NULL, 100, 0
+SELECT m.Id, v.RewardType, v.RewardKey, v.Amount, v.SortOrder
 FROM MissionCatalog m
-WHERE m.MissionKey = 'mission_placeholder_001'
-ON CONFLICT (MissionCatalogId, RewardType, COALESCE(RewardKey, ''), SortOrder) DO UPDATE SET
-    Amount = EXCLUDED.Amount;
-
-INSERT INTO MissionRewards (MissionCatalogId, RewardType, RewardKey, Amount, SortOrder)
-SELECT m.Id, 'Item', '5001', 1, 1
-FROM MissionCatalog m
-WHERE m.MissionKey = 'mission_placeholder_001'
-ON CONFLICT (MissionCatalogId, RewardType, COALESCE(RewardKey, ''), SortOrder) DO UPDATE SET
-    Amount = EXCLUDED.Amount;
-
-INSERT INTO MissionRewards (MissionCatalogId, RewardType, RewardKey, Amount, SortOrder)
-SELECT m.Id, 'Exp', NULL, 250, 0
-FROM MissionCatalog m
-WHERE m.MissionKey = 'mission_placeholder_002'
-ON CONFLICT (MissionCatalogId, RewardType, COALESCE(RewardKey, ''), SortOrder) DO UPDATE SET
-    Amount = EXCLUDED.Amount;
-
-INSERT INTO MissionRewards (MissionCatalogId, RewardType, RewardKey, Amount, SortOrder)
-SELECT m.Id, 'Equipment', '30094', 1, 1
-FROM MissionCatalog m
-WHERE m.MissionKey = 'mission_placeholder_002'
+JOIN (VALUES
+    ('hoa_lu_ga_dien_quay_pha_001', 'Exp', NULL, 80, 0),
+    ('hoa_lu_ga_dien_quay_pha_001', 'Item', '5001', 2, 1),
+    ('hoa_lu_bao_tin_cho_linh_002', 'Exp', NULL, 50, 0),
+    ('hoa_lu_tuan_tra_cung_linh_003', 'Exp', NULL, 120, 0),
+    ('hoa_lu_tuan_tra_cung_linh_003', 'Item', '5001', 3, 1),
+    ('hoa_lu_tuan_tra_cung_linh_003', 'Item', '30094', 1, 2)
+) AS v(MissionKey, RewardType, RewardKey, Amount, SortOrder)
+    ON v.MissionKey = m.MissionKey
 ON CONFLICT (MissionCatalogId, RewardType, COALESCE(RewardKey, ''), SortOrder) DO UPDATE SET
     Amount = EXCLUDED.Amount;
 
 INSERT INTO NpcMissionLinks (NpcCatalogId, MissionCatalogId, SortOrder, IsActive)
-SELECT n.Id, m.Id, 0, TRUE
+SELECT n.Id, m.Id, v.SortOrder, TRUE
 FROM NpcCatalog n
-JOIN MissionCatalog m ON m.MissionKey = 'mission_placeholder_001'
-WHERE n.NpcKey = 'npc_110110'
-ON CONFLICT (NpcCatalogId, MissionCatalogId) DO UPDATE SET
-    SortOrder = EXCLUDED.SortOrder,
-    IsActive = EXCLUDED.IsActive;
-
-INSERT INTO NpcMissionLinks (NpcCatalogId, MissionCatalogId, SortOrder, IsActive)
-SELECT n.Id, m.Id, 1, TRUE
-FROM NpcCatalog n
-JOIN MissionCatalog m ON m.MissionKey = 'mission_placeholder_002'
-WHERE n.NpcKey = 'npc_110110'
+JOIN (VALUES
+    ('npc_110020', 'hoa_lu_ga_dien_quay_pha_001', 0),
+    ('npc_110020', 'hoa_lu_bao_tin_cho_linh_002', 1),
+    ('npc_110110', 'hoa_lu_tuan_tra_cung_linh_003', 0)
+) AS v(NpcKey, MissionKey, SortOrder)
+    ON v.NpcKey = n.NpcKey
+JOIN MissionCatalog m ON m.MissionKey = v.MissionKey
 ON CONFLICT (NpcCatalogId, MissionCatalogId) DO UPDATE SET
     SortOrder = EXCLUDED.SortOrder,
     IsActive = EXCLUDED.IsActive;

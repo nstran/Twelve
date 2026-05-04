@@ -14,7 +14,8 @@
 ## 1. CẤU TRÚC VÀ CÔNG NGHỆ
 - Backend: Sử dụng C# với .NET 9 (Minimal APIs hoặc Web API tùy theo cấu trúc hiện tại).
 - Mobile: Sử dụng React Native với TypeScript.
-- Nguyên tắc chung: Tuân thủ Clean Architecture, SOLID và DRY (Don't Repeat Yourself). Chia trách nhiệm rõ ràng theo module/file; không dồn nhiều trách nhiệm vào một class/component/service.
+- Nguyên tắc chung: Tuân thủ Clean Architecture, OOP, SOLID và DRY (Don't Repeat Yourself). Chia trách nhiệm rõ ràng theo module/file; không dồn nhiều trách nhiệm vào một class/component/service.
+- ƯU TIÊN OOP/SOLID KHI CODE: Khi implement logic mới, đặc biệt backend game systems như NPC, Mission, Battle, Equipment, phải ưu tiên interface/contract rõ ràng, service/repository/factory tách trách nhiệm, dependency injection, model/record/enum có ý nghĩa domain, và tránh nhồi business logic vào handler/controller. Handler chỉ nên điều phối request/response; logic gameplay, persistence, packet building và state transition phải tách sang service phù hợp để dễ thay đổi seed/công thức/policy sau này.
 - ƯU TIÊN ENUM CHO TYPE RÕ RÀNG: Khi dữ liệu có tập giá trị cố định/đã biết từ Java client hoặc tài liệu `.md` như slot type, rank, gender, command id, item kind, state/status, không dùng `int`/`byte` trần lan truyền trong code nghiệp vụ. Ưu tiên định nghĩa `enum`/union type có tên rõ ràng và chỉ cast/convert tại boundary parse packet/database/API khi cần giữ đúng wire format gốc.
 - AGENT SKILL USAGE: Trước các task lớn hoặc có rủi ro cao, chủ động đọc skill phù hợp trong `.agent/skills/` để lấy checklist chuyên môn. Ví dụ protocol/equipment packet đọc `binary-protocol`, `architecture`, `game-mechanics`; React Native đọc `frontend-design`, `clean-code`; database đọc `database-design`; command/build Windows đọc `powershell-windows`.
 

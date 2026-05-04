@@ -23,7 +23,9 @@ namespace Twelve.Infrastructure
             services.AddSingleton<IMonsterBattleCatalog, DbMonsterBattleCatalog>();
             services.AddSingleton<IMapMonsterRosterService, DbMapMonsterRosterService>();
 
-            services.AddSingleton<IMapNpcRosterService, StaticMapNpcRosterService>();
+            services.AddSingleton<IMapNpcRosterService, DbMapNpcRosterService>();
+            services.AddSingleton<INpcMissionCatalog, DbNpcMissionCatalog>();
+            services.AddSingleton<IPlayerMissionStateRepository, PlayerMissionStateRepository>();
 
             // Migration tự động khi khởi động
             services.AddSingleton<DatabaseMigrator>();

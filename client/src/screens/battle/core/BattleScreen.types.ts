@@ -313,6 +313,14 @@ export interface BattleResultClaimRequest {
   boardQuan?: number;
 }
 
+export interface BattleMissionProgressUpdate {
+  missionKey: string;
+  missionTitle: string;
+  objectiveText: string;
+  objectiveCompleted: boolean;
+  missionCompleted: boolean;
+}
+
 export interface BattleResultRewardResponse {
   result: BattleResult;
   levelBefore: number;
@@ -365,6 +373,7 @@ export interface BattleResultRewardResponse {
     bonusCrit: number;
     bonusMaxHp: number;
   }> | null;
+  missionUpdates?: BattleMissionProgressUpdate[] | null;
 }
 
 export type ResolveBattleResult =
