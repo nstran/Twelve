@@ -62,6 +62,68 @@ export interface MapMonsterRosterPacket {
   monsters: MapMonsterSpawnRecord[];
 }
 
+export interface MapNpcRosterRecord {
+  npcId: string;
+  displayName: string;
+  visualTypeByte: number;
+  displayLevel: number;
+  tileX: number;
+  tileY: number;
+  nameColorMode: number;
+}
+
+export interface MapNpcRosterPacket {
+  mapId: string;
+  mode: number;
+  npcs: MapNpcRosterRecord[];
+}
+
+export interface NpcTalkSocketResponse {
+  ok: boolean;
+  npcId?: string;
+  message?: string;
+  error?: string;
+}
+
+export interface MissionTaskRecord {
+  rawValue: number;
+  questId: string;
+  text: string;
+}
+
+export interface MissionRecord {
+  questId: string;
+  title: string;
+  description: string;
+  price: number;
+  statusFlag: boolean;
+  tasks: MissionTaskRecord[];
+  rewardLines: string[];
+}
+
+export interface MissionListPacket {
+  missions: MissionRecord[];
+}
+
+export interface MissionDetailPacket {
+  mission: MissionRecord;
+  openAsUpdate: boolean;
+}
+
+export interface MissionTaskNotificationPacket {
+  task: MissionTaskRecord;
+  message: string;
+}
+
+export interface MissionNotificationPacket {
+  mission: MissionRecord;
+  message: string;
+}
+
+export interface MissionUpdatePacket {
+  mission: MissionRecord;
+}
+
 export interface MonsterBattleBootstrapSocketResponse<T = unknown> {
   ok: boolean;
   data: T | null;
@@ -271,6 +333,38 @@ export class SocketClient extends EventEmitter {
         break;
       }
 
+      case Command.MAP_NPC_ROSTER_REMAKE: {
+        const roster = this.parseMapNpcRoster(payload);
+        this.emit('mapNpcRoster', roster);
+        break;
+      }
+      case Command.NPC_TALK_RESPONSE_REMAKE: {
+        const response = this.parseJsonPayload<NpcTalkSocketResponse>(payload, { ok: false, error: 'invalid_payload' });
+        this.emit('npcTalkResponse', response);
+        break;
+      }
+
+      case Command.MISSION_LIST: {
+        this.emit('missionList', this.parseMissionList(payload));
+        break;
+      }
+      case Command.MISSION_DETAIL: {
+        this.emit('missionDetail', this.parseMissionDetail(payload));
+        break;
+      }
+      case Command.MISSION_TASK_NOTIFY: {
+        this.emit('missionTaskNotification', this.parseMissionTaskNotification(payload));
+        break;
+      }
+      case Command.MISSION_NOTIFY: {
+        this.emit('missionNotification', this.parseMissionNotification(payload));
+        break;
+      }
+      case Command.MISSION_UPDATE: {
+        this.emit('missionUpdate', this.parseMissionUpdate(payload));
+        break;
+      }
+
       case Command.MONSTER_BOOTSTRAP_RESPONSE: {
         const rawJson = new TextDecoder().decode(payload);
         if (!rawJson.trim()) {
@@ -389,6 +483,43 @@ export class SocketClient extends EventEmitter {
 
     const payload = new Uint8Array(tags);
     const packet = this.wrapPacket(Command.PLAYER_INFO, payload, (mapId ? 1 : 0) + (typeof roomId === 'number' ? 1 : 0));
+    this.socket?.send(packet);
+  }
+
+  requestMissionList() {
+    // Java evidence: ks.o() sends kw(31) without mission id.
+    const packet = this.wrapPacket(Command.MISSION_LIST, new Uint8Array(), 0);
+    this.socket?.send(packet);
+  }
+
+  requestMissionDetail(questId: string) {
+    // Java evidence: ks.o(String) sends kw(33), serialized as tag 77.
+    const payload = new Uint8Array(this.makeStringTag(77, questId));
+    const packet = this.wrapPacket(Command.MISSION_DETAIL, payload, 1);
+    this.socket?.send(packet);
+  }
+
+  requestMissionAccept(questId: string) {
+    // Java evidence: ks.m(String) sends kw(32), serialized as tag 77.
+    const payload = new Uint8Array(this.makeStringTag(77, questId));
+    const packet = this.wrapPacket(Command.MISSION_ACCEPT_ACK, payload, 1);
+    this.socket?.send(packet);
+  }
+
+  requestMissionCancel(questId: string) {
+    // Java evidence: ks.n(String) sends kw(41), serialized as tag 77.
+    const payload = new Uint8Array(this.makeStringTag(77, questId));
+    const packet = this.wrapPacket(Command.MISSION_CANCEL_ACK, payload, 1);
+    this.socket?.send(packet);
+  }
+
+  requestNpcTalk(npcId: string, isContinue: boolean) {
+    // Java evidence: ks.a().a(ki2.f.a, bl2) sends kw(16) with NPC id string and boolean continue flag.
+    const payload = new Uint8Array([
+      ...this.makeStringTag(9, npcId),
+      ...this.makeByteTag(40, isContinue ? 1 : 0),
+    ]);
+    const packet = this.wrapPacket(Command.NPC_TALK_REQUEST, payload, 2);
     this.socket?.send(packet);
   }
 
@@ -659,6 +790,290 @@ export class SocketClient extends EventEmitter {
     }
 
     return { mapId, roomId, mode, monsters };
+  }
+
+  private parseMapNpcRoster(payload: Uint8Array): MapNpcRosterPacket {
+    let pos = 0;
+    let mapId = '';
+    let mode = 0;
+    const npcs: MapNpcRosterRecord[] = [];
+
+    while (pos <= payload.length - 5) {
+      const id = payload[pos];
+      const len = this.readInt(payload, pos + 1);
+      const val = payload.slice(pos + 5, pos + 5 + len);
+
+      switch (id) {
+        case 20:
+          mapId = new TextDecoder().decode(val);
+          break;
+        case 40:
+          mode = val[0] ?? 0;
+          break;
+        case 9:
+          npcs.push(this.parseMapNpcRecord(val));
+          break;
+      }
+
+      pos += 5 + len;
+    }
+
+    return { mapId, mode, npcs };
+  }
+
+  private parseMapNpcRecord(payload: Uint8Array): MapNpcRosterRecord {
+    let pos = 0;
+    let npcId = '';
+    let displayName = '';
+    let visualTypeByte = 0;
+    let displayLevel = 0;
+    let tileX = 0;
+    let tileY = 0;
+    let nameColorMode = 0;
+
+    while (pos <= payload.length - 5) {
+      const id = payload[pos];
+      const len = this.readInt(payload, pos + 1);
+      const val = payload.slice(pos + 5, pos + 5 + len);
+
+      switch (id) {
+        case 9:
+          npcId = new TextDecoder().decode(val);
+          break;
+        case 26:
+          displayName = new TextDecoder().decode(val);
+          break;
+        case 27:
+          displayLevel = this.readInt(val, 0);
+          break;
+        case 15:
+          visualTypeByte = val[0] ?? 0;
+          break;
+        case 129:
+          tileX = this.readInt(val, 0);
+          break;
+        case 106:
+          tileY = this.readInt(val, 0);
+          break;
+        case 107:
+          nameColorMode = val[0] ?? 0;
+          break;
+      }
+
+      pos += 5 + len;
+    }
+
+    return {
+      npcId,
+      displayName,
+      visualTypeByte,
+      displayLevel,
+      tileX,
+      tileY,
+      nameColorMode,
+    };
+  }
+
+  private parseMissionList(payload: Uint8Array): MissionListPacket {
+    let pos = 0;
+    const missions: MissionRecord[] = [];
+
+    while (pos <= payload.length - 5) {
+      const id = payload[pos];
+      const len = this.readInt(payload, pos + 1);
+      const end = pos + 5 + len;
+
+      if (id === 77) {
+        missions.push({
+          questId: this.readStringTagValue(payload, pos),
+          title: this.readStringTagInRange(payload, 26, pos + 5, end),
+          description: '',
+          price: 0,
+          statusFlag: this.readByteTagInRange(payload, 100, pos + 5, end, 0) === 1,
+          tasks: [],
+          rewardLines: [],
+        });
+      }
+
+      pos += 5 + len;
+    }
+
+    return { missions };
+  }
+
+  private parseMissionDetail(payload: Uint8Array): MissionDetailPacket {
+    const questId = this.parseStringTag(payload, 77);
+    const mission: MissionRecord = {
+      questId,
+      title: this.parseStringTag(payload, 26),
+      description: this.parseStringTag(payload, 79),
+      price: this.parseLongTag(payload, 132),
+      statusFlag: this.parseIntTag(payload, 100) === 0,
+      tasks: this.parseMissionTasks(payload, questId),
+      rewardLines: [],
+    };
+
+    return { mission, openAsUpdate: mission.statusFlag };
+  }
+
+  private parseMissionTaskNotification(payload: Uint8Array): MissionTaskNotificationPacket {
+    const questId = this.parseStringTag(payload, 77);
+    return {
+      task: {
+        rawValue: this.parseIntTag(payload, 80),
+        questId,
+        text: this.parseStringTag(payload, 81),
+      },
+      message: this.parseStringTag(payload, 149),
+    };
+  }
+
+  private parseMissionNotification(payload: Uint8Array): MissionNotificationPacket {
+    const mission: MissionRecord = {
+      questId: this.parseStringTag(payload, 77),
+      title: this.parseStringTag(payload, 26),
+      description: '',
+      price: 0,
+      statusFlag: false,
+      tasks: [],
+      rewardLines: this.parseRepeatedStringTags(payload, 1),
+    };
+
+    return { mission, message: this.parseStringTag(payload, 149) };
+  }
+
+  private parseMissionUpdate(payload: Uint8Array): MissionUpdatePacket {
+    const questId = this.parseStringTag(payload, 77);
+    return {
+      mission: {
+        questId,
+        title: '',
+        description: '',
+        price: 0,
+        statusFlag: false,
+        tasks: this.parseMissionTasks(payload, questId),
+        rewardLines: [],
+      },
+    };
+  }
+
+  private parseMissionTasks(payload: Uint8Array, questId: string): MissionTaskRecord[] {
+    let pos = 0;
+    const tasks: MissionTaskRecord[] = [];
+
+    while (pos <= payload.length - 5) {
+      const id = payload[pos];
+      const len = this.readInt(payload, pos + 1);
+      const end = pos + 5 + len;
+
+      if (id === 80) {
+        tasks.push({
+          rawValue: this.readIntTagValue(payload, pos, -1),
+          questId,
+          text: this.readStringTagInRange(payload, 81, pos + 5, end),
+        });
+      }
+
+      pos += 5 + len;
+    }
+
+    return tasks;
+  }
+
+  private parseRepeatedStringTags(payload: Uint8Array, tagId: number): string[] {
+    let pos = 0;
+    const values: string[] = [];
+
+    while (pos <= payload.length - 5) {
+      const id = payload[pos];
+      const len = this.readInt(payload, pos + 1);
+      const val = payload.slice(pos + 5, pos + 5 + len);
+
+      if (id === tagId) {
+        values.push(new TextDecoder().decode(val));
+      }
+
+      pos += 5 + len;
+    }
+
+    return values;
+  }
+
+  private readStringTagValue(payload: Uint8Array, tagStart: number): string {
+    const len = this.readInt(payload, tagStart + 1);
+    const valueStart = tagStart + 5;
+    const valueEnd = valueStart + len;
+    const nested = this.readStringTagInRange(payload, 77, valueStart, valueEnd);
+    if (nested) {
+      return nested;
+    }
+
+    return new TextDecoder().decode(payload.slice(valueStart, valueEnd));
+  }
+
+  private readIntTagValue(payload: Uint8Array, tagStart: number, fallback: number): number {
+    const len = this.readInt(payload, tagStart + 1);
+    const valueStart = tagStart + 5;
+    const valueEnd = valueStart + len;
+    const directValueLength = valueEnd - valueStart;
+    if (directValueLength === 1 || directValueLength === 2 || directValueLength === 4) {
+      return this.readInt(payload.slice(valueStart, valueEnd), 0);
+    }
+
+    return fallback;
+  }
+
+  private readStringTagInRange(payload: Uint8Array, tagId: number, start: number, end: number): string {
+    let pos = start;
+
+    while (pos <= end - 5) {
+      const id = payload[pos];
+      const len = this.readInt(payload, pos + 1);
+      const valStart = pos + 5;
+      const valEnd = valStart + len;
+
+      if (valEnd > end) {
+        return '';
+      }
+      if (id === tagId) {
+        return new TextDecoder().decode(payload.slice(valStart, valEnd));
+      }
+
+      pos = valEnd;
+    }
+
+    return '';
+  }
+
+  private readByteTagInRange(payload: Uint8Array, tagId: number, start: number, end: number, fallback: number): number {
+    let pos = start;
+
+    while (pos <= end - 5) {
+      const id = payload[pos];
+      const len = this.readInt(payload, pos + 1);
+      const valStart = pos + 5;
+      const valEnd = valStart + len;
+
+      if (valEnd > end) {
+        return fallback;
+      }
+      if (id === tagId) {
+        return payload[valStart] ?? fallback;
+      }
+
+      pos = valEnd;
+    }
+
+    return fallback;
+  }
+
+  private parseJsonPayload<T>(payload: Uint8Array, fallback: T): T {
+    try {
+      const text = new TextDecoder().decode(payload);
+      return JSON.parse(text) as T;
+    } catch {
+      return fallback;
+    }
   }
 
   private readFloat32BE(val: Uint8Array): number | undefined {

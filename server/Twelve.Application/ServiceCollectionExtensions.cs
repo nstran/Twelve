@@ -37,6 +37,7 @@ namespace Twelve.Application
             services.AddSingleton<CreateCharacterHandler>();
             services.AddSingleton<AllocateStatHandler>();
             services.AddSingleton<MapHandler>();
+            services.AddSingleton<NpcTalkHandler>();
             services.AddSingleton<MonsterEncounterHandler>();
             services.AddSingleton<MoveHandler>();
 
@@ -46,6 +47,7 @@ namespace Twelve.Application
             //   2  = Đăng nhập (Login)
             //   6  = Tạo nhân vật (CreateCharacter)
             //   11 = Yêu cầu Map Info
+            //   16 = NPC talk request (Java ks.a().a(String, boolean))
             //   44 = Di chuyển (Move)
             //   50 = Phân điểm tiềm năng (AllocateStat)
             services.AddSingleton<PacketDispatcher>(sp =>
@@ -60,6 +62,7 @@ namespace Twelve.Application
                 dispatcher.RegisterHandler(11, sp.GetRequiredService<MapHandler>()); // To be refactored soon
                 dispatcher.RegisterHandler(13, sp.GetRequiredService<MapHandler>());
                 dispatcher.RegisterHandler(29, sp.GetRequiredService<MapHandler>());
+                dispatcher.RegisterHandler((int)CommandCode.NpcTalkRequest, sp.GetRequiredService<NpcTalkHandler>());
                 dispatcher.RegisterHandler((int)CommandCode.MonsterBootstrapRequest, sp.GetRequiredService<MonsterEncounterHandler>());
                 dispatcher.RegisterHandler(44, sp.GetRequiredService<MoveHandler>());
 

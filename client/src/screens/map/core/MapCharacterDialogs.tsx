@@ -34,7 +34,7 @@ const EI_SCALE = 1.3;
 const EI_DISP_W = Math.round(EI_FRAME_W * EI_SCALE);
 const EI_DISP_H = Math.round(EI_H * EI_SCALE);
 const INFO_ASSETS = {
-  skilltree: require('../../../../assets/ui/12_info/skilltree.png'),
+  skilltree: require('../../../../assets/skill/00_skill_tree_ui_confirmed/skill_tree_board/increase.png'),
   hidenobj: require('../../../../assets/ui/12_info/hidenobj.png'),
   itemchest: require('../../../../assets/ui/12_info/itemchest.png'),
 };

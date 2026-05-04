@@ -1,7 +1,7 @@
-import React, { useRef, useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useCallback, useEffect, useMemo, useReducer } from 'react';
 import {
   Animated, View, Image, ScrollView, Text,
-  StyleSheet, Dimensions, Platform,
+  Dimensions, Platform,
   ActivityIndicator, Pressable, TextInput, TouchableOpacity,
 } from 'react-native';
 import {
@@ -32,12 +32,22 @@ import {
   SocketClient,
   type MapInfo,
   type MapMonsterRosterPacket,
+  type MapNpcRosterPacket,
+  type MapNpcRosterRecord,
+  type MissionDetailPacket,
+  type MissionListPacket,
+  type MissionNotificationPacket,
+  type MissionTaskNotificationPacket,
+  type MissionUpdatePacket,
+  type NpcTalkSocketResponse,
   type PlayerMapState,
 } from '../../../network/SocketClient';
 import { resolveSideScrollMapSceneConfig } from '../core';
 import { createMapGameMenuItems } from '../core';
 import {
+  EMPTY_MAP_MISSION_STATE,
   MapCharacterDialogs,
+  reduceMapMissionState,
   type CharacterStatKey,
   type MapCharacterDialogKind,
 } from '../core';
@@ -56,6 +66,7 @@ import type {
   ResolvePvpOpponents,
   ResolveMonsterBattleBootstrap,
 } from '../../battle';
+import { styles } from './HoaLuMapScreen.styles';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const ASSET_SOFTKEY_MENU = require('../../../../assets/ui/11_softkey_icons_confirmed/icon_sharpest_1.png');
@@ -106,6 +117,15 @@ interface MonsterVisual {
   worldState: 'patrol' | 'alert' | 'engaging';
 }
 
+interface NpcRuntime {
+  id: string;
+  displayName: string;
+  type: MonsterType;
+  x: number;
+  y: number;
+  nameColorMode: number;
+}
+
 const ENGAGE_TRIGGER_DELAY_MS = 120;
 const PLAYER_ALERT_MEMORY_MS = 220;
 // Recovery/invincible window sau khi rời battle: Java server không có đặc tả
@@ -123,6 +143,42 @@ const getLoopNowMs = (): number => (
     ? performance.now()
     : Date.now()
 );
+
+const resolveNpcSpriteType = (visualTypeByte: number): MonsterType => {
+  const family = visualTypeByte >> 1;
+  if (family === 0) {
+    return 'fire';
+  }
+  if (family === 1) {
+    return 'zap';
+  }
+  return 'ice';
+};
+
+const resolveNpcNameColor = (nameColorMode: number): string => {
+  if (nameColorMode === 1) {
+    return '#ff3a28';
+  }
+  if (nameColorMode === 2) {
+    return '#897c92';
+  }
+  return '#f8f5d8';
+};
+
+function createNpcRuntime(entry: MapNpcRosterRecord, mapScale: number, groundY: number): NpcRuntime {
+  return {
+    id: entry.npcId,
+    displayName: entry.displayName,
+    type: resolveNpcSpriteType(entry.visualTypeByte),
+    x: Math.round(entry.tileX * 32 * mapScale),
+    y: Math.round(groundY - 2),
+    nameColorMode: entry.nameColorMode,
+  };
+}
+
+function buildNpcRuntimes(roster: MapNpcRosterRecord[], mapScale: number, groundY: number): NpcRuntime[] {
+  return roster.map((entry) => createNpcRuntime(entry, mapScale, groundY));
+}
 
 function createMonsterRuntime(entry: MapMonsterRosterEntry, surfaces: GroundSurface[]): MonsterRuntime {
   const surface = surfaces.find((candidate) => candidate.id === entry.surfaceId);
@@ -294,6 +350,10 @@ interface MonsterFieldProps {
   visuals: MonsterVisual[];
 }
 
+interface NpcFieldProps {
+  npcs: NpcRuntime[];
+}
+
 const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals }) => (
   <>
     {runtimes.map((m, i) => {
@@ -352,6 +412,39 @@ const MonsterField = React.memo<MonsterFieldProps>(({ runtimes, visuals }) => (
   </>
 ));
 MonsterField.displayName = 'MonsterField';
+
+const NpcField = React.memo<NpcFieldProps>(({ npcs }) => (
+  <>
+    {npcs.map((npc) => {
+      const size = monsterDisplaySize(npc.type);
+      const metrics = monsterPlacementMetrics(npc.type);
+      const left = Math.round(npc.x - size.w / 2);
+      const top = Math.round(npc.y - size.h + metrics.groundOffset);
+
+      return (
+        <View
+          key={npc.id}
+          pointerEvents="none"
+          style={[
+            styles.npcContainer,
+            {
+              left,
+              top,
+              width: Math.max(size.w, 72),
+              height: size.h + 18,
+            },
+          ]}
+        >
+          <Text style={[styles.npcLabel, { color: resolveNpcNameColor(npc.nameColorMode) }]} numberOfLines={1}>
+            {npc.displayName}
+          </Text>
+          <MonsterSprite type={npc.type} frameIndex={0} facingRight />
+        </View>
+      );
+    })}
+  </>
+));
+NpcField.displayName = 'NpcField';
 
 // ── Props ────────────────────────────────────────────────────────────────────
 interface Props {
@@ -428,6 +521,11 @@ interface PvpStartOptions {
   allowSpectators: boolean;
   oneWay: boolean;
   disableSpecialSkills: boolean;
+}
+
+interface NpcTalkDialogState {
+  npcId: string;
+  message: string;
 }
 
 interface PvpDialogProps {
@@ -749,6 +847,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const [serverPlayerX, setServerPlayerX] = useState<number | null>(null);
   const [serverPlayerFacing, setServerPlayerFacing] = useState<'left' | 'right'>('right');
   const [playerSpawnRevision, setPlayerSpawnRevision] = useState(0);
+  const [missionState, dispatchMission] = useReducer(reduceMapMissionState, EMPTY_MAP_MISSION_STATE);
+  const [npcTalkDialog, setNpcTalkDialog] = useState<NpcTalkDialogState | null>(null);
   const charInitX = Math.round(Math.max(mapMinX, Math.min(mapMaxX, serverPlayerX ?? defaultCharInitX)));
   const surfacesBase = useMemo(
     () => sceneConfig.buildSurfaces(mapScale),
@@ -803,6 +903,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const mapDebugLastUpdateAtRef = useRef(0);
   const [activeMoveDirection, setActiveMoveDirection] = useState<'left' | 'right' | null>(null);
   const [monsterRoster, setMonsterRoster] = useState<MapMonsterRosterEntry[]>([]);
+  const [npcRoster, setNpcRoster] = useState<MapNpcRosterRecord[]>([]);
   const [monsterRuntimeVersion, setMonsterRuntimeVersion] = useState(0);
   const [defeatRecoveryActive, setDefeatRecoveryActive] = useState(false);
   const defeatRecoveryActiveRef = useRef(false);
@@ -927,11 +1028,67 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       setMonsterRoster((current) => applyMapMonsterRuntimePacket(current, request, packet));
     };
 
+    const handleNpcRosterPacket = (packet: MapNpcRosterPacket) => {
+      if (packet.mapId !== mapId) {
+        return;
+      }
+
+      if (packet.mode === 0) {
+        setNpcRoster([]);
+        return;
+      }
+
+      setNpcRoster(packet.npcs);
+    };
+
+    const handleNpcTalkResponse = (response: NpcTalkSocketResponse) => {
+      if (!response.ok || !response.npcId || !response.message) {
+        return;
+      }
+
+      setNpcTalkDialog({ npcId: response.npcId, message: response.message });
+    };
+
+    const handleMissionList = (packet: MissionListPacket) => {
+      dispatchMission({ type: 'list', missions: packet.missions });
+    };
+    const handleMissionDetail = (packet: MissionDetailPacket) => {
+      dispatchMission({ type: 'detail', mission: packet.mission });
+    };
+    const handleMissionTaskNotification = (packet: MissionTaskNotificationPacket) => {
+      dispatchMission({ type: 'taskNotify', task: packet.task, message: packet.message });
+    };
+    const handleMissionNotification = (packet: MissionNotificationPacket) => {
+      dispatchMission({ type: 'notify', mission: packet.mission, message: packet.message });
+    };
+    const handleMissionUpdate = (packet: MissionUpdatePacket) => {
+      dispatchMission({ type: 'update', mission: packet.mission });
+    };
+
     client.on('mapMonsterRoster', handleRosterPacket);
+    client.on('mapNpcRoster', handleNpcRosterPacket);
+    client.on('npcTalkResponse', handleNpcTalkResponse);
+    client.on('missionList', handleMissionList);
+    client.on('missionDetail', handleMissionDetail);
+    client.on('missionTaskNotification', handleMissionTaskNotification);
+    client.on('missionNotification', handleMissionNotification);
+    client.on('missionUpdate', handleMissionUpdate);
     return () => {
       client.off('mapMonsterRoster', handleRosterPacket);
+      client.off('mapNpcRoster', handleNpcRosterPacket);
+      client.off('npcTalkResponse', handleNpcTalkResponse);
+      client.off('missionList', handleMissionList);
+      client.off('missionDetail', handleMissionDetail);
+      client.off('missionTaskNotification', handleMissionTaskNotification);
+      client.off('missionNotification', handleMissionNotification);
+      client.off('missionUpdate', handleMissionUpdate);
     };
   }, [mapId, roomId]);
+
+  const npcRuntimes = useMemo(
+    () => buildNpcRuntimes(npcRoster, mapScale, groundTop),
+    [groundTop, mapScale, npcRoster],
+  );
 
   useEffect(() => {
     const reconciled = reconcileMonsterRuntimes(
@@ -1147,6 +1304,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       onOpenSkills: () => setActiveCharacterDialog('skills'),
       onOpenEquipment: () => setActiveCharacterDialog('equipment'),
       onOpenInventory: () => setActiveCharacterDialog('inventory'),
+      onOpenQuests: () => SocketClient.getInstance().requestMissionList(),
     }),
     [handleLogout, openPvpDialog],
   );
@@ -1155,8 +1313,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const isCharacterDialogActive = activeCharacterDialog !== null;
   const isPvpDialogActive = activePvpDialog !== null;
   const isPvpPromptActive = pvpIncomingPrompt !== null;
-  const showTouchGamepad = !menuVisible && !isEncounterActive && !defeatRecoveryActive && !isCharacterDialogActive && !isPvpDialogActive && !isPvpPromptActive;
-  const allowMapPointerInput = Platform.OS !== 'web' && !defeatRecoveryActive && !isCharacterDialogActive && !isPvpDialogActive && !isPvpPromptActive;
+  const isNpcTalkDialogActive = npcTalkDialog !== null;
+  const showTouchGamepad = !menuVisible && !isEncounterActive && !defeatRecoveryActive && !isCharacterDialogActive && !isPvpDialogActive && !isPvpPromptActive && !isNpcTalkDialogActive;
+  const allowMapPointerInput = Platform.OS !== 'web' && !defeatRecoveryActive && !isCharacterDialogActive && !isPvpDialogActive && !isPvpPromptActive && !isNpcTalkDialogActive;
   const playerSpriteSize = useMemo(
     () => {
       // anchorToBody=true: groundOffset = maxBelowBody * CHAR_SCALE
@@ -1772,12 +1931,15 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           {/* Layer 1: Đất */}
           {renderGround()}
 
-          {/* Layer 2: Quái vật */}
+          {/* Layer 2: Quái vật + NPC map actors */}
           {!isEncounterActive && (
-            <MonsterField
-              runtimes={monsterRuntimes}
-              visuals={monsterVisuals}
-            />
+            <>
+              <MonsterField
+                runtimes={monsterRuntimes}
+                visuals={monsterVisuals}
+              />
+              <NpcField npcs={npcRuntimes} />
+            </>
           )}
 
           {/* Layer 3: Nhân vật */}
@@ -1961,6 +2123,21 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         />
       )}
 
+      {missionState.messages.length > 0 && (
+        <View style={styles.missionToast} pointerEvents="none">
+          <Text style={styles.missionToastText}>{missionState.messages[missionState.messages.length - 1]}</Text>
+        </View>
+      )}
+
+      {npcTalkDialog && (
+        <View style={styles.npcTalkOverlay} pointerEvents="box-none">
+          <CornerFrame style={styles.npcTalkFrame} contentStyle={styles.npcTalkContent}>
+            <Text style={styles.npcTalkTitle}>Huong dan</Text>
+            <Text style={styles.npcTalkMessage}>{npcTalkDialog.message}</Text>
+          </CornerFrame>
+        </View>
+      )}
+
       {/* ─── Unified PopupMenu usage ─── */}
       <PopupMenu
         visible={menuVisible}
@@ -1976,10 +2153,11 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       {/* ─── SoftkeyBar (bottom bar) - using icons like login screen ─── */}
       <SoftkeyBar
         width={SCREEN_W}
-        centerLabel={isEncounterActive ? 'Vào ngay' : undefined}
+        centerLabel={isEncounterActive ? 'Vào ngay' : isNpcTalkDialogActive ? 'Tiep tuc' : npcRoster.length > 0 ? 'Noi chuyen' : undefined}
         onLeftPress={() => {
           if (isPvpDialogActive || isPvpPromptActive) return;
           if (isCharacterDialogActive) return;
+          if (isNpcTalkDialogActive) return;
           if (isEncounterActive) return;
           if (menuVisible) {
             setMenuSelectSignal(prev => prev + 1);
@@ -1987,7 +2165,11 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           }
           setMenuVisible(true);
         }}
-        onRightPress={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive ? () => {
+        onRightPress={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive ? () => {
+          if (isNpcTalkDialogActive) {
+            setNpcTalkDialog(null);
+            return;
+          }
           if (isPvpPromptActive) {
             declinePvpChallenge(pvpIncomingPrompt.ticket);
             return;
@@ -2015,8 +2197,17 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           if (isCharacterDialogActive) {
             return;
           }
+          if (isNpcTalkDialogActive) {
+            SocketClient.getInstance().requestNpcTalk(npcTalkDialog.npcId, true);
+            return;
+          }
           if (isEncounterActive) {
             confirmEncounter();
+            return;
+          }
+          const firstNpc = npcRoster[0];
+          if (firstNpc) {
+            SocketClient.getInstance().requestNpcTalk(firstNpc.npcId, false);
             return;
           }
           if (onBattle) {
@@ -2042,414 +2233,11 @@ export const HoaLuMapScreen: React.FC<Props> = ({
             }
           }
         }}
-        leftIcon={menuVisible ? ASSET_SOFTKEY_OK : isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive ? undefined : ASSET_SOFTKEY_MENU}
-        rightIcon={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive ? ASSET_SOFTKEY_CANCEL : undefined}
+        leftIcon={menuVisible ? ASSET_SOFTKEY_OK : isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive ? undefined : ASSET_SOFTKEY_MENU}
+        rightIcon={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive ? ASSET_SOFTKEY_CANCEL : undefined}
       />
 
     </View>
   );
 };
 
-// ── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
-
-  scroll: { flex: 1 },
-  mapDebugOverlay: {
-    position: 'absolute',
-    left: 8,
-    top: 124,
-    zIndex: 250,
-    maxWidth: Math.min(SCREEN_W - 16, 460),
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: '#f7e26b',
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
-  },
-  mapDebugTitle: {
-    color: '#f7e26b',
-    fontSize: 11,
-    fontWeight: '900',
-    lineHeight: 14,
-  },
-  mapDebugText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '700',
-    lineHeight: 13,
-  },
-  bg: { position: 'absolute', top: 0, left: 0, zIndex: LAYER_BG },
-  pvpOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pvpBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-  },
-  pvpFrame: {
-    width: Math.min(SCREEN_W * 0.94, 448),
-    maxHeight: Math.min(SCREEN_H * 0.58, 380),
-  },
-  pvpContent: {
-    padding: 8,
-    backgroundColor: '#dfe9f7',
-  },
-  pvpIncomingFrame: {
-    width: Math.min(SCREEN_W * 0.86, 340),
-  },
-  pvpIncomingContent: {
-    padding: 12,
-    backgroundColor: '#fff4d8',
-  },
-  pvpIncomingText: {
-    color: '#2f1d12',
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 8,
-  },
-  pvpIncomingMeta: {
-    color: '#7b4c18',
-    fontSize: 12,
-    fontWeight: '800',
-    marginTop: 6,
-  },
-  pvpHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  pvpTitle: {
-    color: '#8a5700',
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  pvpHeaderAction: {
-    color: '#313338',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  pvpActionDisabled: {
-    opacity: 0.45,
-  },
-  pvpArenaBoard: {
-    position: 'relative',
-    marginTop: 2,
-    borderWidth: 1,
-    borderColor: '#96add3',
-    backgroundColor: '#f2f8ff',
-  },
-  pvpList: {
-    maxHeight: 220,
-    width: '100%',
-  },
-  pvpListContent: {
-    gap: 0,
-    paddingBottom: 2,
-  },
-  pvpLegacyRow: {
-    minHeight: 42,
-    borderBottomWidth: 1,
-    borderBottomColor: '#b9c7df',
-    backgroundColor: '#f7fbff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  pvpLegacyRowActive: {
-    backgroundColor: '#fff9df',
-    borderTopWidth: 2,
-    borderTopColor: '#f0b73d',
-    borderBottomColor: '#f0b73d',
-  },
-  pvpLegacyBadge: {
-    width: 28,
-    color: '#2d64b5',
-    fontSize: 10,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  pvpLegacyTextWrap: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: 2,
-  },
-  pvpLegacyName: {
-    color: '#1d2f59',
-    fontSize: 16,
-    fontWeight: '700',
-    lineHeight: 18,
-  },
-  pvpLegacyMeta: {
-    color: '#2b5ec4',
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 15,
-    marginTop: 1,
-  },
-  pvpLegacyStake: {
-    width: 34,
-    color: '#486ea8',
-    fontSize: 11,
-    fontWeight: '700',
-    textAlign: 'right',
-  },
-  pvpLegacyPreviewCard: {
-    position: 'absolute',
-    right: 12,
-    top: 74,
-    width: Math.min(SCREEN_W * 0.54, 212),
-    minHeight: 74,
-    borderWidth: 2,
-    borderColor: '#5ca3ee',
-    backgroundColor: '#f6fbff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  pvpArenaEmptyPanel: {
-    minHeight: 72,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f6fbff',
-    borderTopWidth: 1,
-    borderTopColor: '#b9c7df',
-    paddingHorizontal: 12,
-  },
-  pvpArenaEmptyTitle: {
-    color: '#1f2f4d',
-    fontSize: 14,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  pvpArenaEmptyMeta: {
-    color: '#496ca5',
-    fontSize: 12,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  pvpLegacyPreviewAvatar: {
-    width: 62,
-    height: 70,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginRight: 8,
-  },
-  pvpLegacyPreviewInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  pvpLegacyPreviewName: {
-    color: '#1f2f4d',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  pvpLegacyPreviewMeta: {
-    color: '#2c3a52',
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  pvpOpponentRow: {
-    minHeight: 70,
-    borderWidth: 1,
-    borderColor: '#6f5535',
-    backgroundColor: '#f2e0b8',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  pvpOpponentRowActive: {
-    borderColor: '#f1c15a',
-    backgroundColor: '#fff0c6',
-  },
-  pvpOpponentAvatar: {
-    width: 42,
-    height: 58,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginRight: 8,
-  },
-  pvpPreviewRow: {
-    minHeight: 74,
-    borderWidth: 1,
-    borderColor: '#6f5535',
-    backgroundColor: '#f2e0b8',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    marginTop: 8,
-  },
-  pvpPreviewAvatar: {
-    width: 54,
-    height: 68,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginRight: 10,
-  },
-  pvpOpponentInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  pvpOpponentName: {
-    color: '#2f1d12',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  pvpOpponentMeta: {
-    color: '#5d4327',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  pvpMiniButton: {
-    minWidth: 48,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#7c3f21',
-    borderWidth: 1,
-    borderColor: '#d8a95d',
-  },
-  pvpMiniButtonText: {
-    color: '#fff2d0',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  pvpChallengeForm: {
-    gap: 6,
-  },
-  pvpLabel: {
-    color: '#f8e8be',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  pvpInput: {
-    minHeight: 34,
-    borderWidth: 1,
-    borderColor: '#7e5d37',
-    backgroundColor: '#f8e8be',
-    color: '#2f1d12',
-    paddingHorizontal: 10,
-    fontSize: 14,
-  },
-  pvpStakeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  pvpStakeInput: {
-    flex: 1,
-  },
-  pvpStakeUnit: {
-    width: 86,
-    color: '#f8e8be',
-    fontSize: 12,
-    fontWeight: '800',
-    textAlign: 'right',
-  },
-  pvpCheckGrid: {
-    marginTop: 4,
-    gap: 6,
-  },
-  pvpCheckRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 24,
-  },
-  pvpCheckBox: {
-    width: 18,
-    height: 18,
-    borderWidth: 1,
-    borderColor: '#d8a95d',
-    backgroundColor: '#1d1712',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  pvpCheckBoxActive: {
-    backgroundColor: '#a8642b',
-  },
-  pvpCheckMark: {
-    color: '#fff4c9',
-    fontSize: 12,
-    fontWeight: '900',
-    lineHeight: 14,
-  },
-  pvpCheckLabel: {
-    color: '#f8e8be',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  pvpStatusRow: {
-    marginTop: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  pvpStatusText: {
-    color: '#f8e8be',
-    fontSize: 12,
-  },
-  pvpErrorText: {
-    color: '#ff9f9f',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  pvpEmptyText: {
-    color: '#33486c',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  pvpFooter: {
-    marginTop: 8,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  pvpButton: {
-    minWidth: 82,
-    minHeight: 30,
-    borderWidth: 1,
-    borderColor: '#c88b2f',
-    backgroundColor: '#fff1cd',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  pvpButtonPrimary: {
-    backgroundColor: '#b26a2f',
-  },
-  pvpButtonDisabled: {
-    opacity: 0.55,
-  },
-  pvpButtonText: {
-    color: '#5a3a0f',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  pvpButtonPrimaryText: {
-    color: '#fff4c9',
-    fontSize: 14,
-    fontWeight: '900',
-  },
-});

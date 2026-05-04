@@ -37,21 +37,21 @@ const SPECS: Record<MonsterType, SpriteSpec> = {
     frameBottomInsets: [14, 0, 15, 16, 13, 12],
     visualFootSink: 2,
     groundOffset: 12,  // fireball có khoảng trống đáy ~12px
-    source: require('../../assets/npc/02_shared_actor_sheets/type_0_monster/monster.png'),
+    source: require('../../assets/map/07_monsters/fire.png'),
   },
   ice: {
     totalW: 216, frameW: 36, frameH: 52,
     frameBottomInsets: [13, 16, 20, 0, 13, 13],
     visualFootSink: 3,
     groundOffset: 10,
-    source: require('../../assets/npc/02_shared_actor_sheets/type_2_ice/ice.png'),
+    source: require('../../assets/map/07_monsters/ice.png'),
   },
   zap: {
     totalW: 222, frameW: 37, frameH: 37,
     frameBottomInsets: [5, 0, 1, 5, 0, 1],
     visualFootSink: 2,
     groundOffset: 6,
-    source: require('../../assets/npc/02_shared_actor_sheets/type_1_zap/zap.png'),
+    source: require('../../assets/map/07_monsters/zap.png'),
   },
 };
 

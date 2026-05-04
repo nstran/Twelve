@@ -4,6 +4,63 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-04
 
+### [NPC/MISSION] Numbered NPC asset layout correction
+
+- Di chuyển các sprite NPC numbered `110000.png..110160.png` ra trực tiếp dưới `client/assets/npc/` theo xác nhận của user.
+- Cập nhật `client/assets/npc/README.md`, `client/assets/npc/index.csv`, và `NPC_SYSTEM_RECONSTRUCTION.md` để ghi rõ:
+  - `110xxx` là bộ NPC sprite thật;
+  - các subfolder còn lại là UI chrome, shared actor sheets, blacksmith visual evidence, hoặc map prop, không phải bộ numbered NPC chính.
+- Boundary:
+  - Chưa gán map/name/mission role cho từng `110xxx` vì vẫn cần server catalog/packet/video evidence.
+
+### [NPC/MISSION] Mission parser foundation
+
+- Thêm nền parser/state cho Mission theo Java client evidence:
+  - command `31` mission list, `33` mission detail, `34` task notification, `35` mission notification, `38` mission update;
+  - outbound request `31`, `33`, `32`, `41` dùng tag `77` đúng evidence `ks`;
+  - thêm `MapMission.types.ts` và `MapMission.reducer.ts` để giữ Mission state/queue riêng khỏi NPC talk dialog.
+- Boundary:
+  - Chưa dựng UI mission đầy đủ kiểu `hr.java`.
+  - Chưa suy quest giver, reward flow, mission ownership, accept/cancel server policy hoặc completion policy.
+  - Không thay đổi Monster flow.
+
+### [NPC/MISSION] NPC talk request v1
+
+- Implement bước NPC talk nhỏ, tách khỏi Mission ownership:
+  - client gửi `NPC_TALK_REQUEST = 16` với NPC id tag `9` và continue flag tag `40`, bám evidence `ks.a().a(String, boolean)`;
+  - server thêm `NpcTalkHandler` validate `tutorial_npc` và trả response tạm trên command `46`;
+  - RN map hiển thị dialog nhỏ từ response và center softkey chuyển giữa `Noi chuyen` / `Tiep tuc`.
+- Boundary:
+  - Command `16` là Java client evidence cho request; command `46` và nội dung lời thoại là remake policy tạm.
+  - Chưa gán quest giver, mission ownership, reward flow, shop role hoặc portal role.
+  - Không thay đổi Monster roster/encounter flow.
+
+### [NPC/MISSION] Server NPC roster v1
+
+- Implement server remake policy đầu tiên cho NPC roster theo Java client command shape `43`:
+  - thêm contract `MapNpcRosterEntry`, `NpcRosterMode`, `NpcSharedSheetFamily`;
+  - thêm `IMapNpcRosterService` và `StaticMapNpcRosterService` seed NPC `tutorial_npc` cho map `Hoa Lu`, room `1`;
+  - thêm `NpcRosterPacketFactory` serialize packet shape Java: tag `20`, tag `40`, repeated tag `9`, nested tags `9`, `26`, `27`, `15`, `129`, `106`, `107`;
+  - khôi phục/preserve `MapHandler` gửi Monster roster hiện tại trên command `43`;
+  - thêm command tạm `45` cho NPC roster trên RN để không phá Monster roster/map encounter đang dùng `43`.
+- Boundary:
+  - Đây là remake policy dựa trên Java client packet shape, không phải Java server evidence.
+  - Chưa implement NPC interaction/dialog/mission ownership.
+  - Java evidence vẫn là NPC raw command `43`; command `45` chỉ là remake transport tạm cho RN trong lúc Monster roster hiện tại còn giữ `43`.
+  - Client đã parse/render NPC roster riêng, không đưa NPC vào Monster collision/encounter.
+
+### [NPC/MISSION] Java evidence audit expansion
+
+- Cập nhật `NPC_SYSTEM_RECONSTRUCTION.md` chỉ trong phạm vi NPC & Mission:
+  - bổ sung evidence cho mission records `ns`, mission tasks `nt`, queue `nu`;
+  - bổ sung command/packet evidence cho mission commands `31`, `33`, `34`, `35`, `38` và NPC actor roster command `43`;
+  - bổ sung asset inventory từ JAR cho `blacksmith`, `effblacksmith`, `monster`, `zap`, `ice`, `magicgate`, `gate`, `questnotifyicon`, `dialog/corner`, và candidate `offline/110xxx`;
+  - bổ sung deep-audit evidence cho mission screen `hr`, completed mission popup `hb`, outbound mission request methods trong `ks`, focused NPC `ki` interaction path trong `om`, NPC interaction preview trong `ha`, và first-time mission tutorial hint trong `om`.
+- Boundary:
+  - Không implement code.
+  - Không đưa battle/equipment/skill/payment/PvP vào tài liệu này ngoài các cross-reference trực tiếp phục vụ NPC/Mission.
+  - Không tự gán quest giver/shop/portal role khi chưa có Java packet/catalog evidence.
+
 ### [EQUIPMENT] Inventory detail panel spacing cleanup
 
 - Cập nhật `client/src/screens/map/core/MapCharacterDialogs.tsx`:

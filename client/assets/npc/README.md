@@ -1,38 +1,34 @@
 # NPC System Asset Set
 
-This folder is organized around the legacy Java NPC / actor runtime.
+This folder keeps the actual numbered NPC sprites directly at `client/assets/npc`.
 
 The key rule is:
 
-- separate `named NPCs with dedicated sprites` from `shared actor spritesheets`
-- keep `interactive map objects` (gates, portals) separate from talking NPCs
-- do NOT organize NPCs by `/offline/<id>` numeric ranges — the legacy client does not store NPC sprites there
-- NPC identity, dialog, position and sprite-type come from the server via TLV tags on top of a very small pool of shared spritesheets
+- `110000.png` through `110160.png` are the real numbered NPC sprites from `/offline/<id>`
+- keep UI chrome, shared actor sheets, and interactive map objects in subfolders because they are not the numbered talking NPC sprites
+- NPC identity, dialog, position and sprite id still come from server/catalog evidence; do not assign map roles without proof
 
 Folder layout:
 
+- `110000.png` .. `110160.png`
+  - numbered NPC sprite IDs in the `110000..110160` band, `X0` step (17 files).
+  - These came from `/offline/<id>.png`. Role: NPC (not monster, not equipment).
 - `00_ui_confirmed`
   - dialog chrome loaded directly from `/dialog/*` by the legacy client
 - `01_named_npc_confirmed`
-  - NPCs that have a dedicated sprite sheet and a dedicated Java handler class
+  - dedicated blacksmith visual/effect evidence, not part of the numbered `110xxx` NPC set
 - `02_shared_actor_sheets`
-  - shared spritesheets used by the generic `jo` actor type indexed by `jo.c >> 1`
+  - shared actor spritesheets used by the generic `jo` actor type indexed by `jo.c >> 1`, not numbered NPC sprites
 - `03_interactive_map_objects`
-  - animated map props that participate in NPC-like interaction (talk / enter) but are not talking NPCs
-- `04_numbered_npc_candidate_110xxx`
-  - numbered NPC sprite IDs in the `110000..110160` band, `X0` step (17 files).
-    These came from `/offline/<id>.png`. Role: NPC (not monster, not equipment).
-    Kept as candidate until the server catalog confirms per-ID identity.
+  - animated map props that participate in NPC-like interaction (talk / enter) but are not talking NPC sprites
 
 Detailed technical reference:
 
 - [NPC_SYSTEM_RECONSTRUCTION.md](/d:/Twelve/NPC_SYSTEM_RECONSTRUCTION.md)
 
-## Why this structure is different from character / skill
+## Runtime notes
 
-The legacy Java client does NOT build NPCs by browsing `/offline/<id>.mg` the way it does for character parts (`79xxx` - `99xxx`) or skills (`1xxx`, `2xxx`, `4xxx`).
-
-Instead, the runtime NPC pipeline is:
+The generic `jo` actor pipeline proven in Java is still:
 
 1. Server sends an NPC list via TLV packet, populating `jo` records
    (tags `9`, `26`, `27`, `15`, `129`, `106`, `107`).
@@ -44,9 +40,7 @@ Instead, the runtime NPC pipeline is:
 4. A few NPCs (currently only the blacksmith) are hard-coded with a dedicated
    Java class and a dedicated sprite at the jar root.
 
-Because of this, the stable organizational unit for NPCs is the
-**role of the asset inside the runtime** (dialog UI / named NPC / shared sheet / map prop),
-not a numeric family.
+The numbered `110xxx` sprites are real NPC sprite assets, but their exact map/name/mission roles still require server catalog, packet dump, or other evidence.
 
 ## Confidence levels
 
@@ -66,7 +60,7 @@ complete as the offline client allows.
 
 When coding the new NPC flow:
 
-- start from `00_ui_confirmed` and render an NPC dialog frame
-- wire `01_named_npc_confirmed/blacksmith` first — it has the richest handler (`le.java`, `hc.java`)
-- then implement the generic `jo` actor using `02_shared_actor_sheets`
+- use root `110xxx.png` files for numbered NPC sprite rendering once the server/catalog sends a matching sprite id
+- keep `00_ui_confirmed` for dialog chrome
+- keep `02_shared_actor_sheets` for Java generic `jo.c >> 1` actor rendering
 - only after NPC talk / enter flow is parity-correct should `03_interactive_map_objects` be promoted into full gameplay use

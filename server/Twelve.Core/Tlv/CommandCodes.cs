@@ -20,7 +20,10 @@ namespace Twelve.Core.Tlv
         // ── Game Commands ─────────────────────────────────────────────
         EnterGame               = 10,
         PlayerInfo              = 11,
-        MapMonsterRoster        = 43,   // Java-like lightweight monster roster packet
+        NpcTalkRequest          = 16,   // Java evidence: ks.a().a(String, boolean) builds kw(16).
+        MapMonsterRoster        = 43,   // Existing RN monster roster packet; keep until roster command migration is decided.
+        MapNpcRosterRemake      = 45,   // Temporary RN-safe NPC roster command; Java evidence remains raw command 43.
+        NpcTalkResponseRemake   = 46,   // RN-safe ack/dialog envelope for the reconstructed NPC talk request.
         MonsterBootstrapRequest = 96,
         MonsterBootstrapResponse= 97,
         MapLoad                 = 20,

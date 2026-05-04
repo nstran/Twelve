@@ -4,3 +4,5 @@ export * from './MapMonsterRoster.resolver';
 export * from './MapMonsterRoster.types';
 export * from './MapGameMenu';
 export * from './MapCharacterDialogs';
+export * from './MapMission.types';
+export * from './MapMission.reducer';

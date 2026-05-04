@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Twelve.Application.Monsters;
+using Twelve.Application.Npcs;
 using Twelve.Core;
 using Twelve.Core.Interfaces;
 using Twelve.Core.Maps;
+using Twelve.Core.Npcs;
 using Twelve.Core.Tlv;
 
 namespace Twelve.Application.Handlers
@@ -21,17 +23,20 @@ namespace Twelve.Application.Handlers
         private readonly IMapMonsterRosterService _mapMonsterRosterService;
         private readonly IMonsterSpawnCatalog _monsterSpawnCatalog;
         private readonly IMonsterAssetCatalog _monsterAssetCatalog;
+        private readonly IMapNpcRosterService _mapNpcRosterService;
 
         public MapHandler(
             IPlayerAggregateRepository playerAggregateRepository,
             IMapMonsterRosterService mapMonsterRosterService,
             IMonsterSpawnCatalog monsterSpawnCatalog,
-            IMonsterAssetCatalog monsterAssetCatalog)
+            IMonsterAssetCatalog monsterAssetCatalog,
+            IMapNpcRosterService mapNpcRosterService)
         {
             _playerAggregateRepository = playerAggregateRepository;
             _mapMonsterRosterService = mapMonsterRosterService;
             _monsterSpawnCatalog = monsterSpawnCatalog;
             _monsterAssetCatalog = monsterAssetCatalog;
+            _mapNpcRosterService = mapNpcRosterService;
         }
 
         public async Task HandleAsync(GameSession session, PacketRequest request)
@@ -55,6 +60,9 @@ namespace Twelve.Application.Handlers
 
                 var monsterRosterPayload = BuildMonsterRosterPayload(room.MapId, room.RoomId, mode: 3);
                 await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.MapMonsterRoster, monsterRosterPayload));
+
+                var npcRosterPayload = BuildNpcRosterPayload(room.MapId, room.RoomId, NpcRosterMode.Spawn);
+                await session.SendPacketAsync(TlvCodec.BuildPacket(CommandCode.MapNpcRosterRemake, npcRosterPayload));
             }
             else if (request.Command == 29) // Map Join
             {
@@ -116,6 +124,12 @@ namespace Twelve.Application.Handlers
                 mode,
                 activeRoster,
                 spawnTemplates);
+        }
+
+        private byte[] BuildNpcRosterPayload(string mapId, int roomId, NpcRosterMode mode)
+        {
+            var roster = _mapNpcRosterService.GetActiveRoster(mapId, roomId);
+            return NpcRosterPacketFactory.BuildRosterPacket(mapId, mode, roster);
         }
 
         private static int NormalizeDirection(int value) =>

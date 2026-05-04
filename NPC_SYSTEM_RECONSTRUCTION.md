@@ -14,9 +14,11 @@ If you want the deep technical reference, use:
 | [ki.java](/d:/Twelve/reference/redecoded/decompiled/ki.java) | `ki` | Generic actor renderer — 1 row × 6 frame walk strip |
 | [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java) | `om` | Map controller — shared-sheet dispatch via `jo.c >> 1` |
 | [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java) | `ky` | Network decoder — parses NPC spawn list from TLV packet |
-| [le.java](/d:/Twelve/reference/redecoded/decompiled/le.java) | `le` | Blacksmith NPC (special: dedicated sprite + handler) |
-| [hc.java](/d:/Twelve/reference/redecoded/decompiled/hc.java) | `hc` | Upgrade UI — "Nâng cấp" button driven by blacksmith |
+| [le.java](/d:/Twelve/reference/redecoded/decompiled/le.java) | `le` | Blacksmith NPC visual actor (dedicated sprite/effect only in this document) |
 | [ln.java](/d:/Twelve/reference/redecoded/decompiled/ln.java) | `ln` | Magic-gate prop — 4-frame teleport animation |
+
+| [hr.java](/d:/Twelve/reference/redecoded/decompiled/hr.java) | `hr` | Mission list/detail/accept/cancel UI component `241204` |
+| [hb.java](/d:/Twelve/reference/redecoded/decompiled/hb.java) | `hb` | Completed mission reward popup |
 
 ## Quick Position
 
@@ -41,7 +43,7 @@ These are safe to build around first:
 - `/blacksmith` and `/effblacksmith`
   - [le.java](/d:/Twelve/reference/redecoded/decompiled/le.java:13)
   - [le.java](/d:/Twelve/reference/redecoded/decompiled/le.java:14)
-  - Upgrade UI driver: [hc.java](/d:/Twelve/reference/redecoded/decompiled/hc.java:37) — label "Nâng cấp"
+  - Scope note: this document records only the NPC visual actor/effect evidence.
 - `/monster`, `/zap`, `/ice` shared actor sheets (NPC surfaces, root-level)
   - [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java:84)
   - [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java:85)
@@ -142,7 +144,8 @@ Each sheet is treated as `1 row × 6 frame` walk strip by `ki.java`.
 ## Menu Commands on Map
 
 From `om.java` (around line 150-160) — these are the verbs the player can
-aim at an NPC or prop:
+aim at an NPC or prop. Later handlers prove the same ids route to map interaction
+logic, including talk/action state transitions in [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java:853):
 
 | Label          | Command ID |
 |----------------|------------|
@@ -153,6 +156,13 @@ aim at an NPC or prop:
 
 "Nói Chuyện" (107) is the canonical talk action.
 
+NPC interaction evidence discovered in the deep audit:
+
+- When player overlaps/selects a `ki` actor, [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java:660) scans `this.I` for `ki` actors and stores the focused index in `this.U`.
+- Actor facing is flipped against the player before interaction using `ki.b(2)` / `ki.b(3)` in [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java:670).
+- Interaction preview/dialog can clone an NPC actor with `ki.b()` before opening [ha.java](/d:/Twelve/reference/redecoded/decompiled/ha.java:82) / [ha.java](/d:/Twelve/reference/redecoded/decompiled/ha.java:85).
+- Starting interaction with the focused `ki` sends `ks.a().a(ki2.f.a, bl2)` from [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java:814). This proves `jo.a` is the outbound actor id for that interaction.
+
 ## Candidate Classes
 
 These are valid interactive map actors and should stay available, but do not
@@ -161,68 +171,315 @@ yet deserve a "full NPC" label:
 - `ln.java` — `/magicgate` — 4-frame teleport gate
 - `gate.png` — generic gate asset
 
-Do not rename these to final labels like `quest_giver`, `warp_portal`, or
-`shop_entry` until the server packet catalog confirms behavior.
+Do not rename these to final labels like `quest_giver` or `warp_portal` until
+the server NPC/Mission packet catalog confirms behavior.
 
-## Numbered NPC Candidate Band — `110xxx`
+## Numbered NPC Band — `110xxx`
 
-In addition to the 3 shared actor sheets and the blacksmith, the jar contains
-17 numbered NPC sprites in the `110000..110160` band on an `X0` stride. They
-are relocated from `monster/02_candidate_unknown_ranges/` after a
-cross-check confirmed the IDs are NPC sprites, not monster frames.
+The actual numbered NPC sprites are the 17 files in the `110000..110160` band
+on an `X0` stride. Per user correction, these are kept directly at
+`client/assets/npc/` rather than inside a candidate subfolder.
 
-- Bucket: `04_numbered_npc_candidate_110xxx/` — 17 files.
+- Bucket: `client/assets/npc/110000.png` through `client/assets/npc/110160.png` — 17 files.
 - Pattern: `110000, 110010, 110020, ..., 110160` (step 10).
-- Confidence: `candidate` — no literal `f.d("/110000")` string in the
-  decompiled source. Likely loaded via `pa.a(id, false)` with the id passed
-  from a server-sent TLV tag.
-- Hypothesis: each ID is a **single-frame standing sprite** for a numbered
-  NPC slot (unlike monsters which come as multi-frame slots under the
-  `AAAABC` schema).
+- Confidence: `confirmed_npc_sprite` — user confirmed these are NPC sprites, not monster/equipment.
+- Boundary: exact map placement, name, mission role, shop role, or portal role still requires server catalog / packet / video evidence.
 
-Do NOT assign names / roles to these IDs until the server NPC catalog is
-reconstructed. The `X0` stride suggests a 1-per-family layout (no slot
-sub-indexing) which would match the "static NPC portrait" use case.
+Do NOT assign names / roles to these IDs until the server NPC catalog or another
+evidence source proves the mapping. The `X0` stride suggests a 1-per-family
+layout (no sub-indexing) which matches the static numbered NPC sprite use case.
 
 ## Folder Reading Order
 
 Use this order when working:
 
-1. [00_ui_confirmed](/d:/Twelve/client/assets/npc/00_ui_confirmed)
-2. [01_named_npc_confirmed](/d:/Twelve/client/assets/npc/01_named_npc_confirmed)
-3. [02_shared_actor_sheets](/d:/Twelve/client/assets/npc/02_shared_actor_sheets)
-4. [03_interactive_map_objects](/d:/Twelve/client/assets/npc/03_interactive_map_objects)
-5. [04_numbered_npc_candidate_110xxx](/d:/Twelve/client/assets/npc/04_numbered_npc_candidate_110xxx)
+1. [110000.png..110160.png](/d:/Twelve/client/assets/npc) — numbered NPC sprites.
+2. [00_ui_confirmed](/d:/Twelve/client/assets/npc/00_ui_confirmed)
+3. [01_named_npc_confirmed](/d:/Twelve/client/assets/npc/01_named_npc_confirmed)
+4. [02_shared_actor_sheets](/d:/Twelve/client/assets/npc/02_shared_actor_sheets)
+5. [03_interactive_map_objects](/d:/Twelve/client/assets/npc/03_interactive_map_objects)
 
 ## Port Order
 
-1. Rebuild NPC dialog chrome from `dialog/corner.png`.
-2. Port the blacksmith NPC first — it is the only NPC with a dedicated sprite + dedicated handler.
+1. Rebuild NPC / Mission dialog chrome from `dialog/corner.png`.
+2. Port the blacksmith visual actor first only as NPC sprite/effect evidence.
 3. Port the generic `jo` actor using `monster.png`, `zap.png`, `ice.png` as the three shared spritesheets, indexed by `jo.c >> 1`.
-4. Verify the four command verbs (Vào, Nói Chuyện, Tiếp tục, Nhặt) route through the TLV command dispatcher.
-5. Add `magicgate` and `gate` once talking NPCs are stable.
+4. Verify the four map actor verbs (Vào, Nói Chuyện, Tiếp tục, Nhặt) route through the NPC/Mission TLV dispatcher.
+5. Add `magicgate` and `gate` only as NPC/Mission-adjacent map props once talking NPCs are stable.
 
-## Reference Skills
+## Scope Guard
 
-When implementing the NPC pipeline, consult these project skills
-(in `.agent/skills/`):
+This document is only for NPC & Mission reconstruction.
 
-| Skill | Use When |
-|-------|----------|
-| `architecture/`          | Domain entity `Npc` in `Twelve.Core` |
-| `binary-protocol/`       | TLV tags 9 / 26 / 27 / 15 / 129 / 106 / 107 for spawn list |
-| `database-design/`       | Postgres `NpcCatalog` table (server-authored) |
-| `game-mechanics/`        | Dialog flow, "Nói Chuyện" command 107 routing |
-| `frontend-design/`       | Skia dialog chrome + tile actor overlay |
-| `clean-code/`            | Naming `NpcRecord`, `SharedActorSheet` |
+Only keep evidence that belongs directly to NPC/Mission flow.
+
+Allowed content is limited to:
+
+- NPC visual actor evidence;
+- NPC/Mission TLV tags and command routing;
+- Mission list/detail/notification UI;
+- map props that Java places in the same actor/interaction layer (`gate`, `magicgate`).
+
+## Mission / Quest Evidence
+
+This section is limited to NPC + Mission reconstruction.
+
+### Mission data classes
+
+Java evidence:
+
+- `ns.java` is the mission / quest record:
+  - `a`: quest id.
+  - `b`: title / display text.
+  - `c`: extra text / description slot.
+  - `d`: long numeric value, likely time / expiry / progress anchor, not proven.
+  - `e`: boolean status flag populated from TLV tag `100` in some packets.
+  - `f`: task array (`nt[]`).
+  - `g`: string array, used by one quest notification packet.
+  - Evidence: [ns.java](/d:/Twelve/reference/redecoded/decompiled/ns.java:4)
+- `nt.java` is a mission task / objective record:
+  - constructor receives raw int task value plus strings;
+  - field `b` stores visible task text;
+  - field `a` stores quest id / owner id in observed constructors.
+  - Evidence: [nt.java](/d:/Twelve/reference/redecoded/decompiled/nt.java:4)
+- `nu.java` is the mission notification queue with three independent queues:
+  - `a(ns)`: add completed/new quest notification.
+  - `a(nt)`: add task notification.
+  - `b(ns)`: add quest update notification.
+  - `a()`, `b()`, `c()` pop one pending quest/task/update respectively.
+  - Evidence: [nu.java](/d:/Twelve/reference/redecoded/decompiled/nu.java:4)
+
+Remake policy:
+
+- Use names like `MissionRecord`, `MissionTask`, and `MissionNotifierQueue` in new code.
+- Keep raw ids/tags exactly as Java evidence. Do not infer mission category,
+  reward type, NPC owner, or completion condition from decompiled field names
+  alone.
+
+### Mission packet decoding
+
+Java evidence from `ky.java`:
+
+| Java handler | Triggered by | Tags / fields | Meaning proven |
+|--------------|--------------|---------------|----------------|
+| `g(ku)` | command `31` | repeated tag `77`, nested tag `26`, tag `100` | mission list summary into `ns[]` |
+| `n(ku)` | command `33` | tag `77`, `26`, `79`, `132`, `100`, repeated task tag `80` with text tag `81` | single mission detail with task list |
+| `o(ku)` | command `38` | tag `77`, repeated task tag `80` with text tag `81` | mission update queued via `nu.b(ns)` |
+| inline case `34` | command `34` | tag `80`, `81`, `77`, `149` | task notification queued via `nu.a(nt)` and message shown |
+| `p(ku)` | command `35` | tag `77`, `26`, repeated tag `1`, tag `149` | mission notification queued via `nu.a(ns)` and message shown |
+
+Evidence lines:
+
+- Command dispatch: [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:432)
+- Task notification case `34`: [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:448)
+- Mission list parser `g(ku)`: [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:1622)
+- Mission detail parser `n(ku)`: [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:1970)
+- Mission update parser `o(ku)`: [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:1997)
+- Mission notification parser `p(ku)`: [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:2020)
+
+Important boundaries:
+
+- Tags `77`, `80`, `81`, `79`, `100`, `132`, `149`, `26`, and `1` are proven
+  for Mission packet parsing in the client.
+- The exact server command names are not present in Java source. Only command
+  numbers and handler behavior are proven.
+- Reward structure is not proven by these snippets. Do not add reward fields to
+  Mission DTOs until more Java evidence is found.
+
+### Mission UI routing
+
+Java evidence:
+
+- `kq.java` exposes mission callbacks `a(ns[])`, `a(ns, boolean)`, `A()`, and
+  `B()` in the main network/UI bridge interface.
+  - Evidence: [kq.java](/d:/Twelve/reference/redecoded/decompiled/kq.java:35)
+- `com/mg/sq/a.java` forwards `a(ns[])` to `oa.a(ns[])`, calls `v()`, and
+  forwards `A()` / `B()` to `oa.g()` / `oa.t()`.
+  - Evidence: [com/mg/sq/a.java](/d:/Twelve/reference/redecoded/decompiled/com/mg/sq/a.java:733)
+  - Evidence: [com/mg/sq/a.java](/d:/Twelve/reference/redecoded/decompiled/com/mg/sq/a.java:739)
+  - Evidence: [com/mg/sq/a.java](/d:/Twelve/reference/redecoded/decompiled/com/mg/sq/a.java:746)
+- `oa.a(ns[])` routes mission lists into UI component id `241204` when present.
+  - Evidence: [oa.java](/d:/Twelve/reference/redecoded/decompiled/oa.java:322)
+- `oa.a(ns, boolean)` routes one mission into the same UI component id `241204`
+  and sets mode `2` when boolean is true, otherwise mode `1`.
+  - Evidence: [oa.java](/d:/Twelve/reference/redecoded/decompiled/oa.java:345)
+- `oa.u()` periodically checks `nu` queues and opens a completed quest dialog
+  (`hb`) with a `Đóng` button when `nu.a()` returns a quest.
+  - Evidence: [oa.java](/d:/Twelve/reference/redecoded/decompiled/oa.java:487)
+
+- `hr.java` is the mission screen itself and registers component id `241204`.
+  - Evidence: [hr.java](/d:/Twelve/reference/redecoded/decompiled/hr.java:35)
+- Mission list mode (`r = 0`) renders title `Nhiệm Vụ`, empty text `Chưa có nhiệm vụ mới.`, and one row per `ns.b`.
+  - Evidence: [hr.java](/d:/Twelve/reference/redecoded/decompiled/hr.java:75)
+  - Evidence: [hr.java](/d:/Twelve/reference/redecoded/decompiled/hr.java:117)
+- Mission detail/update modes (`r = 1` / `r = 2`) render `ns.b`, description `ns.c`, task texts `nt.b`, and optional price `ns.d` as `KEN`.
+  - Evidence: [hr.java](/d:/Twelve/reference/redecoded/decompiled/hr.java:136)
+  - Evidence: [hr.java](/d:/Twelve/reference/redecoded/decompiled/hr.java:159)
+- `hr.java` menu actions prove mission verbs and outbound calls:
+  - `Chi Tiết` / command `1113` calls `ks.a().o(this.k[this.p].a)`.
+  - `Nhận` / command `1112` calls `ks.a().m(this.q.a)` after optional `KEN` confirm.
+  - `Hủy nhiệm vụ` / command `1115` confirms then calls `ks.a().n(this.q.a)`.
+  - `Danh Sách Nhiệm Vụ` / command `1116` calls `ks.a().o()` if list is not loaded.
+  - Evidence: [hr.java](/d:/Twelve/reference/redecoded/decompiled/hr.java:183)
+  - Evidence: [hr.java](/d:/Twelve/reference/redecoded/decompiled/hr.java:224)
+  - Evidence: [hr.java](/d:/Twelve/reference/redecoded/decompiled/hr.java:235)
+  - Evidence: [hr.java](/d:/Twelve/reference/redecoded/decompiled/hr.java:293)
+  - Evidence: [hr.java](/d:/Twelve/reference/redecoded/decompiled/hr.java:334)
+- `hb.java` is the completed mission popup. It renders `Đã hoàn thành nhiệm vụ: ` + `ns.b`, reward heading `Bạn nhận được:`, and reward lines from `ns.g`.
+  - Evidence: [hb.java](/d:/Twelve/reference/redecoded/decompiled/hb.java:23)
+  - Evidence: [hb.java](/d:/Twelve/reference/redecoded/decompiled/hb.java:41)
+- `om.java` contains a first-time tutorial hint pointing the user to `Menu > Nhiệm vụ` / `Nhiệm Vụ`.
+  - Evidence: [om.java](/d:/Twelve/reference/redecoded/decompiled/om.java:1236)
+
+Remake policy:
+
+- New client should keep a mission notification queue separate from normal NPC
+  dialog state.
+- Completed mission popup is Java evidence; exact visual skin can be rebuilt
+  from existing dialog/chrome assets.
+- Mission list/detail UI should not be mixed with generic NPC talk until server
+  proves a mission belongs to a specific NPC.
+
+### Mission UI assets
+
+Java evidence:
+
+- `fc.java` loads `/questnotifyicon` and corner assets `/corner/4`, `/corner/5`.
+  - Evidence: [fc.java](/d:/Twelve/reference/redecoded/decompiled/fc.java:38)
+  - Evidence: [fc.java](/d:/Twelve/reference/redecoded/decompiled/fc.java:41)
+- JAR contains `questnotifyicon.mg`.
+  - Evidence: [jar-contents.txt](/d:/Twelve/reference/redecoded/jar-contents.txt:2226)
+- JAR contains `dialog/corner.mg`, used as dialog chrome source in `pc.java`.
+  - Evidence: [jar-contents.txt](/d:/Twelve/reference/redecoded/jar-contents.txt:138)
+  - Evidence: [pc.java](/d:/Twelve/reference/redecoded/decompiled/pc.java:17)
+
+## NPC / Mission Command Map
+
+Java evidence:
+
+| Command | Evidence | Client behavior |
+|---------|----------|-----------------|
+| `31` | [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:428) | decode mission list via `g(ku)` |
+| `32` | [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:432) | bridge calls `kq.A()`; request uses tag `77` |
+| `33` | [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:440) | decode mission detail via `n(ku)`; request uses tag `77` |
+| `34` | [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:448) | task notification + message tag `149` |
+| `35` | [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:454) | mission notification via `p(ku)` |
+| `38` | [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:444) | mission update via `o(ku)` |
+| `41` | [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:436) | bridge calls `kq.B()`; request uses tag `77` |
+| `43` | [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:242) | decode NPC actor roster via `f(ku)` |
+
+Outbound request evidence:
+
+- Command `31` is sent by `ks.o()` with no mission id; UI uses it to request the mission list.
+  - Evidence: [ks.java](/d:/Twelve/reference/redecoded/decompiled/ks.java:1377)
+- Command `32` is sent by `ks.m(String)` with `kw2.K = questId`; UI uses it for `Nhận`.
+  - Evidence: [ks.java](/d:/Twelve/reference/redecoded/decompiled/ks.java:1383)
+- Command `41` is sent by `ks.n(String)` with `kw2.K = questId`; UI uses it for `Hủy nhiệm vụ`.
+  - Evidence: [ks.java](/d:/Twelve/reference/redecoded/decompiled/ks.java:1390)
+- Command `33` is sent by `ks.o(String)` with `kw2.K = questId`; UI uses it for `Chi Tiết`.
+  - Evidence: [ks.java](/d:/Twelve/reference/redecoded/decompiled/ks.java:1397)
+- Commands `32`, `41`, and `33` serialize tag `77` from `kw2.K` in the packet builder.
+  - Evidence: [ks.java](/d:/Twelve/reference/redecoded/decompiled/ks.java:245)
+
+Boundary:
+
+- Commands `32` and `41` are mission-related because their bridge methods route
+  through mission UI flow, but their final labels are not proven from Java text.
+  Keep names pending until more client behavior is reconstructed.
+
+## NPC / Mission Asset Inventory From JAR
+
+Confirmed named assets:
+
+| Asset | Evidence | Runtime role |
+|-------|----------|--------------|
+| `blacksmith.mg` | [jar-contents.txt](/d:/Twelve/reference/redecoded/jar-contents.txt:58) | dedicated blacksmith sprite |
+| `effblacksmith.mg` | [jar-contents.txt](/d:/Twelve/reference/redecoded/jar-contents.txt:163) | blacksmith effect sprite |
+| `monster.mg` | [jar-contents.txt](/d:/Twelve/reference/redecoded/jar-contents.txt:426) | shared NPC/actor sheet type `0` |
+| `zap.mg` | [jar-contents.txt](/d:/Twelve/reference/redecoded/jar-contents.txt:2250) | shared NPC/actor sheet type `1` |
+| `ice.mg` | [jar-contents.txt](/d:/Twelve/reference/redecoded/jar-contents.txt:280) | shared NPC/actor fallback/default sheet |
+| `magicgate.mg` | [jar-contents.txt](/d:/Twelve/reference/redecoded/jar-contents.txt:409) | animated map gate prop |
+| `gate.mg` | [jar-contents.txt](/d:/Twelve/reference/redecoded/jar-contents.txt:221) | generic gate prop |
+| `questnotifyicon.mg` | [jar-contents.txt](/d:/Twelve/reference/redecoded/jar-contents.txt:2226) | mission notification icon |
+| `dialog/corner.mg` | [jar-contents.txt](/d:/Twelve/reference/redecoded/jar-contents.txt:138) | dialog chrome |
+
+Numbered NPC band:
+
+- JAR contains `offline/110000.mg` through `offline/110160.mg` on a step-10
+  stride.
+  - Evidence: [jar-contents.txt](/d:/Twelve/reference/redecoded/jar-contents.txt:825)
+- User correction: these are NPC sprites and are now stored directly under `client/assets/npc/`.
+- No decompiled Java literal load path proves map placement, names, roles, or missions for them yet.
+
+## Server Remake Policy — NPC Roster v1
+
+Java evidence:
+
+- Raw NPC roster command is `43` and parser is [ky.java](/d:/Twelve/reference/redecoded/decompiled/ky.java:1587).
+- Roster mode uses tag `40`; Java dispatch observes modes `0`, `1`, and `3`.
+- Each NPC record uses tag `9` and fields `jo.a`, `jo.b`, `jo.c`, `jo.d`, `jo.e`, `jo.f`, `jo.g` from tags documented above.
+
+Remake policy confirmed 2026-05-04:
+
+- First server roster target: map `Hoa Lu`, room `1`.
+- First NPC seed: `tutorial_npc`.
+- Display name policy: `Huong dan` in packet payload for ASCII-safe server source; UI localization can render Vietnamese later.
+- Visual type byte: `4`; Java computes `4 >> 1 = 2`, so the client uses `/ice` fallback/default sheet.
+- Spawn mode: tag `40 = 3`.
+- Name color mode: `2`, matching Java gray/dark tint handling in `ki`.
+- Coordinates: tile `x = 6`, tile `y = 23`, placed near existing Hoa Lu spawn (`123,738`) using the current 32px tile grid.
+- Interaction v1 is now implemented as a separate talk request step; do not mix it with Mission ownership yet.
+- Safety correction: current React Native remake already uses raw command `43` for the Monster roster/map encounter flow.
+- Remake transport policy: keep Monster roster on `43`; send NPC roster through temporary command `45` on RN only. Java evidence remains raw command `43`, and command ownership can be migrated later when Monster flow is moved safely.
+
+Implemented server files:
+
+- [server/Twelve.Core/Npcs/NpcContracts.cs](server/Twelve.Core/Npcs/NpcContracts.cs)
+- [server/Twelve.Core/Interfaces/IMapNpcRosterService.cs](server/Twelve.Core/Interfaces/IMapNpcRosterService.cs)
+- [server/Twelve.Application/Npcs/NpcRosterPacketFactory.cs](server/Twelve.Application/Npcs/NpcRosterPacketFactory.cs)
+- [server/Twelve.Infrastructure/Repositories/StaticMapNpcRosterService.cs](server/Twelve.Infrastructure/Repositories/StaticMapNpcRosterService.cs)
+- [server/Twelve.Application/Handlers/MapHandler.cs](server/Twelve.Application/Handlers/MapHandler.cs) — preserves Monster roster flow on `43` and sends NPC roster on temporary command `45`.
+- [server/Twelve.Core/Tlv/CommandCodes.cs](server/Twelve.Core/Tlv/CommandCodes.cs) — keeps `MapMonsterRoster = 43`, adds `MapNpcRosterRemake = 45`, uses Java evidence command `16` for NPC talk request, and command `46` as RN-safe talk response transport.
+- [server/Twelve.Application/Handlers/NpcTalkHandler.cs](server/Twelve.Application/Handlers/NpcTalkHandler.cs) — handles `tutorial_npc` talk request from Java evidence shape `ks.a().a(String, boolean)` without assigning Mission ownership.
+- [client/src/network/Protocol.ts](client/src/network/Protocol.ts)
+- [client/src/network/SocketClient.ts](client/src/network/SocketClient.ts)
+- [client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx](client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx)
+- [server/Twelve.Infrastructure/ServiceCollectionExtensions.cs](server/Twelve.Infrastructure/ServiceCollectionExtensions.cs)
+
+Boundary:
+
+- This is remake policy based on Java client packet shape, not recovered Java server data.
+- NPC talk request command `16` is Java client evidence from `ks.a().a(String, boolean)`; response command `46` and static tutorial message are remake transport/content policy.
+- Do not infer mission ownership, reward flow, quest giver role, shop role, or portal role from this first talk seed.
+- Existing Monster roster behavior must not be removed as part of NPC work; command ownership must be decided before wiring NPC roster into live map packets.
 
 ## Next Practical Step
 
-The next coding step should be a client-side NPC renderer that:
+The next coding step should be a client-side NPC + Mission evidence port that:
 
-- takes a `jo`-shaped record from the server,
-- picks one of the three shared sheets by `jo.c >> 1`,
-- draws a 6-frame walk strip at the tile position,
-- and opens a dialog box on the `Nói Chuyện` (107) command.
+- implements a `jo`-shaped NPC actor contract from command `43` / TLV tags;
+- extends Mission UI from the now-added Mission DTO/parser foundation for `ns` / `nt` and commands `31` / `33` / `34` / `35` / `38`;
+- keeps NPC talk/dialog separate from Mission list/detail/notification state;
+- draws `jo` actors through the three shared sheets selected by `jo.c >> 1`;
+- supports mission notification icon/dialog using `questnotifyicon` and dialog corner assets;
+- does not assign mission ownership, rewards, quest giver role, or portal role until packet/catalog evidence proves it.
 
-That is the point where candidate families (gates, portals, future named NPCs) can start being promoted into final semantic roles.
+That is the point where candidate families (gates, portals, future named NPCs)
+can start being promoted into final semantic roles.
+
+## Nhật ký chỉnh sửa
+
+### 2026-05-04
+
+- Audit scope: NPC & Mission only.
+- Added Java evidence for Mission classes `ns`, `nt`, notifier queue `nu`, mission packet handlers in `ky`, bridge routes in `kq` / `com.mg.sq.a` / `oa`, and mission UI asset `questnotifyicon`.
+- Added JAR asset inventory for NPC/Mission assets: `blacksmith`, `effblacksmith`, `monster`, `zap`, `ice`, `magicgate`, `gate`, `questnotifyicon`, `dialog/corner`, and `offline/110xxx` numbered NPC band.
+- Tightened scope guard so this document stays only NPC & Mission.
+- Deep-audit additions: mission screen `hr`, completed mission popup `hb`, outbound mission request methods in `ks`, focused NPC `ki` interaction path in `om`, `ha` NPC interaction preview evidence, and first-time mission tutorial hint in `om`.
+- Implemented server remake policy v1 for NPC roster data/factory: Java command shape `43`, map `Hoa Lu` room `1`, seed NPC `tutorial_npc`, mode `3`, type `4` (`/ice`), tile `(6,23)`, flag `2`, with interaction intentionally deferred.
+- Corrected server wiring after review: restored the existing Monster roster send in `MapHandler` and moved live NPC roster transport to temporary RN command `45` because the current RN client still treats command `43` as Monster roster.
+- Added client NPC roster parse/render: RN listens for command `45`, parses Java `jo` tags, stores NPC roster separately from Monster roster, and renders `tutorial_npc` as an `/ice` shared-sheet actor without Monster collision/encounter behavior.
+- Added NPC talk v1: RN sends command `16` with NPC id tag `9` and continue flag tag `40`, server validates `tutorial_npc`, and RN displays the temporary response from command `46`. Java evidence is only the request shape; response/content remain remake policy.
+- Added Mission parser foundation on RN from Java client evidence: commands `31`, `33`, `34`, `35`, `38` now decode into `MissionRecord` / `MissionTaskRecord` equivalents of Java `ns` / `nt`; outbound mission list/detail/accept/cancel requests use commands `31`, `33`, `32`, `41` with tag `77` where Java `ks` proves it.
+- Added separate map mission state reducer/queue so Mission notifications stay isolated from NPC talk dialog; no quest giver, reward, ownership, or completion policy has been inferred yet.
+- Corrected NPC asset organization per user evidence: moved numbered NPC sprites `110000.png..110160.png` directly under `client/assets/npc/`; remaining NPC subfolders are UI/shared-sheet/prop evidence, not the numbered NPC set.
