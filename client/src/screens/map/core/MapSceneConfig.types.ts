@@ -7,6 +7,21 @@ export type MapSceneAssetBundle = {
   groundRight: ReturnType<typeof require>;
 };
 
+export type MapSceneDecorLayer = 'background' | 'behindActors' | 'frontDecor';
+
+export type MapSceneDecorObject = {
+  key: string;
+  asset: ReturnType<typeof require>;
+  layer: MapSceneDecorLayer;
+  xRatio: number;
+  yRatio?: number;
+  groundOffset?: number;
+  width: number;
+  height: number;
+  zIndex: number;
+  resizeMode?: 'cover' | 'contain' | 'stretch' | 'repeat' | 'center';
+};
+
 export type LocalMonsterSpawnGroupProfile = {
   spawnGroupKey: string;
   surfaceId: string;
@@ -37,6 +52,7 @@ export type SideScrollMapSceneConfig = {
   groundContactVisualDrop: number;
   primaryGroundSurfaceId: string;
   assets: MapSceneAssetBundle;
+  decorObjects?: ReadonlyArray<MapSceneDecorObject>;
   buildSurfaces: (mapScale: number) => GroundSurface[];
   monsterSpawnGroups?: ReadonlyArray<LocalMonsterSpawnGroupProfile>;
 };

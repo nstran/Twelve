@@ -1,0 +1,1 @@
+export { SideScrollMapScreen } from './SideScrollMapScreen';

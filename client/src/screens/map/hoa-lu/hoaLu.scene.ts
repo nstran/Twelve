@@ -1,4 +1,4 @@
-import { HOA_LU_MAP_ASSETS } from './assets';
+import { HOA_LU_DECOR_ASSETS, HOA_LU_MAP_ASSETS } from './assets';
 import { buildHoaLuSurfaces } from './hoaLu.navigation';
 import type { SideScrollMapSceneConfig } from '../core';
 
@@ -22,5 +22,51 @@ export const HOA_LU_SCENE_CONFIG: SideScrollMapSceneConfig = {
   groundContactVisualDrop: 4,
   primaryGroundSurfaceId: 'ground_main',
   assets: HOA_LU_MAP_ASSETS,
+  decorObjects: [
+    {
+      key: 'hoa-lu-back-tree-01',
+      asset: HOA_LU_DECOR_ASSETS.tree,
+      layer: 'background',
+      xRatio: 0.18,
+      groundOffset: 118,
+      width: 118,
+      height: 188,
+      zIndex: 0,
+      resizeMode: 'contain',
+    },
+    {
+      key: 'hoa-lu-back-banana-01',
+      asset: HOA_LU_DECOR_ASSETS.bananaTree,
+      layer: 'background',
+      xRatio: 0.74,
+      groundOffset: 104,
+      width: 104,
+      height: 170,
+      zIndex: 0,
+      resizeMode: 'contain',
+    },
+    {
+      key: 'hoa-lu-grass-mound-01',
+      asset: HOA_LU_DECOR_ASSETS.grassCap,
+      layer: 'behindActors',
+      xRatio: 0.38,
+      groundOffset: 14,
+      width: 188,
+      height: 44,
+      zIndex: 2,
+      resizeMode: 'stretch',
+    },
+    {
+      key: 'hoa-lu-earth-mound-01',
+      asset: HOA_LU_DECOR_ASSETS.earthMound,
+      layer: 'frontDecor',
+      xRatio: 0.57,
+      groundOffset: -4,
+      width: 156,
+      height: 42,
+      zIndex: 4,
+      resizeMode: 'stretch',
+    },
+  ],
   buildSurfaces: buildHoaLuSurfaces,
 };

@@ -187,6 +187,25 @@ Rule hiện chốt:
 
 ## 3. Runtime side-scroll architecture
 
+### 3.0 Shared screen boundary sau common hóa
+
+- `client/src/screens/map/shared/SideScrollMapScreen.tsx` là shell runtime dùng chung: join map, camera, input, socket, battle trigger và softkey/menu orchestration.
+- `client/src/screens/map/shared/SideScrollMapScreen.styles.ts` chỉ còn style shell/debug/background; style popup/actor đã tách theo component để tránh file shared phình to.
+- Map cụ thể như Hoa Lư chỉ nên là wrapper mỏng hoặc scene entry, không copy màn hình runtime.
+- Phần khác nhau giữa map/room nằm ở `SideScrollMapSceneConfig` và DB roster/seed:
+  - `assets`: background, ground left/center/right; sau này có thể mở rộng parallax/foreground/decoration khi có Java/data evidence.
+  - `nativeWidth`, `nativeHeight`, `buildSurfaces`, `primaryGroundSurfaceId`: bố cục, nền đất, platform/collision.
+  - `playerScale`, `playerSpeed`, `playerSpawnRatio`, foot sink/contact ratio: cảm giác di chuyển theo scene.
+  - `monsterSpawnGroups` và DB monster roster: mons/spawn/patrol theo room, không hard-code trong screen.
+  - DB NPC roster (`MapNpcRosterPacket`): NPC/tọa độ/tên/màu/sprite visual byte theo room, không hard-code trong screen.
+- Component dùng chung hiện đã tách:
+  - `components/MissionDialog.tsx`, `components/MissionToastStack.tsx` cho mission UI.
+  - `components/PvpDialog.tsx`, `components/PvpIncomingPrompt.tsx` cho PVP UI.
+  - `components/NpcTalkDialog.tsx` cho NPC talk popup.
+  - `components/MapActorField.tsx` cho render monster/NPC field.
+  - `runtime/MapActorRuntime.ts` cho create/reconcile actor runtime, collision helper và visual state.
+- Boundary: các UI này là default shared style. Nếu Java/data chứng minh map nào có dialog skin/layout khác, thêm theme/config override rõ ràng thay vì fork nguyên `SideScrollMapScreen`.
+
 Runtime map playable được tách 3 lớp:
 
 1. **Art layer**
@@ -1160,6 +1179,20 @@ Các phần cần làm để map bên ngoài playable:
 ---
 
 ## Nhật ký chỉnh sửa
+
+### 2026-05-04
+
+- Bắt đầu common hóa runtime map side-scroll để chuẩn bị thêm nhiều bản đồ mà không copy nguyên màn Hoa Lư.
+- Thêm `client/src/screens/map/shared/SideScrollMapScreen.tsx` và `client/src/screens/map/shared/SideScrollMapScreen.styles.ts` làm shell dùng chung cho cảnh side-scroll: camera, ground render, character controller, monster/NPC runtime, battle trigger, softkey/menu, mission/PVP/NPC dialogs.
+- `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx` giờ chỉ export lại common `SideScrollMapScreen`, nên map mới nên đi qua scene config/DB seed thay vì tạo bản copy lớn.
+- Tách tiếp theo hướng giữ nguyên logic runtime: socket/map mission listeners sang `client/src/screens/map/shared/hooks/useMapSocketRuntime.ts`, PVP state/actions sang `client/src/screens/map/shared/hooks/useMapPvpRuntime.ts`, monster encounter loop sang `client/src/screens/map/shared/hooks/useMapMonsterLoop.ts`.
+- Tách mission/NPC/PVP popup và actor field/runtime sang component/module riêng; `SideScrollMapScreen.tsx` còn khoảng 1309 dòng sau khi giảm từ bản shared ban đầu khoảng 2k dòng.
+- Boundary: khung cảnh, đất/cỏ, surface/collision, NPC/monster roster khác nhau đi qua scene config/DB seed; hook extraction chỉ copy/move logic hiện có, không đổi công thức runtime.
+- Bổ sung phần riêng Hoa Lư đúng nghĩa:
+  - `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx` là wrapper map-specific rõ ràng, gọi shared runtime thay vì export alias trống.
+  - `client/src/screens/map/hoa-lu/assets.ts` định nghĩa riêng background/ground/decor assets Hoa Lư.
+  - `client/src/screens/map/hoa-lu/hoaLu.scene.ts` định nghĩa riêng cây, cỏ, gò đất qua `decorObjects` theo layer `background`/`behindActors`/`frontDecor`.
+  - `client/src/screens/map/shared/SideScrollMapScreen.tsx` chỉ render decor theo scene config, không hardcode asset Hoa Lư trong shared screen.
 
 ### 2026-04-29
 

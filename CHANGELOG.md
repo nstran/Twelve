@@ -4,6 +4,20 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-04
 
+### [MAP] Shared side-scroll map shell
+
+- Common hóa map side-scroll để tránh copy [`HoaLuMapScreen`](client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx) cho nhiều bản đồ:
+  - tạo [`SideScrollMapScreen`](client/src/screens/map/shared/SideScrollMapScreen.tsx) làm shell runtime dùng chung;
+  - [`HoaLuMapScreen`](client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx) giờ chỉ là wrapper export lại common screen;
+  - tách mission/NPC/PVP popup sang `client/src/screens/map/shared/components/*`;
+  - tách render/runtime actor sang `client/src/screens/map/shared/components/MapActorField.tsx` và `client/src/screens/map/shared/runtime/MapActorRuntime.ts`;
+  - tách socket/mission listeners, PVP state/actions và monster loop sang `client/src/screens/map/shared/hooks/*` theo hướng copy/move logic, không đổi hành vi runtime;
+  - thu gọn [`SideScrollMapScreen.styles.ts`](client/src/screens/map/shared/SideScrollMapScreen.styles.ts) chỉ còn shell/debug/background style;
+  - bổ sung `decorObjects` trong scene config để map riêng định nghĩa cây/cỏ/gò đất theo layer mà shared screen chỉ render theo data.
+- Boundary:
+  - Khung cảnh, đất/cỏ, bố cục, surface/collision, decor objects, monster spawn và NPC roster khác nhau đi qua scene config/DB roster, không copy nguyên màn hình cho từng map.
+  - Nếu map sau có UI skin/layout khác đã có Java/data evidence, thêm theme/config override rõ ràng thay vì fork `SideScrollMapScreen`.
+
 ### [NPC/MISSION] Mission dialog polish and Hoa Lu E2E checklist
 
 - Nâng cấp Mission UI trên map Hoa Lư:
