@@ -4,6 +4,17 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-04
 
+### [NPC/MISSION] Mission dialog polish and Hoa Lu E2E checklist
+
+- Nâng cấp Mission UI trên map Hoa Lư:
+  - menu `Nhiệm Vụ` mở dialog list/detail riêng, request mission list/detail từ server;
+  - detail panel hiển thị mô tả, mục tiêu, reward lines, và nút nhận nhiệm vụ theo trạng thái server;
+  - dialog được chặn input map/softkey giống các popup lớn khác để tránh overlap thao tác.
+- Thêm checklist manual end-to-end ở `plans/hoa-lu-mission-end-to-end-checklist.md` cho 3 nhiệm vụ Hoa Lư: nhận, kill/talk progress, complete, claim reward, chống double-claim, reconnect persistence.
+- Boundary:
+  - UI là remake polish gần flow Java `hr`/`hb`, chưa clone pixel-perfect asset `questnotifyicon`.
+  - Checklist ghi rõ mission catalog/reward/claim policy hiện là remake seed data.
+
 ### [NPC/MISSION] Client mission toast queue and battle progress UI
 
 - Hoàn thiện phần RN hiển thị notify nhiệm vụ trên map Hoa Lư:

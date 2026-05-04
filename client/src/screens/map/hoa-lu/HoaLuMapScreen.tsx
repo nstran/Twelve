@@ -50,6 +50,7 @@ import {
   reduceMapMissionState,
   type CharacterStatKey,
   type MapCharacterDialogKind,
+  type MapMissionRecord,
 } from '../core';
 import type {
   MapMonsterRosterEntry,
@@ -531,6 +532,14 @@ interface NpcTalkDialogState {
   message: string;
 }
 
+interface MissionDialogProps {
+  missions: MapMissionRecord[];
+  activeMission: MapMissionRecord | null;
+  onSelectMission: (questId: string) => void;
+  onAcceptMission: (questId: string) => void;
+  onClose: () => void;
+}
+
 interface PvpDialogProps {
   mode: PvpDialogMode;
   opponents: PvpOpponentEntry[];
@@ -556,6 +565,81 @@ interface PvpIncomingPromptProps {
   onAccept: (ticket: PvpChallengeTicket) => void;
   onDecline: (ticket: PvpChallengeTicket) => void;
 }
+
+const MissionDialog: React.FC<MissionDialogProps> = ({
+  missions,
+  activeMission,
+  onSelectMission,
+  onAcceptMission,
+  onClose,
+}) => {
+  const visibleMission = activeMission ?? missions[0] ?? null;
+
+  return (
+    <View style={styles.missionDialogOverlay} pointerEvents="box-none">
+      <Pressable style={styles.pvpBackdrop} onPress={onClose} />
+      <CornerFrame style={styles.missionDialogFrame} contentStyle={styles.missionDialogContent}>
+        <View style={styles.missionDialogHeader}>
+          <Text style={styles.missionDialogTitle}>Nhiệm Vụ</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Text style={styles.missionDialogClose}>Đóng</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.missionDialogBody}>
+          <View style={styles.missionListPanel}>
+            <Text style={styles.missionPanelTitle}>Danh sách</Text>
+            <ScrollView style={styles.missionListScroll} contentContainerStyle={styles.missionListContent}>
+              {missions.length === 0 ? (
+                <Text style={styles.missionEmptyText}>Chưa có nhiệm vụ từ server.</Text>
+              ) : missions.map((mission) => {
+                const selected = visibleMission?.questId === mission.questId;
+                return (
+                  <TouchableOpacity
+                    key={mission.questId}
+                    style={[styles.missionListItem, selected && styles.missionListItemActive]}
+                    onPress={() => onSelectMission(mission.questId)}
+                  >
+                    <Text style={[styles.missionListTitle, selected && styles.missionListTitleActive]}>
+                      {mission.title || mission.questId}
+                    </Text>
+                    <Text style={styles.missionListMeta}>{mission.statusFlag ? 'Đã nhận/đang làm' : 'Có thể nhận'}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          <View style={styles.missionDetailPanel}>
+            {visibleMission ? (
+              <>
+                <Text style={styles.missionDetailTitle}>{visibleMission.title || visibleMission.questId}</Text>
+                <Text style={styles.missionDetailDesc}>{visibleMission.description || 'Không có mô tả.'}</Text>
+                <Text style={styles.missionPanelTitle}>Mục tiêu</Text>
+                {visibleMission.tasks.length > 0 ? visibleMission.tasks.map((task) => (
+                  <Text key={`${task.questId}-${task.rawValue}-${task.text}`} style={styles.missionTaskLine}>• {task.text}</Text>
+                )) : <Text style={styles.missionEmptyText}>Chưa có mục tiêu.</Text>}
+                <Text style={styles.missionPanelTitle}>Thưởng</Text>
+                {visibleMission.rewardLines.length > 0 ? visibleMission.rewardLines.map((line) => (
+                  <Text key={line} style={styles.missionRewardLine}>{line}</Text>
+                )) : <Text style={styles.missionEmptyText}>Chưa có dữ liệu thưởng.</Text>}
+                <TouchableOpacity
+                  style={[styles.missionActionButton, visibleMission.statusFlag && styles.missionActionButtonDisabled]}
+                  disabled={visibleMission.statusFlag}
+                  onPress={() => onAcceptMission(visibleMission.questId)}
+                >
+                  <Text style={styles.missionActionButtonText}>{visibleMission.statusFlag ? 'Đã nhận' : 'Nhận nhiệm vụ'}</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <Text style={styles.missionEmptyText}>Bấm menu Nhiệm Vụ để tải danh sách.</Text>
+            )}
+          </View>
+        </View>
+      </CornerFrame>
+    </View>
+  );
+};
 
 const parseStakeThousands = (value: string): number => {
   const normalized = value.replace(/[^\d]/g, '');
@@ -1117,6 +1201,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const [menuSelectSignal, setMenuSelectSignal] = useState(0);
   const [activeCharacterDialog, setActiveCharacterDialog] = useState<MapCharacterDialogKind | null>(null);
   const [activePvpDialog, setActivePvpDialog] = useState<PvpDialogMode | null>(null);
+  const [missionDialogVisible, setMissionDialogVisible] = useState(false);
   const [pvpOpponents, setPvpOpponents] = useState<PvpOpponentEntry[]>([]);
   const [pvpStatus, setPvpStatus] = useState<PvpDialogStatus>('idle');
   const [pvpError, setPvpError] = useState<string | null>(null);
@@ -1309,7 +1394,11 @@ export const HoaLuMapScreen: React.FC<Props> = ({
       onOpenSkills: () => setActiveCharacterDialog('skills'),
       onOpenEquipment: () => setActiveCharacterDialog('equipment'),
       onOpenInventory: () => setActiveCharacterDialog('inventory'),
-      onOpenQuests: () => SocketClient.getInstance().requestMissionList(),
+      onOpenQuests: () => {
+        setMenuVisible(false);
+        setMissionDialogVisible(true);
+        SocketClient.getInstance().requestMissionList();
+      },
     }),
     [handleLogout, openPvpDialog],
   );
@@ -1319,8 +1408,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
   const isPvpDialogActive = activePvpDialog !== null;
   const isPvpPromptActive = pvpIncomingPrompt !== null;
   const isNpcTalkDialogActive = npcTalkDialog !== null;
-  const showTouchGamepad = !menuVisible && !isEncounterActive && !defeatRecoveryActive && !isCharacterDialogActive && !isPvpDialogActive && !isPvpPromptActive && !isNpcTalkDialogActive;
-  const allowMapPointerInput = Platform.OS !== 'web' && !defeatRecoveryActive && !isCharacterDialogActive && !isPvpDialogActive && !isPvpPromptActive && !isNpcTalkDialogActive;
+  const isMissionDialogActive = missionDialogVisible;
+  const showTouchGamepad = !menuVisible && !isEncounterActive && !defeatRecoveryActive && !isCharacterDialogActive && !isPvpDialogActive && !isPvpPromptActive && !isNpcTalkDialogActive && !isMissionDialogActive;
+  const allowMapPointerInput = Platform.OS !== 'web' && !defeatRecoveryActive && !isCharacterDialogActive && !isPvpDialogActive && !isPvpPromptActive && !isNpcTalkDialogActive && !isMissionDialogActive;
   const playerSpriteSize = useMemo(
     () => {
       // anchorToBody=true: groundOffset = maxBelowBody * CHAR_SCALE
@@ -2085,6 +2175,16 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         onRepairEquipment={onRepairEquipment}
       />
 
+      {missionDialogVisible && (
+        <MissionDialog
+          missions={missionState.missions}
+          activeMission={missionState.activeMission}
+          onSelectMission={(questId) => SocketClient.getInstance().requestMissionDetail(questId)}
+          onAcceptMission={(questId) => SocketClient.getInstance().requestMissionAccept(questId)}
+          onClose={() => setMissionDialogVisible(false)}
+        />
+      )}
+
       {activePvpDialog && (
         <PvpDialog
           mode={activePvpDialog}
@@ -2180,6 +2280,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         onLeftPress={() => {
           if (isPvpDialogActive || isPvpPromptActive) return;
           if (isCharacterDialogActive) return;
+          if (isMissionDialogActive) return;
           if (isNpcTalkDialogActive) return;
           if (isEncounterActive) return;
           if (menuVisible) {
@@ -2188,7 +2289,7 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           }
           setMenuVisible(true);
         }}
-        onRightPress={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive ? () => {
+        onRightPress={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive || isMissionDialogActive ? () => {
           if (isNpcTalkDialogActive) {
             setNpcTalkDialog(null);
             return;
@@ -2199,6 +2300,10 @@ export const HoaLuMapScreen: React.FC<Props> = ({
           }
           if (isPvpDialogActive) {
             setActivePvpDialog(null);
+            return;
+          }
+          if (isMissionDialogActive) {
+            setMissionDialogVisible(false);
             return;
           }
           if (isCharacterDialogActive) {
@@ -2215,6 +2320,9 @@ export const HoaLuMapScreen: React.FC<Props> = ({
         } : undefined}
         onCenterPress={() => {
           if (isPvpDialogActive || isPvpPromptActive) {
+            return;
+          }
+          if (isMissionDialogActive) {
             return;
           }
           if (isCharacterDialogActive) {
@@ -2256,8 +2364,8 @@ export const HoaLuMapScreen: React.FC<Props> = ({
             }
           }
         }}
-        leftIcon={menuVisible ? ASSET_SOFTKEY_OK : isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive ? undefined : ASSET_SOFTKEY_MENU}
-        rightIcon={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive ? ASSET_SOFTKEY_CANCEL : undefined}
+        leftIcon={menuVisible ? ASSET_SOFTKEY_OK : isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive || isMissionDialogActive ? undefined : ASSET_SOFTKEY_MENU}
+        rightIcon={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive || isMissionDialogActive ? ASSET_SOFTKEY_CANCEL : undefined}
       />
 
     </View>
