@@ -84,13 +84,13 @@ namespace Twelve.Application.Handlers
                 case (int)CommandCode.EquipmentUpgrade:
                     // Java evidence: cmd 99 = requestCombineEquipment.
                     // Client sends empty payload. Server responds with tags 186+1.
-                    await HandleCombineRequest(session, request);
+                    await HandleCombineRequest(session, request, username);
                     break;
 
                 case (int)CommandCode.EquipmentRepairUse:
                     // Java evidence: cmd 100 = modifiedCombineEquipment result.
                     // Client sends tags 186+187+83?+114?+106?. Server responds with same shape as 97.
-                    await HandleCombineResult(session, request);
+                    await HandleCombineResult(session, request, username);
                     break;
 
                 default:
@@ -296,12 +296,13 @@ namespace Twelve.Application.Handlers
         /// Client sends empty payload (ks.java case 99 = break/no tags).
         /// Server responds: tag 186 (session) + tag 1 (message).
         /// </summary>
-        private async Task HandleCombineRequest(GameSession session, PacketRequest request)
+        private async Task HandleCombineRequest(GameSession session, PacketRequest request, string username)
         {
             // Java evidence: ky.java case 99 response shape: tags 186, 1.
+            // Remake policy: session key reuses username until original server session token is recovered.
             using var ms = new MemoryStream();
-            ms.Write(TlvCodec.MakeTag(TagSession, session.Username ?? ""));
-            ms.Write(TlvCodec.MakeTag(TagMessage, "Chuc nang ket hop dang duoc phat trien."));
+            ms.Write(TlvCodec.MakeTag(TagSession, username));
+            ms.Write(TlvCodec.MakeTag(TagMessage, "Da mo ket hop trang bi."));
 
             var payload = ms.ToArray();
             await session.SendPacketAsync(TlvCodec.BuildPacket(
@@ -316,13 +317,65 @@ namespace Twelve.Application.Handlers
         /// Java evidence: ky.java case 100 — processModifiedCombineEquipment.
         /// Same tag shape as cmd 97 but dispatches combine callbacks.
         /// </summary>
-        private async Task HandleCombineResult(GameSession session, PacketRequest request)
+        private async Task HandleCombineResult(GameSession session, PacketRequest request, string username)
         {
-            var sessionKey = request.GetStringTag(TagSession) ?? "";
+            var sessionKey = request.GetStringTag(TagSession) ?? username;
             var action = request.GetByteTag(TagAction);
             var equipKey = request.GetStringTag(TagEquipKey);
+            var itemId = request.GetIntTag(TagItemId) ?? -1;
+            var itemCount = request.GetIntTag(TagItemCount) ?? 1;
+            var materialItemIds = ReadRepeatedIntTags(request.RawPayload, TagItemId);
 
-            // Java evidence: ky.java case 100 response shape — same as 97.
+            if (string.IsNullOrWhiteSpace(equipKey))
+            {
+                await SendCombineResultResponse(
+                    session,
+                    sessionKey,
+                    action,
+                    null,
+                    itemId,
+                    itemCount,
+                    0,
+                    "Thieu ma trang bi ket hop.",
+                    readyStatus: 0);
+                return;
+            }
+
+            // Java evidence: cmd 100 request/response TLV shape. Actual recipe is remake policy.
+            var result = _playerRuntimeService.CombineEquipment(
+                new PlayerCombineEquipmentRuntimeRequest(username, equipKey, materialItemIds));
+
+            if (result is null)
+            {
+                return;
+            }
+
+            var updatedAggregate = await _playerAggregateRepository.GetByUsernameAsync(username);
+            long currentGold = updatedAggregate?.Core.Gold ?? 0;
+
+            await SendCombineResultResponse(
+                session,
+                sessionKey,
+                action,
+                equipKey,
+                itemId,
+                itemCount,
+                currentGold,
+                result.Message ?? string.Empty,
+                readyStatus: 1);
+        }
+
+        private static async Task SendCombineResultResponse(
+            GameSession session,
+            string sessionKey,
+            byte action,
+            string? equipKey,
+            int itemId,
+            int itemCount,
+            long gold,
+            string message,
+            byte readyStatus)
+        {
             using var ms = new MemoryStream();
             ms.Write(TlvCodec.MakeTag(TagSession, sessionKey));
             ms.Write(TlvCodec.MakeTag(TagAction, action));
@@ -330,12 +383,18 @@ namespace Twelve.Application.Handlers
             {
                 ms.Write(TlvCodec.MakeTag(TagEquipKey, equipKey));
             }
-            ms.Write(TlvCodec.MakeTag(TagMessage, "Chuc nang ket hop dang duoc phat trien."));
-            ms.Write(TlvCodec.MakeTag(TagReadyStatus, (byte)0));
+            if (itemId > 0)
+            {
+                ms.Write(TlvCodec.MakeTag(TagItemId, itemId));
+                ms.Write(TlvCodec.MakeTag(TagItemCount, itemCount));
+            }
+            ms.Write(TlvCodec.MakeTag(TagGold, gold));
+            ms.Write(TlvCodec.MakeTag(TagMessage, message));
+            ms.Write(TlvCodec.MakeTag(TagReadyStatus, readyStatus));
 
             var payload = ms.ToArray();
             await session.SendPacketAsync(TlvCodec.BuildPacket(
-                (int)CommandCode.EquipmentRepairUse, payload, subCount: 5));
+                (int)CommandCode.EquipmentRepairUse, payload, subCount: 8));
         }
 
         // ════════════════════════════════════════════════════════════════════

@@ -29,6 +29,7 @@ namespace Twelve.Application
             services.AddSingleton<PlayerCharacterPacketFactory>();
             services.AddSingleton<PlayerContentCatalog>();
             services.AddSingleton<IEquipmentUpgradeService, EquipmentUpgradeService>();
+            services.AddSingleton<IEquipmentCombineService, EquipmentCombineService>();
             services.AddSingleton<IPlayerRuntimeService, PlayerRuntimeService>();
             services.AddSingleton<IPvpArenaService, PvpArenaService>();
             services.AddSingleton<IMissionRewardClaimService, MissionRewardClaimService>();

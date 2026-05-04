@@ -196,6 +196,23 @@ namespace Twelve.Core.Players
         string? Message = null
     );
 
+    public sealed record PlayerShopOfferView(
+        string OfferKey,
+        int ProductId,
+        string DisplayName,
+        string Description,
+        string ProductKind,
+        long PriceQuan,
+        PlayerEquipmentItemView? Equipment,
+        PlayerInventoryItemView? Item
+    );
+
+    public sealed record PlayerShopRuntimeResponse(
+        string ShopKey,
+        string DisplayName,
+        IReadOnlyList<PlayerShopOfferView> Offers
+    );
+
     public sealed record PlayerRuntimeRequest(
         string Username
     );
@@ -247,12 +264,30 @@ namespace Twelve.Core.Players
         int RepairItemId
     );
 
-    // Upgrade skeleton — remake policy 2026-05-03:
-    // must unequip first; real roll is disabled until original stone/charm list is verified.
+    // Upgrade policy — Java evidence proves cmd 96/97 TLV shape; material ids/rates are remake policy.
     public sealed record PlayerUpgradeEquipmentRuntimeRequest(
         string Username,
         string EquipKey,
         IReadOnlyList<int> MaterialItemIds
+    );
+
+    // Combine/Forge policy — Java evidence proves cmd 99/100 TLV shape; recipe is remake policy.
+    public sealed record PlayerCombineEquipmentRuntimeRequest(
+        string Username,
+        string EquipKey,
+        IReadOnlyList<int> MaterialItemIds
+    );
+
+    // System/NPC shop — Java screenshot proves UI, product ids/prices are RemakePolicy.
+    public sealed record PlayerShopRuntimeRequest(
+        string Username,
+        string ShopKey
+    );
+
+    public sealed record PlayerShopBuyRuntimeRequest(
+        string Username,
+        string ShopKey,
+        string OfferKey
     );
 
     // Open-egg / đập trứng skeleton — remake policy 2026-05-03:

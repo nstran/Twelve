@@ -640,6 +640,46 @@ for (int i = 0; i < lh2.D.length; i++) {
 
 > **Server command ownership (2026-05-04):** Commands `96/97/99/100/112` đã được trả lại cho equipment Java gốc trong `CommandCode` enum. Monster Bootstrap remake trước đó dùng `96/97` đã migrate sang `240/241`. Xem nhật ký `§15` entry `2026-05-04 — Monster Bootstrap migration`.
 
+#### Cmd `99/100` detail (`requestCombineEquip` / `modifiedCombineEquip`)
+
+Java evidence từ `ks.java` và `ky.java`:
+
+```java
+// ks.java case 99: client sends no tags
+case 99: {
+    break;
+}
+
+// ks.java case 100: client sends session/action plus equipKey OR itemId/count
+case 100: {
+    kx2.a((short)186, kw2.C);
+    kx2.a((short)187, kw2.A);
+    if (kw2.Q != null) {
+        kx2.a((short)83, kw2.Q);
+    }
+    if (kw2.M <= 0) break;
+    kx2.b((short)114, kw2.M);
+    kx2.b((short)106, kw2.g);
+    break;
+}
+```
+
+Server response shape verified from `ky.java`:
+
+```text
+cmd 99 response:  tag 186 session, tag 1 message
+cmd 100 response: tag 186 session, tag 187 action, optional tag 83 equipKey,
+                  optional tag 114 itemId + tag 106 count,
+                  tag 132 gold/Quan, tag 1 message, tag 188 readyStatus
+```
+
+Remake policy `2026-05-05` for current implementation:
+- Java client proves TLV shape only; original server combine recipes/material IDs/rates remain `Pending/Unverified`.
+- `cmd 99` opens/acks combine using session key = username until original server session token is recovered.
+- `cmd 100` mutates one unequipped equipment target by consuming Huyết thạch + Kim thạch and Quan.
+- Current deterministic policy: add `+1` enhancement level, capped at `+15`; no destroy/random failure until original recipe/roll evidence or explicit user policy is added.
+- Material/cost formula is `RemakePolicy`, not Java evidence: Huyết thạch quantity = target level × 2, Kim thạch quantity = `1` / `2` from target `+5` / `4` from target `+10`, Quan = target level² × `1500`.
+
 #### Cmd `112` detail (`processEquipChange`)
 
 Java evidence từ `ky.java` cmd `112`:
@@ -858,6 +898,15 @@ Shop `ia` giữ:
 - `boolean[] z = new boolean[4]`: slot nào là đồ mới chọn mua.
 - `ll[] u = new ll[4]`: đồ thật nhân vật đang mặc ở slot `0..3`.
 - `cz s`: panel preview nhân vật.
+
+User screenshot evidence `2026-05-05` từ `reference/raw/images/shop.jpg`:
+- Đây là shop hệ thống/NPC shop, không phải auction/chợ người chơi.
+- Header nhân vật hiển thị avatar + các stat `Công`, `P.Thủ`, `C.Xác`, `N.Tránh`, `S.Lực`, `C.Mạng`.
+- Danh sách product dùng tiêu đề dạng `Tên món đồ 0 (10/0)` và từng dòng hiển thị icon, tên item, `Giá: 0 Ken`.
+- Menu context của product khớp Java evidence: `Mặc thử`, `Mua`, `C.Tiết`.
+- Detail popup hiển thị icon ở giữa/trên, tên item có icon hệ phía trước, dòng `+ Yêu cầu cấp -1`.
+- Góc dưới phải hiển thị ví tiền dạng `1.000.000Ken`; softkey phải là `Đóng`.
+- Screenshot chứng minh UI/wording đơn vị `Ken`; server remake hiện vẫn dùng `Quan`, cần tách rõ UI Java evidence và economy remake policy.
 
 Menu cho product equipment:
 - Nếu đúng giới tính và đang mặc thử item đó: `"Cởi ra"`, `"Mua"`, `"C.Tiết"`.
@@ -2026,6 +2075,26 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
 
 > Section này đã được dọn ngày `2026-05-03` để tránh trùng lặp dài với `CHANGELOG.md`. Chi tiết lịch sử thay đổi đầy đủ xem `CHANGELOG.md` mục `[EQUIPMENT]`. Tài liệu này chỉ giữ lại các mốc ảnh hưởng trực tiếp tới spec phục dựng.
 
+### 2026-05-05 — Combine/Forge cmd 99/100 end-to-end
+
+- Java evidence:
+  - `ks.java` case `99` sends empty payload.
+  - `ks.java` case `100` sends tags `186/187/83?` hoặc `186/187/114/106`.
+  - `ky.java` case `99` parses response tags `186/1`.
+  - `ky.java` case `100` parses response tags `186/187/83?/114?/106?/132/1/188`.
+- Remake policy:
+  - Recipe/material/cost are not Java server evidence.
+  - Current implementation uses deterministic combine: unequipped equipment + Huyết thạch + Kim thạch + Quan → target level `+1`, max `+15`.
+  - No random fail/destroy in combine until original recipe/roll evidence or explicit policy is provided.
+- Files code đã sửa:
+  - `server/Twelve.Application/Players/EquipmentCombineService.cs`
+  - `server/Twelve.Core/Players/PlayerRuntimeContracts.cs`
+  - `server/Twelve.Core/Interfaces/IPlayerRuntimeService.cs`
+  - `server/Twelve.Application/Players/PlayerRuntimeService.cs`
+  - `server/Twelve.Application/Handlers/EquipmentCommandHandler.cs`
+  - `server/Twelve.Application/ServiceCollectionExtensions.cs`
+  - `server/Twelve.Core/Tlv/CommandCodes.cs`
+
 ### 2026-05-03 — Java client equipment audit
 
 - Đã gom evidence client-side core từ:
@@ -2803,6 +2872,37 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - Current upgrade rates/material ids/quantities/Quan fee are config/remake policy, not original Java server behavior.
 - Verification:
   - `dotnet build server\Twelve.Server\Twelve.Server.csproj` pass: `0 Warning(s), 0 Error(s)`.
+
+### 2026-05-05 — System shop implementation from screenshot evidence
+
+- Implemented first end-to-end system/NPC shop flow based on `reference/raw/images/shop.jpg` and `ia.java`/`lq.java` evidence.
+- Server runtime:
+  - Added `PlayerShopOfferView`, `PlayerShopRuntimeResponse`, `PlayerShopRuntimeRequest`, `PlayerShopBuyRuntimeRequest`.
+  - Added `IPlayerRuntimeService.GetShop(...)` and `BuyShopOffer(...)`.
+  - Added HTTP endpoints `/player/runtime/shop` and `/player/runtime/shop/buy`.
+  - Current offers are generated from enabled `EquipmentCatalog` definitions through `PlayerContentCatalog.BuildSystemShop(...)`; this is DB/catalog-first and remains `RemakePolicy` until original product ids/prices are available.
+  - Buying checks wallet and inventory capacity, creates a new equipment instance from the selected template, subtracts Ken/Gold, saves aggregate collections, and returns updated runtime snapshot.
+- React Native:
+  - Added shop response/offer types and runtime API methods.
+  - Added map menu path `Mua bán > Cửa hàng` to open shop dialog.
+  - Added Java-inspired shop dialog: character stat header, product list with `Giá: ... Ken`, actions `Mặc thử`/`Mua`/`C.Tiết`, detail panel, and wallet text.
+- Boundary:
+  - Screenshot proves UI and system shop ownership, not original product ids/prices/stat ranges.
+  - Auction/player market remains a separate future module.
+
+### 2026-05-05 — Shop UI screenshot evidence
+
+- User supplied `reference/raw/images/shop.jpg`.
+- Evidence observed:
+  - Shop is system/NPC shop UI, not auction/player market.
+  - Character stat header shows avatar and labels `Công`, `P.Thủ`, `C.Xác`, `N.Tránh`, `S.Lực`, `C.Mạng`.
+  - Product list shows category/title counter `Tên món đồ 0 (10/0)`, item rows with icon/name and `Giá: 0 Ken`.
+  - Product context menu has `Mặc thử`, `Mua`, `C.Tiết`, matching `ia.java` menu evidence.
+  - Detail popup shows centered item icon, elemental icon before item name, and `+ Yêu cầu cấp -1`.
+  - Bottom wallet displays `1.000.000Ken`; softkey is `Đóng`.
+- Boundary:
+  - This confirms Java shop UI/wording and reinforces that current `EquipmentShopCatalog`/`EquipmentShopOffer` is system shop foundation.
+  - It does not prove original product ids/prices/stat ranges. Current DB-first shop seed remains `RemakePolicy` until product data is supplied.
 
 ### 2026-05-05 — Upgrade UI evidence from screenshots (Java UI evidence + Remake client integration)
 

@@ -2,6 +2,7 @@ import type {
   CharacterAppearance,
   CharacterEquipmentItem,
   CharacterInventoryItem,
+  CharacterShopResponse,
   CharacterSkillNode,
 } from '../shared';
 
@@ -71,6 +72,8 @@ export interface PlayerRuntimeApi {
   discardItem: (username: string, itemId: number, quantity: number) => Promise<PlayerRuntimeResponse | null>;
   repairEquipment: (username: string, equipKey: string, repairItemId: number) => Promise<PlayerRuntimeResponse | null>;
   upgradeEquipment: (username: string, equipKey: string, materialItemIds: number[]) => Promise<PlayerRuntimeResponse | null>;
+  loadShop: (username: string, shopKey: string) => Promise<CharacterShopResponse | null>;
+  buyShopOffer: (username: string, shopKey: string, offerKey: string) => Promise<PlayerRuntimeResponse | null>;
 }
 
 const toHttpBaseUrl = (socketUrl: string): string => {
@@ -174,6 +177,16 @@ export const createPlayerRuntimeApi = (socketUrl: string): PlayerRuntimeApi => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, equipKey, materialItemIds }),
+      }),
+
+    loadShop: (username, shopKey) =>
+      requestJson<CharacterShopResponse>(`${baseUrl}/player/runtime/shop?username=${encodeURIComponent(username)}&shopKey=${encodeURIComponent(shopKey)}`),
+
+    buyShopOffer: (username, shopKey, offerKey) =>
+      requestJson<PlayerRuntimeResponse>(`${baseUrl}/player/runtime/shop/buy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, shopKey, offerKey }),
       }),
   };
 };

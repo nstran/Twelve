@@ -4,6 +4,28 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-04
 
+### [EQUIPMENT] System shop implementation
+
+- Implement shop hệ thống/NPC end-to-end từ evidence `reference/raw/images/shop.jpg`: mở từ menu `Mua bán > Cửa hàng`, list offer, `Mặc thử`, `Mua`, `C.Tiết`, detail panel và ví Ken.
+- Server thêm shop contracts/API: `/player/runtime/shop`, `/player/runtime/shop/buy`, `GetShop(...)`, `BuyShopOffer(...)`; mua item tạo equipment instance mới, trừ Ken/Gold, lưu snapshot.
+- Shop offer hiện sinh từ `EquipmentCatalog` enabled definitions qua `PlayerContentCatalog.BuildSystemShop(...)`; product ids/prices/stat ranges vẫn là `RemakePolicy` cho tới khi có dump/server data gốc.
+- Files: `PlayerRuntimeContracts.cs`, `IPlayerRuntimeService.cs`, `PlayerContentCatalog.cs`, `PlayerRuntimeService.cs`, `Program.cs`, `characterAppearance.ts`, `CharacterStatus.api.ts`, `index.ts`, `MapCharacterDialogs.tsx`, `MapCharacterDialogs.styles.ts`, `SideScrollMapScreen.tsx`, `HoaLuMapScreen.tsx`, `App.tsx`, `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+
+### [EQUIPMENT] Shop UI screenshot evidence
+
+- User bổ sung `reference/raw/images/shop.jpg`; xác nhận đây là shop hệ thống/NPC shop, không phải auction/chợ người chơi.
+- Ghi nhận UI Java: header stat nhân vật, danh sách item `Tên món đồ 0 (10/0)`, dòng `Giá: 0 Ken`, menu `Mặc thử`/`Mua`/`C.Tiết`, popup detail có icon hệ + `+ Yêu cầu cấp -1`, ví `1.000.000Ken`, softkey `Đóng`.
+- Boundary: ảnh chứng minh UI/wording và hệ thống shop; chưa chứng minh product ids/prices/stat ranges, nên DB-first shop seed hiện vẫn là `RemakePolicy`.
+- Files: `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+
+### [EQUIPMENT] Combine/Forge cmd 99/100 end-to-end
+
+- Implement cmd `99/100` theo Java TLV shape: `99` response tags `186/1`; `100` request/response dùng `186/187/83?/114?/106?/132/1/188` như `ks.java`/`ky.java` evidence.
+- Thêm `EquipmentCombineService` và `PlayerCombineEquipmentRuntimeRequest`; handler chỉ parse/build packet, gameplay mutation nằm trong service/runtime.
+- Remake policy rõ ràng: recipe Java server chưa có evidence, hiện combine deterministic consume Huyết thạch + Kim thạch + Quan để tăng trang bị tháo ra thêm `+1`, max `+15`, không fail/destroy.
+- Wire DI/runtime qua `IPlayerRuntimeService.CombineEquipment(...)`, lưu equipment/inventory/gold rồi trả current Quan qua tag `132`.
+- Files: `EquipmentCombineService.cs`, `PlayerRuntimeContracts.cs`, `IPlayerRuntimeService.cs`, `PlayerRuntimeService.cs`, `EquipmentCommandHandler.cs`, `ServiceCollectionExtensions.cs`, `CommandCodes.cs`, `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+
 ### [EQUIPMENT] Upgrade UI from Java screenshots
 
 - User bổ sung ảnh `reference/raw/images/upgrade.png`, `reference/raw/images/upgrade1.png`, `reference/raw/images/upgrade2.jpg`; ghi nhận UI Java có dòng `Phí kết hợp: ... KEN`, slot trang bị/nguyên liệu, text cơ hội thành công và popup `Nâng cấp`/`Không`.

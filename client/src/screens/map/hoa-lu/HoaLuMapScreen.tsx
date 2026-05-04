@@ -1,7 +1,7 @@
 import React from 'react';
 import { SideScrollMapScreen } from '../shared/SideScrollMapScreen';
 import type { CharacterStatKey } from '../core';
-import type { CharacterAppearance } from '../../character/shared';
+import type { CharacterAppearance, CharacterShopResponse } from '../../character/shared';
 import type {
   BattleResultRewardResponse,
   MonsterBattleBootstrapResponse,
@@ -43,6 +43,9 @@ interface HoaLuMapScreenProps {
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
   onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
+  shop?: CharacterShopResponse | null;
+  onLoadShop?: () => Promise<CharacterShopResponse | null>;
+  onBuyShopOffer?: (offerKey: string) => Promise<string | null>;
 }
 
 export const HoaLuMapScreen: React.FC<HoaLuMapScreenProps> = (props) => (

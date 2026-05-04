@@ -33,7 +33,8 @@ namespace Twelve.Core.Tlv
         NpcTalkResponseRemake   = 46,   // RN-safe ack/dialog envelope for the reconstructed NPC talk request.
 
         // Java equipment commands — returned to original Java IDs per user decision 2026-05-04.
-        // ky.java/ks.java evidence: 96=shop/buy, 97=equip/unequip, 99=upgrade, 100=repair/use, 112=combine/forge.
+        // ky.java/ks.java evidence: 96=upgrade request, 97=upgrade result,
+        // 99=combine request, 100=combine result, 112=equip/unequip.
         EquipmentShopBuy        = 96,
         EquipmentEquipUnequip   = 97,
         EquipmentUpgrade        = 99,

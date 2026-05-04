@@ -17,6 +17,8 @@ import type {
   CharacterEquipmentItem,
   CharacterInventoryItem,
   CharacterSkillNode,
+  CharacterShopResponse,
+  CharacterShopOffer,
 } from '../../character/shared';
 import { resolveEquipmentIconAsset } from '../../character/shared';
 import {
@@ -72,7 +74,8 @@ export type MapCharacterDialogKind =
   | 'potential'
   | 'skills'
   | 'equipment'
-  | 'inventory';
+  | 'inventory'
+  | 'shop';
 
 export type CharacterStatKey = 'CuongLuc' | 'ThanPhap' | 'NoiLuc' | 'TheLuc';
 type DialogActionRunner = () => Promise<string | null> | undefined;
@@ -91,6 +94,9 @@ interface MapCharacterDialogsProps {
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
   onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
+  shop?: CharacterShopResponse | null;
+  onLoadShop?: () => Promise<CharacterShopResponse | null>;
+  onBuyShopOffer?: (offerKey: string) => Promise<string | null>;
 }
 
 const PRIMARY_STAT: Record<number, number> = { 0: 0, 1: 2, 2: 1 };
@@ -798,6 +804,104 @@ const InventoryDetailPanel: React.FC<{
 const buildEquippedKeySet = (equipment: CharacterEquipmentItem[]) =>
   new Set(equipment.filter(entry => entry.isEquipped).map(entry => entry.equipKey));
 
+const ShopDialog: React.FC<{
+  appearance: CharacterAppearance;
+  shop?: CharacterShopResponse | null;
+  pending: string | null;
+  onRunAction: (key: string, runner?: DialogActionRunner) => void;
+  onBuyShopOffer?: (offerKey: string) => Promise<string | null>;
+}> = ({ appearance, shop, pending, onRunAction, onBuyShopOffer }) => {
+  const [selectedOfferKey, setSelectedOfferKey] = useState<string | null>(null);
+  const offers = shop?.offers ?? [];
+  const selectedOffer = offers.find(offer => offer.offerKey === selectedOfferKey) ?? offers[0] ?? null;
+  const previewEquipment = selectedOffer?.equipment;
+  const previewAppearance = useMemo(() => {
+    if (!previewEquipment) {
+      return appearance;
+    }
+
+    const currentEquipment = appearance.equipment ?? [];
+    return {
+      ...appearance,
+      equipment: [
+        ...currentEquipment.filter(entry => entry.slot !== previewEquipment.slot),
+        { ...previewEquipment, isEquipped: true, contributesStats: previewEquipment.durability > 0 },
+      ],
+    };
+  }, [appearance, previewEquipment]);
+
+  const renderOffer = (offer: CharacterShopOffer, index: number) => {
+    const equipment = offer.equipment;
+    const selected = selectedOffer?.offerKey === offer.offerKey;
+    return (
+      <TouchableOpacity
+        key={offer.offerKey}
+        style={[styles.shopOfferRow, selected && styles.shopOfferRowSelected]}
+        onPress={() => setSelectedOfferKey(offer.offerKey)}
+      >
+        <View style={styles.shopOfferIconBox}>
+          {equipment ? (
+            <Image source={resolveEquipmentIcon(equipment) ?? INFO_ASSETS.itemchest} style={styles.inventoryCellIconImage} resizeMode="contain" />
+          ) : null}
+        </View>
+        <View style={styles.shopOfferTextBox}>
+          <Text style={styles.shopOfferName} numberOfLines={1}>{offer.displayName || `Tên món đồ ${index}`}</Text>
+          <Text style={styles.shopOfferPrice} numberOfLines={1}>Giá: {offer.priceQuan} Ken</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View style={styles.shopBody}>
+      <View style={styles.shopHeader}>
+        <View style={styles.shopAvatarBox}>
+          <CharacterRenderer appearance={previewAppearance} scale={0.9} />
+        </View>
+        <View style={styles.shopStatsGrid}>
+          <View style={styles.shopStatRow}>{valueBox('Công')}{valueBox(appearance.combat?.attack ?? 0)}</View>
+          <View style={styles.shopStatRow}>{valueBox('P.Thủ')}{valueBox(appearance.combat?.def ?? 0)}</View>
+          <View style={styles.shopStatRow}>{valueBox('C.Xác')}{valueBox(appearance.combat?.acc ?? 0)}</View>
+          <View style={styles.shopStatRow}>{valueBox('N.Tránh')}{valueBox(appearance.combat?.dodge ?? 0)}</View>
+          <View style={styles.shopStatRow}>{valueBox('S.Lực')}{valueBox(appearance.hp?.max ?? 0)}</View>
+          <View style={styles.shopStatRow}>{valueBox('C.Mạng')}{valueBox(appearance.combat?.crit ?? '0%')}</View>
+        </View>
+      </View>
+      <Divider />
+      <Text style={styles.shopTitle}>Tên món đồ 0 ({offers.length}/0)</Text>
+      <View style={styles.shopList}>{offers.map(renderOffer)}</View>
+      {selectedOffer ? (
+        <View style={styles.shopActionRow}>
+          <TouchableOpacity style={styles.shopActionButton} onPress={() => undefined}>
+            <Text style={styles.shopActionText}>Mặc thử</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.shopActionButton}
+            disabled={pending !== null || !onBuyShopOffer}
+            onPress={() => onRunAction(`shop-buy-${selectedOffer.offerKey}`, () => onBuyShopOffer?.(selectedOffer.offerKey))}
+          >
+            <Text style={styles.shopActionText}>Mua</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.shopActionButton} onPress={() => setSelectedOfferKey(selectedOffer.offerKey)}>
+            <Text style={styles.shopActionText}>C.Tiết</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {previewEquipment ? (
+        <View style={styles.shopDetailPanel}>
+          <Image source={resolveEquipmentIcon(previewEquipment) ?? INFO_ASSETS.itemchest} style={styles.shopDetailIcon} resizeMode="contain" />
+          <Text style={styles.shopDetailName} numberOfLines={1}>🔥 {previewEquipment.displayName}</Text>
+          <Text style={styles.shopDetailText}>+ Yêu cầu cấp {previewEquipment.requiredLevel}</Text>
+          {getEquipmentBonusRows(previewEquipment).slice(0, 3).map(row => (
+            <Text key={row} style={styles.shopDetailText} numberOfLines={1}>+ {row}</Text>
+          ))}
+        </View>
+      ) : null}
+      <Text style={styles.shopWalletText}>{appearance.quan ?? '0'}Ken</Text>
+    </View>
+  );
+};
+
 const sameKeySet = (left: Set<string>, right: Set<string>) => {
   if (left.size !== right.size) {
     return false;
@@ -1293,8 +1397,17 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
   onDiscardItem,
   onRepairEquipment,
   onUpgradeEquipment,
+  shop,
+  onLoadShop,
+  onBuyShopOffer,
 }) => {
   const [pending, setPending] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeDialog === 'shop') {
+      void onLoadShop?.();
+    }
+  }, [activeDialog, onLoadShop]);
 
   if (!activeDialog) {
     return null;
@@ -1317,7 +1430,7 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
       .finally(() => setPending(null));
   };
 
-  const dialogWidth = Math.min(SCREEN_W * 0.94, activeDialog === 'skills' ? 480 : 430);
+  const dialogWidth = Math.min(SCREEN_W * 0.94, activeDialog === 'skills' || activeDialog === 'shop' ? 480 : 430);
   const dialogMaxHeight = Math.min(
     SCREEN_H * 0.92,
     activeDialog === 'potential'
@@ -1386,6 +1499,15 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
               onDiscardItem={onDiscardItem}
               onRepairEquipment={onRepairEquipment}
               onUpgradeEquipment={onUpgradeEquipment}
+            />
+          )}
+          {activeDialog === 'shop' && (
+            <ShopDialog
+              appearance={appearance}
+              shop={shop}
+              pending={pending}
+              onRunAction={runAction}
+              onBuyShopOffer={onBuyShopOffer}
             />
           )}
         </ScrollView>

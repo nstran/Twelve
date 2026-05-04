@@ -202,6 +202,71 @@ namespace Twelve.Application.Players
             return BuildEquipmentEntry(definition, uniqueSeed);
         }
 
+        public PlayerShopRuntimeResponse BuildSystemShop(string shopKey)
+        {
+            var normalizedShopKey = string.IsNullOrWhiteSpace(shopKey) ? "equipment" : shopKey;
+            var equipmentDefinitions = GetEquipmentDefinitions()
+                .Values
+                .Where(definition => definition.IsEnabled)
+                .OrderBy(definition => definition.Slot)
+                .ThenBy(definition => definition.RequiredLevel)
+                .ThenBy(definition => definition.ResourceId)
+                .Take(10)
+                .ToArray();
+
+            var offers = new List<PlayerShopOfferView>(equipmentDefinitions.Length);
+            for (var i = 0; i < equipmentDefinitions.Length; i++)
+            {
+                var definition = equipmentDefinitions[i];
+                var previewEntry = BuildEquipmentEntry(definition, $"shop-preview:{normalizedShopKey}:{definition.TemplateKey}");
+                offers.Add(new PlayerShopOfferView(
+                    OfferKey: $"{normalizedShopKey}:{definition.TemplateKey}",
+                    ProductId: i,
+                    DisplayName: definition.DisplayName,
+                    Description: definition.Summary,
+                    ProductKind: "equipment",
+                    PriceQuan: ResolveShopPrice(definition),
+                    Equipment: ToEquipmentView(previewEntry),
+                    Item: null));
+            }
+
+            return new PlayerShopRuntimeResponse(
+                normalizedShopKey,
+                "Cửa hàng trang bị",
+                offers);
+        }
+
+        public PlayerShopOfferView? ResolveShopOffer(string shopKey, string offerKey)
+        {
+            var normalizedShopKey = string.IsNullOrWhiteSpace(shopKey) ? "equipment" : shopKey;
+            foreach (var offer in BuildSystemShop(normalizedShopKey).Offers)
+            {
+                if (string.Equals(offer.OfferKey, offerKey, StringComparison.Ordinal))
+                {
+                    return offer;
+                }
+            }
+            return null;
+        }
+
+        public PlayerEquipmentEntry? BuildShopEquipmentReward(string shopKey, string offerKey, string uniqueSeed)
+        {
+            var normalizedShopKey = string.IsNullOrWhiteSpace(shopKey) ? "equipment" : shopKey;
+            var prefix = $"{normalizedShopKey}:";
+            if (!offerKey.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var templateKey = offerKey[prefix.Length..];
+            if (!GetEquipmentDefinitions().TryGetValue(templateKey, out var definition) || !definition.IsEnabled)
+            {
+                return null;
+            }
+
+            return BuildEquipmentEntry(definition, uniqueSeed);
+        }
+
         public BattleLootReward CreateBattleLoot(BattleSessionState session, MonsterBattleTemplate battleTemplate)
         {
             var itemDefinitions = new List<PlayerItemDefinition>();
@@ -621,6 +686,13 @@ namespace Twelve.Application.Players
                 RepairCost: ParseInt(payload, "repairCost", -1),
                 IsEnabled: true,
                 Modifier: EquipmentStatModifierParser.Parse(entry.RawJson));
+        }
+
+        private static long ResolveShopPrice(PlayerEquipmentDefinition definition)
+        {
+            var requiredLevel = Math.Max(1, definition.RequiredLevel);
+            var rankFactor = Math.Max(1, definition.Rank + 1);
+            return requiredLevel * rankFactor * 1000L;
         }
 
         private static string BuildItemRawJson(PlayerItemDefinition definition) =>
