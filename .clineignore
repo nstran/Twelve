@@ -52,3 +52,12 @@ bower_components/
 *.zip
 *.rar
 *.7z
+
+# Environment and secret files
+*.env
+.env
+.env.*
+*.pfx
+*.key
+*.pem
+*.snk
