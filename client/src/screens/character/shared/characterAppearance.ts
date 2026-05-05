@@ -51,6 +51,23 @@ export interface CharacterSkillNode {
   canUpgrade: boolean;
 }
 
+export interface CharacterShopOffer {
+  offerKey: string;
+  productId: number;
+  displayName: string;
+  description: string;
+  productKind: string;
+  priceQuan: number;
+  equipment?: CharacterEquipmentItem | null;
+  item?: CharacterInventoryItem | null;
+}
+
+export interface CharacterShopResponse {
+  shopKey: string;
+  displayName: string;
+  offers: CharacterShopOffer[];
+}
+
 export interface CharacterEquipmentStatBreakdown {
   cuongLuc: number;
   thanPhap: number;

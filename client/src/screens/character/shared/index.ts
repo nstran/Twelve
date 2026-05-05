@@ -4,6 +4,8 @@ export type {
   CharacterInventoryItem,
   CharacterEquipmentItem,
   CharacterSkillNode,
+  CharacterShopOffer,
+  CharacterShopResponse,
 } from './characterAppearance';
 export {
   getEquipmentBandId,

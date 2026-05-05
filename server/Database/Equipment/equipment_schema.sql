@@ -50,3 +50,37 @@ CREATE TABLE IF NOT EXISTS ItemCatalog (
 
 CREATE INDEX IF NOT EXISTS idx_item_catalog_kind ON ItemCatalog(Kind);
 CREATE INDEX IF NOT EXISTS idx_item_catalog_resource_id ON ItemCatalog(ResourceId);
+
+-- Shop foundation — Remake policy 2026-05-04:
+-- Java client evidence proves shop/product wrappers (ia.java/gx.java/lq.java), but Java server
+-- product ids/prices are pending. These tables keep shop offers data-driven until final ids arrive.
+CREATE TABLE IF NOT EXISTS EquipmentShopCatalog (
+    Id BIGSERIAL PRIMARY KEY,
+    ShopKey TEXT NOT NULL UNIQUE,
+    DisplayName TEXT NOT NULL,
+    NpcKey TEXT NULL,
+    MapId TEXT NULL,
+    IsEnabled BOOLEAN NOT NULL DEFAULT TRUE,
+    UpdatedAt TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS EquipmentShopOffer (
+    Id BIGSERIAL PRIMARY KEY,
+    ShopKey TEXT NOT NULL REFERENCES EquipmentShopCatalog(ShopKey) ON DELETE CASCADE,
+    OfferKey TEXT NOT NULL UNIQUE,
+    EquipmentCatalogId BIGINT NULL REFERENCES EquipmentCatalog(Id) ON DELETE SET NULL,
+    ItemId INT NULL REFERENCES ItemCatalog(Id) ON DELETE SET NULL,
+    PriceQuan BIGINT NOT NULL DEFAULT 0,
+    SortOrder INT NOT NULL DEFAULT 0,
+    EvidenceStatus INT NOT NULL DEFAULT 1,
+    IsEnabled BOOLEAN NOT NULL DEFAULT TRUE,
+    UpdatedAt TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_equipment_shop_offer_one_product CHECK (
+        (EquipmentCatalogId IS NOT NULL AND ItemId IS NULL) OR
+        (EquipmentCatalogId IS NULL AND ItemId IS NOT NULL)
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_equipment_shop_offer_shop_key ON EquipmentShopOffer(ShopKey);
+CREATE INDEX IF NOT EXISTS idx_equipment_shop_offer_sort ON EquipmentShopOffer(ShopKey, SortOrder);
+

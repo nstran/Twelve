@@ -73,6 +73,7 @@ export default function App() {
   const [playerAppearance, setPlayerAppearance] = useState<PlayerAppearance>({
     genderIndex: 0, faceIndex: 0, hairIndex: 0, hairColorIndex: 0, skinColorIndex: 0, elementIndex: 0,
   });
+  const [shopState, setShopState] = useState<import('./src/screens/character/shared').CharacterShopResponse | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectMsg, setConnectMsg]   = useState('ĐANG KẾT NỐI CHIẾN TRƯỜNG...');
   const addLog = (msg: string) => console.log(msg);
@@ -438,6 +439,28 @@ export default function App() {
               const username = playerAppearance.username;
               if (!username) return null;
               const response = await playerRuntimeApi.repairEquipment(username, equipKey, 5010);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
+            onUpgradeEquipment={async (equipKey, materialItemIds) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.upgradeEquipment(username, equipKey, materialItemIds);
+              applyRuntimeResponse(response);
+              return response?.message ?? null;
+            }}
+            shop={shopState}
+            onLoadShop={async () => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.loadShop(username, 'equipment');
+              setShopState(response);
+              return response;
+            }}
+            onBuyShopOffer={async (offerKey) => {
+              const username = playerAppearance.username;
+              if (!username) return null;
+              const response = await playerRuntimeApi.buyShopOffer(username, 'equipment', offerKey);
               applyRuntimeResponse(response);
               return response?.message ?? null;
             }}

@@ -4,6 +4,88 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-04
 
+### [EQUIPMENT] Inventory JavaViewport responsive pass
+
+- Chỉnh inventory RN sang mô hình Java logical canvas responsive: giữ layout logical `340x600`, scale theo kích thước thiết bị bằng `useWindowDimensions` để bám tỷ lệ Java nhưng không vỡ trên iPhone/Android.
+- Evidence dùng từ `hh.java`: inventory screen có base canvas/device branch, equip slots/list viewport; hiện là lớp responsive đầu tiên, chưa phải full clone renderer `fg/dc/cu/ba`.
+- Files: `MapCharacterDialogs.tsx`, `MapCharacterDialogs.styles.ts`, `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Verification: `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass.
+
+### [EQUIPMENT] System shop implementation
+
+- Implement shop hệ thống/NPC end-to-end từ evidence `reference/raw/images/shop.jpg`: mở từ menu `Mua bán > Cửa hàng`, list offer, `Mặc thử`, `Mua`, `C.Tiết`, detail panel và ví Ken.
+- Server thêm shop contracts/API: `/player/runtime/shop`, `/player/runtime/shop/buy`, `GetShop(...)`, `BuyShopOffer(...)`; mua item tạo equipment instance mới, trừ Ken/Gold, lưu snapshot.
+- Shop offer hiện sinh từ `EquipmentCatalog` enabled definitions qua `PlayerContentCatalog.BuildSystemShop(...)`; product ids/prices/stat ranges vẫn là `RemakePolicy` cho tới khi có dump/server data gốc.
+- Files: `PlayerRuntimeContracts.cs`, `IPlayerRuntimeService.cs`, `PlayerContentCatalog.cs`, `PlayerRuntimeService.cs`, `Program.cs`, `characterAppearance.ts`, `CharacterStatus.api.ts`, `index.ts`, `MapCharacterDialogs.tsx`, `MapCharacterDialogs.styles.ts`, `SideScrollMapScreen.tsx`, `HoaLuMapScreen.tsx`, `App.tsx`, `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+
+### [EQUIPMENT] Shop UI screenshot evidence
+
+- User bổ sung `reference/raw/images/shop.jpg`; xác nhận đây là shop hệ thống/NPC shop, không phải auction/chợ người chơi.
+- Ghi nhận UI Java: header stat nhân vật, danh sách item `Tên món đồ 0 (10/0)`, dòng `Giá: 0 Ken`, menu `Mặc thử`/`Mua`/`C.Tiết`, popup detail có icon hệ + `+ Yêu cầu cấp -1`, ví `1.000.000Ken`, softkey `Đóng`.
+- Boundary: ảnh chứng minh UI/wording và hệ thống shop; chưa chứng minh product ids/prices/stat ranges, nên DB-first shop seed hiện vẫn là `RemakePolicy`.
+- Files: `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+
+### [EQUIPMENT] Combine/Forge cmd 99/100 end-to-end
+
+- Implement cmd `99/100` theo Java TLV shape: `99` response tags `186/1`; `100` request/response dùng `186/187/83?/114?/106?/132/1/188` như `ks.java`/`ky.java` evidence.
+- Thêm `EquipmentCombineService` và `PlayerCombineEquipmentRuntimeRequest`; handler chỉ parse/build packet, gameplay mutation nằm trong service/runtime.
+- Remake policy rõ ràng: recipe Java server chưa có evidence, hiện combine deterministic consume Huyết thạch + Kim thạch + Quan để tăng trang bị tháo ra thêm `+1`, max `+15`, không fail/destroy.
+- Wire DI/runtime qua `IPlayerRuntimeService.CombineEquipment(...)`, lưu equipment/inventory/gold rồi trả current Quan qua tag `132`.
+- Files: `EquipmentCombineService.cs`, `PlayerRuntimeContracts.cs`, `IPlayerRuntimeService.cs`, `PlayerRuntimeService.cs`, `EquipmentCommandHandler.cs`, `ServiceCollectionExtensions.cs`, `CommandCodes.cs`, `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+
+### [EQUIPMENT] Upgrade UI from Java screenshots
+
+- User bổ sung ảnh `reference/raw/images/upgrade.png`, `reference/raw/images/upgrade1.png`, `reference/raw/images/upgrade2.jpg`; ghi nhận UI Java có dòng `Phí kết hợp: ... KEN`, slot trang bị/nguyên liệu, text cơ hội thành công và popup `Nâng cấp`/`Không`.
+- RN inventory/equipment dialog đã mở prompt `Nâng cấp` theo evidence ảnh: hiển thị phí, vật phẩm yêu cầu, cơ hội, nút xác nhận; logic material/rate vẫn là `RemakePolicy` mirror từ server.
+- Thread prop `onUpgradeEquipment(equipKey, materialItemIds)` qua `SideScrollMapScreen` và `HoaLuMapScreen`, rồi nối từ `App.tsx` vào `playerRuntimeApi.upgradeEquipment(...)` để flow map upgrade chạy end-to-end và merge snapshot trả về.
+- Files: `App.tsx`, `MapCharacterDialogs.tsx`, `MapCharacterDialogs.styles.ts`, `SideScrollMapScreen.tsx`, `HoaLuMapScreen.tsx`, `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Verification: `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass.
+
+### [EQUIPMENT] Upgrade material policy + shop DB foundation
+
+- User chốt upgrade dùng `huyet_thach`, `kim_thach`, `charm_1`, `charm_2`, `charm_3` từ `client/assets/items/`; ghi rõ là `RemakePolicy`, không phải Java server evidence.
+- Thêm raw remake ids `HuyetThach(5003)`, `KimThach(5004)`, `LuckCharm1(5008)`, `LuckCharm2(5009)`, `LuckCharm3(5010)`.
+- Thêm `EquipmentUpgradeService`: tách policy khỏi handler; mỗi cấp nâng đều cần cả Huyết thạch + Kim thạch + phí Quan (`targetLevel² * 1000`), consume material/charm, roll basis-point, success tăng `ll.j`, fail dưới `+10` giữ nguyên, fail từ `+10` downgrade 1 cấp.
+- `EquipmentCommandHandler` nối cmd `96/97`: `96` ack target, `97` parse repeated tag `114` material/charm ids và trả đúng TLV shape Java.
+- DB foundation: thêm `EquipmentShopCatalog`/`EquipmentShopOffer`, shop phát triển DB-first để cập nhật product ids/prices sau.
+- Files: `PlayerRuntimeContracts.cs`, `PlayerContentCatalog.cs`, `equipment_seed.sql`, `EquipmentUpgradeService.cs`, `PlayerRuntimeService.cs`, `EquipmentCommandHandler.cs`, `equipment_schema.sql`, `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Verification: `dotnet build server\Twelve.Server\Twelve.Server.csproj` pass `0 Warning(s), 0 Error(s)`.
+
+### [EQUIPMENT] Equipment Java command handlers Phase 1
+
+- Thêm `EquipmentCommandHandler` xử lý các command Java `96/97/99/100/112` và wire vào `PacketDispatcher`.
+- Cmd `112` equip/unequip đã functional qua `PlayerRuntimeService.UpdateEquipment`, response đúng TLV shape `83/175/157` theo `ky.java`.
+- Cmd `96/97/99/100` trả stub TLV evidence-correct với message "đang phát triển"; không mutate upgrade/combine vì thiếu template/roll policy Java server.
+- Files: `EquipmentCommandHandler.cs`, `ServiceCollectionExtensions.cs`, `EQUIPMENT_SYSTEM_RECONSTRUCTION.md`.
+- Verification: `dotnet build server\Twelve.Server\Twelve.Server.csproj` pass `0 Warning(s), 0 Error(s)`.
+
+### [EQUIPMENT] Monster Bootstrap command migration + Equipment command IDs restored
+
+- Migrate `MonsterBootstrapRequest/Response` từ `96/97` sang `240/241` (server + client) để trả lại command `96/97/99/100/112` cho Equipment Java gốc.
+- Thêm equipment command IDs vào `CommandCode`: `EquipmentShopBuy(96)`, `EquipmentEquipUnequip(97)`, `EquipmentUpgrade(99)`, `EquipmentRepairUse(100)`, `EquipmentCombineForge(112)`.
+- Files: `CommandCodes.cs`, `Protocol.ts`.
+- Verification: `dotnet build` pass `0 Warning(s), 0 Error(s)`.
+
+### [EQUIPMENT] Equipment TLV serializer foundation (ky.java/ks.java)
+
+- Thêm equipment tag constants vào `TagCode` trong `CommandCodes.cs` theo Java parser `ky.a(ku,int,int,boolean)`.
+- Tạo `EquipmentPacketFactory` để serialize equipment minimal/full records:
+  - minimal: tags `84/4/139/27`;
+  - full: minimal + detail tags + đủ 15 stat tags `lb.java`.
+- `PlayerCharacterPacketFactory` append full equipment records dưới repeated tag `83` vào `CharacterInfo` payload để Java client có thể parse equipment khi login.
+- Boundary: chỉ ghi tag có Java evidence; chưa tuyên bố byte-perfect với client thật cho mọi command `96/97/99/100/112`.
+- Verification: `dotnet build server\Twelve.Server\Twelve.Server.csproj` pass `0 Warning(s), 0 Error(s)`.
+
+### [EQUIPMENT] Priority Java-alignment fixes: slot mapping, stat model, inventory capacity, repair gate
+
+- Sửa `PlayerEquipmentSlot.Ring` từ raw `3` (sai) sang `5` theo Java `ll.e` evidence.
+- Mở rộng `PlayerStatModifier` đủ 15 field `lb.java` (`a..o`); chỉ aggregate 10 field có status evidence, 5 special stats (`j/k/l/m/o`) lưu/sum cho round-trip/display.
+- `EquipmentStatModifierParser` parse thêm 5 special stat tags (`200/201/202/203/221`).
+- `PlayerContentCatalog.SumModifiers` và `BuildEquipmentRawJson` serialize đủ 15 field.
+- `CanRepair` thêm gate `RepairCost > 0` theo Java `ll.c()`.
+- `IsInventoryFullForNewEquipment` bám Java `go.b()`: chỉ đếm equipment bag, item stack theo quantity khi `StackCap > 1`.
+- Files: `PlayerAggregate.cs`, `PlayerStatPipeline.cs`, `EquipmentStatModifierParser.cs`, `PlayerContentCatalog.cs`, `PlayerRuntimeService.cs`.
+
 ### [MAP] Shared side-scroll map shell
 
 - Common hóa map side-scroll để tránh copy [`HoaLuMapScreen`](client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx) cho nhiều bản đồ:

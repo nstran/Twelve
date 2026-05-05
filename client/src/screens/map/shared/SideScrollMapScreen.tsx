@@ -125,6 +125,10 @@ interface Props {
   onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
+  onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
+  shop?: import('../../character/shared').CharacterShopResponse | null;
+  onLoadShop?: () => Promise<import('../../character/shared').CharacterShopResponse | null>;
+  onBuyShopOffer?: (offerKey: string) => Promise<string | null>;
 }
 
 interface MapDebugOverlayState {
@@ -183,6 +187,10 @@ export const SideScrollMapScreen: React.FC<Props> = ({
   onDiscardEquipment,
   onDiscardItem,
   onRepairEquipment,
+  onUpgradeEquipment,
+  shop,
+  onLoadShop,
+  onBuyShopOffer,
 }) => {
   const sceneConfig = useMemo(
     () => resolveSideScrollMapSceneConfig(mapId, roomId),
@@ -490,6 +498,9 @@ export const SideScrollMapScreen: React.FC<Props> = ({
       onOpenSkills: () => setActiveCharacterDialog('skills'),
       onOpenEquipment: () => setActiveCharacterDialog('equipment'),
       onOpenInventory: () => setActiveCharacterDialog('inventory'),
+      onOpenWeaponShop: () => setActiveCharacterDialog('shop'),
+      onOpenArmorShop: () => setActiveCharacterDialog('shop'),
+      onOpenConsumableShop: () => setActiveCharacterDialog('shop'),
       onOpenQuests: () => {
         setMenuVisible(false);
         setMissionDialogVisible(true);
@@ -1175,6 +1186,10 @@ export const SideScrollMapScreen: React.FC<Props> = ({
         onDiscardEquipment={onDiscardEquipment}
         onDiscardItem={onDiscardItem}
         onRepairEquipment={onRepairEquipment}
+        onUpgradeEquipment={onUpgradeEquipment}
+        shop={shop}
+        onLoadShop={onLoadShop}
+        onBuyShopOffer={onBuyShopOffer}
       />
 
       {missionDialogVisible && (

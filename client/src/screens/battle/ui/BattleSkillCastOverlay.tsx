@@ -13,8 +13,8 @@ const ASSET_BLOOD_THROW = require('../../../../assets/battle/10_hit_effects/bloo
 const ASSET_MAGIC_GATE = require('../../../../assets/skill/01_battle_skill_shared_confirmed/named_effects/magicgate.png');
 const ASSET_MINI_EXPLOSION = require('../../../../assets/skill/01_battle_skill_shared_confirmed/named_effects/miniexplosionfire.png');
 const ASSET_SKILLUPDOWNSTAT = require('../../../../assets/skill/01_battle_skill_shared_confirmed/named_effects/skillupdownstat.png');
-const ASSET_ZAP = require('../../../../assets/skill/01_battle_skill_shared_confirmed/battle_scene_support/zap.png');
-const ASSET_ICE = require('../../../../assets/skill/01_battle_skill_shared_confirmed/battle_scene_support/ice.png');
+const ASSET_ZAP = require('../../../../assets/map/07_monsters/zap.png');
+const ASSET_ICE = require('../../../../assets/map/07_monsters/ice.png');
 const ASSET_IN_OVERLAY = require('../../../../assets/skill/02_elemental_runtime_families/group_100x_hoa_fire_likely/family_1003_io_elementVariant-0/runtime_png/1003003.png');
 
 const FRAME_TICK_MS = 40;

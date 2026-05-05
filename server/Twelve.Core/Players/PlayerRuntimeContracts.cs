@@ -50,6 +50,25 @@ namespace Twelve.Core.Players
         /// Remake policy (2026-05-03): consumed by cmd 48 repair flow, restores equipment durability to max.
         /// </summary>
         RepairHammer = 30099,
+
+        // ── Upgrade materials — Remake policy 2026-05-04, user-approved ──
+        // Java server material ids are still pending; these are remake-config ids
+        // matching existing ItemCatalog seed and client asset icons.
+
+        /// <summary>Huyết thạch — primary upgrade material for +0..+9.</summary>
+        HuyetThach = 5003,
+
+        /// <summary>Kim thạch — primary upgrade material for +10..+15.</summary>
+        KimThach = 5004,
+
+        /// <summary>Bùa may mắn cấp 1 — +5% success bonus (500 basis points).</summary>
+        LuckCharm1 = 5008,
+
+        /// <summary>Bùa may mắn cấp 2 — +10% success bonus (1000 basis points).</summary>
+        LuckCharm2 = 5009,
+
+        /// <summary>Bùa may mắn cấp 3 — +15% success bonus (1500 basis points).</summary>
+        LuckCharm3 = 5010,
     }
 
     public enum PlayerItemKind
@@ -177,6 +196,23 @@ namespace Twelve.Core.Players
         string? Message = null
     );
 
+    public sealed record PlayerShopOfferView(
+        string OfferKey,
+        int ProductId,
+        string DisplayName,
+        string Description,
+        string ProductKind,
+        long PriceQuan,
+        PlayerEquipmentItemView? Equipment,
+        PlayerInventoryItemView? Item
+    );
+
+    public sealed record PlayerShopRuntimeResponse(
+        string ShopKey,
+        string DisplayName,
+        IReadOnlyList<PlayerShopOfferView> Offers
+    );
+
     public sealed record PlayerRuntimeRequest(
         string Username
     );
@@ -228,12 +264,30 @@ namespace Twelve.Core.Players
         int RepairItemId
     );
 
-    // Upgrade skeleton — remake policy 2026-05-03:
-    // must unequip first; real roll is disabled until original stone/charm list is verified.
+    // Upgrade policy — Java evidence proves cmd 96/97 TLV shape; material ids/rates are remake policy.
     public sealed record PlayerUpgradeEquipmentRuntimeRequest(
         string Username,
         string EquipKey,
         IReadOnlyList<int> MaterialItemIds
+    );
+
+    // Combine/Forge policy — Java evidence proves cmd 99/100 TLV shape; recipe is remake policy.
+    public sealed record PlayerCombineEquipmentRuntimeRequest(
+        string Username,
+        string EquipKey,
+        IReadOnlyList<int> MaterialItemIds
+    );
+
+    // System/NPC shop — Java screenshot proves UI, product ids/prices are RemakePolicy.
+    public sealed record PlayerShopRuntimeRequest(
+        string Username,
+        string ShopKey
+    );
+
+    public sealed record PlayerShopBuyRuntimeRequest(
+        string Username,
+        string ShopKey,
+        string OfferKey
     );
 
     // Open-egg / đập trứng skeleton — remake policy 2026-05-03:

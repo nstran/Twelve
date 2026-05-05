@@ -8,9 +8,17 @@ namespace Twelve.Application.Players
 {
     public sealed class PlayerCharacterPacketFactory
     {
+        private readonly PlayerContentCatalog _contentCatalog;
+
+        public PlayerCharacterPacketFactory(PlayerContentCatalog contentCatalog)
+        {
+            _contentCatalog = contentCatalog;
+        }
+
         public byte[] CreateCharacterInfoPacket(PlayerAggregate aggregate)
         {
             var tags = BuildCharacterInfoTags(aggregate);
+            AppendFullEquipmentTags(tags, aggregate.Equipment);
             var payload = tags.SelectMany(tag => tag).ToArray();
             return TlvCodec.BuildPacket(CommandCode.CharacterInfo, payload, tags.Count);
         }
@@ -69,6 +77,25 @@ namespace Twelve.Application.Players
                 TlvCodec.MakeTag((int)TagCode.NeTranh, derived.Dodge),
                 TlvCodec.MakeTag((int)TagCode.ChiMang, derived.Crit),
             };
+        }
+
+        private void AppendFullEquipmentTags(List<byte[]> tags, IReadOnlyList<PlayerEquipmentEntry> equipment)
+        {
+            foreach (var entry in equipment)
+            {
+                var definition = string.IsNullOrWhiteSpace(entry.TemplateKey)
+                    ? null
+                    : _contentCatalog.GetEquipmentDefinition(entry.TemplateKey);
+                if (definition is null)
+                {
+                    // Java evidence: tag 83 wraps one nested ll record. Minimal record is still
+                    // parseable by ky.a(..., bl2=false) if catalog evidence is temporarily missing.
+                    tags.Add(TlvCodec.MakeTag((int)TagCode.EquipmentArray, EquipmentPacketFactory.BuildMinimalRecord(entry)));
+                    continue;
+                }
+
+                tags.Add(TlvCodec.MakeTag((int)TagCode.EquipmentArray, EquipmentPacketFactory.BuildFullRecord(entry, definition)));
+            }
         }
 
         private static string ResolveTitlePrimary(Player player)

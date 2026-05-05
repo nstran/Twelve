@@ -136,7 +136,11 @@ namespace Twelve.Application.Players
             var definition = ResolveEquipment(entry);
             var isBroken = entry.MaxDurability > 0 && entry.Durability <= 0;
             var contributesStats = entry.IsEquipped && !isBroken;
-            var canRepair = entry.MaxDurability > 0 && entry.Durability < entry.MaxDurability;
+            // Java evidence: ll.c() returns true when repairCost > 0, meaning the item
+            // is repairable by design. Combined with durability damage check for UI gate.
+            var canRepair = entry.MaxDurability > 0
+                         && entry.Durability < entry.MaxDurability
+                         && definition.RepairCost > 0;
 
             return new PlayerEquipmentItemView(
                 EquipKey: entry.EquipKey,
@@ -195,6 +199,71 @@ namespace Twelve.Application.Players
         public PlayerEquipmentEntry BuildEquipmentEntryFromTemplate(string templateKey, string uniqueSeed)
         {
             var definition = GetRequiredEquipmentDefinition(templateKey);
+            return BuildEquipmentEntry(definition, uniqueSeed);
+        }
+
+        public PlayerShopRuntimeResponse BuildSystemShop(string shopKey)
+        {
+            var normalizedShopKey = string.IsNullOrWhiteSpace(shopKey) ? "equipment" : shopKey;
+            var equipmentDefinitions = GetEquipmentDefinitions()
+                .Values
+                .Where(definition => definition.IsEnabled)
+                .OrderBy(definition => definition.Slot)
+                .ThenBy(definition => definition.RequiredLevel)
+                .ThenBy(definition => definition.ResourceId)
+                .Take(10)
+                .ToArray();
+
+            var offers = new List<PlayerShopOfferView>(equipmentDefinitions.Length);
+            for (var i = 0; i < equipmentDefinitions.Length; i++)
+            {
+                var definition = equipmentDefinitions[i];
+                var previewEntry = BuildEquipmentEntry(definition, $"shop-preview:{normalizedShopKey}:{definition.TemplateKey}");
+                offers.Add(new PlayerShopOfferView(
+                    OfferKey: $"{normalizedShopKey}:{definition.TemplateKey}",
+                    ProductId: i,
+                    DisplayName: definition.DisplayName,
+                    Description: definition.Summary,
+                    ProductKind: "equipment",
+                    PriceQuan: ResolveShopPrice(definition),
+                    Equipment: ToEquipmentView(previewEntry),
+                    Item: null));
+            }
+
+            return new PlayerShopRuntimeResponse(
+                normalizedShopKey,
+                "Cửa hàng trang bị",
+                offers);
+        }
+
+        public PlayerShopOfferView? ResolveShopOffer(string shopKey, string offerKey)
+        {
+            var normalizedShopKey = string.IsNullOrWhiteSpace(shopKey) ? "equipment" : shopKey;
+            foreach (var offer in BuildSystemShop(normalizedShopKey).Offers)
+            {
+                if (string.Equals(offer.OfferKey, offerKey, StringComparison.Ordinal))
+                {
+                    return offer;
+                }
+            }
+            return null;
+        }
+
+        public PlayerEquipmentEntry? BuildShopEquipmentReward(string shopKey, string offerKey, string uniqueSeed)
+        {
+            var normalizedShopKey = string.IsNullOrWhiteSpace(shopKey) ? "equipment" : shopKey;
+            var prefix = $"{normalizedShopKey}:";
+            if (!offerKey.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var templateKey = offerKey[prefix.Length..];
+            if (!GetEquipmentDefinitions().TryGetValue(templateKey, out var definition) || !definition.IsEnabled)
+            {
+                return null;
+            }
+
             return BuildEquipmentEntry(definition, uniqueSeed);
         }
 
@@ -361,6 +430,12 @@ namespace Twelve.Application.Players
             return SumModifiers(modifiers);
         }
 
+        /// <summary>
+        /// Sum all 15 lb.java stat fields across equipped modifiers.
+        /// Java evidence: lb.java fields a-o; aggregation proven for a,b,c,d,e,f,g,h,i,n
+        /// via da.java/com.mg.sq.a.java status formulas. Special fields j,k,l,m,o are
+        /// summed for storage/display but combat formula application is pending.
+        /// </summary>
         private static PlayerStatModifier SumModifiers(IEnumerable<PlayerStatModifier> modifiers)
         {
             var cuongLuc = 0;
@@ -373,6 +448,12 @@ namespace Twelve.Application.Players
             var defense = 0;
             var dodge = 0;
             var maxHp = 0;
+            // Java evidence: lb.j/k/l/m/o special stats parsed/displayable; combat formula pending
+            var damageAbsorbPercent = 0;
+            var armorPiercePercent = 0;
+            var blockPercent = 0;
+            var revivePercent = 0;
+            var hpPercent = 0;
 
             foreach (var m in modifiers)
             {
@@ -386,6 +467,11 @@ namespace Twelve.Application.Players
                 defense += m.Defense;
                 dodge += m.Dodge;
                 maxHp += m.MaxHp;
+                damageAbsorbPercent += m.DamageAbsorbPercent;
+                armorPiercePercent += m.ArmorPiercePercent;
+                blockPercent += m.BlockPercent;
+                revivePercent += m.RevivePercent;
+                hpPercent += m.HpPercent;
             }
 
             return new PlayerStatModifier(
@@ -398,7 +484,12 @@ namespace Twelve.Application.Players
                 Crit: crit,
                 Defense: defense,
                 Dodge: dodge,
-                MaxHp: maxHp);
+                MaxHp: maxHp,
+                DamageAbsorbPercent: damageAbsorbPercent,
+                ArmorPiercePercent: armorPiercePercent,
+                BlockPercent: blockPercent,
+                RevivePercent: revivePercent,
+                HpPercent: hpPercent);
         }
 
         public bool IsRepairMaterial(int itemId) => itemId == (int)PlayerItemId.RepairHammer;
@@ -597,6 +688,13 @@ namespace Twelve.Application.Players
                 Modifier: EquipmentStatModifierParser.Parse(entry.RawJson));
         }
 
+        private static long ResolveShopPrice(PlayerEquipmentDefinition definition)
+        {
+            var requiredLevel = Math.Max(1, definition.RequiredLevel);
+            var rankFactor = Math.Max(1, definition.Rank + 1);
+            return requiredLevel * rankFactor * 1000L;
+        }
+
         private static string BuildItemRawJson(PlayerItemDefinition definition) =>
             JsonSerializer.Serialize(new
             {
@@ -656,7 +754,13 @@ namespace Twelve.Application.Players
                     crit = definition.Modifier.Crit,
                     defense = definition.Modifier.Defense,
                     dodge = definition.Modifier.Dodge,
-                    maxHp = definition.Modifier.MaxHp
+                    maxHp = definition.Modifier.MaxHp,
+                    // Java evidence: lb.j/k/l/m/o special stats; serialized for round-trip fidelity
+                    damageAbsorbPercent = definition.Modifier.DamageAbsorbPercent,
+                    armorPiercePercent = definition.Modifier.ArmorPiercePercent,
+                    blockPercent = definition.Modifier.BlockPercent,
+                    revivePercent = definition.Modifier.RevivePercent,
+                    hpPercent = definition.Modifier.HpPercent
                 }
             });
 
@@ -748,8 +852,11 @@ namespace Twelve.Application.Players
             {
                 [5001] = new PlayerItemDefinition(5001, "Tiểu Hồi Phục", "Khôi phục HP ngoài battle; lượng hồi scale theo Cường Lực/thiếu HP.", 20, true, 35, 0, "hp", "potion_red", PlayerItemKind.Consumable, PlayerItemEvidenceStatus.RemakePolicy, null, null),
                 [5002] = new PlayerItemDefinition(5002, "Tiểu Nội Dược", "Khôi phục MP ngoài battle; lượng hồi scale theo Nội Lực/thiếu MP.", 20, true, 0, 35, "mp", "potion_blue", PlayerItemKind.Consumable, PlayerItemEvidenceStatus.RemakePolicy, null, null),
-                [5003] = new PlayerItemDefinition(5003, "Huyết thạch", "Nguyên liệu remake dùng cho nâng cấp/trang bị; công thức gốc pending danh sách đá/bùa Java.", 99, false, 0, 0, "none", "huyet_thach", PlayerItemKind.Material, PlayerItemEvidenceStatus.RemakePolicy, null, null),
-                [5004] = new PlayerItemDefinition(5004, "Kim thạch", "Nguyên liệu remake dùng cho nâng cấp/trang bị; công thức gốc pending danh sách đá/bùa Java.", 99, false, 0, 0, "none", "kim_thach", PlayerItemKind.Material, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [(int)PlayerItemId.HuyetThach] = new PlayerItemDefinition((int)PlayerItemId.HuyetThach, "Huyết thạch", "Remake policy: nguyên liệu chính nâng cấp trang bị từ +0 đến +9; Java server item id/rate pending.", 99, false, 0, 0, "none", "huyet_thach", PlayerItemKind.Material, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [(int)PlayerItemId.KimThach] = new PlayerItemDefinition((int)PlayerItemId.KimThach, "Kim thạch", "Remake policy: nguyên liệu chính nâng cấp trang bị từ +10 đến +15; Java server item id/rate pending.", 99, false, 0, 0, "none", "kim_thach", PlayerItemKind.Material, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [(int)PlayerItemId.LuckCharm1] = new PlayerItemDefinition((int)PlayerItemId.LuckCharm1, "Bùa may mắn I", "Remake policy: bùa hỗ trợ nâng cấp, cộng 5% tỉ lệ thành công; Java server item id/rate pending.", 99, false, 0, 0, "none", "charm_1", PlayerItemKind.Material, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [(int)PlayerItemId.LuckCharm2] = new PlayerItemDefinition((int)PlayerItemId.LuckCharm2, "Bùa may mắn II", "Remake policy: bùa hỗ trợ nâng cấp, cộng 10% tỉ lệ thành công; Java server item id/rate pending.", 99, false, 0, 0, "none", "charm_2", PlayerItemKind.Material, PlayerItemEvidenceStatus.RemakePolicy, null, null),
+                [(int)PlayerItemId.LuckCharm3] = new PlayerItemDefinition((int)PlayerItemId.LuckCharm3, "Bùa may mắn III", "Remake policy: bùa hỗ trợ nâng cấp, cộng 15% tỉ lệ thành công; Java server item id/rate pending.", 99, false, 0, 0, "none", "charm_3", PlayerItemKind.Material, PlayerItemEvidenceStatus.RemakePolicy, null, null),
                 [5005] = new PlayerItemDefinition(5005, "Trung Hồi Phục", "Khôi phục HP ngoài battle; lượng hồi scale theo Cường Lực/thiếu HP.", 20, true, 70, 0, "hp", "potion_blue", PlayerItemKind.Consumable, PlayerItemEvidenceStatus.RemakePolicy, null, null),
                 [5006] = new PlayerItemDefinition(5006, "Tiểu Nội Dược", "Khôi phục MP ngoài battle; lượng hồi scale theo Nội Lực/thiếu MP.", 20, true, 0, 35, "mp", "potion_blue", PlayerItemKind.Consumable, PlayerItemEvidenceStatus.RemakePolicy, null, null),
                 [5007] = new PlayerItemDefinition(5007, "Trái Đào", "Khôi phục HP/MP ngoài battle; lượng hồi scale theo Cường Lực và Nội Lực.", 20, true, 500, 250, "hp_mp", "peach", PlayerItemKind.Consumable, PlayerItemEvidenceStatus.RemakePolicy, null, null),

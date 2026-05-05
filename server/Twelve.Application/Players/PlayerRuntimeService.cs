@@ -12,15 +12,21 @@ namespace Twelve.Application.Players
         private readonly IPlayerRepository _playerRepository;
         private readonly IPlayerAggregateRepository _playerAggregateRepository;
         private readonly PlayerContentCatalog _contentCatalog;
+        private readonly IEquipmentUpgradeService _equipmentUpgradeService;
+        private readonly IEquipmentCombineService _equipmentCombineService;
 
         public PlayerRuntimeService(
             IPlayerRepository playerRepository,
             IPlayerAggregateRepository playerAggregateRepository,
-            PlayerContentCatalog contentCatalog)
+            PlayerContentCatalog contentCatalog,
+            IEquipmentUpgradeService equipmentUpgradeService,
+            IEquipmentCombineService equipmentCombineService)
         {
             _playerRepository = playerRepository;
             _playerAggregateRepository = playerAggregateRepository;
             _contentCatalog = contentCatalog;
+            _equipmentUpgradeService = equipmentUpgradeService;
+            _equipmentCombineService = equipmentCombineService;
         }
 
         public PlayerRuntimeResponse? GetSnapshot(PlayerRuntimeRequest request)
@@ -416,23 +422,126 @@ namespace Twelve.Application.Players
                 return null;
             }
 
-            var target = aggregate.Equipment.FirstOrDefault(entry => entry.EquipKey == request.EquipKey);
-            if (target is null)
+            // Remake policy 2026-05-04: user approved Huyet thach/Kim thach/luck charms
+            // as upgrade materials while Java server material ids/rates remain pending.
+            var result = _equipmentUpgradeService.Apply(aggregate, request);
+            if (result.QuanCost > 0)
             {
-                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong tim thay trang bi.");
+                aggregate.Core.Gold -= result.QuanCost;
+                if (aggregate.Core.Gold < 0)
+                {
+                    aggregate.Core.Gold = 0;
+                }
+
+                _playerRepository.UpdateAsync(aggregate.Core).GetAwaiter().GetResult();
             }
 
-            // Remake policy (2026-05-03): upgrade requires the item to be unequipped.
-            // Pending/Unverified: original stone/charm ids and success/destroy roll are not verified,
-            // so server exposes a safe skeleton endpoint but does not mutate equipment yet.
-            if (target.IsEquipped)
-            {
-                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Phai thao trang bi truoc khi nang cap.");
-            }
+            _playerAggregateRepository.SaveCollectionsAsync(
+                aggregate.Core.Id,
+                result.Equipment,
+                result.Inventory,
+                aggregate.Skills).GetAwaiter().GetResult();
 
             return new PlayerRuntimeResponse(
-                BuildSnapshot(aggregate),
-                "Chua bat nang cap: pending danh sach da/bua goc va ti le roll Java.");
+                BuildSnapshot(ReloadAggregate(aggregate.Core.Id)),
+                result.Message);
+        }
+
+        public PlayerRuntimeResponse? CombineEquipment(PlayerCombineEquipmentRuntimeRequest request)
+        {
+            var aggregate = LoadAggregate(request.Username);
+            if (aggregate is null)
+            {
+                return null;
+            }
+
+            // Java evidence: cmd 99/100 TLV shapes only. Recipe and cost are remake policy.
+            var result = _equipmentCombineService.Apply(aggregate, request);
+            if (result.QuanCost > 0)
+            {
+                aggregate.Core.Gold -= result.QuanCost;
+                if (aggregate.Core.Gold < 0)
+                {
+                    aggregate.Core.Gold = 0;
+                }
+
+                _playerRepository.UpdateAsync(aggregate.Core).GetAwaiter().GetResult();
+            }
+
+            _playerAggregateRepository.SaveCollectionsAsync(
+                aggregate.Core.Id,
+                result.Equipment,
+                result.Inventory,
+                aggregate.Skills).GetAwaiter().GetResult();
+
+            return new PlayerRuntimeResponse(
+                BuildSnapshot(ReloadAggregate(aggregate.Core.Id)),
+                result.Message);
+        }
+
+        public PlayerShopRuntimeResponse? GetShop(PlayerShopRuntimeRequest request)
+        {
+            var aggregate = LoadAggregate(request.Username);
+            if (aggregate is null)
+            {
+                return null;
+            }
+
+            // Java evidence: shop screenshot/ia.java prove system shop UI; offer ids/prices are remake policy.
+            return _contentCatalog.BuildSystemShop(request.ShopKey);
+        }
+
+        public PlayerRuntimeResponse? BuyShopOffer(PlayerShopBuyRuntimeRequest request)
+        {
+            var aggregate = LoadAggregate(request.Username);
+            if (aggregate is null)
+            {
+                return null;
+            }
+
+            var offer = _contentCatalog.ResolveShopOffer(request.ShopKey, request.OfferKey);
+            if (offer is null || offer.Equipment is null)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong tim thay vat pham trong cua hang.");
+            }
+
+            if (aggregate.Core.Gold < offer.PriceQuan)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Khong du Ken de mua vat pham.");
+            }
+
+            if (IsInventoryFullForNewEquipment(aggregate))
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Tui do da day.");
+            }
+
+            var rewardEntry = _contentCatalog.BuildShopEquipmentReward(
+                request.ShopKey,
+                request.OfferKey,
+                $"shop:{request.ShopKey}:{aggregate.Core.Id}:{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
+            if (rewardEntry is null)
+            {
+                return new PlayerRuntimeResponse(BuildSnapshot(aggregate), "Cau hinh cua hang khong hop le.");
+            }
+
+            aggregate.Core.Gold -= offer.PriceQuan;
+            if (aggregate.Core.Gold < 0)
+            {
+                aggregate.Core.Gold = 0;
+            }
+
+            var equipment = aggregate.Equipment.ToList();
+            equipment.Add(rewardEntry);
+            _playerRepository.UpdateAsync(aggregate.Core).GetAwaiter().GetResult();
+            _playerAggregateRepository.SaveCollectionsAsync(
+                aggregate.Core.Id,
+                equipment,
+                aggregate.Inventory,
+                aggregate.Skills).GetAwaiter().GetResult();
+
+            return new PlayerRuntimeResponse(
+                BuildSnapshot(ReloadAggregate(aggregate.Core.Id)),
+                $"Da mua {offer.DisplayName}.");
         }
 
         public PlayerRuntimeResponse? OpenEgg(PlayerOpenEggRuntimeRequest request)
@@ -551,12 +660,28 @@ namespace Twelve.Application.Players
             _playerAggregateRepository.GetByPlayerIdAsync(playerId).GetAwaiter().GetResult()
             ?? throw new System.InvalidOperationException("Failed to reload player aggregate.");
 
-        private static bool IsInventoryFullForNewEquipment(PlayerAggregate aggregate)
+        private bool IsInventoryFullForNewEquipment(PlayerAggregate aggregate)
         {
-            // Java evidence: go.n default inventory capacity is 50 and go.b() counts
-            // equipment bag + currently worn equipment + item stacks against that capacity.
+            // Java evidence: go.b() starts from all equipment, subtracts equipped items,
+            // then adds inventory item usage before comparing with go.n default capacity 50.
             const int DefaultInventoryCapacity = 50;
-            var occupiedSlots = aggregate.Equipment.Count + aggregate.Inventory.Count;
+            var occupiedSlots = aggregate.Equipment.Count(entry => !entry.IsEquipped);
+
+            foreach (var stack in aggregate.Inventory)
+            {
+                var definition = _contentCatalog.GetItemDefinition(stack.ItemId);
+                if (definition is not null && definition.StackCap > 1)
+                {
+                    // Java evidence: lm.e == 7 stacks count by quantity in go.b().
+                    // Backend currently preserves stack semantics through StackCap, not raw lm.e.
+                    occupiedSlots += stack.Quantity;
+                }
+                else
+                {
+                    occupiedSlots++;
+                }
+            }
+
             return occupiedSlots >= DefaultInventoryCapacity;
         }
 

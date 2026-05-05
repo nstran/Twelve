@@ -629,14 +629,56 @@ for (int i = 0; i < lh2.D.length; i++) {
 
 ### 7.4 Network Commands
 
-| Cmd | Tên | Mô tả |
-|-----|-----|-------|
-| 51 | processPickupItem | Nhặt item/equip rơi → dispatch to `b.c(ll)` |
-| 96 | requestUpgradeEquip | Check/yêu cầu nâng cấp. `ks.a().b(sessionKey, action, equipKey)` hoặc final send `ks.a().b(sessionKey, equipKeys[], itemIds[], itemQtys[], fee)` |
-| 97 | modifiedUpgradeEquip | Kết quả nâng cấp → `b.d(key, msg, readyStatus, gold)` |
-| 99 | requestCombineEquip | Check/yêu cầu kết hợp item/material. `ks.a().b(sessionKey, action, itemId, qty)` / `b.e(session, msg)` |
-| 100 | modifiedCombineEquip | Kết quả kết hợp → `b.a(key, msg, status, gold)` |
-| 112 | processEquipChange | Mặc/tháo trang bị → `b.a(equipKey, gold)` hoặc gold/count update; đọc tag `175` nhưng client không dùng text này |
+| Cmd | Tên Java | Server `CommandCode` | Mô tả |
+|-----|----------|---------------------|-------|
+| 51 | processPickupItem | *(chưa map)* | Nhặt item/equip rơi → dispatch to `b.c(ll)` |
+| 96 | requestUpgradeEquip | `EquipmentShopBuy` | Check/yêu cầu nâng cấp. `ks.a().b(sessionKey, action, equipKey)` hoặc final send `ks.a().b(sessionKey, equipKeys[], itemIds[], itemQtys[], fee)` |
+| 97 | modifiedUpgradeEquip | `EquipmentEquipUnequip` | Kết quả nâng cấp → `b.d(key, msg, readyStatus, gold)` |
+| 99 | requestCombineEquip | `EquipmentUpgrade` | Check/yêu cầu kết hợp item/material. `ks.a().b(sessionKey, action, itemId, qty)` / `b.e(session, msg)` |
+| 100 | modifiedCombineEquip | `EquipmentRepairUse` | Kết quả kết hợp → `b.a(key, msg, status, gold)` |
+| 112 | processEquipChange | `EquipmentCombineForge` | Mặc/tháo trang bị → `b.a(equipKey, gold)` hoặc gold/count update; đọc tag `175` nhưng client không dùng text này |
+
+> **Server command ownership (2026-05-04):** Commands `96/97/99/100/112` đã được trả lại cho equipment Java gốc trong `CommandCode` enum. Monster Bootstrap remake trước đó dùng `96/97` đã migrate sang `240/241`. Xem nhật ký `§15` entry `2026-05-04 — Monster Bootstrap migration`.
+
+#### Cmd `99/100` detail (`requestCombineEquip` / `modifiedCombineEquip`)
+
+Java evidence từ `ks.java` và `ky.java`:
+
+```java
+// ks.java case 99: client sends no tags
+case 99: {
+    break;
+}
+
+// ks.java case 100: client sends session/action plus equipKey OR itemId/count
+case 100: {
+    kx2.a((short)186, kw2.C);
+    kx2.a((short)187, kw2.A);
+    if (kw2.Q != null) {
+        kx2.a((short)83, kw2.Q);
+    }
+    if (kw2.M <= 0) break;
+    kx2.b((short)114, kw2.M);
+    kx2.b((short)106, kw2.g);
+    break;
+}
+```
+
+Server response shape verified from `ky.java`:
+
+```text
+cmd 99 response:  tag 186 session, tag 1 message
+cmd 100 response: tag 186 session, tag 187 action, optional tag 83 equipKey,
+                  optional tag 114 itemId + tag 106 count,
+                  tag 132 gold/Quan, tag 1 message, tag 188 readyStatus
+```
+
+Remake policy `2026-05-05` for current implementation:
+- Java client proves TLV shape only; original server combine recipes/material IDs/rates remain `Pending/Unverified`.
+- `cmd 99` opens/acks combine using session key = username until original server session token is recovered.
+- `cmd 100` mutates one unequipped equipment target by consuming Huyết thạch + Kim thạch and Quan.
+- Current deterministic policy: add `+1` enhancement level, capped at `+15`; no destroy/random failure until original recipe/roll evidence or explicit user policy is added.
+- Material/cost formula is `RemakePolicy`, not Java evidence: Huyết thạch quantity = target level × 2, Kim thạch quantity = `1` / `2` from target `+5` / `4` from target `+10`, Quan = target level² × `1500`.
 
 #### Cmd `112` detail (`processEquipChange`)
 
@@ -856,6 +898,15 @@ Shop `ia` giữ:
 - `boolean[] z = new boolean[4]`: slot nào là đồ mới chọn mua.
 - `ll[] u = new ll[4]`: đồ thật nhân vật đang mặc ở slot `0..3`.
 - `cz s`: panel preview nhân vật.
+
+User screenshot evidence `2026-05-05` từ `reference/raw/images/shop.jpg`:
+- Đây là shop hệ thống/NPC shop, không phải auction/chợ người chơi.
+- Header nhân vật hiển thị avatar + các stat `Công`, `P.Thủ`, `C.Xác`, `N.Tránh`, `S.Lực`, `C.Mạng`.
+- Danh sách product dùng tiêu đề dạng `Tên món đồ 0 (10/0)` và từng dòng hiển thị icon, tên item, `Giá: 0 Ken`.
+- Menu context của product khớp Java evidence: `Mặc thử`, `Mua`, `C.Tiết`.
+- Detail popup hiển thị icon ở giữa/trên, tên item có icon hệ phía trước, dòng `+ Yêu cầu cấp -1`.
+- Góc dưới phải hiển thị ví tiền dạng `1.000.000Ken`; softkey phải là `Đóng`.
+- Screenshot chứng minh UI/wording đơn vị `Ken`; server remake hiện vẫn dùng `Quan`, cần tách rõ UI Java evidence và economy remake policy.
 
 Menu cho product equipment:
 - Nếu đúng giới tính và đang mặc thử item đó: `"Cởi ra"`, `"Mua"`, `"C.Tiết"`.
@@ -2024,6 +2075,38 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
 
 > Section này đã được dọn ngày `2026-05-03` để tránh trùng lặp dài với `CHANGELOG.md`. Chi tiết lịch sử thay đổi đầy đủ xem `CHANGELOG.md` mục `[EQUIPMENT]`. Tài liệu này chỉ giữ lại các mốc ảnh hưởng trực tiếp tới spec phục dựng.
 
+### 2026-05-05 — Inventory JavaViewport responsive pass
+
+- Java evidence:
+  - `hh.java` constructor uses Java inventory screen base `240x(320-ba.a)` or `320x(v.u-ba.a)` depending `hh.B()` device branch.
+  - `hh.java` places six equipment slots as `32x32` Java logical pixels and a bag list/grid viewport; current RN inventory already had the reconstructed equipment/body/bag layout.
+- Remake/client policy:
+  - React Native now keeps the existing Java-like logical inventory canvas at `340x600`, then scales it through a viewport using device dimensions so visual proportions remain Java-like on iPhone/Android.
+  - This is a first responsive port layer, not a full byte/pixel clone of `fg/dc/cu/ba` renderers yet.
+- Files code đã sửa:
+  - `client/src/screens/map/core/MapCharacterDialogs.tsx`
+  - `client/src/screens/map/core/MapCharacterDialogs.styles.ts`
+
+### 2026-05-05 — Combine/Forge cmd 99/100 end-to-end
+
+- Java evidence:
+  - `ks.java` case `99` sends empty payload.
+  - `ks.java` case `100` sends tags `186/187/83?` hoặc `186/187/114/106`.
+  - `ky.java` case `99` parses response tags `186/1`.
+  - `ky.java` case `100` parses response tags `186/187/83?/114?/106?/132/1/188`.
+- Remake policy:
+  - Recipe/material/cost are not Java server evidence.
+  - Current implementation uses deterministic combine: unequipped equipment + Huyết thạch + Kim thạch + Quan → target level `+1`, max `+15`.
+  - No random fail/destroy in combine until original recipe/roll evidence or explicit policy is provided.
+- Files code đã sửa:
+  - `server/Twelve.Application/Players/EquipmentCombineService.cs`
+  - `server/Twelve.Core/Players/PlayerRuntimeContracts.cs`
+  - `server/Twelve.Core/Interfaces/IPlayerRuntimeService.cs`
+  - `server/Twelve.Application/Players/PlayerRuntimeService.cs`
+  - `server/Twelve.Application/Handlers/EquipmentCommandHandler.cs`
+  - `server/Twelve.Application/ServiceCollectionExtensions.cs`
+  - `server/Twelve.Core/Tlv/CommandCodes.cs`
+
 ### 2026-05-03 — Java client equipment audit
 
 - Đã gom evidence client-side core từ:
@@ -2633,3 +2716,232 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - Không đổi server API, DB schema, combat formula, stat aggregation hoặc repair flow.
 - Verification:
   - Pending trong bước sau của task: TypeScript check client.
+
+### 2026-05-04 — Priority Java-alignment fixes for equipment slots, stats, inventory capacity, repair gate
+
+- Code đã sửa:
+  - `server/Twelve.Core/Entities/PlayerAggregate.cs`
+    - Sửa `PlayerEquipmentSlot.Ring` từ raw `3` sang raw `5` theo Java `ll.e`; giữ `3` là Boots/Giày chưa bật trong Phase 1.
+  - `server/Twelve.Core/GameLogic/PlayerStatPipeline.cs`
+    - Mở rộng `PlayerStatModifier` đủ 15 field `lb.java` (`a..o`).
+    - Chỉ áp dụng công thức/status cho nhóm đã có evidence: `a,b,c,d,e,f,g,h,i,n`; các field `j,k,l,m,o` chỉ được lưu/sum để round-trip/display, combat formula pending.
+  - `server/Twelve.Core/GameLogic/EquipmentStatModifierParser.cs`
+    - Parse thêm `DamageAbsorbPercent/tag 200`, `ArmorPiercePercent/tag 201`, `BlockPercent/tag 202`, `RevivePercent/tag 203`, `HpPercent/tag 221`.
+  - `server/Twelve.Application/Players/PlayerContentCatalog.cs`
+    - `CanRepair` nay yêu cầu item có `RepairCost > 0` theo Java `ll.c()` và đang mất durability.
+    - `SumModifiers` và `BuildEquipmentRawJson` giữ đủ 15 stat field để không mất dữ liệu khi serialize/aggregate view.
+  - `server/Twelve.Application/Players/PlayerRuntimeService.cs`
+    - Sửa inventory full check theo Java `go.b()`: chỉ đếm equipment trong túi (`!IsEquipped`), cộng item stack theo quantity khi backend có `StackCap > 1`, rồi so với capacity mặc định `go.n = 50`.
+- Java evidence applied:
+  - `ll.e`: `0=Armor`, `1=Weapon`, `2=Helmet`, `3=Boots`, `5=Ring`, `8=Wing/remake special`.
+  - `lb.java/ky.java`: stat block có 15 field/tags `a..o`.
+  - `go.b()`: capacity tính equipment bag + inventory item usage, không tính trang bị đang mặc.
+  - `ll.c()`: repairable khi `repairCost > 0`.
+- Remake policy retained:
+  - Repair vẫn dùng 1 hammer raw itemId `30099`, hồi full durability, không mất Quan.
+  - `StackCap > 1` là backend proxy cho stack semantics vì hiện chưa lưu raw `lm.e` trên item stack runtime.
+- Boundary:
+  - Không thêm combat formula cho special stats `j/k/l/m/o`.
+  - Không đổi DB schema, API public contract client, hoặc reward pool/rate.
+  - Không tự bật Boots/e=3 trong Phase 1.
+- Verification:
+  - `dotnet build Twelve.sln` pass: `0 Warning(s), 0 Error(s)`.
+
+### 2026-05-04 — Equipment TLV packet serializer (ky.java/ks.java evidence)
+
+- Code đã sửa/tạo:
+  - `server/Twelve.Core/Tlv/CommandCodes.cs`
+    - Thêm equipment tag constants vào `TagCode` enum: `EquipmentArray(83)`, `EquipmentSlot(84)`, `ResourceId(4)`, `EnhancementLevel(27)`, `CurrentDurability(139)`, `DisplayName(26)`, `RequiredLevel(135)`, `ElementIcon(15)`, `EquipmentGender(16)`, `EquipmentRank(138)`, `MaxDurability(144)`, `Summary(117)`, `UnknownS(156)`, `Tradeable(85)`, `RepairCost(190)`, `DamageAbsorbPercent(200)`, `ArmorPiercePercent(201)`, `BlockPercent(202)`, `RevivePercent(203)`, `AttackPercent(204)`, `HpPercent(221)`.
+  - `server/Twelve.Application/Players/EquipmentPacketFactory.cs` (mới)
+    - TLV serializer cho equipment theo Java parser `ky.a(ku,int,int,boolean)` ở `ky.java:1269-1306`.
+    - `BuildMinimalRecord(entry)`: tags `84/4/139/27` — slot/resourceId/durability/enhanceLevel.
+    - `BuildFullRecord(entry, definition)`: tất cả minimal + detail + 15 stat tags `lb.java`.
+    - `BuildEquipmentArrayPayload(records)`: wrap mỗi record trong tag `83` nested TLV.
+    - `BuildFullEquipmentPayload(equipment, catalog)` và `BuildMinimalEquipmentPayload(equipment)` convenience methods.
+  - `server/Twelve.Application/Players/PlayerCharacterPacketFactory.cs`
+    - Thêm constructor DI nhận `PlayerContentCatalog`.
+    - `CreateCharacterInfoPacket` giờ append full equipment records (tag `83`) vào payload `CharacterInfo` (CMD 7) để Java client parse được equipment khi login.
+- Java evidence applied:
+  - Tag IDs và data types trích từ `ky.java` parser + `lb.java` stat block + `ks.java` sender.
+  - Minimal mode (bl2=false): tags `84(byte)`, `4(int)`, `139(int)`, `27(int)`.
+  - Full mode (bl2=true): thêm `26(string)`, `135(int)`, `15(byte)`, `16(byte)`, `138(byte)`, `144(int)`, `117(string)`, `156(byte)`, `85(byte)`, `190(byte)`, + 15 stat int tags.
+  - Equipment array container: tag `83` wraps nested TLV record per equipment.
+- Boundary:
+  - Serializer chỉ ghi tags đã có evidence từ Java parser; không tự thêm custom tag.
+  - Chưa test byte-perfect với Java client thật; đây là foundation layer.
+  - Không đổi DB schema, combat formula, hoặc client RN code.
+- Verification:
+  - `dotnet build Twelve.sln` pass: `0 Warning(s), 0 Error(s)`.
+
+### 2026-05-04 — Monster Bootstrap migration, Equipment Java command IDs restored
+
+- Code đã sửa:
+  - `server/Twelve.Core/Tlv/CommandCodes.cs`
+    - Trả lại command `96/97/99/100/112` cho equipment Java gốc trong `CommandCode`: `EquipmentShopBuy(96)`, `EquipmentEquipUnequip(97)`, `EquipmentUpgrade(99)`, `EquipmentRepairUse(100)`, `EquipmentCombineForge(112)`.
+    - Migrate command remake-only `MonsterBootstrapRequest/Response` từ `96/97` sang `240/241` để tránh conflict với equipment Java.
+  - `client/src/network/Protocol.ts`
+    - Đồng bộ RN client command `MONSTER_BOOTSTRAP_REQUEST/RESPONSE` sang `240/241`.
+- Java evidence applied:
+  - `ky.java` response parser dùng các command equipment gốc `96/97/99/100/112` cho shop/buy, equip/unequip/upgrade-ish result, upgrade, repair/use và combine/forge callback shape.
+  - `ks.java` sender evidence xác nhận payload command `96/97` có tags equipment/session như `83`, `186`, `187`, `114`, `106`.
+- Remake policy separated:
+  - `240/241` không phải command Java gốc; đây là command RN remake riêng cho battle bootstrap hiện tại, được user chốt ngày `2026-05-04` để giải phóng `96/97` cho equipment.
+- Boundary:
+  - Entry này chỉ xử lý command-id ownership/server-client migration; chưa implement handler nghiệp vụ cho `96/97/99/100/112`.
+  - Handler equipment tiếp theo phải tiếp tục bám exact tag shape từ `ky.java/ks.java`, không reuse Monster Bootstrap payload cũ.
+- Verification:
+  - `dotnet build server\Twelve.Server\Twelve.Server.csproj` pass: `0 Warning(s), 0 Error(s)`.
+
+### 2026-05-04 — Equipment command handlers (96/97/99/100/112) Phase 1
+
+- Code đã tạo/sửa:
+  - `server/Twelve.Application/Handlers/EquipmentCommandHandler.cs` (mới)
+    - Handler duy nhất xử lý 5 equipment commands, dispatch theo `request.Command`.
+    - **Cmd 112 (EquipmentCombineForge)** — equip/unequip: fully functional.
+      - Parse tag `83` (equipKey) từ client.
+      - Toggle equip state qua `PlayerRuntimeService.UpdateEquipment`.
+      - Response TLV shape: tag `83` + tag `175` (message) + tag `157` (gold long) — đúng `ky.java` case 112.
+    - **Cmd 96 (EquipmentShopBuy)** — upgrade request: stub.
+      - Parse tag `83` (equipKey).
+      - Response TLV shape: tag `186` + tag `83` + tag `1` (message) — đúng `ky.java` case 96.
+    - **Cmd 97 (EquipmentEquipUnequip)** — upgrade result: stub.
+      - Parse tags `186`, `187`, `83`.
+      - Response TLV shape: tag `186` + `187` + `83` + `1` + `188` — đúng `ky.java` case 97.
+    - **Cmd 99 (EquipmentUpgrade)** — combine request: stub.
+      - Response TLV shape: tag `186` + tag `1` — đúng `ky.java` case 99.
+    - **Cmd 100 (EquipmentRepairUse)** — combine result: stub.
+      - Same shape as cmd 97 — đúng `ky.java` case 100.
+    - Stub commands trả message "đang phát triển" để Java client parse không crash nhưng server không mutate state.
+  - `server/Twelve.Application/ServiceCollectionExtensions.cs`
+    - Đăng ký `EquipmentCommandHandler` singleton.
+    - Wire 5 commands vào `PacketDispatcher`: `96/97/99/100/112`.
+- Java evidence applied:
+  - Tag IDs và response shape từ `ky.java` case `96/97/99/100/112`.
+  - Sender payload từ `ks.java` case `96/97/100/112`.
+  - Cmd 112 equip/unequip toggle logic bám `processEquipChange` callback shape.
+- Remake policy:
+  - Cmd 112 equip/unequip dùng `PlayerRuntimeService.UpdateEquipment` hiện có (remake logic).
+  - Cmd 96/97/99/100 là stub pending upgrade/combine policy — không tự bịa roll/formula.
+- Boundary:
+  - Không đổi DB schema, client RN code, combat formula.
+  - Upgrade/combine mutation chờ template seed evidence + user chốt policy.
+- Verification:
+  - `dotnet build server\Twelve.Server\Twelve.Server.csproj` pass: `0 Warning(s), 0 Error(s)`.
+
+### 2026-05-04 — Extracted meta/resource audit for template seed evidence
+
+- Files audited:
+  - `reference/redecoded/character_meta_parsed.csv`
+  - `reference/redecoded/extracted_meta/offline/*.meta`
+  - `server/Database/Equipment/equipment_schema.sql`
+  - `server/Database/Equipment/equipment_seed.sql`
+  - `server/Twelve.Infrastructure/Repositories/EquipmentCatalogRepository.cs`
+- Java/client evidence found:
+  - `character_meta_parsed.csv` maps `meta_id -> base_image_id` and per-family animation layout: `family_count`, `family_slot`, `frame_width_divisor`, `frame_count`.
+  - Binary `.meta` files are 171-byte visual/compositor metadata blobs; sampled `97199`, `98099`, `99999` match visual frame/layout data already reflected by CSV.
+  - This evidence supports `ResourceId`/sprite-family reconstruction, not gameplay template stats.
+- Evidence not found in these dumps:
+  - No verified equipment template stats (`lb.a..o`).
+  - No verified `RequiredLevel`, `Rank`, `RepairCost`, trade flag, upgrade material ids, success rates, downgrade/break rules, or shop prices.
+  - No verified raw item ids for upgrade/forge materials beyond current remake seed comments.
+- Boundary/update to implementation policy:
+  - Do **not** promote current `EquipmentCatalog` stats/material/rate seed to Java evidence based on `.meta` files.
+  - Continue marking current DB equipment/item seed values as `PendingUnverified` or `RemakePolicy` unless a Java packet/server dump/template config proves them.
+  - Upgrade/combine handlers must remain stub/safe until template stat/material/rate evidence is provided or user explicitly approves remake policy.
+
+### 2026-05-04 — Upgrade material policy + shop DB foundation (RemakePolicy)
+
+- User-approved remake policy:
+  - Upgrade uses `huyet_thach`, `kim_thach`, `charm_1`, `charm_2`, `charm_3` assets from `client/assets/items/`.
+  - Shop can be developed DB-first; final Java/server item IDs may be inserted later.
+- Code/data changed:
+  - `server/Twelve.Core/Players/PlayerRuntimeContracts.cs`
+    - Added raw remake ids: `HuyetThach(5003)`, `KimThach(5004)`, `LuckCharm1(5008)`, `LuckCharm2(5009)`, `LuckCharm3(5010)`.
+  - `server/Twelve.Application/Players/PlayerContentCatalog.cs`
+    - Added/updated in-memory item definitions with `EvidenceStatus.RemakePolicy` and icon kinds `huyet_thach`, `kim_thach`, `charm_1`, `charm_2`, `charm_3`.
+  - `server/Database/Equipment/equipment_seed.sql`
+    - Seeded upgrade materials/luck charms in `ItemCatalog` with `EvidenceStatus=1` (`RemakePolicy`).
+  - `server/Twelve.Application/Players/EquipmentUpgradeService.cs` (new)
+    - `IEquipmentUpgradeService` + config policy separated from TLV handler.
+    - Requires unequipped equipment.
+    - Every upgrade from `+0 -> +1` through `+14 -> +15` requires both `HuyetThach` and `KimThach`.
+    - Material quantity is server remake policy by target level: `HuyetThach = targetLevel`; `KimThach = 1/2/3/5/8` by tier (`+1..+3`, `+4..+6`, `+7..+9`, `+10..+12`, `+13..+15`).
+    - Quan fee is server remake policy: `targetLevel * targetLevel * 1000` Quan.
+    - Luck charms add basis-point success bonus: `+5%`, `+10%`, `+15%`.
+    - Fail below `+10` keeps level; fail from `+10` downgrades by `1`; no destroy yet.
+  - `server/Twelve.Application/Players/PlayerRuntimeService.cs`
+    - Runtime upgrade now delegates to `IEquipmentUpgradeService`, subtracts Quan from `Player.Gold`, and persists equipment/inventory/player wallet results.
+  - `server/Twelve.Application/Handlers/EquipmentCommandHandler.cs`
+    - `cmd 96` acknowledges selected upgrade target with Java TLV shape `186/83/1`.
+    - `cmd 97` now parses repeated tag `114` material/charm ids from raw TLV, calls runtime upgrade, and responds using Java TLV shape `186/187/83/114/106/132/1/188`.
+  - `server/Database/Equipment/equipment_schema.sql`
+    - Added `EquipmentShopCatalog` and `EquipmentShopOffer` DB foundation. These tables are RemakePolicy until final product ids/prices are supplied.
+- Java evidence retained:
+  - `ky.java/ks.java` prove command/tag shape for `96/97`; upgrade material ids/rates are not Java evidence.
+- Boundary:
+  - No combine mutation yet.
+  - No destroy-on-fail yet.
+  - Current upgrade rates/material ids/quantities/Quan fee are config/remake policy, not original Java server behavior.
+- Verification:
+  - `dotnet build server\Twelve.Server\Twelve.Server.csproj` pass: `0 Warning(s), 0 Error(s)`.
+
+### 2026-05-05 — System shop implementation from screenshot evidence
+
+- Implemented first end-to-end system/NPC shop flow based on `reference/raw/images/shop.jpg` and `ia.java`/`lq.java` evidence.
+- Server runtime:
+  - Added `PlayerShopOfferView`, `PlayerShopRuntimeResponse`, `PlayerShopRuntimeRequest`, `PlayerShopBuyRuntimeRequest`.
+  - Added `IPlayerRuntimeService.GetShop(...)` and `BuyShopOffer(...)`.
+  - Added HTTP endpoints `/player/runtime/shop` and `/player/runtime/shop/buy`.
+  - Current offers are generated from enabled `EquipmentCatalog` definitions through `PlayerContentCatalog.BuildSystemShop(...)`; this is DB/catalog-first and remains `RemakePolicy` until original product ids/prices are available.
+  - Buying checks wallet and inventory capacity, creates a new equipment instance from the selected template, subtracts Ken/Gold, saves aggregate collections, and returns updated runtime snapshot.
+- React Native:
+  - Added shop response/offer types and runtime API methods.
+  - Added map menu path `Mua bán > Cửa hàng` to open shop dialog.
+  - Added Java-inspired shop dialog: character stat header, product list with `Giá: ... Ken`, actions `Mặc thử`/`Mua`/`C.Tiết`, detail panel, and wallet text.
+- Boundary:
+  - Screenshot proves UI and system shop ownership, not original product ids/prices/stat ranges.
+  - Auction/player market remains a separate future module.
+
+### 2026-05-05 — Shop UI screenshot evidence
+
+- User supplied `reference/raw/images/shop.jpg`.
+- Evidence observed:
+  - Shop is system/NPC shop UI, not auction/player market.
+  - Character stat header shows avatar and labels `Công`, `P.Thủ`, `C.Xác`, `N.Tránh`, `S.Lực`, `C.Mạng`.
+  - Product list shows category/title counter `Tên món đồ 0 (10/0)`, item rows with icon/name and `Giá: 0 Ken`.
+  - Product context menu has `Mặc thử`, `Mua`, `C.Tiết`, matching `ia.java` menu evidence.
+  - Detail popup shows centered item icon, elemental icon before item name, and `+ Yêu cầu cấp -1`.
+  - Bottom wallet displays `1.000.000Ken`; softkey is `Đóng`.
+- Boundary:
+  - This confirms Java shop UI/wording and reinforces that current `EquipmentShopCatalog`/`EquipmentShopOffer` is system shop foundation.
+  - It does not prove original product ids/prices/stat ranges. Current DB-first shop seed remains `RemakePolicy` until product data is supplied.
+
+### 2026-05-05 — Upgrade UI evidence from screenshots (Java UI evidence + Remake client integration)
+
+- New visual evidence supplied by user:
+  - `reference/raw/images/upgrade.png`
+  - `reference/raw/images/upgrade1.png`
+  - `reference/raw/images/upgrade2.jpg`
+- Java UI evidence observed:
+  - Upgrade/combine screen title uses `Phí kết hợp: {amount} KEN`.
+  - Top row shows selected equipment in the left slot, then material/charm slots to the right.
+  - Chance line is displayed as `Có {percent}% cơ hội nâng cấp thành công`.
+  - Confirmation popup asks `Bạn có muốn nâng cấp không?` with buttons `Nâng cấp` and `Không`.
+  - Success state displays `Nâng cấp thành công` with a `Tiếp tục` button.
+  - Inventory counter like `26/50`, `35/50` is shown under the upgrade/chance area.
+- Client remake integration:
+  - `client/src/screens/map/core/MapCharacterDialogs.tsx`
+    - Added Java-inspired upgrade prompt inside inventory/equipment dialog instead of leaving `Nâng cấp` menu inert.
+    - Prompt mirrors the screenshot flow: fee line, equipment/material slots, success chance text, requirements, `Nâng cấp`/`Không` confirmation buttons.
+    - Uses existing remake material ids `5003/5004/5008/5009/5010` and mirrors current server remake policy locally for display only.
+  - `client/src/screens/map/core/MapCharacterDialogs.styles.ts`
+    - Added separated `StyleSheet` rules for the upgrade prompt; no complex inline styles for the new UI.
+  - `client/src/screens/map/shared/SideScrollMapScreen.tsx` and `client/src/screens/map/hoa-lu/HoaLuMapScreen.tsx`
+    - Threaded optional `onUpgradeEquipment(equipKey, materialItemIds)` prop down to the dialog.
+  - `client/App.tsx`
+    - Connected `onUpgradeEquipment` on the Hoa Lu map path to `playerRuntimeApi.upgradeEquipment(...)`, then merges the returned runtime snapshot back into current appearance.
+- Boundary:
+  - Screenshot proves UI text/layout direction and KEN wording, not original Java server material ids/rates/fee formulas.
+  - Current RN prompt fee/rate/material quantities remain RemakePolicy display mirrored from `EquipmentUpgradeService`.
+- Verification:
+  - `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass.

@@ -6,6 +6,7 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { PopupMenu } from '../../../components/controls/PopupMenu/PopupMenu';
@@ -17,6 +18,8 @@ import type {
   CharacterEquipmentItem,
   CharacterInventoryItem,
   CharacterSkillNode,
+  CharacterShopResponse,
+  CharacterShopOffer,
 } from '../../character/shared';
 import { resolveEquipmentIconAsset } from '../../character/shared';
 import {
@@ -36,7 +39,7 @@ const EI_DISP_H = Math.round(EI_H * EI_SCALE);
 const INFO_ASSETS = {
   skilltree: require('../../../../assets/skill/00_skill_tree_ui_confirmed/skill_tree_board/increase.png'),
   hidenobj: require('../../../../assets/ui/12_info/hidenobj.png'),
-  itemchest: require('../../../../assets/ui/12_info/itemchest.png'),
+  itemchest: require('../../../../assets/hud/02_gauge_and_chest/itemchest.png'),
 };
 
 const INVENTORY_ITEM_ASSETS: Record<string, ReturnType<typeof require>> = {
@@ -62,7 +65,7 @@ const SKILL_UI_ASSETS = {
   decrease: require('../../../../assets/skill/00_skill_tree_ui_confirmed/skill_tree_board/decrease.png'),
 };
 const HUD_ASSETS = {
-  btinscrease: require('../../../../assets/hud/01_button_markers/btinscrease.png'),
+  btinscrease: require('../../../../assets/ui/12_info/btinscrease.png'),
 };
 const HIDDEN_SLOT_SIZE = 47;
 const STAT_ARROW_FRAME_SIZE = 12;
@@ -72,7 +75,8 @@ export type MapCharacterDialogKind =
   | 'potential'
   | 'skills'
   | 'equipment'
-  | 'inventory';
+  | 'inventory'
+  | 'shop';
 
 export type CharacterStatKey = 'CuongLuc' | 'ThanPhap' | 'NoiLuc' | 'TheLuc';
 type DialogActionRunner = () => Promise<string | null> | undefined;
@@ -90,6 +94,10 @@ interface MapCharacterDialogsProps {
   onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
+  onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
+  shop?: CharacterShopResponse | null;
+  onLoadShop?: () => Promise<CharacterShopResponse | null>;
+  onBuyShopOffer?: (offerKey: string) => Promise<string | null>;
 }
 
 const PRIMARY_STAT: Record<number, number> = { 0: 0, 1: 2, 2: 1 };
@@ -550,7 +558,8 @@ const EquipmentDialog: React.FC<{
   onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment }) => {
+  onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment, onUpgradeEquipment }) => {
   return (
     <InventoryShell
       appearance={appearance}
@@ -563,6 +572,7 @@ const EquipmentDialog: React.FC<{
       onDiscardEquipment={onDiscardEquipment}
       onDiscardItem={onDiscardItem}
       onRepairEquipment={onRepairEquipment}
+      onUpgradeEquipment={onUpgradeEquipment}
     />
   );
 };
@@ -795,6 +805,104 @@ const InventoryDetailPanel: React.FC<{
 const buildEquippedKeySet = (equipment: CharacterEquipmentItem[]) =>
   new Set(equipment.filter(entry => entry.isEquipped).map(entry => entry.equipKey));
 
+const ShopDialog: React.FC<{
+  appearance: CharacterAppearance;
+  shop?: CharacterShopResponse | null;
+  pending: string | null;
+  onRunAction: (key: string, runner?: DialogActionRunner) => void;
+  onBuyShopOffer?: (offerKey: string) => Promise<string | null>;
+}> = ({ appearance, shop, pending, onRunAction, onBuyShopOffer }) => {
+  const [selectedOfferKey, setSelectedOfferKey] = useState<string | null>(null);
+  const offers = shop?.offers ?? [];
+  const selectedOffer = offers.find(offer => offer.offerKey === selectedOfferKey) ?? offers[0] ?? null;
+  const previewEquipment = selectedOffer?.equipment;
+  const previewAppearance = useMemo(() => {
+    if (!previewEquipment) {
+      return appearance;
+    }
+
+    const currentEquipment = appearance.equipment ?? [];
+    return {
+      ...appearance,
+      equipment: [
+        ...currentEquipment.filter(entry => entry.slot !== previewEquipment.slot),
+        { ...previewEquipment, isEquipped: true, contributesStats: previewEquipment.durability > 0 },
+      ],
+    };
+  }, [appearance, previewEquipment]);
+
+  const renderOffer = (offer: CharacterShopOffer, index: number) => {
+    const equipment = offer.equipment;
+    const selected = selectedOffer?.offerKey === offer.offerKey;
+    return (
+      <TouchableOpacity
+        key={offer.offerKey}
+        style={[styles.shopOfferRow, selected && styles.shopOfferRowSelected]}
+        onPress={() => setSelectedOfferKey(offer.offerKey)}
+      >
+        <View style={styles.shopOfferIconBox}>
+          {equipment ? (
+            <Image source={resolveEquipmentIcon(equipment) ?? INFO_ASSETS.itemchest} style={styles.inventoryCellIconImage} resizeMode="contain" />
+          ) : null}
+        </View>
+        <View style={styles.shopOfferTextBox}>
+          <Text style={styles.shopOfferName} numberOfLines={1}>{offer.displayName || `Tên món đồ ${index}`}</Text>
+          <Text style={styles.shopOfferPrice} numberOfLines={1}>Giá: {offer.priceQuan} Ken</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View style={styles.shopBody}>
+      <View style={styles.shopHeader}>
+        <View style={styles.shopAvatarBox}>
+          <CharacterRenderer appearance={previewAppearance} scale={0.9} />
+        </View>
+        <View style={styles.shopStatsGrid}>
+          <View style={styles.shopStatRow}>{valueBox('Công')}{valueBox(appearance.combat?.attack ?? 0)}</View>
+          <View style={styles.shopStatRow}>{valueBox('P.Thủ')}{valueBox(appearance.combat?.def ?? 0)}</View>
+          <View style={styles.shopStatRow}>{valueBox('C.Xác')}{valueBox(appearance.combat?.acc ?? 0)}</View>
+          <View style={styles.shopStatRow}>{valueBox('N.Tránh')}{valueBox(appearance.combat?.dodge ?? 0)}</View>
+          <View style={styles.shopStatRow}>{valueBox('S.Lực')}{valueBox(appearance.hp?.max ?? 0)}</View>
+          <View style={styles.shopStatRow}>{valueBox('C.Mạng')}{valueBox(appearance.combat?.crit ?? '0%')}</View>
+        </View>
+      </View>
+      <Divider />
+      <Text style={styles.shopTitle}>Tên món đồ 0 ({offers.length}/0)</Text>
+      <View style={styles.shopList}>{offers.map(renderOffer)}</View>
+      {selectedOffer ? (
+        <View style={styles.shopActionRow}>
+          <TouchableOpacity style={styles.shopActionButton} onPress={() => undefined}>
+            <Text style={styles.shopActionText}>Mặc thử</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.shopActionButton}
+            disabled={pending !== null || !onBuyShopOffer}
+            onPress={() => onRunAction(`shop-buy-${selectedOffer.offerKey}`, () => onBuyShopOffer?.(selectedOffer.offerKey))}
+          >
+            <Text style={styles.shopActionText}>Mua</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.shopActionButton} onPress={() => setSelectedOfferKey(selectedOffer.offerKey)}>
+            <Text style={styles.shopActionText}>C.Tiết</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {previewEquipment ? (
+        <View style={styles.shopDetailPanel}>
+          <Image source={resolveEquipmentIcon(previewEquipment) ?? INFO_ASSETS.itemchest} style={styles.shopDetailIcon} resizeMode="contain" />
+          <Text style={styles.shopDetailName} numberOfLines={1}>🔥 {previewEquipment.displayName}</Text>
+          <Text style={styles.shopDetailText}>+ Yêu cầu cấp {previewEquipment.requiredLevel}</Text>
+          {getEquipmentBonusRows(previewEquipment).slice(0, 3).map(row => (
+            <Text key={row} style={styles.shopDetailText} numberOfLines={1}>+ {row}</Text>
+          ))}
+        </View>
+      ) : null}
+      <Text style={styles.shopWalletText}>{appearance.quan ?? '0'}Ken</Text>
+    </View>
+  );
+};
+
 const sameKeySet = (left: Set<string>, right: Set<string>) => {
   if (left.size !== right.size) {
     return false;
@@ -811,8 +919,75 @@ const sameKeySet = (left: Set<string>, right: Set<string>) => {
 
 const clampActionMenuLeft = (left: number) => Math.max(6, Math.min(258, left));
 const clampActionMenuTop = (top: number) => Math.max(130, Math.min(430, top));
+const JAVA_INVENTORY_WIDTH = 340;
+const JAVA_INVENTORY_HEIGHT = 600;
 
 const REPAIR_HAMMER_ITEM_ID = 30099;
+const HUYET_THACH_ITEM_ID = 5003;
+const KIM_THACH_ITEM_ID = 5004;
+const LUCK_CHARM_1_ITEM_ID = 5008;
+const LUCK_CHARM_2_ITEM_ID = 5009;
+const LUCK_CHARM_3_ITEM_ID = 5010;
+const LUCK_CHARM_IDS = [LUCK_CHARM_1_ITEM_ID, LUCK_CHARM_2_ITEM_ID, LUCK_CHARM_3_ITEM_ID];
+
+const resolveUpgradePolicy = (currentLevel: number) => {
+  const targetLevel = Math.min(15, Math.max(0, currentLevel) + 1);
+  let kimQty = 1;
+  if (targetLevel >= 4) {
+    kimQty = 2;
+  }
+  if (targetLevel >= 7) {
+    kimQty = 3;
+  }
+  if (targetLevel >= 10) {
+    kimQty = 5;
+  }
+  if (targetLevel >= 13) {
+    kimQty = 8;
+  }
+
+  let successPercent = 100;
+  if (currentLevel === 1) {
+    successPercent = 90;
+  } else if (currentLevel === 2) {
+    successPercent = 80;
+  } else if (currentLevel === 3) {
+    successPercent = 70;
+  } else if (currentLevel === 4) {
+    successPercent = 60;
+  } else if (currentLevel === 5) {
+    successPercent = 50;
+  } else if (currentLevel === 6) {
+    successPercent = 40;
+  } else if (currentLevel === 7) {
+    successPercent = 30;
+  } else if (currentLevel === 8) {
+    successPercent = 20;
+  } else if (currentLevel === 9) {
+    successPercent = 10;
+  } else if (currentLevel === 10) {
+    successPercent = 5;
+  } else if (currentLevel === 11) {
+    successPercent = 4;
+  } else if (currentLevel === 12) {
+    successPercent = 3;
+  } else if (currentLevel === 13) {
+    successPercent = 2;
+  } else if (currentLevel >= 14) {
+    successPercent = 1.5;
+  }
+
+  return {
+    targetLevel,
+    huyetQty: targetLevel,
+    kimQty,
+    quanCost: targetLevel * targetLevel * 1000,
+    successPercent,
+  };
+};
+
+const countItem = (inventory: CharacterInventoryItem[], itemId: number) =>
+  inventory.find(item => item.itemId === itemId)?.quantity ?? 0;
 
 const InventoryShell: React.FC<{
   appearance: CharacterAppearance;
@@ -825,7 +1000,16 @@ const InventoryShell: React.FC<{
   onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment }) => {
+  onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment, onUpgradeEquipment }) => {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const inventoryScale = Math.min(
+    1,
+    (windowWidth - 28) / JAVA_INVENTORY_WIDTH,
+    (windowHeight - 92) / JAVA_INVENTORY_HEIGHT,
+  );
+  const scaledInventoryWidth = JAVA_INVENTORY_WIDTH * inventoryScale;
+  const scaledInventoryHeight = JAVA_INVENTORY_HEIGHT * inventoryScale;
   const player = createPlayerModel(appearance);
   const equipmentSource = appearance.equipment ?? EMPTY_EQUIPMENT;
   const serverEquippedKeys = useMemo(
@@ -864,6 +1048,7 @@ const InventoryShell: React.FC<{
   const [actionMenu, setActionMenu] = useState<InventoryActionMenuState | null>(null);
   const [actionMenuSelectedIndex, setActionMenuSelectedIndex] = useState<number>(0);
   const [showDetail, setShowDetail] = useState(false);
+  const [upgradeTargetKey, setUpgradeTargetKey] = useState<string | null>(null);
   const equippedCells = equipped.map((entry): EquipmentCell => ({ kind: 'equipment', key: `equipped-${entry.equipKey}`, entry }));
   const selected = rawCells.find(cell => cell.key === selectedKey)
     ?? equippedCells.find(cell => cell.key === selectedKey)
@@ -966,6 +1151,14 @@ const InventoryShell: React.FC<{
       );
       const canRepair = isBroken && hasHammer && !!onRepairEquipment;
 
+      const inventory = appearance.inventory ?? [];
+      const upgradePolicy = resolveUpgradePolicy(entry.level);
+      const canUpgrade = !!onUpgradeEquipment
+        && !selectedIsEquipped
+        && entry.level < 15
+        && countItem(inventory, HUYET_THACH_ITEM_ID) >= upgradePolicy.huyetQty
+        && countItem(inventory, KIM_THACH_ITEM_ID) >= upgradePolicy.kimQty;
+
       items = [
         {
           id: 'repair',
@@ -989,8 +1182,11 @@ const InventoryShell: React.FC<{
         {
           id: 'upgrade',
           label: 'Nâng cấp',
-          disabled: pending !== null || selectedIsEquipped,
-          onPress: () => setActionMenu(null),
+          disabled: pending !== null || !canUpgrade,
+          onPress: () => {
+            setActionMenu(null);
+            setUpgradeTargetKey(entry.equipKey);
+          },
         },
         {
           id: 'sell',
@@ -1060,56 +1256,121 @@ const InventoryShell: React.FC<{
   };
 
   return (
-    <View style={styles.inventoryBody}>
-      <View style={styles.inventoryNameRow}>
-        <Text style={styles.inventoryName} numberOfLines={1}>{player.username}</Text>
-        <Text style={styles.inventoryLevel}>Cấp:{player.level}</Text>
-      </View>
-      {renderEquipSlot(0, styles.equipSlotArmor, 56, 46)}
-      {renderEquipSlot(1, styles.equipSlotWeapon, 56, 102)}
-      {renderEquipSlot(2, styles.equipSlotHat, 194, 46)}
-      {renderEquipSlot(3, styles.equipSlotBoot, 194, 102)}
-      {renderEquipSlot(4, styles.equipSlotMount, 250, 46)}
-      {renderEquipSlot(5, styles.equipSlotRing, 250, 102)}
-      <View style={styles.inventoryAvatarBox}>
-        <CharacterRenderer
-          appearance={previewAppearance}
-          scale={1.45}
-          style={{ position: 'relative', bottom: 2 }}
-        />
-      </View>
-      <Text style={styles.capacityText}>{rawCells.length}/50</Text>
-
-      <View style={styles.inventoryGrid}>
-        {cells.map((cell, index) => (
-          <InventoryGridCell
-            key={cell.key}
-            cell={cell}
-            selected={selectedKey === cell.key}
-            onPress={() => openActionMenu(
-              cell,
-              22 + (index % 6) * 51 + 34,
-              178 + Math.floor(index / 6) * 51,
-            )}
-            style={{
-              left: (index % 6) * 51,
-              top: Math.floor(index / 6) * 51,
-            }}
+    <View style={[styles.inventoryViewport, { width: scaledInventoryWidth, height: scaledInventoryHeight }]}>
+      <View
+        style={[
+          styles.inventoryBody,
+          {
+            left: (scaledInventoryWidth - JAVA_INVENTORY_WIDTH) / 2,
+            top: (scaledInventoryHeight - JAVA_INVENTORY_HEIGHT) / 2,
+            transform: [{ scale: inventoryScale }],
+          },
+        ]}
+      >
+        <View style={styles.inventoryNameRow}>
+          <Text style={styles.inventoryName} numberOfLines={1}>{player.username}</Text>
+          <Text style={styles.inventoryLevel}>Cấp:{player.level}</Text>
+        </View>
+        {renderEquipSlot(0, styles.equipSlotArmor, 56, 46)}
+        {renderEquipSlot(1, styles.equipSlotWeapon, 56, 102)}
+        {renderEquipSlot(2, styles.equipSlotHat, 194, 46)}
+        {renderEquipSlot(3, styles.equipSlotBoot, 194, 102)}
+        {renderEquipSlot(4, styles.equipSlotMount, 250, 46)}
+        {renderEquipSlot(5, styles.equipSlotRing, 250, 102)}
+        <View style={styles.inventoryAvatarBox}>
+          <CharacterRenderer
+            appearance={previewAppearance}
+            scale={1.45}
+            style={{ position: 'relative', bottom: 2 }}
           />
-        ))}
-      </View>
+        </View>
+        <Text style={styles.capacityText}>{rawCells.length}/50</Text>
 
-      <InventoryDetailPanel
-        visible={showDetail}
-        onClose={() => setShowDetail(false)}
-        playerLevel={player.level}
-        playerGender={appearance.genderIndex}
-        currentCombat={appearance.combat}
-        previewCombat={previewRuntime?.combat}
-        selected={selected}
-        pending={pending}
-      />
-      {renderActionMenu()}
+        <View style={styles.inventoryGrid}>
+          {cells.map((cell, index) => (
+            <InventoryGridCell
+              key={cell.key}
+              cell={cell}
+              selected={selectedKey === cell.key}
+              onPress={() => openActionMenu(
+                cell,
+                22 + (index % 6) * 51 + 34,
+                178 + Math.floor(index / 6) * 51,
+              )}
+              style={{
+                left: (index % 6) * 51,
+                top: Math.floor(index / 6) * 51,
+              }}
+            />
+          ))}
+        </View>
+
+        {upgradeTargetKey && selected?.kind === 'equipment' ? (() => {
+        const policy = resolveUpgradePolicy(selected.entry.level);
+        const inventory = appearance.inventory ?? [];
+        const materialIds = [HUYET_THACH_ITEM_ID, KIM_THACH_ITEM_ID];
+        for (const charmId of LUCK_CHARM_IDS) {
+          if (countItem(inventory, charmId) > 0) {
+            materialIds.push(charmId);
+          }
+        }
+        const chance = Math.min(100, policy.successPercent + materialIds.slice(2).length * 5);
+        return (
+          <View style={styles.upgradePromptPanel}>
+            <Text style={styles.upgradeFeeText}>Phí kết hợp: {policy.quanCost.toLocaleString('en-US')} KEN</Text>
+            <View style={styles.upgradeSlotsRow}>
+              <InventoryGridCell cell={{ kind: 'equipment', key: `upgrade-${selected.entry.equipKey}`, entry: selected.entry }} selected={false} onPress={() => undefined} style={styles.upgradePreviewCell} />
+              <View style={styles.upgradeMaterialsRow}>
+                {[HUYET_THACH_ITEM_ID, KIM_THACH_ITEM_ID, ...LUCK_CHARM_IDS].map((itemId, index) => {
+                  const item = inventory.find(stack => stack.itemId === itemId);
+                  return (
+                    <InventoryGridCell
+                      key={`upgrade-mat-${itemId}`}
+                      cell={item ? { kind: 'item', key: `mat-${itemId}`, item } : { kind: 'empty', key: `mat-empty-${index}` }}
+                      selected={false}
+                      onPress={() => undefined}
+                      style={styles.upgradeMaterialCell}
+                    />
+                  );
+                })}
+              </View>
+            </View>
+            <Text style={styles.upgradeChanceText}>Có {chance}% cơ hội nâng cấp thành công</Text>
+            <View style={styles.upgradeRequirementBox}>
+              <Text style={styles.upgradeRequirementText}>Cần Huyết thạch x{policy.huyetQty} + Kim thạch x{policy.kimQty}</Text>
+              <Text style={styles.upgradeRequirementText}>Thất bại từ +10 sẽ giảm 1 cấp</Text>
+            </View>
+            <View style={styles.upgradeActionRow}>
+              <TouchableOpacity
+                style={styles.upgradeButton}
+                disabled={pending !== null}
+                onPress={() => {
+                  setUpgradeTargetKey(null);
+                  onRunAction(`upgrade-${selected.entry.equipKey}`, () => onUpgradeEquipment?.(selected.entry.equipKey, materialIds));
+                }}
+              >
+                <Text style={styles.upgradeButtonText}>Nâng cấp</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.upgradeButton} onPress={() => setUpgradeTargetKey(null)}>
+                <Text style={styles.upgradeButtonText}>Không</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      })() : null}
+
+        <InventoryDetailPanel
+          visible={showDetail}
+          onClose={() => setShowDetail(false)}
+          playerLevel={player.level}
+          playerGender={appearance.genderIndex}
+          currentCombat={appearance.combat}
+          previewCombat={previewRuntime?.combat}
+          selected={selected}
+          pending={pending}
+        />
+        {renderActionMenu()}
+      </View>
     </View>
   );
 };
@@ -1125,7 +1386,8 @@ const InventoryDialog: React.FC<{
   onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
-}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment }) => {
+  onUpgradeEquipment?: (equipKey: string, materialItemIds: number[]) => Promise<string | null>;
+}> = ({ appearance, pending, onRunAction, onToggleEquipment, onPreviewEquipmentLoadout, onCommitEquipmentLoadout, onUseItem, onDiscardEquipment, onDiscardItem, onRepairEquipment, onUpgradeEquipment }) => {
   return (
     <InventoryShell
       appearance={appearance}
@@ -1138,6 +1400,7 @@ const InventoryDialog: React.FC<{
       onDiscardEquipment={onDiscardEquipment}
       onDiscardItem={onDiscardItem}
       onRepairEquipment={onRepairEquipment}
+      onUpgradeEquipment={onUpgradeEquipment}
     />
   );
 };
@@ -1155,8 +1418,18 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
   onDiscardEquipment,
   onDiscardItem,
   onRepairEquipment,
+  onUpgradeEquipment,
+  shop,
+  onLoadShop,
+  onBuyShopOffer,
 }) => {
   const [pending, setPending] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeDialog === 'shop') {
+      void onLoadShop?.();
+    }
+  }, [activeDialog, onLoadShop]);
 
   if (!activeDialog) {
     return null;
@@ -1179,7 +1452,7 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
       .finally(() => setPending(null));
   };
 
-  const dialogWidth = Math.min(SCREEN_W * 0.94, activeDialog === 'skills' ? 480 : 430);
+  const dialogWidth = Math.min(SCREEN_W * 0.94, activeDialog === 'skills' || activeDialog === 'shop' ? 480 : 430);
   const dialogMaxHeight = Math.min(
     SCREEN_H * 0.92,
     activeDialog === 'potential'
@@ -1232,6 +1505,7 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
               onDiscardEquipment={onDiscardEquipment}
               onDiscardItem={onDiscardItem}
               onRepairEquipment={onRepairEquipment}
+              onUpgradeEquipment={onUpgradeEquipment}
             />
           )}
           {activeDialog === 'inventory' && (
@@ -1246,6 +1520,16 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
               onDiscardEquipment={onDiscardEquipment}
               onDiscardItem={onDiscardItem}
               onRepairEquipment={onRepairEquipment}
+              onUpgradeEquipment={onUpgradeEquipment}
+            />
+          )}
+          {activeDialog === 'shop' && (
+            <ShopDialog
+              appearance={appearance}
+              shop={shop}
+              pending={pending}
+              onRunAction={runAction}
+              onBuyShopOffer={onBuyShopOffer}
             />
           )}
         </ScrollView>
