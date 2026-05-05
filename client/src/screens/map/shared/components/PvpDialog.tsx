@@ -1,6 +1,8 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { CornerFrame } from '../../../../components/ui/CornerFrame/CornerFrame';
+import { PvpCornerFrame } from './PvpCornerFrame';
+import { PvpArenaRow } from './PvpArenaRow';
+import { PvpFontStyles } from '../JavaFontMetrics';
 import { CharacterRenderer } from '../../../character';
 import type { PvpOpponentEntry } from '../../../battle';
 import { styles } from './PvpDialog.styles';
@@ -43,8 +45,6 @@ const parseStakeThousands = (value: string): number => {
 
   return Math.max(0, Number(normalized)) * 1000;
 };
-
-const formatPvpHonorLine = (honor: number): string => `Cấp -- Danh vọng ${Math.max(0, honor)}`;
 
 const PvpCheckbox: React.FC<{
   label: string;
@@ -95,7 +95,11 @@ export const PvpDialog: React.FC<PvpDialogProps> = ({
   return (
     <View style={styles.overlay}>
       <Pressable style={styles.backdrop} onPress={isBusy ? undefined : onClose} />
-      <CornerFrame style={styles.frame} contentStyle={styles.content}>
+      <PvpCornerFrame
+        style={styles.frame}
+        showCorners={true}
+        cornerAsset={require('../../../../../assets/ui/00_corner_frames/_corner.png')}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>{mode === 'arena' ? 'Lôi Đài' : 'Khiêu Chiến'}</Text>
           <TouchableOpacity activeOpacity={0.85} onPress={onRefresh} disabled={isBusy}>
@@ -147,20 +151,13 @@ export const PvpDialog: React.FC<PvpDialogProps> = ({
               {opponents.map((opponent) => {
                 const selected = opponent.username.toLowerCase() === trimmedTarget.toLowerCase();
                 return (
-                  <TouchableOpacity
+                  <PvpArenaRow
                     key={opponent.username}
-                    activeOpacity={0.86}
-                    style={[styles.legacyRow, selected && styles.legacyRowActive]}
-                    onPress={() => onSelectTarget(opponent.username)}
+                    opponent={opponent}
+                    selected={selected}
                     disabled={isBusy}
-                  >
-                    <Text style={styles.legacyBadge}>{opponent.currentHp > 0 ? '><' : '[]'}</Text>
-                    <View style={styles.legacyTextWrap}>
-                      <Text style={styles.legacyName} numberOfLines={1}>{opponent.username}</Text>
-                      <Text style={styles.legacyMeta} numberOfLines={1}>{formatPvpHonorLine(opponent.honor)}</Text>
-                    </View>
-                    <Text style={styles.legacyStake}>{Math.max(0, opponent.level)}</Text>
-                  </TouchableOpacity>
+                    onPress={() => onSelectTarget(opponent.username)}
+                  />
                 );
               })}
             </ScrollView>
@@ -231,7 +228,7 @@ export const PvpDialog: React.FC<PvpDialogProps> = ({
             <Text style={styles.buttonPrimaryText}>{mode === 'arena' ? 'Đánh!' : 'Gửi'}</Text>
           </TouchableOpacity>
         </View>
-      </CornerFrame>
+      </PvpCornerFrame>
     </View>
   );
 };
