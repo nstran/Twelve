@@ -26,6 +26,36 @@ export const styles = StyleSheet.create({
     width: Math.min(SCREEN_W * 0.94, 448),
     maxHeight: Math.min(SCREEN_H * 0.58, 380),
   },
+  separator: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: '#20a5de',
+    zIndex: 3,
+  },
+  separatorArena: {
+    top: 5, // Java evidence: os.java:116 with n = k(0, 5, v.t, 1) for arena mode.
+  },
+  separatorChallenge: {
+    top: 73, // Java evidence: os.java:116 with n = k(0, 73, v.t, 1) for challenge mode.
+  },
+  hiddenDragon: {
+    position: 'absolute',
+    right: 0,
+    bottom: 17, // Java evidence: os.java:110 uses y = height - ba.a; ba.a default softkey height is 17.
+    opacity: 0.92,
+    zIndex: 1,
+  },
+  timerText: {
+    position: 'absolute',
+    right: 5,
+    bottom: 35, // Java evidence: os.java:120 and ew.java:82 draw at v.u - 35.
+    color: '#313338',
+    ...PvpFontStyles.arenaSecondary,
+    fontWeight: '800',
+    zIndex: 4,
+  },
   content: {
     padding: 8,
     backgroundColor: '#f2fbff',

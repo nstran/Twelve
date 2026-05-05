@@ -1,10 +1,10 @@
-import React from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { PvpCornerFrame } from './PvpCornerFrame';
 import { PvpArenaRow } from './PvpArenaRow';
 import { PvpFontStyles } from '../JavaFontMetrics';
 import { CharacterRenderer } from '../../../character';
-import type { PvpOpponentEntry } from '../../../battle';
+import type { PvpChallengeTicket, PvpOpponentEntry } from '../../../battle';
 import { styles } from './PvpDialog.styles';
 
 export type PvpDialogMode = 'arena' | 'challenge';
@@ -27,6 +27,7 @@ interface PvpDialogProps {
   allowSpectators: boolean;
   oneWay: boolean;
   disableSpecialSkills: boolean;
+  pendingTicket: PvpChallengeTicket | null;
   onClose: () => void;
   onRefresh: () => void;
   onSelectTarget: (target: string) => void;
@@ -63,6 +64,21 @@ const PvpCheckbox: React.FC<{
   </TouchableOpacity>
 );
 
+const HIDDEN_DRAGON_ASSET = require('../../../../../assets/battle/09_hidden_pieces/hiddendragon.png');
+const HIDDEN_DRAGON_SIZE = { width: 107, height: 78 };
+
+/**
+ * Formats remaining time in hh:mm:ss format.
+ * Java evidence: os.java:119-120, ew.java:80-82 use `i.b(l2, "hh:mm:ss")`
+ */
+const formatCountdown = (remainingMs: number): string => {
+  const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
 export const PvpDialog: React.FC<PvpDialogProps> = ({
   mode,
   opponents,
@@ -73,6 +89,7 @@ export const PvpDialog: React.FC<PvpDialogProps> = ({
   allowSpectators,
   oneWay,
   disableSpecialSkills,
+  pendingTicket,
   onClose,
   onRefresh,
   onSelectTarget,
@@ -82,6 +99,22 @@ export const PvpDialog: React.FC<PvpDialogProps> = ({
   onDisableSpecialSkillsChange,
   onStart,
 }) => {
+  // Timer countdown for challenge mode (os.java:117-120, ew.java:79-82)
+  const [countdown, setCountdown] = useState('');
+  useEffect(() => {
+    if (mode !== 'challenge' || !pendingTicket) {
+      setCountdown('');
+      return;
+    }
+    const update = () => {
+      const remaining = pendingTicket.expiresAtUnixMs - Date.now();
+      setCountdown(remaining > 0 ? formatCountdown(remaining) : '00:00:00');
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [mode, pendingTicket]);
+
   const isBusy = status === 'loading' || status === 'starting';
   const trimmedTarget = selectedTarget.trim();
   const exactOpponent = opponents.find(
@@ -100,6 +133,21 @@ export const PvpDialog: React.FC<PvpDialogProps> = ({
         showCorners={true}
         cornerAsset={require('../../../../../assets/ui/00_corner_frames/_corner.png')}
       >
+        {/* Horizontal separator line - os.java:116 */}
+        <View style={[styles.separator, mode === 'arena' ? styles.separatorArena : styles.separatorChallenge]} />
+
+        {/* Bottom decoration - os.java:110 */}
+        <Image
+          source={HIDDEN_DRAGON_ASSET}
+          style={[styles.hiddenDragon, { width: HIDDEN_DRAGON_SIZE.width, height: HIDDEN_DRAGON_SIZE.height }]}
+          resizeMode="stretch"
+        />
+
+        {/* Timer countdown - os.java:117-120, ew.java:79-82 */}
+        {mode === 'challenge' && countdown && pendingTicket ? (
+          <Text style={styles.timerText}>{`${pendingTicket.targetUsername} ${countdown}`}</Text>
+        ) : null}
+
         <View style={styles.header}>
           <Text style={styles.title}>{mode === 'arena' ? 'Lôi Đài' : 'Khiêu Chiến'}</Text>
           <TouchableOpacity activeOpacity={0.85} onPress={onRefresh} disabled={isBusy}>

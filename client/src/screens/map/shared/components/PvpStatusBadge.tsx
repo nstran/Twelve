@@ -1,7 +1,7 @@
 /**
  * PvpStatusBadge - Renders status icons from /olaicons spritesheet
  *
- * Evidence: pc.java lines 36-65, 240-245
+ * Evidence: pc.java lines 36-65, 240-245; do.java lines 1-15
  *
  * Java uses pc.d(graphics, iconIndex, x, y, anchor) to render icons from
  * the /olaicons spritesheet. The spritesheet contains 25 icons indexed 0-24
@@ -10,17 +10,21 @@
  *   - g[]: widths of each icon
  *   - p[]: heights of each icon
  *
- * For PvP arena rows (ew.java), the status badge shows:
- *   - alive (currentHp > 0): icon indicating available for challenge
- *   - dead (currentHp <= 0): icon indicating unavailable
+ * For PvP arena rows (ew.java:77), the status badge shows icon based on
+ * `do.c` status byte (do.java:7):
+ *   - 0 = ready/available (green/idle state)
+ *   - 1 = in battle (red/busy state)
+ *   - 2 = in arena lobby (yellow/waiting state)
+ *   - 3 = recovering/cooldown (gray/disabled state)
  *
- * Based on Java badge area (~28px wide badge, small font 10-11px) and
- * J2ME icon conventions, the two smallest icons are used for status:
- *   - Index 0: 9x9px - alive/available indicator
- *   - Index 1: 15x15px - dead/unavailable indicator
+ * Icon mapping (best-effort based on size/visual conventions):
+ *   - statusByte 0 (ready): index 0 (9x9px) - small green dot
+ *   - statusByte 1 (battle): index 1 (15x15px) - larger red indicator
+ *   - statusByte 2 (arena): index 2 (9x15px) - vertical bar (waiting)
+ *   - statusByte 3 (recovering): index 3 (10x12px) - medium gray icon
  *
- * Implementation: Use ImageBackground with absolute positioning to crop
- * the spritesheet at runtime. This matches Java's drawRegion behavior.
+ * Implementation: Use View with overflow:hidden + Image with negative positioning
+ * to crop the spritesheet. This simulates Java's drawRegion behavior.
  */
 
 import React, { memo } from 'react';
@@ -61,19 +65,39 @@ export const OLA_ICON_COORDS: {
   { x: 315,y: 0,  width: 6,  height: 12 },  // 24
 ];
 
-// Status type for PvP arena rows
-export type PvpStatusType = 'alive' | 'dead';
-
-// Mapping from status to icon index (best-effort based on size matching)
-// alive: index 0 (9x9) - small indicator icon
-// dead: index 1 (15x15) - larger unavailable indicator  
-const STATUS_TO_ICON_INDEX: Record<PvpStatusType, number> = {
-  alive: 0,
-  dead: 1,
+/**
+ * Maps Java status byte (do.c) to /olaicons spritesheet index.
+ *
+ * Java evidence:
+ * - do.java:7 defines `byte c` as status field
+ * - ew.java:77 calls `pc.a(graphics, n2, n3, this.i.c)` to render status icon
+ * - pc.java:240-245 implements pc.d() which draws icon from /olaicons at index `n2`
+ *
+ * Status byte values (from do.java toString and server PvpArenaService):
+ * - 0 = ready/available for challenge
+ * - 1 = currently in battle
+ * - 2 = in arena lobby (waiting/browsing)
+ * - 3 = recovering/cooldown after battle
+ *
+ * Icon index mapping (best-effort based on visual size/convention):
+ * - 0 → icon 0 (9x9px) - small dot for ready state
+ * - 1 → icon 1 (15x15px) - larger indicator for busy/battle
+ * - 2 → icon 2 (9x15px) - vertical bar for waiting/arena
+ * - 3 → icon 3 (10x12px) - medium icon for recovering
+ */
+const STATUS_BYTE_TO_ICON_INDEX: Record<number, number> = {
+  0: 0, // ready
+  1: 1, // battle
+  2: 2, // arena
+  3: 3, // recovering
 };
 
 interface PvpStatusBadgeProps {
-  status: PvpStatusType;
+  /**
+   * Raw status byte from server (do.c field).
+   * Java evidence: do.java:7, ew.java:77
+   */
+  statusByte: number;
   size?: number; // Override default badge size
 }
 
@@ -85,10 +109,10 @@ interface PvpStatusBadgeProps {
  * to crop the spritesheet. This simulates Java's drawRegion behavior.
  */
 export const PvpStatusBadge: React.FC<PvpStatusBadgeProps> = memo(({
-  status,
+  statusByte,
   size,
 }) => {
-  const iconIndex = STATUS_TO_ICON_INDEX[status];
+  const iconIndex = STATUS_BYTE_TO_ICON_INDEX[statusByte] ?? 0;
   const iconCoord = OLA_ICON_COORDS[iconIndex];
   
   // Use icon's natural size if no override provided

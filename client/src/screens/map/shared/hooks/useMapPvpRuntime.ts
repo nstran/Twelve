@@ -44,6 +44,7 @@ export const useMapPvpRuntime = ({
   const [pvpDisableSpecialSkills, setPvpDisableSpecialSkills] = useState(false);
   const [pvpIncomingPrompt, setPvpIncomingPrompt] = useState<PvpIncomingPromptState | null>(null);
   const [pvpPendingTicketId, setPvpPendingTicketId] = useState<string | null>(null);
+  const [pvpPendingTicket, setPvpPendingTicket] = useState<PvpChallengeTicket | null>(null);
 
   const loadPvpOpponents = useCallback((mode: PvpDialogMode = activePvpDialog ?? 'challenge') => {
     const username = appearance.username?.trim();
@@ -138,6 +139,7 @@ export const useMapPvpRuntime = ({
         }
 
         setPvpPendingTicketId(ticket.ticketId);
+        setPvpPendingTicket(ticket);
         setPvpStatus('ready');
         setPvpError('Đã gửi lời mời, đang chờ đối thủ đồng ý...');
       })
@@ -152,6 +154,7 @@ export const useMapPvpRuntime = ({
     setActivePvpDialog(null);
     setPvpIncomingPrompt(null);
     setPvpPendingTicketId(null);
+    setPvpPendingTicket(null);
     setPvpStatus('idle');
     setPvpError(null);
     onBattle('fire', bootstrap.initialTurnSide === 'enemy' ? 'monster' : 'player', bootstrap);
@@ -198,7 +201,10 @@ export const useMapPvpRuntime = ({
             handlePvpAcceptedBootstrap(status.bootstrap);
           } else if (!status.ticket.state.toLowerCase().includes('pending')) {
             setPvpPendingTicketId(null);
+            setPvpPendingTicket(null);
             setPvpError(status.ticket.state === 'Declined' ? 'Đối thủ đã từ chối' : 'Lời mời đã hết hiệu lực');
+          } else {
+            setPvpPendingTicket(status.ticket);
           }
         });
       }
@@ -229,6 +235,7 @@ export const useMapPvpRuntime = ({
     setPvpDisableSpecialSkills,
     pvpIncomingPrompt,
     setPvpIncomingPrompt,
+    pvpPendingTicket,
     loadPvpOpponents,
     openPvpDialog,
     startPvpBattle,

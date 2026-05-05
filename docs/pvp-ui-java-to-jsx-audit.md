@@ -525,39 +525,30 @@ legacyMeta: {
 
 ## Summary of Critical Gaps
 
-### Must Fix (Pixel-Accurate)
+### Implemented (2026-05-05)
 
-1. **Row horizontal padding**: Change from 8px → 2px
-2. **Text left margin**: Adjust badge + margin to total 25px from left edge
-3. **Secondary text spacing**: Change from `marginTop: 1` → `marginTop: 13`
-4. **Selection background**: Replace solid color with focus frame corners (or keep solid if corners not available)
-5. **Marquee animation**: Implement text scroll for selected row when text overflows
+1. **Row horizontal padding**: Done. `PvpDialog.styles.ts` uses 2px horizontal padding for Java `n2 + 2` evidence (`ew.java:60-61`).
+2. **Text left margin**: Done. Badge/text layout totals 25px from row left edge for Java `n4 = n2 + 25` evidence (`ew.java:72`).
+3. **Secondary text spacing**: Done. Secondary text uses Java `n3 + 13` spacing evidence (`ew.java:78`).
+4. **Selection focus frame corners**: Done. `PvpFocusFrame.tsx` crops four 7x7 corners from `/focusmovechess1`, matching `pc.java:185-192`, and `PvpArenaRow.tsx` renders it only when selected per `ew.java:62-64`.
+5. **Marquee animation**: Done. `PvpArenaRow.tsx` implements selected-row overflow marquee matching `ew.java:86-104`.
+6. **Status icon 4-state mapping**: Done. `PvpStatusBadge.tsx` now receives raw `statusByte` from `PvpOpponentEntry.statusByte` (`do.c`) and maps 0/1/2/3 to `/olaicons` indices 0/1/2/3. Java evidence: `do.java:7`, `ew.java:77`, `pc.java:240-245`.
+7. **Horizontal separator**: Done. `PvpDialog.tsx` renders 1px separator line at y=5 for arena and y=73 for challenge. Java evidence: `os.java:116` with `n = k(0, 5, v.t, 1)` or `k(0, 73, v.t, 1)`.
+8. **Bottom decoration**: Done. `PvpDialog.tsx` renders `/hiddendragon` bottom-right using `client/assets/battle/09_hidden_pieces/hiddendragon.png`. Java evidence: `os.java:110`, `pc.java:19`.
+9. **Timer display**: Done. `PvpDialog.tsx` displays `targetUsername HH:mm:ss` from `pendingTicket.expiresAtUnixMs` at bottom-right. Java evidence: `os.java:117-120`, `ew.java:79-82`.
 
-### Should Fix (Functional Parity)
+### Remaining Out Of Scope
 
-6. **Status icon**: Map 4 Java states (0/1/2/3) to proper icons/badges
-7. **Horizontal separator**: Add 1px line at y=5 (arena) or y=73 (challenge)
-8. **Bottom decoration**: Add `/hiddendragon` image at bottom-right (if asset available)
-9. **Timer display**: Add timer text at bottom-right in challenge mode
-
-### Nice to Have (Enhancement)
-
-10. **Room list mode**: Implement fz.java room list view (separate feature)
-11. **Gradient fonts**: Implement gradient text rendering (complex, may skip)
-12. **Text clipping**: Use proper clip rect instead of `numberOfLines={1}`
+10. **Room list mode**: `fz.java` room list view remains a separate feature, not part of the 5 pending PvP UI audit items requested here.
+11. **Gradient fonts**: Native Java bitmap/gradient font renderer remains a broader renderer task.
+12. **Exact Java clip rect**: Current marquee text uses RN overflow clipping; full Java `cw.a(...)` clip-region renderer remains a renderer-level enhancement.
 
 ---
 
-## Next Steps
+## Verification
 
-1. Fix critical layout dimensions in `PvpDialog.styles.ts`
-2. Adjust JSX structure in `PvpDialog.tsx` to match Java offsets
-3. Implement marquee animation for selected row
-4. Add horizontal separator line
-5. Map status byte to 4 states
-6. Run TypeScript check
-7. Test on device/emulator
-8. Update CHANGELOG
+- `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass (exit code 0).
+- All 5 requested pending items from this audit are implemented and traceable to Java evidence line numbers.
 
 ---
 

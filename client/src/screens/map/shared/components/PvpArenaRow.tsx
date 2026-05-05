@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, LayoutChangeEvent, Text, TouchableOpacity, View } from 'react-native';
 import { PvpStatusBadge } from './PvpStatusBadge';
+import { PvpFocusFrame } from './PvpFocusFrame';
 import { styles } from './PvpDialog.styles';
 import type { PvpOpponentEntry } from '../../../battle';
 
@@ -95,9 +96,12 @@ export const PvpArenaRow: React.FC<PvpArenaRowProps> = ({
       disabled={disabled}
       onLayout={handleContainerLayout}
     >
+      {/* Java: pc.e(graphics, n2 - 2, n3, this.e(), this.f()) - focus frame when selected (ew.java:63) */}
+      {selected && <PvpFocusFrame />}
+
       {/* Java: pc.a(graphics, n2, n3, this.i.c) - status icon at left edge */}
       <View style={[styles.legacyBadge, selected ? styles.legacyBadgeActive : undefined]}>
-        <PvpStatusBadge status={opponent.currentHp > 0 ? 'alive' : 'dead'} />
+        <PvpStatusBadge statusByte={opponent.statusByte} />
       </View>
 
       {/* Java: text starts at n2 + 25 */}
