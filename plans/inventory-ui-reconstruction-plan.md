@@ -521,3 +521,10 @@ This gives the closest match to the original without inventing unsupported UI be
 - Added a follow-up text/menu parity pass from Java font evidence: `bx.java` initializes bitmap fonts from `/_blackfont`, `/_fontcap`, and `/f/ver`; `c.java` confirms bitmap text height/width and bold offset behavior. `client/src/screens/map/core/inventory/javaFont/JavaBitmapText.tsx` now renders glyph regions from `_blackfont.png`, and `InventoryScreen.tsx` / `InventoryCellView.tsx` use it for name, level, capacity, enhancement and quantity text to avoid iOS/Android RN font metric drift. `PopupMenu.tsx` now also uses the same bitmap font in Java compact mode and sizes the menu from `bs.java` width formula `max(itemWidth,50)+42`, so inventory action labels/menu width no longer use native RN font metrics.
 - Asset check: no missing icons for this pass; required assets already exist under `client/assets`.
 - Verification: `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` passed.
+
+### 2026-05-05 — Inventory parity handoff note
+
+- Current estimated parity: 88-91% for the main inventory/equipment UI, based on Java evidence coverage and current RN implementation; this is not a pixel-diff certified percentage.
+- Strong parity areas: source logical canvas, 6 Java slots, bag grid sizing/centering, panel/corner/watermark assets, runtime `v.aj` fill, `/tab` fixed frame slicing, empty slot placeholders, focus corner asset, target slot highlight, cell overlays, Java bitmap font for header/capacity/cell overlays and Java compact popup labels/width.
+- Remaining work for the next pass toward 95%: convert tooltip/detail text to Java bitmap font, implement focus blink offset `J = 0/-2` from `hh.java`, improve popup frame drawing from `ag.c()`/`bs.java`, and replace remaining RN layout/font assumptions in tooltip/detail.
+- Remaining work for 100%: rebuild avatar preview from the Java character draw path used by `hh.java`, then run pixel-diff verification against the Java runtime at matching canvas/device scale.
