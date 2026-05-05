@@ -2945,3 +2945,33 @@ Các mục dưới đây không chặn plan core equipment, nhưng cần đối 
   - Current RN prompt fee/rate/material quantities remain RemakePolicy display mirrored from `EquipmentUpgradeService`.
 - Verification:
   - `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass.
+
+### 2026-05-05 — Inventory UI source-code parity pass (Java evidence)
+
+- Java evidence source files:
+  - `reference/redecoded/decompiled/hh.java`: inventory screen dimensions, six equipped slots, bag rectangle, render order, 3-rect target highlight, capacity text, avatar frame.
+  - `reference/redecoded/decompiled/fg.java`: bag grid cell width/height `32`, spacing `2`, padding `6`, and bevel colors.
+  - `reference/redecoded/decompiled/dc.java`: inventory cell icon render, `/broken_heart`, `/crystalblue` rank animation, enhancement/quantity bottom-right text.
+  - `reference/redecoded/decompiled/pc.java`: `/corner/2`, `/hiddendragon`, `/tab`, `/focusmovechess1`, panel frame, focus frame and avatar border helpers.
+  - `reference/redecoded/decompiled/ba.java`: softkey height default `17`, used by `hh.java` as `320 - ba.a`.
+- Client files updated:
+  - `client/src/screens/map/core/inventory/InventoryLayout.ts`: corrected portrait logical height from remake fallback `288` to Java-derived `320 - 17`.
+  - `client/src/screens/map/core/inventory/InventoryCellView.tsx`: replaced text fallback heart/star with real `/broken_heart` and `/crystalblue`, and renders `/focusmovechess1` for selected focus.
+  - `client/src/screens/map/core/inventory/InventoryScreen.tsx`: renders source frame assets `/corner/2`, `/hiddendragon`, and `/tab` element sheet.
+  - `client/src/screens/map/core/inventory/InventoryScreen.styles.ts`: converted frame/cell/target colors to Java constants and removed visible fallback selection border.
+  - `client/src/screens/map/core/inventory/InventoryTooltip.tsx`: changed required-level wording to Java text `Yêu cầu cấp` from `fw.java`.
+  - `client/src/screens/map/core/inventory/EquipmentDetailDialog.tsx`: changed required-level wording to Java text `Yêu cầu cấp` from `hg.java`.
+  - `client/src/components/controls/PopupMenu/PopupMenu.tsx` and `client/src/components/controls/PopupMenu/PopupMenu.styles.ts`: added opt-in `javaCompact` popup mode for inventory, matching `bs.java` item height `20` and text inset behavior from `br.java`; Java compact selected row avoids the ornate remake selected-frame assets.
+  - `client/src/screens/map/core/inventory/InventoryScreen.styles.ts`: replaced earlier panel fill approximation with runtime Java `v.aj = 0xF0FBFF` from `SQMIDlet.java` -> `v.a(...)`, rendered as `#F0FBFF`.
+  - `client/src/screens/map/core/inventory/InventoryLayout.ts` and `client/src/screens/map/core/inventory/InventoryScreen.tsx`: auto-select portrait/wide layout from current screen dimensions instead of forcing portrait, matching the `hh.B()` layout branch concept.
+  - `client/src/screens/map/core/inventory/InventoryCellView.tsx`: focus overlay now crops four `7x7` corners from `/focusmovechess1`, matching `pc.e(...)` source behavior.
+  - `client/src/screens/map/core/inventory/InventoryScreen.tsx` and `client/src/screens/map/core/inventory/InventoryScreen.styles.ts`: added explicit top/bottom/edge line primitives for the main panel frame, matching `pc.a(...)` fillRect calls.
+  - `client/src/screens/map/core/inventory/InventoryCellView.tsx`, `client/src/screens/map/core/inventory/InventoryScreen.tsx`, and `client/src/screens/map/core/inventory/InventoryScreen.styles.ts`: replaced RN border shorthand for slot/cell/bag bevels with layered primitives from `pc.b(...)` / `pc.a(..., color, fill)`: outer `230911`, inner `14612735`, fill, and right/bottom accent.
+  - `client/src/screens/map/core/inventory/InventoryScreen.tsx`: fixed additional Java pixel mismatches: `/tab` element icon now uses fixed `35x37` frames from `pc.java:85-86`; bag grid X offset follows `fg.java` centered `m` formula instead of fixed `6`; target highlight now draws over the target equipped slot from `hh.java:1382-1394` instead of the bag cell.
+  - `client/src/screens/map/core/inventory/InventoryScreen.styles.ts`: avatar preview border now uses explicit line overlays based on `pc.c(...)`, replacing generic `borderWidth` rendering.
+  - `client/src/screens/map/core/MapCharacterDialogs.tsx`: both `equipment` and `inventory` routes now return `InventoryScreen` before generic `CornerFrame`; the old embedded dialog branches were removed from render path.
+  - `client/src/screens/map/core/inventory/InventoryScreen.styles.ts`, `client/src/screens/map/core/inventory/InventoryCellView.tsx`, and `client/src/components/controls/PopupMenu/PopupMenu.styles.ts`: adjusted remaining RN text/menu approximations using Java font evidence from `bx.java`, `by.java`, `if.java`, and `c.java`; header/capacity/quantity/enhancement/popup colors and vertical metrics now follow the closest Java-derived primitives available without a full bitmap glyph renderer.
+- Asset status:
+  - Required assets for this pass are present in `client/assets`; no icon request to user is needed right now.
+- Verification:
+  - `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` passed.

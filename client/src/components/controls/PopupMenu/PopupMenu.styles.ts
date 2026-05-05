@@ -65,6 +65,13 @@ export const styles = StyleSheet.create({
     height: '100%',
   },
 
+  menuItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingRight: 10,
+  },
+
   menuItemText: {
     ...GameTextStyles.menuText,
     textAlign: 'center',
@@ -86,5 +93,47 @@ export const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: 'bold',
     textAlign: 'right',
+  },
+
+  /** Java bs popup renderer parity. Source: bs.java:96-119 width=max(item.p(),50)+42, item height j=20, text x+14. */
+  javaMenuBox: {
+    position: 'absolute',
+    left: 4,
+    minWidth: 92,
+    backgroundColor: '#F0FBFF',
+    borderWidth: 1,
+    borderColor: '#0056E6',
+    padding: 4,
+    zIndex: 1001,
+    elevation: 1001,
+  },
+  javaMenuInnerBox: {
+    borderWidth: 1,
+    borderColor: '#DEFFFF',
+    paddingTop: 6,
+    paddingBottom: 4,
+    paddingHorizontal: 0,
+    overflow: 'hidden',
+  },
+  javaMenuItem: {
+    height: 20,
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  javaMenuItemSelectedBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#0385FF',
+  },
+  javaMenuItemContent: {
+    position: 'relative',
+    height: 20,
+  },
+  javaMenuItemText: {
+    ...GameTextStyles.menuText,
+    color: '#010101',
+    fontWeight: '800',
+    textAlign: 'left',
+    zIndex: 4,
+    flex: 1,
   },
 });

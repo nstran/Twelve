@@ -2,6 +2,14 @@
 
 CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng theo module. Chi tiết đầy đủ nằm trong tài liệu reconstruction tương ứng và lịch sử git.
 
+## 2026-05-05
+
+### [EQUIPMENT/UI] Inventory Java parity pass
+
+- Rebuilt the real equipment/inventory UI from Java evidence (`hh/fg/dc/pc/ba/fw/hg`) with source coordinates, frame assets, cell overlays, focus, target highlight, compact popup and runtime `v.aj` panel color.
+- Removed the Expo-web unsafe internal `resolveAssetSource` import; inventory now uses verified asset dimensions directly.
+- Verification: `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass.
+
 ## 2026-05-04
 
 ### [EQUIPMENT] Inventory JavaViewport responsive pass

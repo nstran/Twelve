@@ -27,6 +27,7 @@ import {
   getSkillFamiliesForElement,
   type SkillFamilyCode,
 } from '../../battle/core/BattleScreen.skills';
+import { InventoryScreen } from './inventory';
 import { styles } from './MapCharacterDialogs.styles';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -1452,6 +1453,23 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
       .finally(() => setPending(null));
   };
 
+  if (activeDialog === 'equipment' || activeDialog === 'inventory') {
+    return (
+      <InventoryScreen
+        appearance={appearance}
+        pending={pending}
+        onClose={onClose}
+        onRunAction={runAction}
+        onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
+        onCommitEquipmentLoadout={onCommitEquipmentLoadout}
+        onUseItem={onUseItem}
+        onDiscardEquipment={onDiscardEquipment}
+        onDiscardItem={onDiscardItem}
+        onRepairEquipment={onRepairEquipment}
+      />
+    );
+  }
+
   const dialogWidth = Math.min(SCREEN_W * 0.94, activeDialog === 'skills' || activeDialog === 'shop' ? 480 : 430);
   const dialogMaxHeight = Math.min(
     SCREEN_H * 0.92,
@@ -1459,9 +1477,7 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
       ? 720
       : activeDialog === 'skills'
         ? 620
-        : activeDialog === 'equipment' || activeDialog === 'inventory'
-          ? 700
-          : 580,
+        : 580,
   );
 
   return (
@@ -1491,36 +1507,6 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
               pending={pending}
               onRunAction={runAction}
               onAllocateSkill={onAllocateSkill}
-            />
-          )}
-          {activeDialog === 'equipment' && (
-            <EquipmentDialog
-              appearance={appearance}
-              pending={pending}
-              onRunAction={runAction}
-              onToggleEquipment={onToggleEquipment}
-              onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
-              onCommitEquipmentLoadout={onCommitEquipmentLoadout}
-              onUseItem={onUseItem}
-              onDiscardEquipment={onDiscardEquipment}
-              onDiscardItem={onDiscardItem}
-              onRepairEquipment={onRepairEquipment}
-              onUpgradeEquipment={onUpgradeEquipment}
-            />
-          )}
-          {activeDialog === 'inventory' && (
-            <InventoryDialog
-              appearance={appearance}
-              pending={pending}
-              onRunAction={runAction}
-              onToggleEquipment={onToggleEquipment}
-              onPreviewEquipmentLoadout={onPreviewEquipmentLoadout}
-              onCommitEquipmentLoadout={onCommitEquipmentLoadout}
-              onUseItem={onUseItem}
-              onDiscardEquipment={onDiscardEquipment}
-              onDiscardItem={onDiscardItem}
-              onRepairEquipment={onRepairEquipment}
-              onUpgradeEquipment={onUpgradeEquipment}
             />
           )}
           {activeDialog === 'shop' && (

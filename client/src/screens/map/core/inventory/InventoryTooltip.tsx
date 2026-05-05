@@ -61,7 +61,7 @@ const EquipmentTooltip = ({ entry, playerLevel, playerGender }: {
       <Text style={[styles.tooltipName, { color: rankColor }]} numberOfLines={1}>
         {entry.displayName}{entry.level > 0 ? ` +${entry.level}` : ''}
       </Text>
-      <Text style={levelOk ? styles.tooltipLine : styles.tooltipLineRed}>Cấp yêu cầu: {entry.requiredLevel}</Text>
+      <Text style={levelOk ? styles.tooltipLine : styles.tooltipLineRed}>Yêu cầu cấp: {entry.requiredLevel}</Text>
       {durabilityText ? (
         <Text style={entry.durability > 0 && (entry.durability * 100) / entry.maxDurability >= 30 ? styles.tooltipLine : styles.tooltipLineRed}>
           {durabilityText}

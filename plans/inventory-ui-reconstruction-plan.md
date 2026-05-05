@@ -444,8 +444,8 @@ Required changes:
 - [x] Draw equipment/item icons at 32x32 logical size.
 - [x] Add broken heart overlay exactly when `durability <= 0`.
 - [x] Add rank star animation for ranks `4/7/8`.
-- [x] Add enhancement `+N` bottom-right with gradient-like or fallback bold yellow/red style.
-- [x] Draw quantity for stackable item cells.
+- [x] Add enhancement `+N` bottom-right with Java bitmap font at `dc.java` bottom-right anchor.
+- [x] Draw quantity for stackable item cells with Java bitmap font at `dc.java` bottom-right anchor.
 
 ### Phase F - Focus, highlight, menu
 
@@ -499,3 +499,25 @@ Recommended implementation path:
 - Implement delayed quick tooltip after core layout is stable.
 
 This gives the closest match to the original without inventing unsupported UI behavior.
+
+## 10. Edit Log
+
+### 2026-05-05 — Source-code parity pass for inventory frame/cells
+
+- Java evidence applied from `hh.java`, `fg.java`, `dc.java`, `pc.java`, and `ba.java`; screenshot analysis was not used as source of truth.
+- Updated `client/src/screens/map/core/inventory/InventoryLayout.ts` to use source logical height `320 - ba.a` with default `ba.a = 17` instead of the earlier remake-safe `288` height.
+- Updated `client/src/screens/map/core/inventory/InventoryCellView.tsx` to replace text fallback overlays with real assets: `/broken_heart`, `/crystalblue`, and `/focusmovechess1`.
+- Updated `client/src/screens/map/core/inventory/InventoryScreen.tsx` to render `/corner/2`, `/hiddendragon`, and `/tab` assets in the main inventory frame path.
+- Updated `client/src/screens/map/core/inventory/InventoryScreen.styles.ts` with Java-derived color constants and 3-rect target highlight evidence.
+- Updated `client/src/screens/map/core/inventory/InventoryTooltip.tsx` and `client/src/screens/map/core/inventory/EquipmentDetailDialog.tsx` wording from remake `Cấp yêu cầu` to Java text `Yêu cầu cấp`.
+- Updated `client/src/components/controls/PopupMenu/PopupMenu.tsx` and `client/src/components/controls/PopupMenu/PopupMenu.styles.ts` with opt-in `javaCompact` mode for inventory menu: Java item height `20`, compact frame padding, left text inset from `bs.java`/`br.java`; Java compact selected row no longer renders ornate remake menu assets.
+- Replaced panel fill approximation with runtime Java `v.aj = 0xF0FBFF` from `SQMIDlet.java` -> `v.a(...)`, rendered as `#F0FBFF`.
+- Enabled automatic portrait/wide layout selection in `client/src/screens/map/core/inventory/InventoryLayout.ts` and `client/src/screens/map/core/inventory/InventoryScreen.tsx` instead of forcing portrait.
+- Corrected focus rendering in `client/src/screens/map/core/inventory/InventoryCellView.tsx` to crop four `7x7` corners from `/focusmovechess1`, matching `pc.e(...)` instead of stretching the whole image.
+- Added explicit panel line primitives in `client/src/screens/map/core/inventory/InventoryScreen.tsx`/styles to mirror `pc.a(...)` top/bottom/edge fillRect calls.
+- Fixed route wiring in `client/src/screens/map/core/MapCharacterDialogs.tsx`: both `equipment` and `inventory` now early-return the parity `InventoryScreen`; old embedded `CornerFrame` equipment/inventory branches are no longer reachable.
+- Replaced remaining RN `borderColor` bevel approximations for slots, grid cells, and bag container with layered Java primitives from `pc.b(...)` / `pc.a(..., color, fill)` evidence: outer `230911`, inner `14612735`, fill color, and right/bottom accent color.
+- Fixed additional 1px parity issues in `client/src/screens/map/core/inventory/InventoryScreen.tsx`: `/tab` element icon now uses Java's fixed `35x37` frame width from `pc.java:85-86`, bag grid X padding now follows `fg.java` centered `m` formula, target highlight is drawn over the target equipped slot from `hh.java:1382-1394`, and avatar frame uses line primitives based on `pc.c(...)` instead of a generic border.
+- Added a follow-up text/menu parity pass from Java font evidence: `bx.java` initializes bitmap fonts from `/_blackfont`, `/_fontcap`, and `/f/ver`; `c.java` confirms bitmap text height/width and bold offset behavior. `client/src/screens/map/core/inventory/javaFont/JavaBitmapText.tsx` now renders glyph regions from `_blackfont.png`, and `InventoryScreen.tsx` / `InventoryCellView.tsx` use it for name, level, capacity, enhancement and quantity text to avoid iOS/Android RN font metric drift. `PopupMenu.tsx` now also uses the same bitmap font in Java compact mode and sizes the menu from `bs.java` width formula `max(itemWidth,50)+42`, so inventory action labels/menu width no longer use native RN font metrics.
+- Asset check: no missing icons for this pass; required assets already exist under `client/assets`.
+- Verification: `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` passed.

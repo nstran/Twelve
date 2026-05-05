@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Image, Pressable, View } from 'react-native';
 import type { ImageSourcePropType, StyleProp, ViewStyle } from 'react-native';
 import type { CharacterEquipmentItem, CharacterInventoryItem } from '../../../character/shared';
 import { resolveEquipmentIconAsset } from '../../../character/shared';
-import { GRID_CELL_H, GRID_CELL_W, STAR_RANKS } from './InventoryLayout';
+import { GRID_CELL_H, GRID_CELL_W, STAR_FRAME_COUNT, STAR_RANKS } from './InventoryLayout';
 import { styles } from './InventoryScreen.styles';
+import { JAVA_BITMAP_FONT_HEIGHT, JavaBitmapText } from './javaFont/JavaBitmapText';
 
 export type InventoryCellData =
   | { kind: 'equipment'; key: string; entry: CharacterEquipmentItem; equipped: boolean }
@@ -17,42 +18,114 @@ interface InventoryCellViewProps {
   targetHighlighted?: boolean;
   scale: number;
   style?: StyleProp<ViewStyle>;
+  renderBevel?: boolean;
   onPress?: () => void;
   resolveItemIcon: (item: CharacterInventoryItem) => ImageSourcePropType | undefined;
 }
 
-const BrokenHeart = ({ scale }: { scale: number }) => (
-  <View style={[styles.brokenHeart, { width: 8 * scale, height: 7 * scale, right: -1 * scale, bottom: 1 * scale }]}> 
-    <Text style={[styles.brokenHeartText, { fontSize: 8 * scale }]}>♥</Text>
-  </View>
-);
+const BROKEN_HEART_ASSET = require('../../../../../assets/ui/08_misc_confirmed/broken_heart.png');
+const CRYSTAL_BLUE_ASSET = require('../../../../../assets/battle/03_crystals_casting/crystalblue.png');
+const FOCUS_MOVE_CHESS_ASSET = require('../../../../../assets/battle/08_focus_cursor/focusmovechess1.png');
+
+const CELL_ASSET_SIZES = {
+  brokenHeart: { width: 12, height: 10 },
+  crystalBlue: { width: 30, height: 10 },
+  focusMoveChess: { width: 28, height: 28 },
+};
+
+const BrokenHeart = ({ scale }: { scale: number }) => {
+  const width = CELL_ASSET_SIZES.brokenHeart.width * scale;
+  const height = CELL_ASSET_SIZES.brokenHeart.height * scale;
+
+  return (
+    <View
+      style={[
+        styles.brokenHeart,
+        {
+          width,
+          height,
+          right: -width,
+          bottom: 0,
+        },
+      ]}
+    >
+      <Image source={BROKEN_HEART_ASSET} style={[styles.brokenHeartImage, { width, height }]} resizeMode="stretch" />
+    </View>
+  );
+};
 
 const RankStar = ({ scale }: { scale: number }) => {
   const [frame, setFrame] = useState(0);
+  const sprite = useMemo(() => CELL_ASSET_SIZES.crystalBlue, []);
+  const frameWidth = sprite.width / STAR_FRAME_COUNT;
+  const width = frameWidth * scale;
+  const height = sprite.height * scale;
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setFrame((current) => (current + 1) % 3);
+      setFrame((current) => (current + 1) % STAR_FRAME_COUNT);
     }, 180);
 
     return () => clearInterval(timer);
   }, []);
 
   return (
-    <Text
-      style={[
-        styles.rankStar,
-        {
-          fontSize: (frame === 1 ? 10 : 9) * scale,
-          right: -3 * scale,
-          top: -4 * scale,
-        },
-      ]}
-    >
-      ★
-    </Text>
+    <View style={[styles.rankStar, { width, height, right: -width, top: 0 }]}>
+      <Image
+        source={CRYSTAL_BLUE_ASSET}
+        style={[styles.rankStarSheet, { width: sprite.width * scale, height, left: -frame * width }]}
+        resizeMode="stretch"
+      />
+    </View>
   );
 };
+
+const JavaThreeColorBevel = ({ scale, fillColor, accentColor }: { scale: number; fillColor: string; accentColor: string }) => {
+  const width = GRID_CELL_W * scale;
+  const height = GRID_CELL_H * scale;
+
+  return (
+    <View pointerEvents="none" style={styles.javaBevelFrame}>
+      <View style={[styles.javaBevelFill, { left: 1 * scale, top: 1 * scale, width: width - 2 * scale, height: height - 2 * scale, backgroundColor: fillColor }]} />
+      <View style={[styles.javaBevelOuter, { left: 0, top: 0, width, height, borderColor: fillColor }]} />
+      <View style={[styles.javaBevelAccentBottom, { left: 1 * scale, top: height - 2 * scale, width: width - 2 * scale, backgroundColor: accentColor }]} />
+      <View style={[styles.javaBevelAccentRight, { left: width - 2 * scale, top: 1 * scale, height: height - 2 * scale, backgroundColor: accentColor }]} />
+    </View>
+  );
+};
+
+const FocusFrame = ({ scale }: { scale: number }) => {
+  const sprite = CELL_ASSET_SIZES.focusMoveChess;
+  const corner = 7 * scale;
+  const sheetWidth = sprite.width * scale;
+  const sheetHeight = sprite.height * scale;
+  const sourceRight = (sprite.width - 7) * scale;
+  const sourceBottom = (sprite.height - 7) * scale;
+
+  return (
+    <View pointerEvents="none" style={styles.focusFrame}>
+      <View style={[styles.focusCornerClip, { left: 0, top: 0, width: corner, height: corner }]}>
+        <Image source={FOCUS_MOVE_CHESS_ASSET} style={[styles.focusCornerSheet, { width: sheetWidth, height: sheetHeight, left: 0, top: 0 }]} />
+      </View>
+      <View style={[styles.focusCornerClip, { right: 0, top: 0, width: corner, height: corner }]}>
+        <Image source={FOCUS_MOVE_CHESS_ASSET} style={[styles.focusCornerSheet, { width: sheetWidth, height: sheetHeight, left: -sourceRight, top: 0 }]} />
+      </View>
+      <View style={[styles.focusCornerClip, { left: 0, bottom: 0, width: corner, height: corner }]}>
+        <Image source={FOCUS_MOVE_CHESS_ASSET} style={[styles.focusCornerSheet, { width: sheetWidth, height: sheetHeight, left: 0, top: -sourceBottom }]} />
+      </View>
+      <View style={[styles.focusCornerClip, { right: 0, bottom: 0, width: corner, height: corner }]}>
+        <Image source={FOCUS_MOVE_CHESS_ASSET} style={[styles.focusCornerSheet, { width: sheetWidth, height: sheetHeight, left: -sourceRight, top: -sourceBottom }]} />
+      </View>
+    </View>
+  );
+};
+
+export const TargetFrame = ({ scale }: { scale: number }) => (
+  <View pointerEvents="none" style={[styles.targetFrameOuter, { left: -2 * scale, top: -2 * scale, width: 36 * scale, height: 36 * scale }]}>
+    <View style={[styles.targetFrameMiddle, { left: 1 * scale, top: 1 * scale, width: 34 * scale, height: 34 * scale }]} />
+    <View style={[styles.targetFrameInner, { left: 2 * scale, top: 2 * scale, width: 32 * scale, height: 32 * scale }]} />
+  </View>
+);
 
 export const InventoryCellView: React.FC<InventoryCellViewProps> = ({
   cell,
@@ -60,6 +133,7 @@ export const InventoryCellView: React.FC<InventoryCellViewProps> = ({
   targetHighlighted,
   scale,
   style,
+  renderBevel = true,
   onPress,
   resolveItemIcon,
 }) => {
@@ -94,25 +168,27 @@ export const InventoryCellView: React.FC<InventoryCellViewProps> = ({
         styles.cell,
         sizeStyle,
         cell.kind === 'empty' ? styles.cellEmpty : styles.cellFilled,
-        selected && styles.cellSelected,
-        targetHighlighted && styles.cellTarget,
+        !renderBevel ? styles.cellTransparent : null,
         style,
       ]}
     >
+      {renderBevel ? <JavaThreeColorBevel scale={scale} fillColor="#657FFF" accentColor="#7FBFFF" /> : null}
       {icon ? (
         <Image source={icon} style={[styles.cellIcon, sizeStyle]} resizeMode="contain" />
       ) : null}
       {cell.kind === 'equipment' && !icon ? (
-        <Text style={[styles.missingIconText, { fontSize: 8 * scale }]}>?</Text>
+        <JavaBitmapText text="?" x={GRID_CELL_W * scale / 2} y={9 * scale} scale={scale} anchor={1} bold />
       ) : null}
+      {targetHighlighted ? <TargetFrame scale={scale} /> : null}
       {isBroken ? <BrokenHeart scale={scale} /> : null}
       {showRankStar ? <RankStar scale={scale} /> : null}
       {enhancement !== null ? (
-        <Text style={[styles.enhancementText, { fontSize: 9 * scale, right: 1 * scale, bottom: -1 * scale }]}>+{enhancement}</Text>
+        <JavaBitmapText text={`+${enhancement}`} x={GRID_CELL_W * scale} y={(GRID_CELL_H - JAVA_BITMAP_FONT_HEIGHT) * scale} scale={scale} anchor={2} bold />
       ) : null}
       {quantity !== null ? (
-        <Text style={[styles.quantityText, { fontSize: 9 * scale, right: 1 * scale, bottom: -1 * scale }]}>{quantity}</Text>
+        <JavaBitmapText text={String(quantity)} x={GRID_CELL_W * scale} y={(GRID_CELL_H - JAVA_BITMAP_FONT_HEIGHT) * scale} scale={scale} anchor={2} bold />
       ) : null}
+      {selected ? <FocusFrame scale={scale} /> : null}
     </Pressable>
   );
 };

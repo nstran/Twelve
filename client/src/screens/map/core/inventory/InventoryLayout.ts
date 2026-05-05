@@ -30,11 +30,14 @@ export interface LayoutRect {
 // Original logical coordinates — hh.java constructor
 // ---------------------------------------------------------------------------
 
+/** Softkey height. Source: ba.java field a = 17, becomes 21 only when v.z is true. */
+const SOFTKEY_HEIGHT = 17;
+
 /** Portrait layout (B() == false, logical width 240). Source: hh.java */
 const PORTRAIT = {
   logicalWidth: 240,
-  /** Default logical height = 320 - softkeyHeight. We use 288 as a safe default (softkey ~32). */
-  logicalHeight: 288,
+  /** Source: hh.java constructor: n3 = 320 - ba.a. */
+  logicalHeight: 320 - SOFTKEY_HEIGHT,
   avatar: { x: 95, y: 21, w: 54, h: 60 } as LayoutRect,
   /** 6 equipped slots, indexed 0–5. Source: hh.java slot rects. */
   slots: [
@@ -58,7 +61,8 @@ const PORTRAIT = {
 /** Landscape / wide layout (B() == true, logical width 320). Source: hh.java */
 const LANDSCAPE = {
   logicalWidth: 320,
-  logicalHeight: 288,
+  /** Java uses v.u - ba.a in wide mode; 320 is the source baseline for reconstructed scaling. */
+  logicalHeight: 320 - SOFTKEY_HEIGHT,
   avatar: { x: 13, y: 24, w: 54, h: 60 } as LayoutRect,
   slots: [
     { x: 6, y: 90, w: 32, h: 32 },
@@ -162,22 +166,25 @@ export interface ScaledLayout {
 
 /**
  * Compute the scale factor and effective canvas size for the inventory screen.
- *
- * Uses portrait layout for now (phase one).
- * Landscape constants are ready but not auto-selected yet.
+ * Source: hh.java selects wide layout through B() when the client is in landscape/wide mode.
  */
 export function computeInventoryScale(
   availableWidth: number,
   availableHeight: number,
-  orientation: InventoryOrientation = 'portrait',
+  orientation?: InventoryOrientation,
 ): ScaledLayout {
-  const layout = orientation === 'landscape' ? LANDSCAPE : PORTRAIT;
+  let resolvedOrientation = orientation;
+  if (!resolvedOrientation) {
+    resolvedOrientation = availableWidth >= availableHeight ? 'landscape' : 'portrait';
+  }
+
+  const layout = resolvedOrientation === 'landscape' ? LANDSCAPE : PORTRAIT;
   const scale = Math.min(
     availableWidth / layout.logicalWidth,
     availableHeight / layout.logicalHeight,
   );
   return {
-    orientation,
+    orientation: resolvedOrientation,
     scale,
     canvasWidth: layout.logicalWidth * scale,
     canvasHeight: layout.logicalHeight * scale,

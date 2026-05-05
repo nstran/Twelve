@@ -99,7 +99,7 @@ export const EquipmentDetailDialog: React.FC<EquipmentDetailDialogProps> = ({
 
         {/* Required level — hg.java level check */}
         <Text style={levelOk ? styles.detailLine : styles.detailLineRed}>
-          Cấp yêu cầu: {entry.requiredLevel}
+          Yêu cầu cấp: {entry.requiredLevel}
         </Text>
 
         {/* Durability — hg.java durability display */}
