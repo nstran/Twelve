@@ -24,11 +24,11 @@ export const styles = StyleSheet.create({
   },
   cardOuter: {
     borderWidth: 2,
-    borderColor: '#5aa8ff',
-    backgroundColor: '#edf7ff',
-    borderRadius: 6,
-    padding: 2,
-    shadowColor: '#4d88d9',
+    borderColor: '#20a5de',
+    backgroundColor: '#f0fbff',
+    borderRadius: 4,
+    padding: 4,
+    shadowColor: '#135797',
     shadowOpacity: 0.35,
     shadowRadius: 4,
   },
@@ -39,11 +39,11 @@ export const styles = StyleSheet.create({
     marginTop: 12,
   },
   cardInner: {
-    minHeight: 118,
+    minHeight: 68,
     borderWidth: 1,
-    borderColor: '#c9e3ff',
-    backgroundColor: 'rgba(247, 252, 255, 0.96)',
-    borderRadius: 4,
+    borderColor: '#0cafff',
+    backgroundColor: '#f2fbff',
+    borderRadius: 2,
     overflow: 'hidden',
     justifyContent: 'center',
   },
@@ -74,7 +74,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   actorSlot: {
-    width: 96,
+    width: 58,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -134,14 +134,14 @@ export const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   playerSpriteWrap: {
-    width: 82,
-    height: 74,
+    width: 58,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
   monsterSpriteWrap: {
-    width: 82,
-    height: 74,
+    width: 58,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
@@ -172,7 +172,7 @@ export const getBattleIntroCardOuterStyle = (isLeft: boolean, accentColor: strin
 
 export const getBattleIntroCardInnerStyle = (accentColor: string) => ([
   styles.cardInner,
-  { borderColor: accentColor === '#5aa8ff' ? '#c9e3ff' : accentColor },
+  { borderColor: accentColor === '#6ef0ef' ? '#0cafff' : accentColor },
 ]);
 
 export const getBattleIntroCardsLayerStyle = (

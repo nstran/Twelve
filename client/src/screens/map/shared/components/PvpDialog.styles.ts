@@ -1,4 +1,5 @@
 import { Dimensions, StyleSheet } from 'react-native';
+import { PvpFontStyles } from '../JavaFontMetrics';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -25,9 +26,39 @@ export const styles = StyleSheet.create({
     width: Math.min(SCREEN_W * 0.94, 448),
     maxHeight: Math.min(SCREEN_H * 0.58, 380),
   },
+  separator: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: '#20a5de',
+    zIndex: 3,
+  },
+  separatorArena: {
+    top: 5, // Java evidence: os.java:116 with n = k(0, 5, v.t, 1) for arena mode.
+  },
+  separatorChallenge: {
+    top: 73, // Java evidence: os.java:116 with n = k(0, 73, v.t, 1) for challenge mode.
+  },
+  hiddenDragon: {
+    position: 'absolute',
+    right: 0,
+    bottom: 17, // Java evidence: os.java:110 uses y = height - ba.a; ba.a default softkey height is 17.
+    opacity: 0.92,
+    zIndex: 1,
+  },
+  timerText: {
+    position: 'absolute',
+    right: 5,
+    bottom: 35, // Java evidence: os.java:120 and ew.java:82 draw at v.u - 35.
+    color: '#313338',
+    ...PvpFontStyles.arenaSecondary,
+    fontWeight: '800',
+    zIndex: 4,
+  },
   content: {
     padding: 8,
-    backgroundColor: '#dfe9f7',
+    backgroundColor: '#f2fbff',
   },
   header: {
     flexDirection: 'row',
@@ -37,8 +68,7 @@ export const styles = StyleSheet.create({
   },
   title: {
     color: '#8a5700',
-    fontSize: 24,
-    fontWeight: '800',
+    ...PvpFontStyles.dialogTitle,
   },
   headerAction: {
     color: '#313338',
@@ -53,7 +83,7 @@ export const styles = StyleSheet.create({
     marginTop: 2,
     borderWidth: 1,
     borderColor: '#96add3',
-    backgroundColor: '#f2f8ff',
+    backgroundColor: '#f0fbff',
   },
   list: {
     maxHeight: 220,
@@ -64,45 +94,47 @@ export const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   legacyRow: {
-    minHeight: 42,
+    minHeight: 32,
     borderBottomWidth: 1,
     borderBottomColor: '#b9c7df',
-    backgroundColor: '#f7fbff',
+    backgroundColor: '#f0fbff',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 2,  // Java: n2 + 2
+    paddingVertical: 3,    // Java: n3 + 3 (normal)
   },
   legacyRowActive: {
-    backgroundColor: '#fff9df',
+    minHeight: 42,
+    backgroundColor: '#6ef0ef',  // Java: 7267055 = 0x6EF0EF
     borderTopWidth: 2,
-    borderTopColor: '#f0b73d',
-    borderBottomColor: '#f0b73d',
+    borderTopColor: '#20a5de',
+    borderBottomColor: '#20a5de',
+    paddingVertical: 7,  // Java: n3 + 7 (selected)
   },
   legacyBadge: {
-    width: 28,
-    color: '#2d64b5',
-    fontSize: 10,
-    fontWeight: '900',
-    textAlign: 'center',
+    width: 23,  // Java: text starts at n2 + 25, so badge = 25 - 2 (padding) = 23
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  legacyBadgeActive: {
+    // No additional styles needed for View container when selected
   },
   legacyTextWrap: {
     flex: 1,
     minWidth: 0,
-    marginLeft: 2,
+    marginLeft: 0,  // Java: text at n2 + 25, badge handles the 23px, padding adds 2px = 25px total
+  },
+  legacyTextWrapActive: {
+    marginLeft: 0,  // Java: same 25px offset for selected
   },
   legacyName: {
     color: '#1d2f59',
-    fontSize: 16,
-    fontWeight: '700',
-    lineHeight: 18,
+    ...PvpFontStyles.arenaPrimary,
   },
   legacyMeta: {
     color: '#2b5ec4',
-    fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 15,
-    marginTop: 1,
+    ...PvpFontStyles.arenaSecondary,
+    marginTop: 13,  // Java: n3 + 13 (13px below primary text)
   },
   legacyStake: {
     width: 34,
@@ -118,8 +150,8 @@ export const styles = StyleSheet.create({
     width: Math.min(SCREEN_W * 0.54, 212),
     minHeight: 74,
     borderWidth: 2,
-    borderColor: '#5ca3ee',
-    backgroundColor: '#f6fbff',
+    borderColor: '#20a5de',
+    backgroundColor: '#f0fbff',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
@@ -129,20 +161,19 @@ export const styles = StyleSheet.create({
     minHeight: 72,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f6fbff',
+    backgroundColor: '#f0fbff',
     borderTopWidth: 1,
     borderTopColor: '#b9c7df',
     paddingHorizontal: 12,
   },
   arenaEmptyTitle: {
     color: '#1f2f4d',
-    fontSize: 14,
-    fontWeight: '700',
+    ...PvpFontStyles.arenaPrimary,
     textAlign: 'center',
   },
   arenaEmptyMeta: {
     color: '#496ca5',
-    fontSize: 12,
+    ...PvpFontStyles.arenaSecondary,
     marginTop: 4,
     textAlign: 'center',
   },
@@ -160,12 +191,11 @@ export const styles = StyleSheet.create({
   },
   legacyPreviewName: {
     color: '#1f2f4d',
-    fontSize: 14,
-    fontWeight: '800',
+    ...PvpFontStyles.arenaPrimary,
   },
   legacyPreviewMeta: {
     color: '#2c3a52',
-    fontSize: 11,
+    ...PvpFontStyles.arenaSecondary,
     fontWeight: '700',
     marginTop: 2,
   },

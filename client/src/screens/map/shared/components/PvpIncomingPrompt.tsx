@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { CornerFrame } from '../../../../components/ui/CornerFrame/CornerFrame';
+import { PvpCornerFrame } from './PvpCornerFrame';
 import type { PvpChallengeTicket } from '../../../battle';
 import { styles } from './PvpIncomingPrompt.styles';
 
@@ -23,7 +23,11 @@ export const PvpIncomingPrompt: React.FC<PvpIncomingPromptProps> = ({ prompt, on
   return (
     <View style={styles.overlay} pointerEvents="box-none">
       <View style={styles.backdrop} />
-      <CornerFrame style={styles.frame} contentStyle={styles.content}>
+      <PvpCornerFrame
+        style={styles.frame}
+        showCorners={true}
+        cornerAsset={require('../../../../../assets/ui/00_corner_frames/_corner.png')}
+      >
         <Text style={styles.title}>Khiêu Chiến</Text>
         <Text style={styles.message}>
           {prompt.ticket.challengerUsername} muốn thách đấu với bạn.
@@ -37,7 +41,7 @@ export const PvpIncomingPrompt: React.FC<PvpIncomingPromptProps> = ({ prompt, on
             <Text style={styles.buttonPrimaryText}>{busy ? 'Đang vào...' : 'Đồng ý'}</Text>
           </TouchableOpacity>
         </View>
-      </CornerFrame>
+      </PvpCornerFrame>
     </View>
   );
 };

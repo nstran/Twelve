@@ -470,6 +470,7 @@ export const SideScrollMapScreen: React.FC<Props> = ({
     setPvpDisableSpecialSkills,
     pvpIncomingPrompt,
     setPvpIncomingPrompt,
+    pvpPendingTicket,
     loadPvpOpponents,
     openPvpDialog,
     startPvpBattle,
@@ -1219,6 +1220,7 @@ export const SideScrollMapScreen: React.FC<Props> = ({
           allowSpectators={pvpAllowSpectators}
           oneWay={pvpOneWay}
           disableSpecialSkills={pvpDisableSpecialSkills}
+          pendingTicket={pvpPendingTicket}
           onClose={() => setActivePvpDialog(null)}
           onRefresh={() => loadPvpOpponents(activePvpDialog ?? 'challenge')}
           onSelectTarget={setPvpTarget}

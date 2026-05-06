@@ -1,4 +1,5 @@
 import { Dimensions, StyleSheet } from 'react-native';
+import { PvpFontStyles } from '../JavaFontMetrics';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -22,56 +23,54 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.55)',
   },
   frame: {
-    width: Math.min(SCREEN_W * 0.86, 340),
+    width: Math.min(SCREEN_W * 0.86, 320),
   },
   content: {
-    padding: 12,
-    backgroundColor: '#fff4d8',
+    padding: 10,
+    backgroundColor: '#f2fbff',  // v.aj (Java computed lighter fill)
   },
   title: {
-    color: '#8a5700',
-    fontSize: 24,
-    fontWeight: '800',
+    color: '#1f2f4d',
+    ...PvpFontStyles.dialogTitle,
+    marginBottom: 8,
   },
   message: {
-    color: '#2f1d12',
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 8,
+    color: '#2d3a52',
+    ...PvpFontStyles.arenaPrimary,
+    marginTop: 4,
   },
   meta: {
-    color: '#7b4c18',
-    fontSize: 12,
-    fontWeight: '800',
+    color: '#496ca5',
+    ...PvpFontStyles.arenaSecondary,
+    fontWeight: '700',
     marginTop: 6,
   },
   footer: {
-    marginTop: 8,
+    marginTop: 12,
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 8,
   },
   button: {
-    minWidth: 82,
-    minHeight: 30,
+    minWidth: 80,
+    minHeight: 32,
     borderWidth: 1,
-    borderColor: '#c88b2f',
-    backgroundColor: '#fff1cd',
+    borderColor: '#96add3',
+    backgroundColor: '#f0fbff',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
   },
   buttonPrimary: {
-    backgroundColor: '#b26a2f',
+    backgroundColor: '#6ef0ef',
+    borderColor: '#20a5de',
   },
   buttonText: {
-    color: '#5a3a0f',
-    fontSize: 14,
-    fontWeight: '800',
+    color: '#1f2f4d',
+    ...PvpFontStyles.buttonText,
   },
   buttonPrimaryText: {
-    color: '#fff4c9',
-    fontSize: 14,
-    fontWeight: '900',
+    color: '#ffffff',
+    ...PvpFontStyles.buttonText,
   },
 });
