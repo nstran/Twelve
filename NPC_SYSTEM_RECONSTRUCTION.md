@@ -505,7 +505,7 @@ The next coding step should be deeper client-side Mission screen polish, while k
 - Server emits mission progress/complete/reward notifications, and RN now renders a lightweight map toast queue for these updates.
 - RN now has a playable mission list/detail/accept dialog on the Hoa Lu map; presentation remains remake polish based on Java `hr`/`hb` flow, not pixel-perfect Java UI.
 - Future `Equipment` rewards must use equipment template keys from `EquipmentCatalog.TemplateKey`, not raw item ids from `ItemCatalog`.
-- Manual end-to-end verification lives in `plans/hoa-lu-mission-end-to-end-checklist.md`.
+- Manual end-to-end verification lives in `plans/features/hoa-lu-mission-end-to-end-checklist.md`.
 
 In parallel, continue with a client-side NPC + Mission evidence port that:
 
@@ -549,4 +549,4 @@ can start being promoted into final semantic roles.
 - Corrected the Hoa Lư patrol reward seed: raw id `30094` is `Trứng gà` in `ItemCatalog`, so the reward remains data-driven as `Item 30094 x1`; `Equipment` rewards are reserved for equipment template keys.
 - Added mission notification/update packets for progress flow: `MissionProgressUpdate` carries changed objective status, `MissionPacketFactory` builds command `34` task notifications, command `38` mission updates, and command `35` complete/reward notifications. `NpcTalkHandler` sends these immediately for `TalkNpc`; battle result responses now include mission updates for `KillMonster` so RN can render progress after battle claim.
 - Added RN mission toast queue polish: `MapMission.reducer` now builds task/mission/progress toasts, `HoaLuMapScreen` renders a stacked mission notification panel separate from NPC talk, and `App` carries pending battle result mission updates back to the map after leaving battle. This UI is remake polish; objective/reward data remains server/DB-driven.
-- Added playable Hoa Lư Mission dialog polish: the map menu opens a list/detail panel, requests mission list/detail from the server, renders objectives/rewards, and sends accept by mission key without hardcoding client mission data. Added `plans/hoa-lu-mission-end-to-end-checklist.md` for receive/progress/complete/claim/double-claim/reconnect manual QA.
+- Added playable Hoa Lư Mission dialog polish: the map menu opens a list/detail panel, requests mission list/detail from the server, renders objectives/rewards, and sends accept by mission key without hardcoding client mission data. Added `plans/features/hoa-lu-mission-end-to-end-checklist.md` for receive/progress/complete/claim/double-claim/reconnect manual QA.

@@ -4,6 +4,19 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-06
 
+### [PROCESS] BMAD-style evidence-first reconstruction workflow
+
+- Added medium-level BMAD adaptation proposal for Twelve in `plans/_process/bmad-twelve-adaptation-proposal.md`.
+- Added implementation plan for the selected medium adoption level in `plans/_process/bmad-twelve-medium-implementation-plan.md`.
+- Added reusable reconstruction templates:
+  - `plans/_templates/evidence-brief-template.md`
+  - `plans/_templates/reconstruction-scope-template.md`
+  - `plans/_templates/reconstruction-story-template.md`
+  - `plans/_templates/qa-gate-template.md`
+- Added evidence-first workflow `/.agent/workflows/reconstruction.md` for gameplay/protocol/UI reconstruction tasks.
+- Updated `/.agent/workflows/plan.md` and `/.agent/workflows/debug.md` to require Java evidence checks, explicit remake policy labeling, and QA gates for reconstruction work.
+- No server/client production code changed; no `dotnet build` required.
+
 ### [EQUIPMENT] Full aura rank system (lc.java evidence)
 
 - Implemented complete aura rank system from `lc.java:233-288` for all ranks 1-4:
@@ -14,7 +27,7 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 - Added `aura1` asset to `AURA_LAYER_ASSETS` from `client/assets/battle/06_auras/aura1.png`
 - Updated `CharacterEquipmentLayerConfig.replacesDefaultLayer` type to include `'body'` option
 - TypeScript check passed: `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass.
-- Files: `equipmentAssets.ts`, `characterEquipmentLayer.ts`, `plans/inventory-ui-reconstruction-plan.md`
+- Files: `equipmentAssets.ts`, `characterEquipmentLayer.ts`, `plans/features/inventory-ui-reconstruction-plan.md`
 
 ## 2026-05-05
 
@@ -194,7 +207,7 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
   - menu `Nhiệm Vụ` mở dialog list/detail riêng, request mission list/detail từ server;
   - detail panel hiển thị mô tả, mục tiêu, reward lines, và nút nhận nhiệm vụ theo trạng thái server;
   - dialog được chặn input map/softkey giống các popup lớn khác để tránh overlap thao tác.
-- Thêm checklist manual end-to-end ở `plans/hoa-lu-mission-end-to-end-checklist.md` cho 3 nhiệm vụ Hoa Lư: nhận, kill/talk progress, complete, claim reward, chống double-claim, reconnect persistence.
+- Thêm checklist manual end-to-end ở `plans/features/hoa-lu-mission-end-to-end-checklist.md` cho 3 nhiệm vụ Hoa Lư: nhận, kill/talk progress, complete, claim reward, chống double-claim, reconnect persistence.
 - Boundary:
   - UI là remake polish gần flow Java `hr`/`hb`, chưa clone pixel-perfect asset `questnotifyicon`.
   - Checklist ghi rõ mission catalog/reward/claim policy hiện là remake seed data.
