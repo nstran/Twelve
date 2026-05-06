@@ -1,20 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Dimensions, Image, Pressable, View } from 'react-native';
+import { Dimensions, Image, Pressable, ScrollView, Text as RNText, View } from 'react-native';
 import type { ImageSourcePropType } from 'react-native';
 import { PopupMenu } from '../../../../components/controls/PopupMenu/PopupMenu';
-import { CharacterRenderer } from '../../../character/CharacterRenderer';
+import { CharacterRenderer, measureCharacterRenderer } from '../../../character/CharacterRenderer';
 import type { CharacterAppearance, CharacterEquipmentItem, CharacterInventoryItem } from '../../../character/shared';
 import { EquipmentDetailDialog } from './EquipmentDetailDialog';
 import { InventoryCellView, TargetFrame, type InventoryCellData } from './InventoryCellView';
 import {
   computeGridColumns,
   computeInventoryScale,
-  EQUIPMENT_SLOT_NAMES,
   GRID_CELL_H,
   GRID_CELL_W,
   GRID_PADDING_Y,
   GRID_SPACING,
-  INVENTORY_LAYOUT,
   scaleRect,
 } from './InventoryLayout';
 import { styles } from './InventoryScreen.styles';
@@ -42,7 +40,7 @@ const INFO_ASSETS = {
   hidenobj: require('../../../../../assets/ui/12_info/hidenobj.png'),
   corner2: require('../../../../../assets/ui/00_corner_frames/2.png'),
   hiddendragon: require('../../../../../assets/battle/09_hidden_pieces/hiddendragon.png'),
-  tab: require('../../../../../assets/ui/04_tabs_and_numbers/tab.png'),
+  elementsicon: require('../../../../../assets/battle/04_element_icons/elementsicon.png'),
 };
 
 const INVENTORY_ITEM_ASSETS: Record<string, ImageSourcePropType> = {
@@ -69,7 +67,7 @@ const BASE_CAPACITY = 50;
 const INFO_ASSET_SIZES = {
   corner2: { width: 9, height: 12 },
   hiddendragon: { width: 107, height: 78 },
-  tab: { width: 315, height: 37 },
+  elementsicon: { width: 60, height: 15 },
 };
 
 const buildEquippedKeySet = (equipment: CharacterEquipmentItem[]) => new Set(
@@ -123,7 +121,6 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
   onDiscardEquipment,
   onDiscardItem,
   onRepairEquipment,
-  onSoftkeyMenuPress,
 }) => {
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
   const scaled = computeInventoryScale(screenWidth * 0.96, screenHeight * 0.9);
@@ -138,6 +135,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
   const [menuSelectedIndex, setMenuSelectedIndex] = useState(0);
   const [showTooltip, setShowTooltip] = useState(false);
   const [detailEntry, setDetailEntry] = useState<CharacterEquipmentItem | null>(null);
+  const [gridScrollY, setGridScrollY] = useState(0);
 
   useEffect(() => {
     setDraftEquippedKeys(buildEquippedKeySet(equipmentSource));
@@ -162,9 +160,13 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
     ...bagEquipment.map((entry): InventoryCellData => ({ kind: 'equipment', key: `equip-${entry.equipKey}`, entry, equipped: false })),
     ...(appearance.inventory ?? []).map((item): InventoryCellData => ({ kind: 'item', key: `item-${item.itemId}`, item })),
   ];
-  const visibleCapacity = Math.max(BASE_CAPACITY, rawCells.length);
+  // Java evidence hh.java:112-115 + fg.java:124-138.
+  // q/unlocked capacity = max(current logical slots, go.n); t.length = columns * (capacityRows + extraRows).
+  const unlockedCapacity = Math.max(BASE_CAPACITY, rawCells.length);
   const columns = computeGridColumns(layout.bag.w);
-  const cells = Array.from({ length: visibleCapacity }, (_, index): InventoryCellData => rawCells[index] ?? { kind: 'empty', key: `empty-${index}` });
+  const extraRows = 2; // hh.java:115 calls v.d(Y, 2)
+  const totalGridCells = columns * (Math.ceil(unlockedCapacity / columns) + extraRows);
+  const cells = Array.from({ length: totalGridCells }, (_, index): InventoryCellData => rawCells[index] ?? { kind: 'empty', key: `empty-${index}` });
   const selectedCell = rawCells.find((cell) => cell.key === selectedKey)
     ?? equipped.map((entry): InventoryCellData => ({ kind: 'equipment', key: `equipped-${entry.equipKey}`, entry, equipped: true })).find((cell) => cell.key === selectedKey)
     ?? null;
@@ -175,10 +177,12 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
   const cornerWidth = cornerAsset.width * scale;
   const cornerHeight = cornerAsset.height * scale;
   const dragonAsset = INFO_ASSET_SIZES.hiddendragon;
-  const tabAsset = INFO_ASSET_SIZES.tab;
-  // Java pc.b(...) slices /tab in fixed 35x37 frames: cw.a(j, n4 * 35, 0, 35, 37, ...).
-  const tabFrameWidth = 35;
-  const elementIndex = Math.max(0, Math.min(8, appearance.elementIndex ?? 0));
+  const avatarSize = measureCharacterRenderer(previewAppearance, scale, true);
+  const avatarLeft = Math.max(0, (layout.avatar.w * scale - avatarSize.w) / 2);
+  const elementIconAsset = INFO_ASSET_SIZES.elementsicon;
+  // Java pc.a(..., byte) slices /elementsicon in 4 frames 15x15: cw.a(g, r, frameW * elementByte, 0, frameW, h, ...).
+  const elementFrameWidth = 15;
+  const elementIndex = Math.max(0, Math.min(3, appearance.elementIndex ?? 0));
 
   useEffect(() => {
     if (!onPreviewEquipmentLoadout || !hasLoadoutChanges) {
@@ -211,28 +215,11 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
     return () => clearTimeout(timer);
   }, [selectedCell, menuState]);
 
-  // Auto-open menu when inventory is visible and has selected cell
-  useEffect(() => {
-    // When inventory opens, auto-select first non-empty cell if none selected
-    if (!selectedCell && !menuState) {
-      const firstNonEmpty = rawCells.find((c) => c.kind !== 'empty');
-      if (firstNonEmpty) {
-        const cellIndex = rawCells.indexOf(firstNonEmpty);
-        const col = cellIndex % columns;
-        const row = Math.floor(cellIndex / columns);
-        const cellLeft = layout.bag.x + col * (GRID_CELL_W + GRID_SPACING) + GRID_SPACING;
-        const cellTop = layout.bag.y + row * (GRID_CELL_W + GRID_SPACING) + GRID_SPACING;
-        setSelectedKey(firstNonEmpty.key);
-        setMenuState({ left: cellLeft, top: cellTop });
-      }
-    }
-  }, []);
-
   const getEquipped = (slot: number) => equipped.find((entry) => entry.slot === slot);
   const selectedTargetSlot = selectedCell?.kind === 'equipment' && !selectedCell.equipped && selectedCell.entry.slot < layout.slots.length
     ? selectedCell.entry.slot
     : null;
-  // fg.java centers columns with m=(containerWidth - columns*(cell+spacing))/2, not a fixed padding.
+  // fg.java:139 — m=(containerWidth - columns*(cell+spacing))/2. Keep relative to gridContainer.
   const gridPaddingX = (layout.bag.w - columns * (GRID_CELL_W + GRID_SPACING)) / 2;
   const selectCell = (cell: InventoryCellData, left: number, top: number) => {
     if (cell.kind === 'empty') {
@@ -402,26 +389,30 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
             {
               left: layout.elementPos.x * scale,
               top: layout.elementPos.y * scale,
-              width: tabFrameWidth * scale,
-              height: tabAsset.height * scale,
+              width: elementFrameWidth * scale,
+              height: elementIconAsset.height * scale,
             },
           ]}
         >
           <Image
-            source={INFO_ASSETS.tab}
+            source={INFO_ASSETS.elementsicon}
             style={[
               styles.elementIconSheet,
               {
-                width: tabAsset.width * scale,
-                height: tabAsset.height * scale,
-                left: -elementIndex * tabFrameWidth * scale,
+                width: elementIconAsset.width * scale,
+                height: elementIconAsset.height * scale,
+                left: -elementIndex * elementFrameWidth * scale,
               },
             ]}
             resizeMode="stretch"
           />
         </View>
-        <JavaBitmapText text={getPlayerName(appearance)} x={layout.namePos.x * scale} y={layout.namePos.y * scale} scale={scale} bold />
-        <JavaBitmapText text={`Cấp: ${playerLevel}`} x={canvasWidth - 14 * scale} y={6 * scale} scale={scale} anchor={2} bold />
+        <RNText style={[styles.headerText, { position: 'absolute', left: layout.namePos.x * scale, top: layout.namePos.y * scale, fontWeight: 'bold' }]}>
+          {getPlayerName(appearance)}
+        </RNText>
+        <RNText style={[styles.headerText, { position: 'absolute', right: 14 * scale, top: 6 * scale }]}>
+          Cấp: {playerLevel}
+        </RNText>
 
         {layout.slots.map((slotRect, slot) => {
           const slotStyle = scaleRect(slotRect, scale);
@@ -447,6 +438,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
                 scale={scale}
                 renderBevel={false}
                 style={{ left: 0, top: 0 }}
+                cellIndex={undefined}
+                capacityLimit={undefined}
+                isLocked={false}
                 resolveItemIcon={resolveInventoryItemIcon}
                 onPress={() => selectCell(cell, slotStyle.left + slotStyle.width, slotStyle.top)}
               />
@@ -458,8 +452,8 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
         <View style={[styles.avatarBox, scaleRect(layout.avatar, scale)]}>
           <CharacterRenderer
             appearance={previewAppearance}
-            scale={1.05 * scale}
-            style={{ position: 'relative', bottom: 0 }}
+            scale={scale}
+            style={{ position: 'absolute', left: avatarLeft, top: 5 * scale }}
             anchorToBody
           />
           <View pointerEvents="none" style={styles.avatarFrameOuter} />
@@ -470,27 +464,44 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
           <View pointerEvents="none" style={[styles.avatarFrameAccentRight, { right: 2 * scale, top: 3 * scale, bottom: 3 * scale }]} />
         </View>
 
-        <JavaBitmapText text={`${rawCells.length}/${BASE_CAPACITY}`} x={layout.capacityPos.x * scale} y={layout.capacityPos.y * scale} scale={scale} bold />
+        <RNText style={[styles.headerText, { position: 'absolute', left: layout.capacityPos.x * scale, top: layout.capacityPos.y * scale }]}>
+          {rawCells.length}/{BASE_CAPACITY}
+        </RNText>
 
         <View style={[styles.gridContainer, scaleRect(layout.bag, scale)]}>
           <JavaTwoColorBevel width={layout.bag.w * scale} height={layout.bag.h * scale} scale={scale} fillColor="#F0FBFF" />
-          {cells.map((cell, index) => {
-            const col = index % columns;
-            const row = Math.floor(index / columns);
-            const left = (gridPaddingX + col * (GRID_CELL_W + GRID_SPACING)) * scale;
-            const top = (GRID_PADDING_Y + row * (GRID_CELL_H + GRID_SPACING)) * scale;
-            return (
-              <InventoryCellView
-                key={cell.key}
-                cell={cell}
-                selected={selectedKey === cell.key}
-                scale={scale}
-                style={{ left, top }}
-                resolveItemIcon={resolveInventoryItemIcon}
-                onPress={() => selectCell(cell, layout.bag.x * scale + left + GRID_CELL_W * scale, layout.bag.y * scale + top)}
-              />
-            );
-          })}
+          <ScrollView
+            style={styles.gridScroll}
+            contentContainerStyle={{ height: (GRID_PADDING_Y + Math.ceil(cells.length / columns) * (GRID_CELL_H + GRID_SPACING)) * scale }}
+            showsVerticalScrollIndicator={false}
+            scrollEventThrottle={16}
+            onScroll={(event) => setGridScrollY(event.nativeEvent.contentOffset.y)}
+          >
+            <View style={styles.gridScrollContent}>
+              {cells.map((cell, index) => {
+                const col = index % columns;
+                const row = Math.floor(index / columns);
+                const left = (gridPaddingX + col * (GRID_CELL_W + GRID_SPACING)) * scale;
+                const top = (GRID_PADDING_Y + row * (GRID_CELL_H + GRID_SPACING)) * scale;
+                // Java evidence fg.java:82-92 — n7 < this.q (unlocked), n7 >= go.n (over-capacity), n7 >= this.q (locked)
+                const isLocked = index >= unlockedCapacity;
+                return (
+                  <InventoryCellView
+                    key={cell.key}
+                    cell={cell}
+                    selected={selectedKey === cell.key}
+                    scale={scale}
+                    style={{ left, top }}
+                    cellIndex={index}
+                    capacityLimit={BASE_CAPACITY}
+                    isLocked={isLocked}
+                    resolveItemIcon={resolveInventoryItemIcon}
+                    onPress={() => selectCell(cell, layout.bag.x * scale + left + GRID_CELL_W * scale, layout.bag.y * scale + top - gridScrollY)}
+                  />
+                );
+              })}
+            </View>
+          </ScrollView>
         </View>
 
         {showTooltip ? (

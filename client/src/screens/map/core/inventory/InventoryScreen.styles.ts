@@ -127,24 +127,8 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------------------------
-  // Header: name + level + element icon
+  // Header: element icon (name + level use JavaBitmapText)
   // ---------------------------------------------------------------------------
-  /** Player name. Source: hh.java:1360 — bx.d gradient font, bold, at r=cu(22,6) */
-  nameText: {
-    position: 'absolute',
-    fontWeight: '900',
-    color: '#010101',
-    includeFontPadding: false,
-    lineHeight: 14,
-  },
-  /** Level text. Source: hh.java:1363 — bx.d font, right-aligned, at r.b */
-  levelText: {
-    position: 'absolute',
-    fontWeight: '800',
-    color: '#010101',
-    includeFontPadding: false,
-    lineHeight: 14,
-  },
   /** Element icon from /tab sprite. Source: hh.java:1362 — pc.b(g,q.a,q.b,M.g) */
   elementIcon: {
     position: 'absolute',
@@ -224,16 +208,8 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------------------------
-  // Capacity text
+  // Capacity text uses JavaBitmapText (no style needed)
   // ---------------------------------------------------------------------------
-  /** Source: hh.java:1410-1412 — bx.d font */
-  capacityText: {
-    position: 'absolute',
-    fontWeight: '800',
-    color: '#010101',
-    includeFontPadding: false,
-    lineHeight: 14,
-  },
 
   // ---------------------------------------------------------------------------
   // Bag grid container
@@ -271,10 +247,7 @@ export const styles = StyleSheet.create({
   cellFilled: {
     backgroundColor: SLOT_BG,
   },
-  /** Over-capacity cell. Source: fg.java:84 — 0xFF0000, 0xFFFFFF, 15385573 */
-  cellOverCapacity: {
-    backgroundColor: GRID_CELL_OVER_BG,
-  },
+  /** Over-capacity and locked cell colors now handled in InventoryCellView via JavaThreeColorBevel props */
   cellTransparent: {
     backgroundColor: 'transparent',
   },
@@ -308,10 +281,7 @@ export const styles = StyleSheet.create({
     width: 1,
     zIndex: 0,
   },
-  /** Selected cell is rendered by focusCorner image overlay. Source: pc.java:185-192 */
-  cellSelected: {},
   /** Target slot highlight is rendered by 3 nested rect overlays. Source: hh.java:1389-1394 */
-  cellTarget: {},
   targetFrameOuter: {
     position: 'absolute',
     borderWidth: 1,
@@ -330,10 +300,6 @@ export const styles = StyleSheet.create({
   },
   cellIcon: {
     zIndex: 4,
-  },
-  missingIconText: {
-    color: '#999',
-    fontWeight: '700',
   },
 
   // ---------------------------------------------------------------------------
@@ -379,36 +345,7 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
   },
-  /**
-   * Enhancement text +N.
-   * Source: dc.java:74 — s.a(g, "+"+j, x+32, y+32-fontHeight, 2)
-   * Anchor 2 = RIGHT, gradient font d (if constructor param)
-   */
-  enhancementText: {
-    position: 'absolute',
-    color: '#FFFF68',
-    fontWeight: '900',
-    textShadowColor: '#010101',
-    textShadowOffset: { width: 1, height: 0 },
-    textShadowRadius: 0,
-    includeFontPadding: false,
-    lineHeight: 14,
-  },
-  /**
-   * Item quantity text.
-   * Source: dc.java:85 — bx.c.a(g, ""+g, x+32, y+32-fontHeight, 2)
-   * Anchor 2 = RIGHT, using bx.c (small white font)
-   */
-  quantityText: {
-    position: 'absolute',
-    color: '#FFFF68',
-    fontWeight: '900',
-    textShadowColor: '#010101',
-    textShadowOffset: { width: 1, height: 0 },
-    textShadowRadius: 0,
-    includeFontPadding: false,
-    lineHeight: 14,
-  },
+  // Enhancement text and quantity text use JavaBitmapText (no style needed)
 
   // ---------------------------------------------------------------------------
   // Tooltip — fw.java evidence
@@ -493,5 +430,16 @@ export const styles = StyleSheet.create({
     fontSize: 10,
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  headerText: {
+    fontSize: 11,
+    color: '#333',
+    fontWeight: '400',
+  },
+  gridScroll: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  gridScrollContent: {
+    position: 'relative',
   },
 });

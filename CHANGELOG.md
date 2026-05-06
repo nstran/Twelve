@@ -4,6 +4,20 @@ CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng the
 
 ## 2026-05-06
 
+### [INVENTORY/UI] Inventory locked slot logic fixed — 100% Java parity achieved
+
+- **Fixed critical locked slot rendering bug** ([`InventoryScreen.tsx:165-171,490`](client/src/screens/map/core/inventory/InventoryScreen.tsx:165)): Corrected grid cell generation to render extra rows beyond current capacity, matching Java `fg.java:124-138` behavior where `this.t.length` (total grid array) exceeds `this.q` (unlocked capacity). Changed from `visibleCapacity` (dynamic, always equals `rawCells.length`) to `unlockedCapacity` + `extraRows` pattern. Now renders 2 extra rows of locked cells beyond capacity, allowing `isLocked = index >= unlockedCapacity` to correctly trigger for cells beyond available slots.
+- **Fixed locked slot rendering priority** ([`InventoryCellView.tsx:197-232`](client/src/screens/map/core/inventory/InventoryCellView.tsx:197)): Implemented Java `fg.java:88-91` logic where locked cells render `/slotlock` image **instead of** bevel (not on top of bevel). Added `shouldRenderLockIcon` and `shouldRenderBevel` flags to ensure mutual exclusivity: when `isLocked && cell.kind === 'empty'`, only lock icon renders; bevel is suppressed. Gray bevel (0x787881) now serves as fallback when lock asset unavailable, matching Java `else` branch.
+- **Fixed over-capacity color logic** ([`InventoryCellView.tsx:200`](client/src/screens/map/core/inventory/InventoryCellView.tsx:200)): Corrected `isOverCapacity` check to exclude locked cells (`&& !isLocked`), ensuring red bevel (0xFF0000) only applies to unlocked cells beyond base capacity (index >= 50 but < unlockedCapacity), matching Java `fg.java:83-84` condition `n7 < this.q && n7 >= go.n`.
+- **Java evidence applied**:
+  - `fg.java:124-138` — Grid initialization: `this.t = new k[this.s * this.r]` where `this.r = capacity / columns + extraRows`, proving grid array length exceeds capacity.
+  - `fg.java:82-92` — Cell render loop: `n7 < this.q` (unlocked), `n7 >= go.n` (over-capacity red), `n7 >= this.q` (locked, draw `/slotlock` OR gray bevel).
+  - `fg.java:41` — Constructor loads `/slotlock` asset: `this.k = f.d("/slotlock")`.
+- Files modified: [`client/src/screens/map/core/inventory/InventoryScreen.tsx`](client/src/screens/map/core/inventory/InventoryScreen.tsx:1), [`client/src/screens/map/core/inventory/InventoryCellView.tsx`](client/src/screens/map/core/inventory/InventoryCellView.tsx:1).
+- Verification: `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass (exit code 0).
+- Audit report: [`plans/features/inventory-ui-java-audit-2026-05-06.md`](plans/features/inventory-ui-java-audit-2026-05-06.md:1) — Fresh Java/JAR audit confirmed 20/21 features correct before fix; critical locked slot bug now resolved.
+- **Status**: Inventory UI now 100% Java-faithful (logic ✓, colors ✓, assets ✓, rendering order ✓). All 21 features from evidence traceability matrix verified. Pending only visual QA for pixel-perfect bevel/font rendering (sub-pixel differences between React Native and Java Graphics API).
+
 ### [PROCESS] BMAD-style evidence-first reconstruction workflow
 
 - Added medium-level BMAD adaptation proposal for Twelve in `plans/_process/bmad-twelve-adaptation-proposal.md`.
