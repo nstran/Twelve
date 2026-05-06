@@ -105,10 +105,42 @@ const JavaThreeColorBevel = ({ width, height, scale, fillColor, accentColor }: {
 const JavaTwoColorBevel = ({ width, height, scale, fillColor }: { width: number; height: number; scale: number; fillColor: string }) => (
   <View pointerEvents="none" style={styles.javaBevelFrame}>
     <View style={[styles.javaBevelFill, { left: 2 * scale, top: 2 * scale, width: width - 3 * scale, height: height - 3 * scale, backgroundColor: fillColor }]} />
-    <View style={[styles.javaBevelOuter, { left: 0, top: 0, width, height }]} />
-    <View style={[styles.javaBevelInner, { left: 1 * scale, top: 1 * scale, width: width - 2 * scale, height: height - 2 * scale }]} />
+    <JavaDrawRect x={0} y={0} width={width} height={height} scale={scale} color="#0385FF" />
+    <JavaDrawRect x={1} y={1} width={width - 2 * scale} height={height - 2 * scale} scale={scale} color="#DEFFFF" />
   </View>
 );
+
+const JavaLine = ({ left, top, width, height, color, zIndex }: { left: number; top: number; width: number; height: number; color: string; zIndex?: number }) => (
+  <View
+    pointerEvents="none"
+    style={{
+      position: 'absolute',
+      left: Math.round(left),
+      top: Math.round(top),
+      width: Math.max(1, Math.round(width)),
+      height: Math.max(1, Math.round(height)),
+      backgroundColor: color,
+      zIndex,
+    }}
+  />
+);
+
+const JavaDrawRect = ({ x, y, width, height, scale, color, zIndex }: { x: number; y: number; width: number; height: number; scale: number; color: string; zIndex?: number }) => {
+  const line = Math.max(1, Math.round(scale));
+  const left = Math.round(x);
+  const top = Math.round(y);
+  const right = Math.round(x + width);
+  const bottom = Math.round(y + height);
+
+  return (
+    <>
+      <JavaLine left={left} top={top} width={right - left + line} height={line} color={color} zIndex={zIndex} />
+      <JavaLine left={left} top={bottom} width={right - left + line} height={line} color={color} zIndex={zIndex} />
+      <JavaLine left={left} top={top} width={line} height={bottom - top + line} color={color} zIndex={zIndex} />
+      <JavaLine left={right} top={top} width={line} height={bottom - top + line} color={color} zIndex={zIndex} />
+    </>
+  );
+};
 
 export const InventoryScreen: React.FC<InventoryScreenProps> = ({
   appearance,
@@ -174,11 +206,16 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
   const playerLevel = getPlayerLevel(appearance);
   const playerGender = appearance.genderIndex;
   const cornerAsset = INFO_ASSET_SIZES.corner2;
-  const cornerWidth = cornerAsset.width * scale;
-  const cornerHeight = cornerAsset.height * scale;
+  const cornerWidth = Math.round(cornerAsset.width * scale);
+  const cornerHeight = Math.round(cornerAsset.height * scale);
   const dragonAsset = INFO_ASSET_SIZES.hiddendragon;
   const avatarSize = measureCharacterRenderer(previewAppearance, scale, true);
-  const avatarLeft = Math.max(0, (layout.avatar.w * scale - avatarSize.w) / 2);
+  // Inventory avatar placement hybrid policy.
+  // Java evidence: hh.java:1419 renders mg at (avatar.x, avatar.y + 5); RN uses CreateCharacterPreview, not Java mg/as directly.
+  // Keep visual centering but apply the same +5 logical Y bias so the character sits lower inside the 54x60 frame.
+  // Do not clamp negative offsets: larger renderer canvases must crop symmetrically inside the avatar frame.
+  const avatarLeft = Math.round((layout.avatar.w * scale - avatarSize.w) / 2);
+  const avatarTop = Math.round((layout.avatar.h * scale - avatarSize.h) / 2 + 5 * scale);
   const elementIconAsset = INFO_ASSET_SIZES.elementsicon;
   // Java pc.a(..., byte) slices /elementsicon in 4 frames 15x15: cw.a(g, r, frameW * elementByte, 0, frameW, h, ...).
   const elementFrameWidth = 15;
@@ -358,31 +395,33 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
     <View style={styles.screenOverlay}>
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}>
+        {/* pc.java:118 — hiddendragon drawn BEFORE borders when bl2=true; zIndex=1 to stay behind grid/slots */}
         <Image
           source={INFO_ASSETS.hiddendragon}
           style={[
             styles.watermark,
             {
-              width: dragonAsset.width * scale,
-              height: dragonAsset.height * scale,
+              width: Math.round(dragonAsset.width * scale),
+              height: Math.round(dragonAsset.height * scale),
               right: 0,
-              bottom: 4 * scale,
+              bottom: Math.round(4 * scale),
             },
           ]}
           resizeMode="stretch"
         />
-        <View pointerEvents="none" style={[styles.innerBorder, { left: 1 * scale, top: 1 * scale, width: canvasWidth - 3 * scale, height: canvasHeight - 3 * scale }]} />
-        <View pointerEvents="none" style={[styles.innerBorder2, { left: 2 * scale, top: 3 * scale, width: canvasWidth - 5 * scale, height: canvasHeight - 7 * scale }]} />
-        <View pointerEvents="none" style={[styles.panelTopAccent, { left: 2 * scale, top: 2 * scale, width: canvasWidth - 4 * scale }]} />
-        <View pointerEvents="none" style={[styles.panelBottomAccent, { left: 2 * scale, top: canvasHeight - 3 * scale, width: canvasWidth - 4 * scale }]} />
-        <View pointerEvents="none" style={[styles.panelEdgeHorizontal, { left: 4 * scale, top: 0, width: canvasWidth - 8 * scale }]} />
-        <View pointerEvents="none" style={[styles.panelEdgeHorizontal, { left: 4 * scale, top: canvasHeight - scale, width: canvasWidth - 8 * scale }]} />
-        <View pointerEvents="none" style={[styles.panelEdgeVertical, { left: 0, top: 4 * scale, height: canvasHeight - 8 * scale }]} />
-        <View pointerEvents="none" style={[styles.panelEdgeVertical, { left: canvasWidth - scale, top: 4 * scale, height: canvasHeight - 8 * scale }]} />
-        <Image source={INFO_ASSETS.corner2} style={[styles.cornerImage, { left: 0, top: 0, width: cornerWidth, height: cornerHeight }]} />
-        <Image source={INFO_ASSETS.corner2} style={[styles.cornerImage, { right: 0, top: 0, width: cornerWidth, height: cornerHeight, transform: [{ scaleX: -1 }] }]} />
-        <Image source={INFO_ASSETS.corner2} style={[styles.cornerImage, { left: 0, bottom: 0, width: cornerWidth, height: cornerHeight, transform: [{ scaleY: -1 }] }]} />
-        <Image source={INFO_ASSETS.corner2} style={[styles.cornerImage, { right: 0, bottom: 0, width: cornerWidth, height: cornerHeight, transform: [{ scaleX: -1 }, { scaleY: -1 }] }]} />
+        <JavaDrawRect x={1 * scale} y={1 * scale} width={canvasWidth - 3 * scale} height={canvasHeight - 3 * scale} scale={scale} color="#00CAFF" zIndex={5} />
+        <JavaDrawRect x={2 * scale} y={3 * scale} width={canvasWidth - 5 * scale} height={canvasHeight - 7 * scale} scale={scale} color="#9837FF" zIndex={4} />
+        <View pointerEvents="none" style={[styles.panelTopAccent, { left: Math.round(2 * scale), top: Math.round(2 * scale), width: Math.round(canvasWidth - 4 * scale) }]} />
+        <View pointerEvents="none" style={[styles.panelBottomAccent, { left: Math.round(2 * scale), top: Math.round(canvasHeight - 3 * scale), width: Math.round(canvasWidth - 4 * scale) }]} />
+        <View pointerEvents="none" style={[styles.panelEdgeHorizontal, { left: Math.round(4 * scale), top: 0, width: Math.round(canvasWidth - 8 * scale) }]} />
+        <View pointerEvents="none" style={[styles.panelEdgeHorizontal, { left: Math.round(4 * scale), top: Math.round(canvasHeight - scale), width: Math.round(canvasWidth - 8 * scale) }]} />
+        <View pointerEvents="none" style={[styles.panelEdgeVertical, { left: 0, top: Math.round(4 * scale), height: Math.round(canvasHeight - 8 * scale) }]} />
+        <View pointerEvents="none" style={[styles.panelEdgeVertical, { left: Math.round(canvasWidth - scale), top: Math.round(4 * scale), height: Math.round(canvasHeight - 8 * scale) }]} />
+        {/* pc.java:132-135 — corner/2 at 4 corners with anchor 0/24/36/40. Round all positions to integer px. */}
+        <Image source={INFO_ASSETS.corner2} style={[styles.cornerImage, { left: 0, top: 0, width: cornerWidth, height: cornerHeight }]} resizeMode="stretch" />
+        <Image source={INFO_ASSETS.corner2} style={[styles.cornerImage, { right: 0, top: 0, width: cornerWidth, height: cornerHeight, transform: [{ scaleX: -1 }] }]} resizeMode="stretch" />
+        <Image source={INFO_ASSETS.corner2} style={[styles.cornerImage, { left: 0, bottom: 0, width: cornerWidth, height: cornerHeight, transform: [{ scaleY: -1 }] }]} resizeMode="stretch" />
+        <Image source={INFO_ASSETS.corner2} style={[styles.cornerImage, { right: 0, bottom: 0, width: cornerWidth, height: cornerHeight, transform: [{ scaleX: -1 }, { scaleY: -1 }] }]} resizeMode="stretch" />
         <View
           style={[
             styles.elementIcon,
@@ -421,7 +460,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
             ? { kind: 'equipment', key: `equipped-${entry.equipKey}`, entry, equipped: true }
             : { kind: 'empty', key: `slot-${slot}` };
           return (
-            <View key={`slot-${slot}`} style={[styles.slotBackground, slotStyle]}>
+            <View key={`slot-${slot}`} style={[styles.slotBackground, slotStyle, { zIndex: 2 }]}>
               <JavaThreeColorBevel width={slotStyle.width} height={slotStyle.height} scale={scale} fillColor="#657FFF" accentColor="#7FBFFF" />
               {!entry ? (
                 <View style={[styles.slotPlaceholder, { width: 32 * scale, height: 32 * scale }]}> 
@@ -449,27 +488,27 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
           );
         })}
 
-        <View style={[styles.avatarBox, scaleRect(layout.avatar, scale)]}>
+        <View style={[styles.avatarBox, scaleRect(layout.avatar, scale), { zIndex: 2 }]}>
           <CharacterRenderer
             appearance={previewAppearance}
             scale={scale}
-            style={{ position: 'absolute', left: avatarLeft, top: 5 * scale }}
+            style={{ position: 'absolute', left: avatarLeft, top: avatarTop, alignItems: 'flex-start', justifyContent: 'flex-start' }}
             anchorToBody
           />
-          <View pointerEvents="none" style={styles.avatarFrameOuter} />
-          <View pointerEvents="none" style={[styles.avatarFrameOuter, { left: 1 * scale, top: 1 * scale, right: 1 * scale, bottom: 1 * scale }]} />
-          <View pointerEvents="none" style={[styles.avatarFrameAccentTop, { left: 2 * scale, top: 2 * scale, right: 2 * scale }]} />
-          <View pointerEvents="none" style={[styles.avatarFrameAccentBottom, { left: 2 * scale, bottom: 2 * scale, right: 2 * scale }]} />
-          <View pointerEvents="none" style={[styles.avatarFrameAccentLeft, { left: 2 * scale, top: 3 * scale, bottom: 3 * scale }]} />
-          <View pointerEvents="none" style={[styles.avatarFrameAccentRight, { right: 2 * scale, top: 3 * scale, bottom: 3 * scale }]} />
+          <JavaDrawRect x={0} y={0} width={layout.avatar.w * scale} height={layout.avatar.h * scale} scale={scale} color="#135797" zIndex={12} />
+          <JavaDrawRect x={1 * scale} y={1 * scale} width={(layout.avatar.w - 2) * scale} height={(layout.avatar.h - 2) * scale} scale={scale} color="#135797" zIndex={12} />
+          <JavaLine left={2 * scale} top={2 * scale} width={(layout.avatar.w - 4) * scale} height={scale} color="#20A5DE" zIndex={13} />
+          <JavaLine left={2 * scale} top={layout.avatar.h * scale - 2 * scale} width={(layout.avatar.w - 4) * scale} height={scale} color="#20A5DE" zIndex={13} />
+          <JavaLine left={1 * scale} top={3 * scale} width={scale} height={(layout.avatar.h - 4) * scale} color="#20A5DE" zIndex={13} />
+          <JavaLine left={(layout.avatar.w - 1) * scale} top={3 * scale} width={scale} height={(layout.avatar.h - 4) * scale} color="#20A5DE" zIndex={13} />
         </View>
 
         <RNText style={[styles.headerText, { position: 'absolute', left: layout.capacityPos.x * scale, top: layout.capacityPos.y * scale }]}>
           {rawCells.length}/{BASE_CAPACITY}
         </RNText>
 
-        <View style={[styles.gridContainer, scaleRect(layout.bag, scale)]}>
-          <JavaTwoColorBevel width={layout.bag.w * scale} height={layout.bag.h * scale} scale={scale} fillColor="#F0FBFF" />
+        <View style={[styles.gridContainer, scaleRect(layout.bag, scale), { zIndex: 2 }]}>
+          <JavaTwoColorBevel width={Math.round(layout.bag.w * scale)} height={Math.round(layout.bag.h * scale)} scale={scale} fillColor="#F0FBFF" />
           <ScrollView
             style={styles.gridScroll}
             contentContainerStyle={{ height: (GRID_PADDING_Y + Math.ceil(cells.length / columns) * (GRID_CELL_H + GRID_SPACING)) * scale }}

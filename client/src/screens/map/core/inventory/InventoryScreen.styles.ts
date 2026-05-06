@@ -120,10 +120,10 @@ export const styles = StyleSheet.create({
     borderColor: PANEL_BORDER_INNER,
     zIndex: 4,
   },
-  /** Hiddendragon watermark. Source: pc.java:118 — drawn at bottom-right when bl2=true */
+  /** Hiddendragon watermark. Source: pc.java:118 — drawn BEFORE borders (line 115-118 before 120-135), so zIndex below grid/slots */
   watermark: {
     position: 'absolute',
-    zIndex: 3,
+    zIndex: 1,
   },
 
   // ---------------------------------------------------------------------------
@@ -173,8 +173,6 @@ export const styles = StyleSheet.create({
   avatarBox: {
     position: 'absolute',
     overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
   },
   avatarFrameOuter: {
     position: 'absolute',
