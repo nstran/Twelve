@@ -94,6 +94,11 @@ const JavaThreeColorBevel = ({ scale, fillColor, accentColor }: { scale: number;
   );
 };
 
+/**
+ * Focus frame with Java blink effect.
+ * Source: hh.java:1399 — J = 0/-2 blink offset creates alternating frame position.
+ * The blink alternates between offset 0 and -2 for visual feedback.
+ */
 const FocusFrame = ({ scale }: { scale: number }) => {
   const sprite = CELL_ASSET_SIZES.focusMoveChess;
   const corner = 7 * scale;
@@ -102,8 +107,19 @@ const FocusFrame = ({ scale }: { scale: number }) => {
   const sourceRight = (sprite.width - 7) * scale;
   const sourceBottom = (sprite.height - 7) * scale;
 
+  // Java blink offset J alternates between 0 and -2
+  const [blinkOffset, setBlinkOffset] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBlinkOffset((current) => (current === 0 ? -2 : 0));
+    }, 300); // ~300ms blink interval, matching typical Java game tick rate
+
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <View pointerEvents="none" style={styles.focusFrame}>
+    <View pointerEvents="none" style={[styles.focusFrame, { top: blinkOffset * scale }]}>
       <View style={[styles.focusCornerClip, { left: 0, top: 0, width: corner, height: corner }]}>
         <Image source={FOCUS_MOVE_CHESS_ASSET} style={[styles.focusCornerSheet, { width: sheetWidth, height: sheetHeight, left: 0, top: 0 }]} />
       </View>

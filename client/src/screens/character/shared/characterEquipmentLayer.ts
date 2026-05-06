@@ -41,7 +41,7 @@ export interface CharacterEquipmentLayerConfig extends CharacterLayerAssetFamily
   /** Used while only a subset of legacy equipment .meta files is decoded. */
   fallbackMetaId?: number;
   /** Legacy compositor slot this layer replaces when equipped. */
-  replacesDefaultLayer?: 'outfit' | 'weapon';
+  replacesDefaultLayer?: 'outfit' | 'weapon' | 'body';
   /** Painter order inside the character compositor. */
   zIndex: number;
 }

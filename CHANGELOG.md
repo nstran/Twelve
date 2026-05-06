@@ -2,6 +2,20 @@
 
 CHANGELOG đã được rút gọn để chỉ giữ các mốc quan trọng theo module. Chi tiết đầy đủ nằm trong tài liệu reconstruction tương ứng và lịch sử git.
 
+## 2026-05-06
+
+### [EQUIPMENT] Full aura rank system (lc.java evidence)
+
+- Implemented complete aura rank system from `lc.java:233-288` for all ranks 1-4:
+  - **Rank 1**: `w` (shadow) = aura1 (45x50) renders after body
+  - **Rank 2**: `x` (aura) = aura2 (40x55) renders on top
+  - **Rank 3**: `y` (main) = aura3 (88x95) replaces body layer
+  - **Rank 4**: aura3 + aura2 combined (purple body + blue overlay)
+- Added `aura1` asset to `AURA_LAYER_ASSETS` from `client/assets/battle/06_auras/aura1.png`
+- Updated `CharacterEquipmentLayerConfig.replacesDefaultLayer` type to include `'body'` option
+- TypeScript check passed: `client\node_modules\.bin\tsc.cmd -p client\tsconfig.json --noEmit` pass.
+- Files: `equipmentAssets.ts`, `characterEquipmentLayer.ts`, `plans/inventory-ui-reconstruction-plan.md`
+
 ## 2026-05-05
 
 ### [EQUIPMENT/UI] Inventory Java parity pass

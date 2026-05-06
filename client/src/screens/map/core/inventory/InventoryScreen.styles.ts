@@ -413,45 +413,22 @@ export const styles = StyleSheet.create({
   // ---------------------------------------------------------------------------
   // Tooltip — fw.java evidence
   // ---------------------------------------------------------------------------
+  /**
+   * Tooltip container with Java panel style.
+   * Source: fw.java — tooltip uses panel fill and border from ap.java pc.a() style.
+   */
   tooltipContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: PANEL_FILL, // v.aj = 0xF0FBFF
     borderWidth: 1,
-    borderColor: PANEL_BORDER_OUTER,
+    borderColor: PANEL_EDGE, // v.ak from ap.java
     paddingHorizontal: 6,
     paddingVertical: 4,
     zIndex: 2000,
     elevation: 2000,
   },
-  tooltipName: {
-    fontSize: 11,
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-  tooltipLine: {
-    fontSize: 9,
-    color: '#FFFFFF',
-    lineHeight: 13,
-  },
-  tooltipLineRed: {
-    fontSize: 9,
-    color: '#FF4444',
-    lineHeight: 13,
-    fontWeight: '700',
-  },
-  tooltipLineGreen: {
-    fontSize: 9,
-    color: '#44FF44',
-    lineHeight: 13,
-  },
-  tooltipLineYellow: {
-    fontSize: 9,
-    color: '#FFFF00',
-    lineHeight: 13,
-  },
-
   // ---------------------------------------------------------------------------
   // Detail dialog — hg.java evidence
   // ---------------------------------------------------------------------------
@@ -462,9 +439,13 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  /**
+   * Detail backdrop — Java uses transparent overlay.
+   * Source: hg.java — dialog overlay is transparent, not semi-black.
+   */
   detailBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'transparent',
   },
   /** Detail panel uses same pc.a() frame as main panel. Source: hg.java */
   detailPanel: {
@@ -489,47 +470,13 @@ export const styles = StyleSheet.create({
     gap: 4,
     marginBottom: 4,
   },
-  detailName: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  detailEnhancement: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#FFFF00',
-  },
+  // Detail separator line - Source: hg.java
   detailSeparator: {
     height: 1,
     backgroundColor: PANEL_BORDER_OUTER,
     marginVertical: 4,
   },
-  detailLine: {
-    fontSize: 10,
-    color: '#FFFFFF',
-    lineHeight: 14,
-  },
-  detailLineGreen: {
-    fontSize: 10,
-    color: '#44FF44',
-    lineHeight: 14,
-  },
-  detailLineRed: {
-    fontSize: 10,
-    color: '#FF4444',
-    lineHeight: 14,
-    fontWeight: '700',
-  },
-  detailLineYellow: {
-    fontSize: 10,
-    color: '#FFFF00',
-    lineHeight: 14,
-  },
-  detailDescription: {
-    fontSize: 9,
-    color: '#CCCCCC',
-    lineHeight: 13,
-    marginTop: 4,
-  },
+  // Close button row - uses JavaBitmapText
   detailCloseRow: {
     flexDirection: 'row',
     justifyContent: 'center',

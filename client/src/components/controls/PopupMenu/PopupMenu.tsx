@@ -8,10 +8,15 @@ import {
   StyleSheet,
 } from 'react-native';
 import { JavaBitmapText, measureJavaBitmapText } from '../../../screens/map/core/inventory/javaFont/JavaBitmapText';
-import { styles } from './PopupMenu.styles';
+import { styles, JAVA_MENU_FILL } from './PopupMenu.styles';
 
 const ASSET_ORNATE      = require('../../../../assets/ui/00_corner_frames/cornerskb.png');
 const ASSET_BASE_FRAME  = require('../../../../assets/ui/00_corner_frames/1.png');
+/**
+ * Corner asset for Java popup frame.
+ * Source: ap.java:12 — /_corner.png asset, drawn with drawRegion anchors 20,24,36,40 for 4 corners.
+ */
+const ASSET_CORNER = require('../../../../assets/ui/00_corner_frames/_corner.png');
 
 export interface MenuItem {
   id: number | string;
@@ -54,11 +59,13 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
   selectSignal,
   javaCompact,
 }) => {
+  console.log('[PopupMenu] Render, visible:', visible, 'items:', items.length);
   const [navStack, setNavStack] = useState<{ items: MenuItem[]; title: string; openedIndex: number }[]>([]);
   const lastSelectSignalRef = useRef(selectSignal);
 
   useEffect(() => {
     if (visible) {
+      console.log('[PopupMenu] Visible changed to true, clearing navStack');
       setNavStack([]);
     }
   }, [visible]);
@@ -114,21 +121,36 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
       <Pressable style={styles.menuBackdrop} onPress={onClose} />
 
       {allLevels.map((level, depth) => {
+        // Java popup frame dimensions from bs.java evidence
+        const itemHeight = 20; // bs.java: j = 20
+        const textXOffset = 14; // bs.java: text x+14
+        
         return (
-          <View 
-            key={`menu-level-${depth}`} 
+          <View
+            key={`menu-level-${depth}`}
             style={[
-              javaCompact ? styles.javaMenuBox : styles.menuBox,
-              { 
+              {
+                position: 'absolute',
                 zIndex: 1001 + depth,
                 elevation: 1001 + depth,
               },
-              javaCompact && javaMenuLogicalWidth !== undefined ? { width: javaMenuLogicalWidth } : null,
               top !== undefined ? { top: top + depth * 15, bottom: undefined } : { bottom: Math.max(0, (bottomOffset ?? 26) - depth * 15) },
               left !== undefined ? { left: left + depth * 15 } : { left: 4 + depth * 15 }
             ]}
           >
-            <View style={javaCompact ? styles.javaMenuInnerBox : styles.menuInnerBox}>
+            {/* Java bs popup frame - Source: bs.java:96-119, ap.java:35-48 */}
+            <View style={[
+              {
+                width: javaCompact ? javaMenuLogicalWidth : undefined,
+                minWidth: javaCompact ? 92 : 120,
+                backgroundColor: JAVA_MENU_FILL,
+                borderWidth: 2,
+                borderColor: '#0056E6',
+                paddingVertical: 6,
+                paddingHorizontal: 4,
+              },
+              javaCompact ? null : styles.menuInnerBox
+            ]}>
               {level.items.map((item, idx) => {
                 const isSelected = idx === level.openedIndex;
                 const hasChildren = item.children && item.children.length > 0;
@@ -155,20 +177,13 @@ export const PopupMenu: React.FC<PopupMenuProps> = ({
                         <View style={[styles.menuOrnateClip, { right: 0, transform: [{ scaleX: -1 }] }]}><Image source={ASSET_ORNATE} style={styles.menuOrnateImage} resizeMode="stretch" /></View>
                       </View>
                     ) : null}
-                    <View style={javaCompact ? styles.javaMenuItemContent : styles.menuItemContent}>
-                       {javaCompact ? (
-                         <JavaBitmapText text={item.label} x={14} y={3} scale={1} bold />
-                       ) : (
-                         <Text style={[styles.menuItemText, isSelected && styles.menuItemTextSelected]}>
-                           {item.label}
-                         </Text>
-                       )}
-                       {hasChildren && javaCompact ? (
-                         <JavaBitmapText text=">" x={(javaMenuLogicalWidth ?? 84) - 15} y={3} scale={1} anchor={2} bold />
-                       ) : null}
-                       {hasChildren && !javaCompact ? (
-                         <Text style={[styles.menuArrowText, isSelected && styles.menuArrowTextSelected]}>{'>'}</Text>
-                       ) : null}
+                    <View style={styles.menuItemContent}>
+                      <Text style={[styles.menuItemText, isSelected && styles.menuItemTextSelected]}>
+                        {item.label}
+                      </Text>
+                      {hasChildren ? (
+                        <Text style={[styles.menuArrowText, isSelected && styles.menuArrowTextSelected]}>{'>'}</Text>
+                      ) : null}
                     </View>
                   </TouchableOpacity>
                 );

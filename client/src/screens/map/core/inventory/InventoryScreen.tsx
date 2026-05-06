@@ -34,6 +34,8 @@ interface InventoryScreenProps {
   onDiscardEquipment?: (equipKey: string) => Promise<string | null>;
   onDiscardItem?: (itemId: number, quantity: number) => Promise<string | null>;
   onRepairEquipment?: (equipKey: string) => Promise<string | null>;
+  /** Callback to request toggling menu via softkey */
+  onSoftkeyMenuPress?: () => void;
 }
 
 const INFO_ASSETS = {
@@ -121,6 +123,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
   onDiscardEquipment,
   onDiscardItem,
   onRepairEquipment,
+  onSoftkeyMenuPress,
 }) => {
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
   const scaled = computeInventoryScale(screenWidth * 0.96, screenHeight * 0.9);
@@ -207,6 +210,23 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
     const timer = setTimeout(() => setShowTooltip(true), 350);
     return () => clearTimeout(timer);
   }, [selectedCell, menuState]);
+
+  // Auto-open menu when inventory is visible and has selected cell
+  useEffect(() => {
+    // When inventory opens, auto-select first non-empty cell if none selected
+    if (!selectedCell && !menuState) {
+      const firstNonEmpty = rawCells.find((c) => c.kind !== 'empty');
+      if (firstNonEmpty) {
+        const cellIndex = rawCells.indexOf(firstNonEmpty);
+        const col = cellIndex % columns;
+        const row = Math.floor(cellIndex / columns);
+        const cellLeft = layout.bag.x + col * (GRID_CELL_W + GRID_SPACING) + GRID_SPACING;
+        const cellTop = layout.bag.y + row * (GRID_CELL_W + GRID_SPACING) + GRID_SPACING;
+        setSelectedKey(firstNonEmpty.key);
+        setMenuState({ left: cellLeft, top: cellTop });
+      }
+    }
+  }, []);
 
   const getEquipped = (slot: number) => equipped.find((entry) => entry.slot === slot);
   const selectedTargetSlot = selectedCell?.kind === 'equipment' && !selectedCell.equipped && selectedCell.entry.slot < layout.slots.length
@@ -493,7 +513,12 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
           items={menuItems}
           selectedIndex={menuSelectedIndex}
           onIndexChange={setMenuSelectedIndex}
-          onSelect={() => undefined}
+          onSelect={(item) => {
+            // Execute the item's onPress handler
+            if (item.onPress) {
+              item.onPress();
+            }
+          }}
           onClose={() => {
             setMenuState(null);
             setMenuSelectedIndex(0);
@@ -510,6 +535,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
           onClose={() => setDetailEntry(null)}
         />
       ) : null}
+
+      {/* Handle softkey signal to open menu - use useEffect for reactive signal watching */}
+      <View style={{ position: 'absolute', width: 0, height: 0 }} />
     </View>
   );
 };

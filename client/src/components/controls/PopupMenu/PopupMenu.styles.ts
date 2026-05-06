@@ -1,6 +1,17 @@
 import { StyleSheet } from 'react-native';
 import { GameTextStyles } from '../../../theme/GameTheme';
 
+/**
+ * Java popup menu frame colors from ap.java evidence:
+ * - v.aj: fill color (0xF0FBFF)
+ * - v.al: outer border color
+ * - v.ak: inner border color
+ * - Corner pieces from /_corner.png
+ */
+export const JAVA_MENU_FILL = '#F0FBFF';
+export const JAVA_MENU_OUTER_BORDER = '#A8D8FF'; // v.al approximation
+export const JAVA_MENU_INNER_BORDER = '#DEFFFF';  // v.ak approximation
+
 export const styles = StyleSheet.create({
   menuBackdrop: {
     ...StyleSheet.absoluteFillObject,

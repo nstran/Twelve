@@ -449,6 +449,7 @@ export const SideScrollMapScreen: React.FC<Props> = ({
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuSelectedIndex, setMenuSelectedIndex] = useState(0);
   const [menuSelectSignal, setMenuSelectSignal] = useState(0);
+  const [inventoryMenuSignal, setInventoryMenuSignal] = useState(0);
   const [activeCharacterDialog, setActiveCharacterDialog] = useState<MapCharacterDialogKind | null>(null);
   const [missionDialogVisible, setMissionDialogVisible] = useState(false);
   const {
@@ -497,7 +498,11 @@ export const SideScrollMapScreen: React.FC<Props> = ({
       onOpenPotential: () => setActiveCharacterDialog('potential'),
       onOpenSkills: () => setActiveCharacterDialog('skills'),
       onOpenEquipment: () => setActiveCharacterDialog('equipment'),
-      onOpenInventory: () => setActiveCharacterDialog('inventory'),
+      onOpenInventory: () => {
+        console.log('[SideScrollMap] onOpenInventory called');
+        setActiveCharacterDialog('inventory');
+        console.log('[SideScrollMap] activeCharacterDialog set to inventory');
+      },
       onOpenWeaponShop: () => setActiveCharacterDialog('shop'),
       onOpenArmorShop: () => setActiveCharacterDialog('shop'),
       onOpenConsumableShop: () => setActiveCharacterDialog('shop'),
@@ -1190,6 +1195,7 @@ export const SideScrollMapScreen: React.FC<Props> = ({
         shop={shop}
         onLoadShop={onLoadShop}
         onBuyShopOffer={onBuyShopOffer}
+        inventoryMenuSignal={inventoryMenuSignal}
       />
 
       {missionDialogVisible && (
@@ -1259,32 +1265,39 @@ export const SideScrollMapScreen: React.FC<Props> = ({
 
       {npcTalkDialog && <NpcTalkDialog dialog={npcTalkDialog} />}
 
-      {/* ─── Unified PopupMenu usage ─── */}
-      <PopupMenu
-        visible={menuVisible}
-        items={menuItems}
-        selectedIndex={menuSelectedIndex}
-        onIndexChange={setMenuSelectedIndex}
-        onSelect={() => {}}
-        onClose={() => setMenuVisible(false)}
-        bottomOffset={27}
-        selectSignal={menuSelectSignal}
-      />
-
       {/* ─── SoftkeyBar (bottom bar) - using icons like login screen ─── */}
       <SoftkeyBar
         width={SCREEN_W}
         centerLabel={isEncounterActive ? 'Vào ngay' : isNpcTalkDialogActive ? 'Tiep tuc' : npcRoster.length > 0 ? 'Noi chuyen' : undefined}
         onLeftPress={() => {
-          if (isPvpDialogActive || isPvpPromptActive) return;
-          if (isCharacterDialogActive) return;
-          if (isMissionDialogActive) return;
-          if (isNpcTalkDialogActive) return;
-          if (isEncounterActive) return;
+          console.log('[SideScrollMap] onLeftPress triggered, menuVisible:', menuVisible, 'isCharacterDialogActive:', isCharacterDialogActive);
+          if (isPvpDialogActive || isPvpPromptActive) {
+            console.log('[SideScrollMap] Blocked by PVP dialog');
+            return;
+          }
+          if (isMissionDialogActive) {
+            console.log('[SideScrollMap] Blocked by mission dialog');
+            return;
+          }
+          if (isNpcTalkDialogActive) {
+            console.log('[SideScrollMap] Blocked by NPC talk dialog');
+            return;
+          }
+          if (isEncounterActive) {
+            console.log('[SideScrollMap] Blocked by encounter');
+            return;
+          }
+          if (isCharacterDialogActive) {
+            console.log('[SideScrollMap] Character dialog active, sending signal');
+            setInventoryMenuSignal(prev => prev + 1);
+            return;
+          }
           if (menuVisible) {
+            console.log('[SideScrollMap] Menu already visible, sending select signal');
             setMenuSelectSignal(prev => prev + 1);
             return;
           }
+          console.log('[SideScrollMap] Opening menu, menuItems count:', menuItems.length);
           setMenuVisible(true);
         }}
         onRightPress={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive || isMissionDialogActive ? () => {
@@ -1362,8 +1375,28 @@ export const SideScrollMapScreen: React.FC<Props> = ({
             }
           }
         }}
-        leftIcon={menuVisible ? ASSET_SOFTKEY_OK : isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive || isMissionDialogActive ? undefined : ASSET_SOFTKEY_MENU}
+        leftIcon={menuVisible ? ASSET_SOFTKEY_OK : isEncounterActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive || isMissionDialogActive ? undefined : isCharacterDialogActive ? ASSET_SOFTKEY_MENU : ASSET_SOFTKEY_MENU}
         rightIcon={menuVisible || isEncounterActive || isCharacterDialogActive || isPvpDialogActive || isPvpPromptActive || isNpcTalkDialogActive || isMissionDialogActive ? ASSET_SOFTKEY_CANCEL : undefined}
+      />
+
+      {/* ─── Unified PopupMenu usage (render last for highest z-index) ─── */}
+      <PopupMenu
+        visible={menuVisible}
+        items={menuItems}
+        selectedIndex={menuSelectedIndex}
+        onIndexChange={setMenuSelectedIndex}
+        onSelect={(item) => {
+          console.log('[SideScrollMap] PopupMenu onSelect called, item:', item.label);
+          // Close menu first, then let item.onPress handle opening dialogs
+          setMenuVisible(false);
+        }}
+        onClose={() => {
+          console.log('[SideScrollMap] PopupMenu onClose called');
+          setMenuVisible(false);
+        }}
+        bottomOffset={80}
+        selectSignal={menuSelectSignal}
+        javaCompact={true}
       />
 
     </View>

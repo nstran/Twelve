@@ -99,6 +99,8 @@ interface MapCharacterDialogsProps {
   shop?: CharacterShopResponse | null;
   onLoadShop?: () => Promise<CharacterShopResponse | null>;
   onBuyShopOffer?: (offerKey: string) => Promise<string | null>;
+  /** Signal from softkey menu button when inventory/equipment is open */
+  inventoryMenuSignal?: number;
 }
 
 const PRIMARY_STAT: Record<number, number> = { 0: 0, 1: 2, 2: 1 };
@@ -1423,6 +1425,7 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
   shop,
   onLoadShop,
   onBuyShopOffer,
+  inventoryMenuSignal,
 }) => {
   const [pending, setPending] = useState<string | null>(null);
 
@@ -1454,6 +1457,7 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
   };
 
   if (activeDialog === 'equipment' || activeDialog === 'inventory') {
+    console.log('[MapCharacterDialogs] Rendering InventoryScreen, activeDialog:', activeDialog, 'signal:', inventoryMenuSignal);
     return (
       <InventoryScreen
         appearance={appearance}
@@ -1466,6 +1470,9 @@ export const MapCharacterDialogs: React.FC<MapCharacterDialogsProps> = ({
         onDiscardEquipment={onDiscardEquipment}
         onDiscardItem={onDiscardItem}
         onRepairEquipment={onRepairEquipment}
+        onSoftkeyMenuPress={() => {
+          console.log('[MapCharacterDialogs] InventoryScreen softkey menu pressed, signal:', inventoryMenuSignal);
+        }}
       />
     );
   }
