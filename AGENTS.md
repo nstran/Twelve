@@ -209,6 +209,62 @@ Think of it like a human reviewing their journal and updating their mental model
 
 The goal: Be helpful without being annoying. Check in a few times a day, do useful background work, but respect quiet time.
 
+## OpenClaw multi-agent coordination (Twelve)
+
+OpenClaw exposes multiple **agent ids** (`dev`, `architect`, `debug`, `review`, `docs`) that may share this workspace. The stack does **not** auto-assign tickets. Coordination works when **you** (the model in-session) follow this playbook and actually use `sessions_spawn` / the `subagents` tool when the user wants parallel or role-split work—do not only *describe* spawning; execute it when policy says so.
+
+### Agent roles
+
+| Agent id | Responsibility |
+|---------|-----------------|
+| `dev` | Default executor: implement, refactor, run tests/builds, summarize diffs and results. |
+| `architect` | Architecture and design: boundaries, modules, migration/refactor plans, trade-offs, impact. |
+| `debug` | Hard bugs: reproduce, logs, trace root cause before large code changes. |
+| `review` | Post-change review: regression risk, security/edge cases, coupling. |
+| `docs` | Documentation: README, reconstruction notes, changelogs, setup guides. |
+
+### When to act alone vs spawn
+
+**Stay on the current agent (usually `dev`)** for small, clear tasks:
+
+- Single-bug fixes, localized UI tweaks, “find file X”, one module touch.
+- Do read → edit → test → report changed paths.
+
+**Use `sessions_spawn` to other agent ids** for larger or parallel work:
+
+1. **Medium / needs design** — `architect` produces a short plan and options; then `dev` implements; then `review` checks after implementation.
+2. **Hard runtime bugs** — `debug` narrows root cause; `dev` applies fix; `review` validates.
+3. **Docs-only** — `docs` drafts; executor or user does final pass.
+
+**Do not** spawn sub-agents for trivial tasks (saves time, tokens, and failure modes).
+
+### Operating principles
+
+1. **Deliverables:** Every substantive change ends with: files touched, why, and test/build/lint result—or explicit blocker.
+2. **Destructive work:** No mass delete, risky migrations, or credential changes without explicit user approval.
+3. **Big decisions:** Offer 2–3 options with clear trade-offs; wait when the user must choose.
+4. **Honesty:** If spawn limits, tools, or context block the plan, say so and fall back (single agent, sequential steps).
+5. **Parallelism:** Split only **independent** tasks (e.g. client vs server investigation). Respect `subagents` limits in gateway config (`maxConcurrent`, `maxChildrenPerAgent`, `maxSpawnDepth`).
+
+### Example orchestration (user request)
+
+User: *“Audit battle system, list bugs, propose refactor.”*
+
+Suggested sequence:
+
+1. Spawn `architect` — read `BATTLE_SYSTEM_RECONSTRUCTION.md` + battle source; return structured plan and risk areas.
+2. Spawn `debug` — trace likely failure modes / inconsistencies (no large rewrites until findings are summarized).
+3. Spawn `review` — after or alongside, note coupling and regression vectors.
+4. **Current session (`dev`)** merges outputs into one report: severity-ordered bugs, refactor phases, optional patches if user wants immediate fixes.
+
+Adjust if the user tightens scope (“architecture only”, “no code changes yet”).
+
+### Stack reminders for this repo
+
+- **Client / server:** `client/`, `server/` — state which side you touched.
+- **Design docs:** `docs/`, `plans/`, `*RECONSTRUCTION*.md` — cite paths when spawning research tasks.
+- **Solution entry:** `Twelve.sln` and `.csproj` files — prefer `dotnet build` / project-specific test commands when documenting verification.
+
 ## Make It Yours
 
 This is a starting point. Add your own conventions, style, and rules as you figure out what works.
